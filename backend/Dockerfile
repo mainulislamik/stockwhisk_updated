@@ -22,7 +22,8 @@ RUN pip install -r requirements.txt
 COPY . .
 
 # Non-root runtime user; owns the volumes it writes (static/media).
-RUN adduser --system --group --home /app app \
+RUN chmod +x /app/deploy/docker/entrypoint.sh \
+    && adduser --system --group --home /app app \
     && mkdir -p /app/staticfiles /app/media \
     && chown -R app:app /app
 USER app
