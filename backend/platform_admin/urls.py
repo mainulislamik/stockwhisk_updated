@@ -14,6 +14,7 @@ from .views import (
     ShopAdminViewSet,
     StopImpersonationView,
     TutorialVideoViewSet,
+    ServerMetricsView,
 )
 
 app_name = "platform_admin"
@@ -27,6 +28,7 @@ router.register("tutorials", TutorialVideoViewSet, basename="admin-tutorials")
 
 urlpatterns = [
     path("dashboard/", PlatformDashboardView.as_view(), name="dashboard"),
+    path("metrics/", ServerMetricsView.as_view(), name="metrics"),
     path("revenue-by-method/", RevenueByMethodView.as_view(), name="revenue-by-method"),
     path("active-users/", ActiveUsersView.as_view(), name="active-users"),
     path("plan/", PlanView.as_view(), name="plan"),

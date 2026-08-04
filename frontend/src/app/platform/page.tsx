@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api } from "@/lib/api";
 import { startImpersonation } from "@/lib/impersonation";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner, StatCard, money } from "@/components/ui";
+import { ServerMetrics } from "./ServerMetrics";
 
 type Shop = {
   id: number;
@@ -53,6 +54,10 @@ export default function OverviewPage() {
   return (
     <>
       <PageHeader title="Platform Overview" />
+
+      <div className="mb-4">
+        <ServerMetrics />
+      </div>
 
       <div className="row g-3 mb-3">
         <div className="col-6 col-lg-3"><StatCard label="Total shops" value={data.total_shops} icon="bi-shop" /></div>

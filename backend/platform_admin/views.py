@@ -79,6 +79,66 @@ class ShopAdminSerializer(serializers.ModelSerializer):
         return (not obj.is_active) and self._days_suspended(obj) >= SHOP_DELETE_COOLOFF.days
 
 
+class TenantDashboardView(APIView):
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request, shop_id):
+        # A view combining stats about a specific shop...
+        # Currently just a stub, real implementation depends on what platform staff need.
+        return Response({"status": "stub"})
+
+
+class ServerMetricsView(APIView):
+    """
+    Returns real-time server metrics (CPU, RAM, Disk, Network) using psutil,
+    plus the count of active platform visitors.
+    """
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        try:
+            import psutil
+        except ImportError:
+            return Response({"error": "psutil not installed"}, status=500)
+
+        # CPU
+        cpu_percent = psutil.cpu_percent(interval=None)
+
+        # Memory
+        mem = psutil.virtual_memory()
+
+        # Disk
+        disk = psutil.disk_usage('/')
+
+        # Network
+        net = psutil.net_io_counters()
+
+        # Active visitors
+        # We consider a user active if last_seen is within the ONLINE_WINDOW_SECONDS (300s).
+        from django.utils import timezone
+        active_window = timezone.now() - timedelta(seconds=User.ONLINE_WINDOW_SECONDS)
+        active_visitors = User.objects.filter(last_seen__gte=active_window).count()
+
+        return Response({
+            "cpu_percent": cpu_percent,
+            "memory": {
+                "total": mem.total,
+                "used": mem.used,
+                "percent": mem.percent,
+            },
+            "disk": {
+                "total": disk.total,
+                "used": disk.used,
+                "percent": disk.percent,
+            },
+            "network": {
+                "bytes_sent": net.bytes_sent,
+                "bytes_recv": net.bytes_recv,
+            },
+            "active_visitors": active_visitors,
+        })
+
+
 class PlatformDashboardView(APIView):
     permission_classes = [IsPlatformStaff]
 
