@@ -1,0 +1,9 @@
+{
+  "name": "StockWhisk",
+  "short_name": "StockWhisk",
+  "start_url": "/app",
+  "display": "standalone",
+  "background_color": "#f3eee9",
+  "theme_color": "#1B3C53",
+  "icons": []
+}

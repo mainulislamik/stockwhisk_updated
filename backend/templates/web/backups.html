@@ -1,0 +1,34 @@
+{% extends "web/base.html" %}
+{% block title %}System Backups{% endblock %}
+{% block heading %}System Backups{% endblock %}
+{% block content %}
+<div class="card shadow-sm border-primary">
+  <div class="card-body">
+    <h5 class="card-title text-primary mb-3">Backup & Restore</h5>
+    <p class="card-text text-secondary mb-4">
+      You can download a full database SQL dump at any time. This file contains all your shops, users, products, and configurations.
+      <br>If you are migrating or need to rollback, you can upload a `.sql` file to restore the database.
+    </p>
+
+    <div class="d-flex align-items-center flex-wrap gap-4 border-top pt-4">
+      <div>
+        <h6 class="fw-bold mb-2">Create a Backup</h6>
+        <p class="small text-secondary mb-3">Download a safe snapshot of the live database.</p>
+        <a href="{% url 'web:download_database_backup' %}" class="btn btn-outline-primary">Download Backup (.sql)</a>
+      </div>
+      
+      <div class="vr d-none d-md-block" style="height: 100px;"></div>
+      
+      <div>
+        <h6 class="fw-bold mb-2 text-danger">Restore from Backup</h6>
+        <p class="small text-secondary mb-3">Upload a `.sql` file to completely overwrite the current database.</p>
+        <form method="post" action="{% url 'web:restore_database' %}" enctype="multipart/form-data" class="d-flex align-items-center gap-2" onsubmit="return confirm('WARNING: This will completely overwrite your current database with the uploaded file! Are you absolutely sure?');">
+          {% csrf_token %}
+          <input type="file" name="backup_file" class="form-control" accept=".sql" required style="max-width: 300px;">
+          <button type="submit" class="btn btn-danger">Restore</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

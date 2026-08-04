@@ -1,0 +1,71 @@
+from core.api import TenantScopedViewSet
+
+from .models import Brand, Category, Product, ProductVariation, Unit, ProductUnit
+from .serializers import (
+    BrandSerializer,
+    CategorySerializer,
+    ProductSerializer,
+    ProductVariationSerializer,
+    UnitSerializer,
+    ProductUnitSerializer,
+)
+
+
+class CategoryViewSet(TenantScopedViewSet):
+    serializer_class = CategorySerializer
+    required_perm = "manage_products"
+
+    def get_queryset(self):
+        return Category.objects.all()
+
+class ProductUnitViewSet(TenantScopedViewSet):
+    serializer_class = ProductUnitSerializer
+    required_perm = "manage_products"
+
+    def get_queryset(self):
+        qs = ProductUnit.objects.all()
+        product_id = self.request.query_params.get("product")
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+        status = self.request.query_params.get("status")
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+
+
+class BrandViewSet(TenantScopedViewSet):
+    serializer_class = BrandSerializer
+    required_perm = "manage_products"
+
+    def get_queryset(self):
+        return Brand.objects.all()
+
+
+class UnitViewSet(TenantScopedViewSet):
+    serializer_class = UnitSerializer
+    required_perm = "manage_products"
+
+    def get_queryset(self):
+        return Unit.objects.all()
+
+
+from .services import ProductService
+
+class ProductViewSet(TenantScopedViewSet):
+    serializer_class = ProductSerializer
+    required_perm = "manage_products"
+
+    def get_queryset(self):
+        params = self.request.query_params
+        low_stock = params.get("low_stock") in {"1", "true"}
+        search = params.get("search")
+        return ProductService.get_catalog_queryset(low_stock=low_stock, search=search)
+
+
+class ProductVariationViewSet(TenantScopedViewSet):
+    serializer_class = ProductVariationSerializer
+    required_perm = "manage_products"
+
+    def get_queryset(self):
+        return ProductVariation.objects.select_related("product")

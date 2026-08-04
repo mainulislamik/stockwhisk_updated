@@ -1,0 +1,36 @@
+# Node
+node_modules/
+.next/
+out/
+build/
+dist/
+.npm/
+
+# Python / Django
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Django media and static
+media/
+staticfiles/
+db.sqlite3
+
+# OS / Editor
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+pgdata/
+redisdata/

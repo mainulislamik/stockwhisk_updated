@@ -1,0 +1,27 @@
+stockwhisk.com, www.stockwhisk.com {
+    encode zstd gzip
+    
+    # 12M upload limit
+    request_body {
+        max_size 12MB
+    }
+
+    # Serve static files
+    handle_path /static/* {
+        root * /var/www/static
+        file_server
+        header Cache-Control "public, immutable"
+    }
+
+    # Serve media files
+    handle_path /media/* {
+        root * /var/www/media
+        file_server
+    }
+
+    # Proxy everything else to Django
+    reverse_proxy web:8000 {
+        header_up X-Real-IP {remote_host}
+        header_up X-Forwarded-Proto {scheme}
+    }
+}

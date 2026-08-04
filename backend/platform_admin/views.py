@@ -1,0 +1,666 @@
+"""
+Super-admin (platform) API — operated by platform staff, not tenants.
+
+All reads use ``bypass_tenant_scope`` because platform staff legitimately see
+across every tenant. "Login as shop" mints a fresh JWT for that shop's owner so
+the fully tenant-scoped shop frontend just works; the frontend keeps the admin
+token aside and can switch back. Every sensitive action is audited.
+"""
+from datetime import timedelta
+from decimal import Decimal
+
+from django.db.models import Count, DecimalField, Sum
+from django.db.models.functions import Coalesce
+from django.utils import timezone
+from rest_framework import serializers, status, viewsets
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework.views import APIView
+from rest_framework_simplejwt.tokens import RefreshToken
+
+from accounts.models import RoleType, User
+from audit.models import AuditLog
+from audit.services import record
+from core.permissions import IsPlatformStaff
+from core.tenant_context import bypass_tenant_scope
+from tenants.models import Shop, SubscriptionPlan
+from tenants.services import register_shop
+
+from .models import ContactMessage, TutorialVideo
+
+_DEC = DecimalField(max_digits=18, decimal_places=2)
+
+# A shop must sit suspended this long before it can be permanently deleted.
+SHOP_DELETE_COOLOFF = timedelta(days=15)
+
+# Feature flags exposed on the single subscription plan.
+FEATURE_KEYS = [
+    "pos", "basic_analytics", "advanced_analytics", "reports_export",
+    "multi_branch", "api_access",
+]
+
+
+# --- Shops -------------------------------------------------------------------
+
+class ShopAdminSerializer(serializers.ModelSerializer):
+    plan_tier = serializers.CharField(source="plan.tier", read_only=True, default=None)
+    user_count = serializers.IntegerField(read_only=True, required=False)
+    owner_email = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
+    days_suspended = serializers.SerializerMethodField()
+
+    # Write-only fields used only when provisioning a new shop.
+    owner_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    owner_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
+
+    class Meta:
+        model = Shop
+        fields = [
+            "id", "name", "slug", "business_type", "phone", "email",
+            "plan", "plan_tier", "is_active", "trial_ends_at", "suspended_at",
+            "user_count", "owner_email", "can_delete", "days_suspended",
+            "created_at", "owner_name", "owner_password",
+        ]
+        read_only_fields = ["id", "slug", "created_at", "suspended_at"]
+
+    def get_owner_email(self, obj):
+        owner = User.objects.filter(shop_id=obj.id, role=RoleType.OWNER).first()
+        return owner.email if owner else None
+
+    def _days_suspended(self, obj):
+        if obj.is_active or not obj.suspended_at:
+            return 0
+        return (timezone.now() - obj.suspended_at).days
+
+    def get_days_suspended(self, obj):
+        return self._days_suspended(obj)
+
+    def get_can_delete(self, obj):
+        return (not obj.is_active) and self._days_suspended(obj) >= SHOP_DELETE_COOLOFF.days
+
+
+class PlatformDashboardView(APIView):
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        from billing.models import ManualPayment
+
+        now = timezone.now()
+        with bypass_tenant_scope():
+            shops = Shop.objects.all()
+            total = shops.count()
+            active = shops.filter(is_active=True).count()
+            on_trial = shops.filter(trial_ends_at__gt=now).count()
+            by_type = list(
+                shops.values("business_type").annotate(n=Count("id")).order_by("-n")
+            )
+            pending_payments = ManualPayment.objects.filter(
+                status=ManualPayment.Status.PENDING
+            ).count()
+            approved_revenue = ManualPayment.objects.filter(
+                status=ManualPayment.Status.APPROVED
+            ).aggregate(v=Coalesce(Sum("amount", output_field=_DEC),
+                                   Decimal("0"), output_field=_DEC))["v"]
+            recent = list(shops.select_related("plan").order_by("-created_at")[:8])
+            recent_shops = ShopAdminSerializer(recent, many=True).data
+
+        type_labels = dict(Shop.BusinessType.choices)
+        for row in by_type:
+            row["label"] = type_labels.get(row["business_type"], row["business_type"])
+
+        unread_messages = ContactMessage.objects.filter(is_read=False).count()
+        return Response({
+            "total_shops": total,
+            "active_shops": active,
+            "trial_shops": on_trial,
+            "suspended_shops": total - active,
+            "by_business_type": by_type,
+            "pending_payments": pending_payments,
+            "approved_revenue": approved_revenue,
+            "unread_messages": unread_messages,
+            "recent_shops": recent_shops,
+        })
+
+
+class ShopAdminViewSet(viewsets.ModelViewSet):
+    """CRUD + suspend/activate + login-as over all shops (staff only)."""
+
+    permission_classes = [IsPlatformStaff]
+    serializer_class = ShopAdminSerializer
+
+    def get_queryset(self):
+        with bypass_tenant_scope():
+            qs = Shop.objects.select_related("plan").annotate(
+                user_count=Count("users")
+            ).order_by("-created_at")
+            if q := self.request.query_params.get("q"):
+                qs = qs.filter(name__icontains=q)
+            return qs
+
+    def create(self, request, *args, **kwargs):
+        data = request.data
+        email = (data.get("owner_email") or "").strip().lower()
+        if not email:
+            return Response({"detail": "Owner email is required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if User.objects.filter(email__iexact=email).exists():
+            return Response({"detail": "A user with that email already exists."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        password = data.get("owner_password") or ""
+        if len(password) < 8:
+            return Response({"detail": "Owner password must be at least 8 characters."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        name = (data.get("name") or "").strip()
+        if not name:
+            return Response({"detail": "Shop name is required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        plan = SubscriptionPlan.objects.filter(pk=data.get("plan")).first() if data.get("plan") else None
+        shop, owner = register_shop(
+            name=name,
+            owner_email=email,
+            owner_password=password,
+            owner_name=data.get("owner_name", ""),
+            business_type=data.get("business_type", Shop.BusinessType.GENERAL),
+            phone=data.get("phone", ""),
+            plan=plan,
+        )
+        record(action=AuditLog.Action.CREATE, actor=request.user, shop=shop, target=shop,
+               description=f"Shop '{shop.name}' created by platform admin")
+        out = self.get_serializer(shop).data
+        return Response(out, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def suspend(self, request, pk=None):
+        shop = self.get_object()
+        shop.is_active = False
+        shop.suspended_at = timezone.now()
+        shop.save(update_fields=["is_active", "suspended_at"])
+        record(action=AuditLog.Action.SUSPEND, actor=request.user, shop=shop,
+               target=shop, description="Shop suspended by platform admin")
+        return Response(self.get_serializer(shop).data)
+
+    @action(detail=True, methods=["post"])
+    def activate(self, request, pk=None):
+        shop = self.get_object()
+        shop.is_active = True
+        shop.suspended_at = None
+        shop.save(update_fields=["is_active", "suspended_at"])
+        record(action=AuditLog.Action.ACTIVATE, actor=request.user, shop=shop,
+               target=shop, description="Shop activated by platform admin")
+        return Response(self.get_serializer(shop).data)
+
+    @action(detail=True, methods=["post"], url_path="owner-password")
+    def owner_password(self, request, pk=None):
+        shop = self.get_object()
+        owner = User.objects.filter(shop_id=shop.id, role=RoleType.OWNER).first()
+        if owner is None:
+            return Response({"detail": "This shop has no owner account."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        new_pw = request.data.get("new_password", "")
+        if len(new_pw) < 6:
+            return Response({"detail": "Password must be at least 6 characters."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        owner.set_password(new_pw)
+        owner.save(update_fields=["password"])
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=owner,
+               description=f"Owner password reset by platform admin ({owner.email})")
+        return Response({"status": "reset", "owner_email": owner.email})
+
+    @action(detail=True, methods=["post"])
+    def impersonate(self, request, pk=None):
+        """Session-based impersonation (server-rendered admin / API parity)."""
+        from core.middleware import IMPERSONATE_SESSION_KEY
+        shop = self.get_object()
+        request.session[IMPERSONATE_SESSION_KEY] = shop.id
+        record(action=AuditLog.Action.IMPERSONATE_START, actor=request.user, shop=shop,
+               target=shop, description=f"Platform admin started impersonating '{shop.name}'",
+               metadata={"impersonator_id": request.user.id})
+        return Response({"status": "impersonating", "shop_id": shop.id})
+
+    @action(detail=True, methods=["post"], url_path="login-as")
+    def login_as(self, request, pk=None):
+        """Mint owner JWTs so the admin can enter the shop with no password."""
+        shop = self.get_object()
+        owner = User.objects.filter(
+            shop_id=shop.id, role=RoleType.OWNER, is_active=True
+        ).first()
+        if owner is None:
+            return Response({"detail": "This shop has no active owner to log in as."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        record(action=AuditLog.Action.IMPERSONATE_START, actor=request.user, shop=shop,
+               target=shop, description=f"Platform admin logging in as '{shop.name}'",
+               metadata={"impersonator_id": request.user.id, "owner_id": owner.id})
+        refresh = RefreshToken.for_user(owner)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "shop_name": shop.name,
+            "owner_email": owner.email,
+        })
+
+    def destroy(self, request, *args, **kwargs):
+        shop = self.get_object()
+        typed = (request.data.get("confirm_name") or "").strip()
+        if typed != shop.name:
+            return Response({"detail": "Confirmation name did not match — shop not deleted."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if shop.is_active:
+            return Response(
+                {"detail": "Suspend the shop first — it must be suspended for 15 days before deletion."},
+                status=status.HTTP_400_BAD_REQUEST)
+        elapsed = (timezone.now() - shop.suspended_at) if shop.suspended_at else timedelta(0)
+        if elapsed < SHOP_DELETE_COOLOFF:
+            left = SHOP_DELETE_COOLOFF.days - elapsed.days
+            return Response(
+                {"detail": f"Shop must be suspended for 15 days before deletion — {left} day(s) left."},
+                status=status.HTTP_400_BAD_REQUEST)
+        name, sid = shop.name, shop.pk
+        record(action=AuditLog.Action.DELETE, actor=request.user, shop=None,
+               target_model="Shop", target_id=sid,
+               description=f"Permanently deleted shop '{name}' (#{sid}) and all its data")
+        shop.delete()
+        return Response({"status": "deleted", "name": name})
+
+
+# --- Active users ------------------------------------------------------------
+
+class ActiveUsersView(APIView):
+    """Cross-shop user table with a live 'online now' indicator."""
+
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        show_all = request.query_params.get("all") == "1"
+        q = request.query_params.get("q", "")
+        cutoff = timezone.now() - timedelta(seconds=User.ONLINE_WINDOW_SECONDS)
+        with bypass_tenant_scope():
+            qs = User.objects.select_related("shop").order_by("-last_seen")
+            if q:
+                qs = qs.filter(email__icontains=q)
+            online_count = User.objects.filter(last_seen__gte=cutoff).count()
+            if not show_all:
+                qs = qs.filter(last_seen__gte=cutoff)
+            rows = [{
+                "id": u.id,
+                "name": (f"{u.first_name} {u.last_name}".strip() or None),
+                "email": u.email,
+                "shop_name": u.shop.name if u.shop else None,
+                "is_staff": u.is_staff,
+                "role": u.role,
+                "online": bool(u.last_seen and u.last_seen >= cutoff),
+                "last_seen": u.last_seen,
+            } for u in qs[:500]]
+        return Response({"users": rows, "online_count": online_count, "show_all": show_all})
+
+
+# --- Subscription plan -------------------------------------------------------
+
+class PlanView(APIView):
+    """Manage the single subscription plan + its feature flags."""
+
+    permission_classes = [IsPlatformStaff]
+
+    def _plan(self):
+        return SubscriptionPlan.objects.order_by("-is_active", "price_monthly").first()
+
+    def _serialize(self, plan):
+        if plan is None:
+            return None
+        return {
+            "id": plan.id,
+            "name": plan.name,
+            "tier": plan.tier,
+            "price_monthly": plan.price_monthly,
+            "price_yearly": plan.price_yearly,
+            "max_users": plan.max_users,
+            "max_branches": plan.max_branches,
+            "max_products": plan.max_products,
+            "features": {k: bool((plan.features or {}).get(k)) for k in FEATURE_KEYS},
+            "is_active": plan.is_active,
+        }
+
+    def get(self, request):
+        return Response({"plan": self._serialize(self._plan()), "feature_keys": FEATURE_KEYS})
+
+    def put(self, request):
+        plan = self._plan()
+        if plan is None:
+            return Response({"detail": "No subscription plan exists."},
+                            status=status.HTTP_404_NOT_FOUND)
+        d = request.data
+        plan.name = d.get("name", plan.name)
+        plan.price_monthly = d.get("price_monthly") or 0
+        plan.price_yearly = d.get("price_yearly") or 0
+        plan.max_users = d.get("max_users") or plan.max_users
+        plan.max_branches = d.get("max_branches") or plan.max_branches
+        plan.max_products = d.get("max_products") or plan.max_products
+        enabled = set(d.get("features") or [])
+        plan.features = {k: (k in enabled) for k in FEATURE_KEYS}
+        plan.is_active = True
+        plan.save()
+        record(action=AuditLog.Action.UPDATE, actor=request.user, target=plan,
+               description=f"Subscription plan '{plan.name}' updated by platform admin")
+        return Response({"plan": self._serialize(plan), "feature_keys": FEATURE_KEYS})
+
+
+# --- Contact messages --------------------------------------------------------
+
+class ContactMessageSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = ["id", "name", "email", "phone", "subject", "message",
+                  "is_read", "created_at"]
+        read_only_fields = fields
+
+
+class ContactMessageViewSet(viewsets.ReadOnlyModelViewSet):
+    permission_classes = [IsPlatformStaff]
+    serializer_class = ContactMessageSerializer
+    queryset = ContactMessage.objects.all()
+
+    def list(self, request, *args, **kwargs):
+        qs = self.get_queryset()
+        data = self.get_serializer(qs, many=True).data
+        return Response({
+            "messages": data,
+            "unread_count": qs.filter(is_read=False).count(),
+        })
+
+    @action(detail=True, methods=["post"], url_path="mark-read")
+    def mark_read(self, request, pk=None):
+        msg = self.get_object()
+        msg.is_read = True
+        msg.save(update_fields=["is_read"])
+        return Response({"status": "read"})
+
+    def destroy(self, request, *args, **kwargs):
+        self.get_object().delete()
+        return Response({"status": "deleted"})
+
+
+# --- Tutorial videos ---------------------------------------------------------
+
+class TutorialVideoSerializer(serializers.ModelSerializer):
+    video_id = serializers.CharField(read_only=True)
+    thumbnail_url = serializers.CharField(read_only=True)
+    embed_url = serializers.CharField(read_only=True)
+
+    class Meta:
+        model = TutorialVideo
+        fields = ["id", "title", "youtube_url", "sequence", "is_active",
+                  "video_id", "thumbnail_url", "embed_url"]
+        read_only_fields = ["id", "video_id", "thumbnail_url", "embed_url"]
+
+    def validate(self, attrs):
+        # Validate the resulting URL parses to a real YouTube id.
+        url = attrs.get("youtube_url", getattr(self.instance, "youtube_url", ""))
+        if not TutorialVideo(youtube_url=url).video_id:
+            raise serializers.ValidationError(
+                {"youtube_url": "That doesn't look like a valid YouTube link."})
+        return attrs
+
+
+class TutorialVideoViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsPlatformStaff]
+    serializer_class = TutorialVideoSerializer
+    queryset = TutorialVideo.objects.all()
+
+    def perform_create(self, serializer):
+        from django.db.models import Max
+        if not serializer.validated_data.get("sequence"):
+            nxt = (TutorialVideo.objects.aggregate(m=Max("sequence"))["m"] or 0) + 1
+            serializer.save(sequence=max(1, nxt))
+        else:
+            serializer.save()
+
+
+# --- Manual billing review ---------------------------------------------------
+
+class ManualPaymentAdminSerializer(serializers.ModelSerializer):
+    shop_name = serializers.CharField(source="shop.name", read_only=True)
+
+    class Meta:
+        from billing.models import ManualPayment
+        model = ManualPayment
+        fields = [
+            "id", "shop", "shop_name", "amount", "method", "payer_reference",
+            "proof", "status", "submitted_at", "reviewed_at", "rejection_reason",
+        ]
+
+
+class ManualPaymentAdminViewSet(viewsets.ReadOnlyModelViewSet):
+    """Super Admin queue for reviewing offline payments across all shops."""
+
+    permission_classes = [IsPlatformStaff]
+    serializer_class = ManualPaymentAdminSerializer
+
+    def get_queryset(self):
+        from billing.models import ManualPayment
+        with bypass_tenant_scope():
+            qs = ManualPayment.objects.select_related("shop").order_by("-submitted_at")
+            if s := self.request.query_params.get("status"):
+                qs = qs.filter(status=s)
+            return qs
+
+    @action(detail=True, methods=["post"])
+    def approve(self, request, pk=None):
+        from billing.services import approve_payment
+        payment = self.get_object()
+        try:
+            approve_payment(payment=payment, reviewer=request.user)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=payment.shop,
+               target=payment, description="Manual payment approved")
+        return Response({"status": "approved"})
+
+    @action(detail=True, methods=["post"])
+    def reject(self, request, pk=None):
+        from billing.services import reject_payment
+        payment = self.get_object()
+        reason = request.data.get("reason", "")
+        try:
+            reject_payment(payment=payment, reviewer=request.user, reason=reason)
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=payment.shop,
+               target=payment, description=f"Manual payment rejected: {reason}")
+        return Response({"status": "rejected"})
+
+
+# --- Public API keys ---------------------------------------------------------
+
+class APIKeyAdminViewSet(viewsets.ModelViewSet):
+    """Super Admin issues / revokes public-API keys per shop (9.7)."""
+
+    permission_classes = [IsPlatformStaff]
+    http_method_names = ["get", "post", "delete"]
+
+    def get_serializer_class(self):
+        from public_api.models import APIKey
+
+        class APIKeySerializer(serializers.ModelSerializer):
+            shop_name = serializers.CharField(source="shop.name", read_only=True)
+
+            class Meta:
+                model = APIKey
+                fields = ["id", "shop", "shop_name", "name", "prefix", "can_read",
+                          "can_write", "resources", "rate_tier", "is_active",
+                          "last_used_at", "created_at"]
+                read_only_fields = ["prefix", "last_used_at"]
+        return APIKeySerializer
+
+    def get_queryset(self):
+        from public_api.models import APIKey
+        with bypass_tenant_scope():
+            return APIKey.objects.select_related("shop").order_by("-created_at")
+
+    def create(self, request, *args, **kwargs):
+        from public_api.models import APIKey
+        with bypass_tenant_scope():
+            shop = Shop.objects.filter(pk=request.data.get("shop")).first()
+        if shop is None:
+            return Response({"detail": "Invalid shop."}, status=status.HTTP_400_BAD_REQUEST)
+        instance, raw = APIKey.generate(
+            shop=shop, name=request.data.get("name", "API key"),
+            can_read=request.data.get("can_read", True),
+            can_write=request.data.get("can_write", False),
+            resources=request.data.get("resources", ["products", "inventory"]),
+            rate_tier=request.data.get("rate_tier", APIKey.RateTier.STANDARD),
+        )
+        record(action=AuditLog.Action.CREATE, actor=request.user, shop=shop,
+               target=instance, description="Issued public API key")
+        data = self.get_serializer(instance).data
+        data["raw_key"] = raw  # shown ONCE
+        return Response(data, status=status.HTTP_201_CREATED)
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_active = False
+        instance.save(update_fields=["is_active"])
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=instance.shop,
+               target=instance, description="Revoked public API key")
+        return Response({"status": "revoked"})
+
+    @action(detail=True, methods=["post"])
+    def regenerate(self, request, pk=None):
+        key = self.get_object()
+        raw = key.rotate()
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=key.shop,
+               target=key, description="Regenerated public API key")
+        data = self.get_serializer(key).data
+        data["raw_key"] = raw
+        return Response(data)
+
+
+class RevenueByMethodView(APIView):
+    """Approved manual-payment revenue grouped by method (offline reporting)."""
+
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        from billing.models import ManualPayment
+        with bypass_tenant_scope():
+            rows = list(
+                ManualPayment.objects.filter(status=ManualPayment.Status.APPROVED)
+                .values("method")
+                .annotate(total=Coalesce(Sum("amount", output_field=_DEC),
+                                         Decimal("0"), output_field=_DEC))
+                .order_by("-total")
+            )
+        return Response({"by_method": rows})
+
+
+class StopImpersonationView(APIView):
+    """Legacy session-based stop (kept for the server-rendered admin)."""
+
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        from core.middleware import IMPERSONATE_SESSION_KEY
+        shop_id = request.session.pop(IMPERSONATE_SESSION_KEY, None)
+        if shop_id is None:
+            return Response({"status": "not_impersonating"},
+                            status=status.HTTP_400_BAD_REQUEST)
+        record(action=AuditLog.Action.IMPERSONATE_END, actor=request.user,
+               description="Platform admin stopped impersonation",
+               metadata={"shop_id": shop_id})
+        return Response({"status": "stopped"})
+
+
+# --- System backups (DB dump / restore) --------------------------------------
+
+def _db_env():
+    import os
+    env = os.environ.copy()
+    env["PGPASSWORD"] = os.environ.get("DB_PASSWORD", "stockwhisk_password")
+    return env, {
+        "host": os.environ.get("DB_HOST", "db"),
+        "port": os.environ.get("DB_PORT", "5432"),
+        "name": os.environ.get("DB_NAME", "stockwhisk"),
+        "user": os.environ.get("DB_USER", "stockwhisk"),
+    }
+
+
+class BackupDownloadView(APIView):
+    """Stream a full pg_dump SQL backup to the caller (staff only)."""
+
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        import logging
+        import subprocess
+        import time
+
+        from django.http import StreamingHttpResponse
+
+        env, db = _db_env()
+        filename = f"stockwhisk_backup_{time.strftime('%Y%m%d-%H%M%S')}.sql"
+        try:
+            proc = subprocess.Popen(
+                ["pg_dump", "-h", db["host"], "-p", db["port"], "-U", db["user"],
+                 "-d", db["name"], "--clean", "--if-exists", "--no-owner",
+                 "--no-privileges"],
+                stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env,
+            )
+        except FileNotFoundError:
+            return Response(
+                {"detail": "Backup failed: postgresql-client is not installed on the server."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        def stream():
+            for chunk in iter(lambda: proc.stdout.read(8192), b""):
+                yield chunk
+            proc.wait()
+            if proc.returncode != 0:
+                logging.getLogger("django").error(
+                    "pg_dump failed: %s", proc.stderr.read().decode(errors="replace"))
+
+        resp = StreamingHttpResponse(stream(), content_type="application/sql")
+        resp["Content-Disposition"] = f'attachment; filename="{filename}"'
+        return resp
+
+
+class BackupRestoreView(APIView):
+    """Restore the database from an uploaded .sql dump (staff only)."""
+
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        import os
+        import subprocess
+        import tempfile
+
+        sql_file = request.FILES.get("backup_file")
+        if not sql_file:
+            return Response({"detail": "No file uploaded."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".sql") as tmp:
+            for chunk in sql_file.chunks():
+                tmp.write(chunk)
+            tmp_path = tmp.name
+
+        env, db = _db_env()
+        base = ["-h", db["host"], "-p", db["port"], "-U", db["user"], "-d", db["name"]]
+        try:
+            kill = ("SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
+                    "WHERE datname = current_database() AND pid <> pg_backend_pid();")
+            subprocess.run(["psql", *base, "-c", kill], env=env, check=False,
+                           capture_output=True)
+            result = subprocess.run(["psql", *base, "-f", tmp_path], env=env,
+                                    capture_output=True, text=True)
+        except FileNotFoundError:
+            os.remove(tmp_path)
+            return Response(
+                {"detail": "Restore failed: postgresql-client is not installed on the server."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+        if result.returncode == 0:
+            return Response({"status": "restored",
+                             "detail": "Database restored. You may need to log in again."})
+        return Response({"detail": f"Restore completed with errors: {result.stderr[:300]}"},
+                        status=status.HTTP_400_BAD_REQUEST)

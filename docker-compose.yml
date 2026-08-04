@@ -1,0 +1,123 @@
+# StockWhisk — full stack: Django REST backend + Next.js frontend.
+# One command:  docker compose up -d --build
+# Frontend:  http://localhost:3000     Backend API/docs:  http://localhost:8000/api/docs/
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: stockwhisk
+      POSTGRES_USER: stockwhisk
+      POSTGRES_PASSWORD: stockwhisk_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U stockwhisk"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    command: ["gunicorn", "-c", "deploy/gunicorn.conf.py", "config.wsgi:application"]
+    environment:
+      GUNICORN_BIND: "0.0.0.0:8000"
+      DB_ENGINE: postgres
+      DB_HOST: db
+      DB_NAME: stockwhisk
+      DB_USER: stockwhisk
+      DB_PASSWORD: stockwhisk_password
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: django-insecure-default-key-for-zero-config
+      DEBUG: "False"
+      ALLOWED_HOSTS: "*"
+      CSRF_TRUSTED_ORIGINS: "http://localhost:3000,http://localhost:3333,http://127.0.0.1:3000,http://127.0.0.1:3333,http://localhost:8000"
+      CORS_ALLOW_ALL_ORIGINS: "True"
+      SECURE_SSL_REDIRECT: "False"
+      WEB_CONCURRENCY: "2"
+      GUNICORN_THREADS: "4"
+      DB_CONN_MAX_AGE: "600"
+    ports:
+      - "8000:8000"
+    volumes:
+      - static:/app/staticfiles
+      - media:/app/media
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8000/healthz/"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  worker:
+    build: ./backend
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=4"]
+    environment:
+      DB_ENGINE: postgres
+      DB_HOST: db
+      DB_NAME: stockwhisk
+      DB_USER: stockwhisk
+      DB_PASSWORD: stockwhisk_password
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: django-insecure-default-key-for-zero-config
+      DEBUG: "False"
+      DB_CONN_MAX_AGE: "600"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  beat:
+    build: ./backend
+    command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
+    environment:
+      DB_ENGINE: postgres
+      DB_HOST: db
+      DB_NAME: stockwhisk
+      DB_USER: stockwhisk
+      DB_PASSWORD: stockwhisk_password
+      REDIS_URL: redis://redis:6379/0
+      SECRET_KEY: django-insecure-default-key-for-zero-config
+      DEBUG: "False"
+    depends_on:
+      db: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # Backend origin the browser calls directly (CORS is enabled on the
+        # backend). Inlined into the client bundle at build time. Override this
+        # if you serve the backend on a different host/port than localhost:8000.
+        NEXT_PUBLIC_API_BASE: "http://localhost:8000"
+    environment:
+      NODE_ENV: production
+    ports:
+      - "3333:3000"
+    depends_on:
+      backend: { condition: service_started }
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  static:
+  media:
