@@ -44,7 +44,7 @@ services:
       SECRET_KEY: django-insecure-default-key-for-zero-config
       DEBUG: "False"
       ALLOWED_HOSTS: "*"
-      CSRF_TRUSTED_ORIGINS: "http://localhost:3000,http://localhost:3333,http://127.0.0.1:3000,http://127.0.0.1:3333,http://localhost:8000"
+      CSRF_TRUSTED_ORIGINS: "https://stockwhisk.com,http://localhost:3000,http://localhost:3333,http://127.0.0.1:3000,http://127.0.0.1:3333,http://localhost:8000"
       CORS_ALLOW_ALL_ORIGINS: "True"
       SECURE_SSL_REDIRECT: "False"
       WEB_CONCURRENCY: "2"
@@ -107,17 +107,33 @@ services:
         # Backend origin the browser calls directly (CORS is enabled on the
         # backend). Inlined into the client bundle at build time. Override this
         # if you serve the backend on a different host/port than localhost:8000.
-        NEXT_PUBLIC_API_BASE: "http://localhost:8000"
+        NEXT_PUBLIC_API_BASE: ""
     environment:
       NODE_ENV: production
-    ports:
-      - "80:3000"
     depends_on:
       backend: { condition: service_started }
     restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - static:/app/staticfiles
+      - media:/app/media
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
 
 volumes:
   pgdata:
   redisdata:
   static:
   media:
+  caddy_data:
+  caddy_config:
