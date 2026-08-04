@@ -172,7 +172,7 @@ export function useApi<T = any>(path: string | null, params?: Record<string, any
       if (v !== undefined && v !== null && v !== "") qs.append(k, String(v));
     });
     const s = qs.toString();
-    if (s) key += (key.includes("?") ? "&" : "?") + s;
+    if (s) key = path + (path.includes("?") ? "&" : "?") + s;
   }
 
   const { data, error, mutate, isValidating } = useSWR<T>(key, swrFetcher, {
@@ -195,7 +195,7 @@ export function useApiAll<T = any>(path: string | null, params?: Record<string, 
       if (v !== undefined && v !== null && v !== "") qs.append(k, String(v));
     });
     const s = qs.toString();
-    if (s) key += (key.includes("?") ? "&" : "?") + s;
+    if (s) key = path + (path.includes("?") ? "&" : "?") + s;
   }
 
   const allKey = key ? `ALL::${key}` : null;
