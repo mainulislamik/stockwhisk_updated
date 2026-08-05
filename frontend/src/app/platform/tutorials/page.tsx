@@ -11,6 +11,7 @@ type Video = {
   sequence: number;
   is_active: boolean;
   thumbnail_url: string;
+  embed_url: string;
 };
 
 export default function TutorialsPage() {
@@ -19,6 +20,7 @@ export default function TutorialsPage() {
   const [form, setForm] = useState({ title: "", youtube_url: "", sequence: "" });
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<Video | null>(null);
+  const [playing, setPlaying] = useState<Video | null>(null);
 
   const load = useCallback(async () => {
     try { setVideos(await fetchAll<Video>("/platform/tutorials/")); }
@@ -69,6 +71,29 @@ export default function TutorialsPage() {
     <>
       <PageHeader title="Tutorial Videos" />
 
+      {playing && (
+        <div className="modal d-block bg-dark bg-opacity-75" tabIndex={-1} onClick={() => setPlaying(null)}>
+          <div className="modal-dialog modal-xl modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-content bg-transparent border-0">
+              <div className="modal-header border-0 justify-content-end p-0 mb-2">
+                <button type="button" className="btn-close btn-close-white" onClick={() => setPlaying(null)} aria-label="Close"></button>
+              </div>
+              <div className="modal-body p-0 shadow-lg rounded overflow-hidden bg-black" style={{ aspectRatio: '16/9' }}>
+                <iframe 
+                  width="100%" 
+                  height="100%" 
+                  src={playing.embed_url || playing.youtube_url.replace("youtu.be/", "www.youtube.com/embed/").replace("watch?v=", "embed/")} 
+                  title={playing.title} 
+                  frameBorder="0" 
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+                  allowFullScreen
+                ></iframe>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Card className="mb-4">
         <h2 className="h6 fw-bold mb-3">Add a tutorial video</h2>
         <form className="row g-3 align-items-end" onSubmit={add}>
@@ -114,9 +139,9 @@ export default function TutorialsPage() {
                 ) : (
                   <tr key={v.id}>
                     <td>{v.sequence}</td>
-                    <td>{v.thumbnail_url ? <img src={v.thumbnail_url} alt="" style={{ width: 80, borderRadius: 4 }} /> : "—"}</td>
-                    <td className="fw-semibold">{v.title}</td>
-                    <td className="small"><a href={v.youtube_url} target="_blank" rel="noreferrer" className="text-break">{v.youtube_url}</a></td>
+                    <td>{v.thumbnail_url ? <img src={v.thumbnail_url} alt="" style={{ width: 80, borderRadius: 4, cursor: "pointer" }} onClick={() => setPlaying(v)} /> : "—"}</td>
+                    <td className="fw-semibold"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-decoration-none text-dark">{v.title}</a></td>
+                    <td className="small"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-break">{v.youtube_url}</a></td>
                     <td>{v.is_active ? <span className="badge text-bg-success">On</span> : <span className="badge text-bg-secondary">Off</span>}</td>
                     <td className="text-end">
                       <div className="d-flex gap-2 justify-content-end">
