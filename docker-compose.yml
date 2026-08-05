@@ -47,7 +47,7 @@ services:
       CSRF_TRUSTED_ORIGINS: "https://stockwhisk.com,http://localhost:3000,http://localhost:3333,http://127.0.0.1:3000,http://127.0.0.1:3333,http://localhost:8000"
       CORS_ALLOW_ALL_ORIGINS: "True"
       SECURE_SSL_REDIRECT: "False"
-      WEB_CONCURRENCY: "2"
+      WEB_CONCURRENCY: "1"
       GUNICORN_THREADS: "4"
       DB_CONN_MAX_AGE: "600"
     ports:
@@ -67,7 +67,7 @@ services:
 
   worker:
     build: ./backend
-    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=4"]
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
     environment:
       DB_ENGINE: postgres
       DB_HOST: db
