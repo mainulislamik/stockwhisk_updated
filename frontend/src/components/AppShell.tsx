@@ -25,7 +25,12 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!loading && !user) router.replace("/login");
+    if (loading) return;
+    if (!user) {
+      router.replace("/login");
+    } else if (user.is_staff && !user.shop) {
+      router.replace("/platform");
+    }
   }, [loading, user, router]);
 
   useEffect(() => {
