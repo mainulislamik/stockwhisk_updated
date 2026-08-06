@@ -40,9 +40,40 @@ class RegisterShopView(APIView):
 
 
 class MeView(APIView):
-    """Return the authenticated user's profile."""
+    """Return and update the authenticated user's profile."""
 
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+    def patch(self, request):
+        ser = UserSerializer(request.user, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)
+
+
+class ShopSettingsView(APIView):
+    """Return and update the current user's shop settings (owner only for updates)."""
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        if not request.user.shop:
+            return Response({"detail": "No shop associated."}, status=400)
+        from .serializers import ShopSettingsSerializer
+        return Response(ShopSettingsSerializer(request.user.shop).data)
+
+    def patch(self, request):
+        if not request.user.shop:
+            return Response({"detail": "No shop associated."}, status=400)
+        if request.user.role != "owner":
+            from rest_framework.exceptions import PermissionDenied
+            raise PermissionDenied("Only the shop owner can edit shop settings.")
+            
+        from .serializers import ShopSettingsSerializer
+        ser = ShopSettingsSerializer(request.user.shop, data=request.data, partial=True)
+        ser.is_valid(raise_exception=True)
+        ser.save()
+        return Response(ser.data)

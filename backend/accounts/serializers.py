@@ -33,4 +33,14 @@ class UserSerializer(serializers.ModelSerializer):
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_phone", "branch", "is_staff",
         ]
-        read_only_fields = ["id", "shop", "shop_name", "shop_phone", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_phone", "branch", "is_staff"]
+
+
+class ShopSettingsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Shop
+        fields = [
+            "name", "phone", "email", "address", "business_type", 
+            "currency", "vat_enabled", "vat_percent", "vat_registration_no",
+            "invoice_settings"
+        ]

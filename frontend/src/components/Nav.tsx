@@ -119,7 +119,6 @@ export default function Nav({
         <Item href="/app/tutorials" icon="bi-play-btn" label="Video tutorials" />
         {(isOwner || can("manage_users")) && <Item href="/app/users" icon="bi-key" label="Users & Roles" />}
         <Item href="/app/settings" icon="bi-gear" label="Settings" />
-        {isOwner && <Item href="/app/backups" icon="bi-device-hdd" label="System Backups" />}
       </NavGroup>
     </>
   );

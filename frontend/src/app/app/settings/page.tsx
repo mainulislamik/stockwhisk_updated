@@ -3,41 +3,157 @@
 import { useAuth } from "@/components/AuthProvider";
 import { Card } from "@/components/ui";
 import { fmtDate } from "@/components/ui";
+import { useEffect, useState } from "react";
+import { api } from "@/lib/api";
 
 export default function SettingsPage() {
-  const { user, billing, isOwner } = useAuth();
+  const { user, billing, isOwner, reload } = useAuth();
+  
+  const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", phone: "" });
+  const [profileBusy, setProfileBusy] = useState(false);
+  const [profileSuccess, setProfileSuccess] = useState(false);
+
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0 });
+  const [shopBusy, setShopBusy] = useState(false);
+  const [shopSuccess, setShopSuccess] = useState(false);
+
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        first_name: user.first_name || "",
+        last_name: user.last_name || "",
+        phone: user.phone || ""
+      });
+    }
+    if (isOwner) {
+      api<any>("/accounts/auth/shop-settings/").then(data => {
+        setShopForm({
+          name: data.name || "",
+          phone: data.phone || "",
+          address: data.address || "",
+          currency: data.currency || "BDT",
+          vat_enabled: data.vat_enabled || false,
+          vat_percent: data.vat_percent || 0,
+        });
+      }).catch(console.error);
+    }
+  }, [user, isOwner]);
+
+  async function updateProfile(e: React.FormEvent) {
+    e.preventDefault();
+    setProfileBusy(true);
+    setProfileSuccess(false);
+    try {
+      await api("/accounts/auth/me/", { method: "PATCH", body: profileForm });
+      setProfileSuccess(true);
+      await reload();
+      setTimeout(() => setProfileSuccess(false), 3000);
+    } catch (err: any) {
+      alert(err?.message || "Failed to update profile");
+    } finally {
+      setProfileBusy(false);
+    }
+  }
+
+  async function updateShop(e: React.FormEvent) {
+    e.preventDefault();
+    setShopBusy(true);
+    setShopSuccess(false);
+    try {
+      await api("/accounts/auth/shop-settings/", { method: "PATCH", body: shopForm });
+      setShopSuccess(true);
+      await reload(); // reload user to get updated shop name
+      setTimeout(() => setShopSuccess(false), 3000);
+    } catch (err: any) {
+      alert(err?.message || "Failed to update shop settings");
+    } finally {
+      setShopBusy(false);
+    }
+  }
 
   return (
-    <div className="vstack gap-3" style={{ maxWidth: "48rem" }}>
+    <div className="vstack gap-4" style={{ maxWidth: "48rem" }}>
       <h1 className="h4 fw-bold text-brand mb-0">Settings</h1>
 
       <div className="card shadow-sm">
+        <div className="card-header fw-semibold">Your Profile</div>
         <div className="card-body">
-          <div className="fw-semibold mb-3">Your account</div>
-          <table className="table table-sm mb-0">
-            <tbody>
-              <tr>
-                <td className="text-secondary" style={{ width: "12rem" }}>
-                  Email
-                </td>
-                <td>{user?.email}</td>
-              </tr>
-              <tr>
-                <td className="text-secondary">Name</td>
-                <td>{[user?.first_name, user?.last_name].filter(Boolean).join(" ") || "—"}</td>
-              </tr>
-              <tr>
-                <td className="text-secondary">Phone</td>
-                <td>{user?.phone || "—"}</td>
-              </tr>
-              <tr>
-                <td className="text-secondary">Role</td>
-                <td className="text-capitalize">{user?.role}</td>
-              </tr>
-            </tbody>
-          </table>
+          <form onSubmit={updateProfile} className="vstack gap-3">
+            <div className="row g-3">
+              <div className="col-md-6">
+                <label className="form-label small fw-medium">First Name</label>
+                <input className="form-control form-control-sm" value={profileForm.first_name} onChange={e => setProfileForm({...profileForm, first_name: e.target.value})} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-medium">Last Name</label>
+                <input className="form-control form-control-sm" value={profileForm.last_name} onChange={e => setProfileForm({...profileForm, last_name: e.target.value})} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-medium">Phone</label>
+                <input className="form-control form-control-sm" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
+              </div>
+              <div className="col-md-6">
+                <label className="form-label small fw-medium">Email (Read-only)</label>
+                <input className="form-control form-control-sm bg-light" value={user?.email || ""} readOnly disabled />
+              </div>
+            </div>
+            <div className="d-flex align-items-center gap-3 mt-2">
+              <button type="submit" className="btn btn-primary btn-sm px-4" disabled={profileBusy}>
+                {profileBusy ? "Saving..." : "Save Profile"}
+              </button>
+              {profileSuccess && <span className="text-success small"><i className="bi bi-check-circle me-1"></i>Saved</span>}
+            </div>
+          </form>
         </div>
       </div>
+
+      {isOwner && (
+        <div className="card shadow-sm">
+          <div className="card-header fw-semibold">Shop Settings</div>
+          <div className="card-body">
+            <form onSubmit={updateShop} className="vstack gap-3">
+              <div className="row g-3">
+                <div className="col-md-12">
+                  <label className="form-label small fw-medium">Shop Name</label>
+                  <input className="form-control form-control-sm" required value={shopForm.name} onChange={e => setShopForm({...shopForm, name: e.target.value})} />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium">Shop Phone</label>
+                  <input className="form-control form-control-sm" value={shopForm.phone} onChange={e => setShopForm({...shopForm, phone: e.target.value})} />
+                </div>
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium">Currency</label>
+                  <input className="form-control form-control-sm" required value={shopForm.currency} onChange={e => setShopForm({...shopForm, currency: e.target.value})} />
+                </div>
+                <div className="col-md-12">
+                  <label className="form-label small fw-medium">Address</label>
+                  <textarea className="form-control form-control-sm" rows={2} value={shopForm.address} onChange={e => setShopForm({...shopForm, address: e.target.value})}></textarea>
+                </div>
+                
+                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">Tax / VAT Settings</div>
+                <div className="col-md-12">
+                  <div className="form-check form-switch">
+                    <input className="form-check-input" type="checkbox" role="switch" id="vatSwitch" checked={shopForm.vat_enabled} onChange={e => setShopForm({...shopForm, vat_enabled: e.target.checked})} />
+                    <label className="form-check-label small" htmlFor="vatSwitch">Enable VAT</label>
+                  </div>
+                </div>
+                {shopForm.vat_enabled && (
+                  <div className="col-md-6">
+                    <label className="form-label small fw-medium">VAT Percentage (%)</label>
+                    <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={shopForm.vat_percent} onChange={e => setShopForm({...shopForm, vat_percent: parseFloat(e.target.value) || 0})} />
+                  </div>
+                )}
+              </div>
+              <div className="d-flex align-items-center gap-3 mt-2">
+                <button type="submit" className="btn btn-primary btn-sm px-4" disabled={shopBusy}>
+                  {shopBusy ? "Saving..." : "Save Shop Settings"}
+                </button>
+                {shopSuccess && <span className="text-success small"><i className="bi bi-check-circle me-1"></i>Saved</span>}
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       <div className="row g-3">
         <div className="col-md-6">
@@ -56,12 +172,6 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
-
-      {isOwner && (
-        <div className="alert alert-info mb-0">
-          Shop-wide settings (name, currency, invoice options, tax) are managed by the shop owner. Advanced configuration is available in the Django admin on the backend.
-        </div>
-      )}
     </div>
   );
 }
