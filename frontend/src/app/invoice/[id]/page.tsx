@@ -153,13 +153,10 @@ export default function InvoicePage() {
         <table className="inv-table">
           <thead>
             <tr>
-              <th className="inv-th-center" style={{ width: "3%" }}>#</th>
-              <th style={{ width: "34%" }}>Product Description</th>
-              <th style={{ width: "14%" }}>SKU</th>
-              <th className="inv-th-center" style={{ width: "6%" }}>Qty</th>
-              <th className="inv-th-right" style={{ width: "14%" }}>Price</th>
-              <th className="inv-th-right" style={{ width: "12%" }}>Disc</th>
-              <th className="inv-th-right" style={{ width: "14%" }}>Total</th>
+              <th className="inv-th-center" style={{ width: "5%" }}>#</th>
+              <th style={{ width: "65%" }}>Product Description</th>
+              <th className="inv-th-center" style={{ width: "10%" }}>Qty</th>
+              <th className="inv-th-right" style={{ width: "20%" }}>Total</th>
             </tr>
           </thead>
           <tbody>
@@ -167,12 +164,7 @@ export default function InvoicePage() {
               <tr key={item.id} className={i % 2 === 0 ? "inv-row-even" : "inv-row-odd"}>
                 <td className="inv-td-center inv-row-no">{String(i + 1).padStart(2, "0")}</td>
                 <td className="inv-product-name">{item.product_name}</td>
-                <td className="inv-sku">{item.product_sku || "—"}</td>
                 <td className="inv-td-center">{item.quantity}</td>
-                <td className="inv-td-right">{fmt(item.unit_price)}</td>
-                <td className={`inv-td-right ${Number(item.discount) > 0 ? "inv-disc" : "inv-zero"}`}>
-                  {Number(item.discount) > 0 ? fmt(item.discount) : "—"}
-                </td>
                 <td className="inv-td-right inv-line-total">{fmt(item.subtotal)}</td>
               </tr>
             ))}
