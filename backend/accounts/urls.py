@@ -4,7 +4,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .rbac_api import MyPermissionsView, PermissionCatalogView, RoleViewSet, ShopUserViewSet
-from .views import MeView, RegisterShopView, ShopSettingsView
+from .views import MeView, RegisterShopView, ShopSettingsView, TutorialsView
 
 app_name = "accounts"
 
@@ -32,4 +32,5 @@ urlpatterns = [
     path("auth/shop-settings/", ShopSettingsView.as_view(), name="shop-settings"),
     path("auth/my-permissions/", MyPermissionsView.as_view(), name="my-permissions"),
     path("rbac/permissions/", PermissionCatalogView.as_view(), name="permission-catalog"),
+    path("tutorials/", TutorialsView.as_view(), name="tutorials"),
 ] + router.urls
