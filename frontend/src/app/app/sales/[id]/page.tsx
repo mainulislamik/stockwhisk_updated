@@ -57,7 +57,7 @@ export default function SaleDetailPage() {
           </div>
         </div>
         <div className="d-flex gap-2">
-          <button className="btn btn-outline-brand btn-sm" onClick={() => window.print()}>
+          <button className="btn btn-outline-brand btn-sm" onClick={() => window.open(`/invoice/${sale.id}`, "_blank")}>
             🖨️ Print
           </button>
           <Link href="/app/sales" className="btn btn-light btn-sm">
