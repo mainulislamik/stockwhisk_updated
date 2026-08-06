@@ -120,7 +120,7 @@ export default function ProductsPage() {
   const shown = products.filter((p) => {
     const q = filter.trim().toLowerCase();
     if (!q) return true;
-    return `${p.name} ${p.sku}`.toLowerCase().includes(q);
+    return `${p.name} ${p.sku} ${p.barcode}`.toLowerCase().includes(q);
   }).sort((a, b) => Number(b.current_stock) - Number(a.current_stock));
   const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
 
@@ -131,7 +131,7 @@ export default function ProductsPage() {
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input
-          placeholder="Filter name/SKU/category as you type…"
+          placeholder="Filter name/SKU/barcode…"
           className="form-control form-control-sm"
           style={{ maxWidth: "18rem" }}
           value={filter}
