@@ -5,10 +5,10 @@ import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 
-type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
+type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string };
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
-  selling_price: string; current_stock: string; track_inventory?: boolean;
+  selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
   units?: ProductUnit[];
   scanned_unit?: ProductUnit;
 };
@@ -486,33 +486,39 @@ export default function PosPage() {
                     const line = cart.find(l => l.product.id === unitSelectProduct.id);
                     const isSelected = line?.selectedUnits.some(su => su.id === u.id);
                     return (
-                      <label key={u.id} className={`d-flex align-items-center p-2 border rounded cursor-pointer ${isSelected ? 'border-brand bg-brand bg-opacity-10' : ''}`}>
-                        <input 
-                          type="checkbox" 
-                          className="form-check-input mt-0 me-2" 
-                          checked={!!isSelected}
-                          onChange={(e) => {
-                            if (e.target.checked) {
-                              addToCart(unitSelectProduct, u);
-                            } else {
-                              // Remove unit
-                              setCart(c => {
-                                const newC = [...c];
-                                const idx = newC.findIndex(l => l.product.id === unitSelectProduct.id);
-                                if (idx >= 0) {
-                                  const ex = newC[idx];
-                                  const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
-                                  if (updatedUnits.length === 0 && ex.qty === 1) {
-                                    return newC.filter(l => l.product.id !== unitSelectProduct.id);
+                      <label key={u.id} className={`d-flex justify-content-between align-items-center p-2 border rounded cursor-pointer ${isSelected ? 'border-brand bg-brand bg-opacity-10' : ''}`}>
+                        <div className="d-flex align-items-center">
+                          <input 
+                            type="checkbox" 
+                            className="form-check-input mt-0 me-2" 
+                            checked={!!isSelected}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                addToCart(unitSelectProduct, u);
+                              } else {
+                                // Remove unit
+                                setCart(c => {
+                                  const newC = [...c];
+                                  const idx = newC.findIndex(l => l.product.id === unitSelectProduct.id);
+                                  if (idx >= 0) {
+                                    const ex = newC[idx];
+                                    const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
+                                    if (updatedUnits.length === 0 && ex.qty === 1) {
+                                      return newC.filter(l => l.product.id !== unitSelectProduct.id);
+                                    }
+                                    newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
                                   }
-                                  newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
-                                }
-                                return newC;
-                              });
-                            }
-                          }}
-                        />
-                        <div className="font-monospace small">{u.barcode}</div>
+                                  return newC;
+                                });
+                              }
+                            }}
+                          />
+                          <div className="font-monospace small fw-medium">{u.barcode}</div>
+                        </div>
+                        <div className="text-end" style={{ fontSize: '.7rem' }}>
+                          <span className="text-secondary">Cost: {money(u.effective_cost_price || unitSelectProduct.cost_price || 0)}</span>
+                          <span className="ms-2 fw-semibold text-body">Price: {money(u.effective_selling_price || unitSelectProduct.selling_price || 0)}</span>
+                        </div>
                       </label>
                     );
                   })}
