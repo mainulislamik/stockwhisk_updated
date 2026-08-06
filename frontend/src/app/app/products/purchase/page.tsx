@@ -416,7 +416,7 @@ export default function PurchaseProductPage() {
                   <span className="text-secondary small ms-2">SKU: {selected.sku || "—"} · Stock: {selected.current_stock}</span>
                 </div>
                 <div className="d-flex gap-2">
-                  <button className="btn btn-outline-brand btn-sm" onClick={addManualLine}>+ Add to receive</button>
+                  <button className="btn btn-brand btn-sm" onClick={addManualLine}>+ Add to receive</button>
                   <button className="btn btn-outline-secondary btn-sm" onClick={() => setSelected(null)}>✕ Clear</button>
                 </div>
               </div>
@@ -500,7 +500,7 @@ export default function PurchaseProductPage() {
               </div>
             </div>
             <div className="mt-3">
-              <button className="btn btn-outline-brand w-100" disabled={busy || parsedBarcodes.length === 0} onClick={addScannedUnits}>
+              <button className="btn btn-brand w-100" disabled={busy || parsedBarcodes.length === 0} onClick={addScannedUnits}>
                 {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "+ "}Add {parsedBarcodes.length} unit(s) to receive
               </button>
             </div>
