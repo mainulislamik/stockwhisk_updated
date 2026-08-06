@@ -189,10 +189,10 @@ def create_sale(
     if customer is not None:
         _update_customer_after_sale(customer, total=total, due=total - paid, when=sale_date)
 
-    # Flip tracked ProductUnits (FIFO) to sold and bind the buyer onto each
+    # Flip tracked ProductUnits (FIFO or specific) to sold and bind the buyer onto each
     # unit's warranty, so a scanned unit resolves to who bought it + a valid
     # expiry on the warranty/return screen.
-    _mark_units_sold(shop, sale)
+    _mark_units_sold(shop, sale, items)
 
     record(
         action=AuditLog.Action.CREATE, actor=created_by, shop=shop, target=sale,
@@ -209,21 +209,22 @@ def create_sale(
     return sale
 
 
-def _mark_units_sold(shop, sale):
+def _mark_units_sold(shop, sale, items_data=None):
     """Start warranty coverage at the moment of sale.
 
-    For each sold line: FIFO-flip in-stock ProductUnits to sold and bind the
-    buyer + sale line onto their per-unit warranties (coverage starts on the
-    sale date). If the product carries a warranty but not enough per-unit
-    warranty records existed (e.g. it was bought by plain quantity without
-    scanning barcodes), create the missing coverage now — so every warrantied
-    item sold is recognized on the warranty list and claimable by serial.
+    For each sold line: flip in-stock ProductUnits to sold (specific requested units
+    if provided, else FIFO fallback) and bind the buyer + sale line onto their
+    per-unit warranties (coverage starts on the sale date). If the product carries
+    a warranty but not enough per-unit warranty records existed, create the missing
+    coverage now — so every warrantied item sold is recognized on the warranty list.
     """
     from catalog.models import ProductUnit
     from service.models import Warranty
 
     today = timezone.localdate()
-    for item in sale.items.select_related("product").all():
+    sale_items = list(sale.items.select_related("product").order_by("id"))
+
+    for i, item in enumerate(sale_items):
         product = item.product
         try:
             need = int(item.quantity)
@@ -232,12 +233,28 @@ def _mark_units_sold(shop, sale):
         if need <= 0:
             continue
 
-        # 1. Flip tracked physical units (FIFO) to sold.
-        unit_ids = list(
-            ProductUnit.all_objects.filter(
-                shop_id=shop.id, product=product, status=ProductUnit.Status.IN_STOCK
-            ).order_by("created_at").values_list("id", flat=True)[:need]
-        )
+        item_data = items_data[i] if items_data and i < len(items_data) else {}
+        requested_unit_ids = item_data.get("unit_ids", [])
+
+        unit_ids = []
+        if requested_unit_ids:
+            available = list(ProductUnit.all_objects.filter(
+                shop_id=shop.id, product=product, status=ProductUnit.Status.IN_STOCK,
+                id__in=requested_unit_ids
+            ).values_list("id", flat=True))
+            if len(available) < len(requested_unit_ids):
+                raise ValueError(f"Some selected units for '{product.name}' are no longer in stock.")
+            unit_ids = available[:need]
+
+        shortfall = need - len(unit_ids)
+        if shortfall > 0:
+            fifo_ids = list(
+                ProductUnit.all_objects.filter(
+                    shop_id=shop.id, product=product, status=ProductUnit.Status.IN_STOCK
+                ).exclude(id__in=unit_ids).order_by("created_at").values_list("id", flat=True)[:shortfall]
+            )
+            unit_ids.extend(fifo_ids)
+
         if unit_ids:
             ProductUnit.all_objects.filter(id__in=unit_ids).update(
                 status=ProductUnit.Status.SOLD, sale=sale, sold_at=timezone.now())
@@ -459,7 +476,7 @@ def edit_sale(*, sale, items, discount=ZERO, created_by=None):
         customer.save(update_fields=["due_balance", "total_purchased"])
 
     # 5. Re-bind units and create new warranties for the new items
-    _mark_units_sold(sale.shop, sale)
+    _mark_units_sold(sale.shop, sale, items)
 
     record(
         action=AuditLog.Action.UPDATE, actor=created_by, shop=sale.shop, target=sale,

@@ -5,11 +5,14 @@ import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 
+type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; current_stock: string; track_inventory?: boolean;
+  units?: ProductUnit[];
+  scanned_unit?: ProductUnit;
 };
-type CartLine = { product: Product; qty: number; price: number; discount: number };
+type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
 type ScanMsg = { text: string; ok: boolean } | null;
 
 export default function PosPage() {
@@ -32,6 +35,9 @@ export default function PosPage() {
   const [assignSelected, setAssignSelected] = useState<Product | null>(null);
   const [assignSaving, setAssignSaving] = useState(false);
 
+  // Unit selection modal
+  const [unitSelectProduct, setUnitSelectProduct] = useState<Product | null>(null);
+
   useEffect(() => {
     fetchAll<Product>("/catalog/products/")
       .then(setProducts)
@@ -43,11 +49,30 @@ export default function PosPage() {
   }, []);
 
   // ── Cart helpers ────────────────────────────────────────────────────────
-  function addToCart(p: Product) {
+  function addToCart(p: Product, specificUnit?: ProductUnit) {
     setCart((c) => {
-      const ex = c.find((l) => l.product.id === p.id);
-      if (ex) return c.map((l) => l.product.id === p.id ? { ...l, qty: l.qty + 1 } : l);
-      return [...c, { product: p, qty: 1, price: Number(p.selling_price), discount: 0 }];
+      const exIndex = c.findIndex((l) => l.product.id === p.id);
+      if (exIndex >= 0) {
+        const ex = c[exIndex];
+        if (specificUnit) {
+          if (ex.selectedUnits.some((u) => u.id === specificUnit.id)) {
+            return c; // already added
+          }
+          const newC = [...c];
+          newC[exIndex] = { ...ex, qty: ex.qty + 1, selectedUnits: [...ex.selectedUnits, specificUnit] };
+          return newC;
+        }
+        const newC = [...c];
+        newC[exIndex] = { ...ex, qty: ex.qty + 1 };
+        return newC;
+      }
+      return [...c, { 
+        product: p, 
+        qty: 1, 
+        price: Number(specificUnit?.effective_selling_price || p.selling_price), 
+        discount: 0, 
+        selectedUnits: specificUnit ? [specificUnit] : [] 
+      }];
     });
   }
   function setQty(id: number, qty: number) {
@@ -65,6 +90,17 @@ export default function PosPage() {
   function tryAdd(p: Product) {
     if (p.track_inventory !== false && Number(p.current_stock) <= 0) {
       flash(`✗ Out of stock: ${p.name}`, false);
+      return;
+    }
+    if (p.scanned_unit) {
+      addToCart(p, p.scanned_unit);
+      flash(`✓ Added unit: ${p.scanned_unit.barcode}`, true);
+      setQuery("");
+      setTimeout(() => inputRef.current?.focus(), 50);
+      return;
+    }
+    if (p.units && p.units.length > 0) {
+      setUnitSelectProduct(p);
       return;
     }
     addToCart(p);
@@ -301,14 +337,36 @@ export default function PosPage() {
                         <td className="ps-3">
                           <div className="small fw-semibold">{l.product.name}</div>
                           <div className="text-secondary" style={{ fontSize: ".72rem" }}>{money(l.price)} each</div>
+                          {l.selectedUnits.length > 0 && (
+                            <div className="mt-1 d-flex flex-wrap gap-1">
+                              {l.selectedUnits.map(u => (
+                                <span key={u.id} className="badge bg-body-secondary text-secondary border fw-normal" style={{ fontSize: ".65rem" }}>
+                                  {u.barcode}
+                                </span>
+                              ))}
+                              <button 
+                                className="btn btn-link btn-sm text-brand p-0 ms-1" 
+                                style={{ fontSize: ".65rem" }}
+                                onClick={() => setUnitSelectProduct(l.product)}
+                              >
+                                Edit units
+                              </button>
+                            </div>
+                          )}
                         </td>
-                        <td style={{ width: "4.5rem" }}>
-                          <input
-                            type="number" min={1}
-                            className="form-control form-control-sm"
-                            value={l.qty}
-                            onChange={(e) => setQty(l.product.id, Number(e.target.value))}
-                          />
+                        <td style={{ width: "5rem" }}>
+                          {l.selectedUnits.length > 0 ? (
+                            <div className="text-center fw-semibold small bg-light border rounded px-2 py-1">
+                              {l.qty}
+                            </div>
+                          ) : (
+                            <input
+                              type="number" min={1}
+                              className="form-control form-control-sm"
+                              value={l.qty}
+                              onChange={(e) => setQty(l.product.id, Number(e.target.value))}
+                            />
+                          )}
                         </td>
                         <td className="text-end small fw-bold">{money(l.qty * l.price - l.discount)}</td>
                         <td className="text-end pe-2">
@@ -404,6 +462,68 @@ export default function PosPage() {
                   onClick={doAssign}
                 >
                   {assignSaving ? "Saving…" : `Assign barcode to "${assignSelected?.name ?? "…"}"`}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ── Select units modal ── */}
+      {unitSelectProduct && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,.45)" }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <h5 className="modal-title">Select Units to Sell</h5>
+                <button className="btn-close" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }} />
+              </div>
+              <div className="modal-body">
+                <div className="mb-3 small text-secondary">
+                  <strong>{unitSelectProduct.name}</strong> has individual units. Select the exact units you are selling.
+                </div>
+                <div className="d-flex flex-column gap-2">
+                  {unitSelectProduct.units?.map((u) => {
+                    const line = cart.find(l => l.product.id === unitSelectProduct.id);
+                    const isSelected = line?.selectedUnits.some(su => su.id === u.id);
+                    return (
+                      <label key={u.id} className={`d-flex align-items-center p-2 border rounded cursor-pointer ${isSelected ? 'border-brand bg-brand bg-opacity-10' : ''}`}>
+                        <input 
+                          type="checkbox" 
+                          className="form-check-input mt-0 me-2" 
+                          checked={!!isSelected}
+                          onChange={(e) => {
+                            if (e.target.checked) {
+                              addToCart(unitSelectProduct, u);
+                            } else {
+                              // Remove unit
+                              setCart(c => {
+                                const newC = [...c];
+                                const idx = newC.findIndex(l => l.product.id === unitSelectProduct.id);
+                                if (idx >= 0) {
+                                  const ex = newC[idx];
+                                  const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
+                                  if (updatedUnits.length === 0 && ex.qty === 1) {
+                                    return newC.filter(l => l.product.id !== unitSelectProduct.id);
+                                  }
+                                  newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
+                                }
+                                return newC;
+                              });
+                            }
+                          }}
+                        />
+                        <div className="font-monospace small">{u.barcode}</div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="modal-footer d-flex justify-content-between">
+                <div className="small fw-semibold text-brand">
+                  {cart.find(l => l.product.id === unitSelectProduct.id)?.selectedUnits.length || 0} selected
+                </div>
+                <button className="btn btn-brand btn-sm" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }}>
+                  Done
                 </button>
               </div>
             </div>

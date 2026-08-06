@@ -34,6 +34,7 @@ class ProductVariationSerializer(serializers.ModelSerializer):
 class ProductSerializer(serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
     is_low_stock = serializers.BooleanField(read_only=True)
+    units = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -42,8 +43,15 @@ class ProductSerializer(serializers.ModelSerializer):
             "description", "cost_price", "selling_price", "tax_percent",
             "track_inventory", "reorder_level", "current_stock",
             "is_low_stock", "is_active", "variations", "warranty_months",
+            "units",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]
+
+    def get_units(self, obj):
+        if not getattr(obj, "track_inventory", True):
+            return []
+        units = obj.units.filter(status=ProductUnit.Status.IN_STOCK)
+        return ProductUnitSerializer(units, many=True).data
 
 class ProductUnitSerializer(serializers.ModelSerializer):
     effective_cost_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)

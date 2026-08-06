@@ -8,8 +8,8 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.models import Product
-from catalog.serializers import ProductSerializer
+from catalog.models import Product, ProductUnit
+from catalog.serializers import ProductSerializer, ProductUnitSerializer
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
 from sales.serializers import SaleCreateSerializer, SaleSerializer
@@ -40,14 +40,28 @@ class BarcodeLookupView(_POSBase):
         )
         
         product = None
+        scanned_unit = None
+
         for p in products:
             if code == p.sku or code in [x.strip() for x in p.barcode.split(",")]:
                 product = p
                 break
                 
         if product is None:
+            # Check if it matches a ProductUnit
+            unit = ProductUnit.all_objects.filter(barcode=code, status=ProductUnit.Status.IN_STOCK).select_related("product").first()
+            if unit and unit.product.is_active and getattr(unit.product, "shop_id", None) == request.tenant.id:
+                product = unit.product
+                scanned_unit = unit
+
+        if product is None:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        return Response(ProductSerializer(product).data)
+        
+        data = ProductSerializer(product).data
+        if scanned_unit:
+            data["scanned_unit"] = ProductUnitSerializer(scanned_unit).data
+            
+        return Response(data)
 
 
 class CheckoutView(_POSBase):

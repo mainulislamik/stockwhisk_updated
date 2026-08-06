@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { Spinner, money } from "@/components/ui";
 
-type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number };
+type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
+type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
 type Customer = { id: number; name: string; phone?: string };
 
 const PAY_METHODS = [
@@ -67,7 +68,13 @@ export default function PosCustomerPage() {
           discount,
           tax: 0,
           note: "",
-          items: cart.map((l) => ({ product: l.product.id, quantity: l.qty, unit_price: l.price, discount: l.discount })),
+          items: cart.map((l) => ({ 
+            product: l.product.id, 
+            quantity: l.qty, 
+            unit_price: l.price, 
+            discount: l.discount,
+            unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
+          })),
           payments: paidNum > 0 ? [{ amount: paidNum, method }] : [{ amount: total, method }],
         },
       });

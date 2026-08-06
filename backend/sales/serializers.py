@@ -74,6 +74,9 @@ class SaleItemInputSerializer(serializers.Serializer):
     quantity = serializers.DecimalField(max_digits=14, decimal_places=2)
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
     discount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    unit_ids = serializers.ListField(
+        child=serializers.IntegerField(), required=False, default=list
+    )
 
 
 class PaymentInputSerializer(serializers.Serializer):
