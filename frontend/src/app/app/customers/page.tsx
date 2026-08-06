@@ -72,7 +72,7 @@ export default function CustomersPage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input placeholder="Filter name/phone…" className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
-          <button onClick={() => setShowAdd((s) => !s)} className="btn btn-outline-brand btn-sm">
+          <button onClick={() => setShowAdd((s) => !s)} className="btn btn-brand btn-sm">
             + New customer
           </button>
         )}
