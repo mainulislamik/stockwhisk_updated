@@ -43,6 +43,12 @@ export default function BarcodesGeneratorPage() {
             size: 38mm 25mm;
             margin: 0;
           }
+          html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+          }
           body * {
             visibility: hidden;
           }
@@ -53,11 +59,11 @@ export default function BarcodesGeneratorPage() {
             position: absolute;
             left: 0;
             top: 0;
-            width: 38mm;
-            height: auto;
+            width: 100%;
+            height: 100%;
           }
           .barcode-label {
-            width: 38mm;
+            width: 100%;
             height: 25mm;
             display: flex;
             justify-content: center;
@@ -66,7 +72,8 @@ export default function BarcodesGeneratorPage() {
             box-sizing: border-box;
             background: white;
             overflow: hidden;
-            padding-top: 1mm;
+            margin: 0;
+            padding: 0;
           }
           .no-print {
             display: none !important;
@@ -152,7 +159,9 @@ export default function BarcodesGeneratorPage() {
             .filter((_, idx) => isPrintingAll || idx === printIndex)
             .map((code, idx) => (
               <div key={idx} className="barcode-label">
-                <Barcode value={code} width={1.5} height={45} fontSize={14} margin={0} displayValue={true} />
+                <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+                  <Barcode value={code} width={1.5} height={45} fontSize={14} margin={0} displayValue={true} />
+                </div>
               </div>
             ))}
         </div>
