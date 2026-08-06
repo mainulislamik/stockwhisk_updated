@@ -105,7 +105,7 @@ export default function SuppliersPage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input placeholder="Filter name/phone/email…" className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
-          <button onClick={() => { setShowAdd((s) => !s); setEditing(null); }} className="btn btn-outline-brand btn-sm">
+          <button onClick={() => { setShowAdd((s) => !s); setEditing(null); }} className="btn btn-brand btn-sm">
             + New supplier
           </button>
         )}
