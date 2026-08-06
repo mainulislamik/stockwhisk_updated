@@ -266,7 +266,7 @@ export default function PurchaseProductPage() {
           product: l.product.id,
           quantity: l.quantity,
           unit_cost: l.unit_cost,
-          barcodes: [], // Do not send universal EANs as unique serial numbers
+          barcodes: l.barcodes,
         })),
       };
       if (supplier) poData.supplier = Number(supplier);
@@ -275,24 +275,14 @@ export default function PurchaseProductPage() {
       const po = await api<{ id: number }>("/purchasing/purchase-orders/", { method: "POST", body: poData });
       await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid } });
 
-      // Save scanned barcodes onto the products so POS / Barcodes page can find them.
+      // Update product selling prices if they were modified during purchase
       for (const l of lines) {
         const patchData: Record<string, any> = {};
-        
-        // Merge with existing barcodes
-        const existingCodes = (l.product.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
-        const newCodes = (l.barcodes || []).map(c => c.trim()).filter(Boolean);
-        const uniqueCodes = Array.from(new Set([...existingCodes, ...newCodes]));
-        
-        const codeStr = uniqueCodes.join(", ");
-        if (codeStr && l.product.barcode !== codeStr) {
-          patchData.barcode = codeStr;
-        }
         
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
         
         if (Object.keys(patchData).length > 0) {
-          await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData }).catch(() => {});
+          await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData });
         }
       }
 
