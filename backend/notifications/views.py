@@ -33,6 +33,19 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, viewsets.GenericViewSe
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
+        shop = getattr(self.request.user, "shop", None)
+        if shop:
+            from catalog.models import Product
+            from django.db.models import F
+            from notifications.services import alert_low_stock_realtime
+            
+            # Auto-generate missing notifications for any products currently in low stock
+            low_products = Product.objects.filter(
+                shop_id=shop.id, track_inventory=True, is_active=True,
+                current_stock__lte=F("reorder_level")
+            )
+            alert_low_stock_realtime(shop=shop, products=low_products)
+
         qs = Notification.objects.all()
         if self.request.query_params.get("unread") in {"1", "true"}:
             qs = qs.filter(is_read=False)
