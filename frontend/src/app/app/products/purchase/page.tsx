@@ -597,14 +597,14 @@ export default function PurchaseProductPage() {
               </div>
 
               {showNewVendor && (
-                <form onSubmit={createVendor} className="border rounded p-2 mb-2 bg-light">
-                  <div className="small fw-semibold mb-2">New vendor</div>
-                  <input required className="form-control form-control-sm mb-1" placeholder="Name *" value={newVendor.name} onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })} />
-                  <input className="form-control form-control-sm mb-1" placeholder="Phone" value={newVendor.phone} onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })} />
-                  <input className="form-control form-control-sm mb-2" placeholder="Warehouse / Address" value={newVendor.address} onChange={(e) => setNewVendor({ ...newVendor, address: e.target.value })} />
-                  <div className="d-flex gap-2">
-                    <button className="btn btn-brand btn-sm" disabled={savingVendor}>{savingVendor ? "Adding…" : "Add vendor"}</button>
+                <form onSubmit={createVendor} className="border rounded p-3 mt-2 mb-3" style={{ background: "rgba(0, 0, 0, 0.15)" }}>
+                  <div className="small fw-bold text-brand mb-2">✨ Quick Add Vendor</div>
+                  <input required className="form-control form-control-sm mb-2" placeholder="Vendor Name *" value={newVendor.name} onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })} />
+                  <input className="form-control form-control-sm mb-2" placeholder="Phone Number" value={newVendor.phone} onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })} />
+                  <input className="form-control form-control-sm mb-3" placeholder="Warehouse / Address" value={newVendor.address} onChange={(e) => setNewVendor({ ...newVendor, address: e.target.value })} />
+                  <div className="d-flex gap-2 justify-content-end">
                     <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewVendor(false)}>Cancel</button>
+                    <button className="btn btn-brand btn-sm" disabled={savingVendor}>{savingVendor ? "Adding…" : "Add Vendor"}</button>
                   </div>
                 </form>
               )}
