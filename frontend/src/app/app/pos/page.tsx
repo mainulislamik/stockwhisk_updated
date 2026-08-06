@@ -354,7 +354,7 @@ export default function PosPage() {
               <div className="modal-body">
                 <div className="mb-3">
                   <div className="small text-secondary mb-1">Scanned barcode</div>
-                  <div className="px-3 py-2 bg-light rounded fw-bold" style={{ fontFamily: "monospace", letterSpacing: ".05em" }}>
+                  <div className="px-3 py-2 bg-body-secondary rounded fw-bold" style={{ fontFamily: "monospace", letterSpacing: ".05em" }}>
                     {assignBarcode}
                   </div>
                 </div>
@@ -363,7 +363,7 @@ export default function PosPage() {
                   <label className="form-label small">Which product does this barcode belong to?</label>
                   {assignSelected ? (
                     <div className="input-group input-group-sm">
-                      <span className="form-control bg-light fw-medium text-truncate">{assignSelected.name}</span>
+                      <span className="form-control bg-body-secondary fw-medium text-truncate">{assignSelected.name}</span>
                       <button className="btn btn-outline-secondary" onClick={() => { setAssignSelected(null); setAssignSearch(""); }}>✕</button>
                     </div>
                   ) : (
@@ -376,12 +376,11 @@ export default function PosPage() {
                         onChange={(e) => setAssignSearch(e.target.value)}
                       />
                       {assignSuggestions.length > 0 && (
-                        <div className="position-absolute w-100 bg-white border rounded shadow-sm mt-1" style={{ zIndex: 1060, maxHeight: "14rem", overflowY: "auto" }}>
+                        <div className="position-absolute w-100 bg-body border rounded shadow-sm mt-1" style={{ zIndex: 1060, maxHeight: "14rem", overflowY: "auto" }}>
                           {assignSuggestions.map((p) => (
                             <button
                               key={p.id}
-                              className="d-block w-100 text-start px-3 py-2 border-0 bg-transparent small"
-                              style={{ borderBottom: "1px solid #f0f0f0" }}
+                              className="d-block w-100 text-start px-3 py-2 border-0 border-bottom bg-transparent small text-body"
                               onClick={() => { setAssignSelected(p); setAssignSearch(p.name); }}
                             >
                               <span className="fw-medium">{p.name}</span>
