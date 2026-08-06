@@ -31,12 +31,20 @@ class BarcodeLookupView(_POSBase):
         code = request.query_params.get("barcode") or request.query_params.get("q")
         if not code:
             return Response({"detail": "Provide ?barcode="}, status=status.HTTP_400_BAD_REQUEST)
-        product = (
+        
+        # Product might have a comma-separated list of barcodes
+        products = (
             Product.objects.filter(is_active=True)
-            .filter(Q(barcode=code) | Q(sku=code))
+            .filter(Q(barcode__contains=code) | Q(sku=code))
             .select_related("category", "brand", "unit")
-            .first()
         )
+        
+        product = None
+        for p in products:
+            if code == p.sku or code in [x.strip() for x in p.barcode.split(",")]:
+                product = p
+                break
+                
         if product is None:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
         return Response(ProductSerializer(product).data)

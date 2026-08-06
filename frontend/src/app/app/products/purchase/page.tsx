@@ -276,12 +276,19 @@ export default function PurchaseProductPage() {
       await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid } });
 
       // Save scanned barcodes onto the products so POS / Barcodes page can find them.
-      // All units of a product share one barcode — the first scanned code wins.
       for (const l of lines) {
         const patchData: Record<string, any> = {};
-        const code = l.barcodes[0]?.trim();
         
-        if (code && l.product.barcode !== code) patchData.barcode = code;
+        // Merge with existing barcodes
+        const existingCodes = (l.product.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
+        const newCodes = (l.barcodes || []).map(c => c.trim()).filter(Boolean);
+        const uniqueCodes = Array.from(new Set([...existingCodes, ...newCodes]));
+        
+        const codeStr = uniqueCodes.join(", ");
+        if (codeStr && l.product.barcode !== codeStr) {
+          patchData.barcode = codeStr;
+        }
+        
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
         
         if (Object.keys(patchData).length > 0) {

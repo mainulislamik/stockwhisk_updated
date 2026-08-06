@@ -15,8 +15,8 @@ export default function BarcodesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
-  const [edits, setEdits] = useState<Record<number, string>>({});
-  const [saving, setSaving] = useState<number | null>(null);
+  const [edits, setEdits] = useState<Record<string, string>>({});
+  const [saving, setSaving] = useState<string | null>(null);
 
   // Assign form
   const barcodeInputRef = useRef<HTMLInputElement>(null);
@@ -40,8 +40,9 @@ export default function BarcodesPage() {
 
   // Products that already have a barcode
   const withBarcode = allProducts.filter((p) => p.barcode && p.barcode.trim() !== "");
-  // Products without a barcode (for suggestions)
-  const withoutBarcode = allProducts.filter((p) => !p.barcode || p.barcode.trim() === "");
+  // Products without a barcode (for suggestions) - wait, now they can have multiple, so just all products are valid for suggestions
+  // but to keep it simple, we let them search all products.
+  const withoutBarcode = allProducts; // They can assign additional barcodes to ANY product now.
 
   // Filter shown list
   const shown = withBarcode.filter((p) => {
@@ -59,20 +60,23 @@ export default function BarcodesPage() {
         .filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(q))
         .slice(0, 8)
     );
-  }, [search, allProducts]);
+  }, [search, allProducts, withoutBarcode]);
 
   async function assignBarcode() {
     if (!selected || !newBarcode.trim()) return;
+    const code = newBarcode.trim();
     // Check barcode not already used
-    if (allProducts.some((p) => p.id !== selected.id && p.barcode === newBarcode.trim())) {
-      alert(`Barcode "${newBarcode.trim()}" is already assigned to another product.`);
+    if (allProducts.some((p) => p.barcode.split(",").map(c=>c.trim()).includes(code))) {
+      alert(`Barcode "${code}" is already assigned to a product.`);
       return;
     }
     setAssigning(true);
     try {
-      await api(`/catalog/products/${selected.id}/`, { method: "PATCH", body: { barcode: newBarcode.trim() } });
+      const existingCodes = (selected.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
+      const newBarcodeStr = Array.from(new Set([...existingCodes, code])).join(", ");
+      await api(`/catalog/products/${selected.id}/`, { method: "PATCH", body: { barcode: newBarcodeStr } });
       setAllProducts((prev) =>
-        prev.map((p) => p.id === selected.id ? { ...p, barcode: newBarcode.trim() } : p)
+        prev.map((p) => p.id === selected.id ? { ...p, barcode: newBarcodeStr } : p)
       );
       setSelected(null);
       setSearch("");
@@ -84,18 +88,27 @@ export default function BarcodesPage() {
     }
   }
 
-  async function saveBarcode(p: Product) {
-    const value = (edits[p.id] ?? p.barcode).trim();
-    if (!value) { await removeBarcode(p); return; }
-    if (allProducts.some((x) => x.id !== p.id && x.barcode === value)) {
+  async function saveBarcode(p: Product, index: number) {
+    const editKey = `${p.id}-${index}`;
+    let codes = (p.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
+    const value = (edits[editKey] ?? codes[index]).trim();
+    
+    if (!value) { await removeBarcode(p, index); return; }
+    
+    // Check if new value is used by ANOTHER product
+    if (allProducts.some((x) => x.id !== p.id && x.barcode.split(",").map(c=>c.trim()).includes(value))) {
       alert(`Barcode "${value}" is already assigned to another product.`);
       return;
     }
-    setSaving(p.id);
+    
+    codes[index] = value;
+    const newBarcodeStr = Array.from(new Set(codes)).join(", ");
+    
+    setSaving(editKey);
     try {
-      await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { barcode: value } });
-      setAllProducts((prev) => prev.map((r) => r.id === p.id ? { ...r, barcode: value } : r));
-      setEdits((e) => { const n = { ...e }; delete n[p.id]; return n; });
+      await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { barcode: newBarcodeStr } });
+      setAllProducts((prev) => prev.map((r) => r.id === p.id ? { ...r, barcode: newBarcodeStr } : r));
+      setEdits((e) => { const n = { ...e }; delete n[editKey]; return n; });
     } catch (e: any) {
       alert(e?.message || "Could not save barcode");
     } finally {
@@ -103,13 +116,20 @@ export default function BarcodesPage() {
     }
   }
 
-  async function removeBarcode(p: Product) {
-    if (!confirm(`Remove barcode from "${p.name}"?`)) return;
-    setSaving(p.id);
+  async function removeBarcode(p: Product, index: number) {
+    let codes = (p.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
+    const codeToRemove = codes[index];
+    if (!confirm(`Remove barcode "${codeToRemove}" from "${p.name}"?`)) return;
+    
+    const editKey = `${p.id}-${index}`;
+    codes.splice(index, 1);
+    const newBarcodeStr = Array.from(new Set(codes)).join(", ");
+    
+    setSaving(editKey);
     try {
-      await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { barcode: "" } });
-      setAllProducts((prev) => prev.map((r) => r.id === p.id ? { ...r, barcode: "" } : r));
-      setEdits((e) => { const n = { ...e }; delete n[p.id]; return n; });
+      await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { barcode: newBarcodeStr } });
+      setAllProducts((prev) => prev.map((r) => r.id === p.id ? { ...r, barcode: newBarcodeStr } : r));
+      setEdits((e) => { const n = { ...e }; delete n[editKey]; return n; });
     } catch (e: any) {
       alert(e?.message || "Could not remove barcode");
     } finally {
@@ -247,50 +267,56 @@ export default function BarcodesPage() {
                   </td>
                 </tr>
               ) : (
-                paged.map((p, i) => {
-                  const editVal = edits[p.id] ?? p.barcode;
-                  const changed = editVal !== p.barcode;
-                  const rowNum = (page - 1) * 20 + i + 1;
-                  return (
-                    <tr key={p.id}>
-                      <td className="text-secondary small">{rowNum}</td>
-                      <td className="fw-medium">{p.name}</td>
-                      <td className="text-secondary">{p.sku || "—"}</td>
-                      <td>
-                        {canManage ? (
-                          <input
-                            className="form-control form-control-sm"
-                            style={{ maxWidth: "16rem", fontFamily: "monospace" }}
-                            value={editVal}
-                            onChange={(e) => setEdits({ ...edits, [p.id]: e.target.value })}
-                            onKeyDown={(e) => { if (e.key === "Enter") saveBarcode(p); }}
-                          />
-                        ) : (
-                          <span style={{ fontFamily: "monospace" }}>{p.barcode}</span>
-                        )}
-                      </td>
-                      {canManage && (
-                        <td className="text-end text-nowrap pe-2">
-                          {changed && (
-                            <button
-                              className="btn btn-sm btn-brand py-0 me-2"
-                              disabled={saving === p.id}
-                              onClick={() => saveBarcode(p)}
-                            >
-                              {saving === p.id ? "…" : "Save"}
-                            </button>
+                paged.flatMap((p, i) => {
+                  const codes = (p.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
+                  if (codes.length === 0) return [];
+                  
+                  return codes.map((bc, codeIdx) => {
+                    const editKey = `${p.id}-${codeIdx}`;
+                    const editVal = edits[editKey] ?? bc;
+                    const changed = editVal !== bc;
+                    const rowNum = (page - 1) * 20 + i + 1;
+                    return (
+                      <tr key={editKey}>
+                        <td className="text-secondary small">{codeIdx === 0 ? rowNum : ""}</td>
+                        <td className="fw-medium">{codeIdx === 0 ? p.name : <span className="text-secondary">↳</span>}</td>
+                        <td className="text-secondary">{codeIdx === 0 ? (p.sku || "—") : ""}</td>
+                        <td>
+                          {canManage ? (
+                            <input
+                              className="form-control form-control-sm"
+                              style={{ maxWidth: "16rem", fontFamily: "monospace" }}
+                              value={editVal}
+                              onChange={(e) => setEdits({ ...edits, [editKey]: e.target.value })}
+                              onKeyDown={(e) => { if (e.key === "Enter") saveBarcode(p, codeIdx); }}
+                            />
+                          ) : (
+                            <span style={{ fontFamily: "monospace" }}>{bc}</span>
                           )}
-                          <button
-                            className="btn btn-sm btn-outline-danger py-0"
-                            disabled={saving === p.id}
-                            onClick={() => removeBarcode(p)}
-                          >
-                            Remove
-                          </button>
                         </td>
-                      )}
-                    </tr>
-                  );
+                        {canManage && (
+                          <td className="text-end text-nowrap pe-2">
+                            {changed && (
+                              <button
+                                className="btn btn-sm btn-brand py-0 me-2"
+                                disabled={saving === editKey}
+                                onClick={() => saveBarcode(p, codeIdx)}
+                              >
+                                {saving === editKey ? "…" : "Save"}
+                              </button>
+                            )}
+                            <button
+                              className="btn btn-sm btn-outline-danger py-0"
+                              disabled={saving === editKey}
+                              onClick={() => removeBarcode(p, codeIdx)}
+                            >
+                              Remove
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  });
                 })
               )}
             </tbody>
