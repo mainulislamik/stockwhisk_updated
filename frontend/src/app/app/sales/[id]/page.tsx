@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 
-type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string };
+type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string };
 type Payment = { id: number; amount: string; method: string; paid_at: string; note: string };
 type Sale = {
   id: number;
@@ -79,13 +79,36 @@ export default function SaleDetailPage() {
               </tr>
             </thead>
             <tbody>
-              {sale.items.map((it) => (
-                <tr key={it.id}>
-                  <td>{it.product_name}</td>
-                  <td className="text-end">{it.quantity}</td>
+              {sale.items.flatMap(it => {
+                const qty = Number(it.quantity);
+                if (Number.isInteger(qty) && qty > 1) {
+                  return Array.from({ length: qty }).map((_, i) => ({
+                    ...it,
+                    _extId: `${it.id}-${i}`,
+                    _qty: 1,
+                    _subtotal: Number(it.subtotal) / qty,
+                    _discount: Number(it.discount) / qty,
+                    _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || ""
+                  }));
+                }
+                return [{
+                  ...it,
+                  _extId: String(it.id),
+                  _qty: qty,
+                  _subtotal: Number(it.subtotal),
+                  _discount: Number(it.discount),
+                  _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || ""
+                }];
+              }).map((it) => (
+                <tr key={it._extId}>
+                  <td>
+                    {it.product_name}
+                    {it._barcode && <div className="text-secondary" style={{fontSize: "0.75rem"}}>Barcode: {it._barcode}</div>}
+                  </td>
+                  <td className="text-end">{it._qty}</td>
                   <td className="text-end">{money(it.unit_price)}</td>
-                  <td className="text-end">{money(it.discount)}</td>
-                  <td className="text-end">{money(it.subtotal)}</td>
+                  <td className="text-end">{money(it._discount)}</td>
+                  <td className="text-end">{money(it._subtotal)}</td>
                 </tr>
               ))}
             </tbody>

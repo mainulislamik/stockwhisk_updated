@@ -34,7 +34,7 @@ class SaleViewSet(
         # items__product: the serializer reads product.name per line, so prefetch
         # the products too or it's an N+1 (one product query per sale line).
         qs = Sale.objects.select_related("customer").prefetch_related(
-            "items__product", "payments"
+            "items__product", "payments", "units"
         )
         if s := self.request.query_params.get("status"):
             qs = qs.filter(status=s)

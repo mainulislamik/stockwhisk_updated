@@ -16,6 +16,8 @@ type SaleItem = {
   unit_price: string;
   discount: string;
   subtotal: string;
+  unit_barcodes?: string[];
+  product_barcode?: string;
 };
 type Payment = { id: number; amount: string; method: string };
 type Sale = {
@@ -160,12 +162,33 @@ export default function InvoicePage() {
             </tr>
           </thead>
           <tbody>
-            {sale.items.map((item, i) => (
-              <tr key={item.id} className={i % 2 === 0 ? "inv-row-even" : "inv-row-odd"}>
+            {sale.items.flatMap(it => {
+              const qty = Number(it.quantity);
+              if (Number.isInteger(qty) && qty > 1) {
+                return Array.from({ length: qty }).map((_, i) => ({
+                  ...it,
+                  _extId: `${it.id}-${i}`,
+                  _qty: 1,
+                  _subtotal: Number(it.subtotal) / qty,
+                  _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || ""
+                }));
+              }
+              return [{
+                ...it,
+                _extId: String(it.id),
+                _qty: qty,
+                _subtotal: Number(it.subtotal),
+                _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || ""
+              }];
+            }).map((item, i) => (
+              <tr key={item._extId} className={i % 2 === 0 ? "inv-row-even" : "inv-row-odd"}>
                 <td className="inv-td-center inv-row-no">{String(i + 1).padStart(2, "0")}</td>
-                <td className="inv-product-name">{item.product_name}</td>
-                <td className="inv-td-center">{item.quantity}</td>
-                <td className="inv-td-right inv-line-total">{fmt(item.subtotal)}</td>
+                <td className="inv-product-name">
+                  {item.product_name}
+                  {item._barcode && <div style={{ fontSize: "0.85em", color: "#64748b" }}>Barcode: {item._barcode}</div>}
+                </td>
+                <td className="inv-td-center">{item._qty}</td>
+                <td className="inv-td-right inv-line-total">{fmt(item._subtotal)}</td>
               </tr>
             ))}
           </tbody>

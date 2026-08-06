@@ -9,11 +9,23 @@ from .models import Payment, Sale, SaleItem, SaleReturn
 class SaleItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True, default="")
+    product_barcode = serializers.CharField(source="product.barcode", read_only=True, default="")
+    unit_barcodes = serializers.SerializerMethodField()
+
+    def get_unit_barcodes(self, obj):
+        if not getattr(obj, "sale", None):
+            return []
+        units = getattr(obj.sale, "units", None)
+        if hasattr(units, "all"):
+            units = units.all()
+        if not units:
+            return []
+        return [u.barcode for u in units if u.product_id == obj.product_id]
 
     class Meta:
         model = SaleItem
         fields = [
-            "id", "product", "product_name", "product_sku", "variation", "quantity",
+            "id", "product", "product_name", "product_sku", "product_barcode", "unit_barcodes", "variation", "quantity",
             "unit_price", "unit_cost", "discount", "subtotal",
         ]
         read_only_fields = ["unit_cost", "subtotal"]
