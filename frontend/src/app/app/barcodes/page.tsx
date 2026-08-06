@@ -282,29 +282,11 @@ export default function BarcodesPage() {
                         <td className="fw-medium">{codeIdx === 0 ? p.name : <span className="text-secondary">↳</span>}</td>
                         <td className="text-secondary">{codeIdx === 0 ? (p.sku || "—") : ""}</td>
                         <td>
-                          {canManage ? (
-                            <input
-                              className="form-control form-control-sm"
-                              style={{ maxWidth: "16rem", fontFamily: "monospace" }}
-                              value={editVal}
-                              onChange={(e) => setEdits({ ...edits, [editKey]: e.target.value })}
-                              onKeyDown={(e) => { if (e.key === "Enter") saveBarcode(p, codeIdx); }}
-                            />
-                          ) : (
-                            <span style={{ fontFamily: "monospace" }}>{bc}</span>
-                          )}
+                          <span style={{ fontFamily: "monospace", letterSpacing: ".05em" }}>{bc}</span>
                         </td>
                         {canManage && (
                           <td className="text-end text-nowrap pe-2">
-                            {changed && (
-                              <button
-                                className="btn btn-sm btn-brand py-0 me-2"
-                                disabled={saving === editKey}
-                                onClick={() => saveBarcode(p, codeIdx)}
-                              >
-                                {saving === editKey ? "…" : "Save"}
-                              </button>
-                            )}
+
                             <button
                               className="btn btn-sm btn-outline-danger py-0"
                               disabled={saving === editKey}
