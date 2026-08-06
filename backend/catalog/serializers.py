@@ -41,7 +41,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "id", "name", "sku", "barcode", "category", "brand", "unit",
             "description", "cost_price", "selling_price", "tax_percent",
             "track_inventory", "reorder_level", "current_stock",
-            "is_low_stock", "is_active", "variations",
+            "is_low_stock", "is_active", "variations", "warranty_months",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]
 

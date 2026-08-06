@@ -51,6 +51,7 @@ export default function ProductEditPage() {
           cost_price: form.cost_price,
           selling_price: form.selling_price,
           reorder_level: form.reorder_level,
+          warranty_months: form.warranty_months,
           description: form.description,
           is_active: form.is_active,
         },
@@ -104,17 +105,21 @@ export default function ProductEditPage() {
                 ))}
               </select>
             </div>
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label className="small">Cost</label>
               <input type="number" step="0.01" className="form-control form-control-sm" value={form.cost_price || ""} onChange={set("cost_price")} />
             </div>
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label className="small">Selling price</label>
               <input type="number" step="0.01" className="form-control form-control-sm" value={form.selling_price || ""} onChange={set("selling_price")} />
             </div>
-            <div className="col-md-4">
+            <div className="col-md-3">
               <label className="small">Reorder level</label>
               <input type="number" step="0.01" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
+            </div>
+            <div className="col-md-3">
+              <label className="small">Warranty (months)</label>
+              <input type="number" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} />
             </div>
             <div className="col-md-6">
               <label className="small">Barcode</label>
