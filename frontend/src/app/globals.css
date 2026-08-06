@@ -106,13 +106,13 @@ body {
 .btn-brand {
   background: linear-gradient(135deg, var(--brand-400), var(--brand-700));
   border: none;
-  color: #fff;
+  color: #fff !important;
   box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
 }
 .btn-brand:hover {
   background: linear-gradient(135deg, #818cf8, var(--brand-500));
   box-shadow: 0 6px 16px rgba(99, 102, 241, 0.4);
-  color: #fff;
+  color: #fff !important;
   transform: translateY(-1px);
 }
 .btn-outline-brand {
