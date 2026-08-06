@@ -3,7 +3,7 @@ from rest_framework.routers import DefaultRouter
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
-from .rbac_api import MyPermissionsView, PermissionCatalogView, RoleViewSet
+from .rbac_api import MyPermissionsView, PermissionCatalogView, RoleViewSet, ShopUserViewSet
 from .views import MeView, RegisterShopView, ShopSettingsView
 
 app_name = "accounts"
@@ -22,6 +22,7 @@ class ThrottledTokenRefreshView(TokenRefreshView):
 
 router = DefaultRouter()
 router.register("roles", RoleViewSet, basename="role")
+router.register("users", ShopUserViewSet, basename="user")
 
 urlpatterns = [
     path("auth/register/", RegisterShopView.as_view(), name="register"),

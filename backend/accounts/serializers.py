@@ -44,3 +44,36 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
             "invoice_settings"
         ]
+
+
+class ShopUserSerializer(serializers.ModelSerializer):
+    password = serializers.CharField(write_only=True, required=False, min_length=8)
+
+    class Meta:
+        model = User
+        fields = [
+            "id", "email", "first_name", "last_name", "phone",
+            "role", "is_active", "password", "last_login"
+        ]
+        read_only_fields = ["id", "last_login"]
+
+    def create(self, validated_data):
+        password = validated_data.pop("password", None)
+        if not password:
+            # Fallback to random password if none provided
+            password = User.objects.make_random_password()
+        
+        user = User.objects.create(**validated_data)
+        user.set_password(password)
+        user.save()
+        
+        # Inject the generated password back into the representation 
+        # so the frontend can display it to the owner once.
+        user._generated_password = password
+        return user
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if hasattr(instance, "_generated_password"):
+            data["temporary_password"] = instance._generated_password
+        return data

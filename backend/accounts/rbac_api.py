@@ -96,3 +96,21 @@ class RoleViewSet(_OwnerScoped, viewsets.ModelViewSet):
             changes={"codes": codes},
         )
         return Response(RoleSerializer(role).data)
+
+
+from django.contrib.auth import get_user_model
+User = get_user_model()
+from .serializers import ShopUserSerializer
+
+class ShopUserViewSet(_OwnerScoped, viewsets.ModelViewSet):
+    """Owner-managed staff users, scoped to the owner's shop."""
+
+    serializer_class = ShopUserSerializer
+    permission_classes = [IsTenantMember, HasPermCode]
+    required_perm = "manage_users"
+
+    def get_queryset(self):
+        return User.objects.filter(shop_id=self.request.user.shop_id).order_by("-is_active", "first_name", "email")
+
+    def perform_create(self, serializer):
+        serializer.save(shop_id=self.request.user.shop_id)
