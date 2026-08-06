@@ -49,6 +49,7 @@ class StockMovementViewSet(
             quantity=data["quantity"],
             unit_cost=data.get("unit_cost", 0),
             note=data.get("note", ""),
+            barcodes=data.get("barcodes", []),
             created_by=request.user,
         )
         record(

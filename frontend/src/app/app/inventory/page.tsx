@@ -28,7 +28,7 @@ export default function InventoryPage() {
   const [moves, setMoves] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [adj, setAdj] = useState({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "" });
+  const [adj, setAdj] = useState({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
   const [products, setProducts] = useState<{ id: number; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -57,6 +57,7 @@ export default function InventoryPage() {
     e.preventDefault();
     setSaving(true);
     try {
+      const parsedBarcodes = adj.barcodes?.split("\n").map(b => b.trim()).filter(Boolean) || [];
       await api("/inventory/stock-movements/adjust/", {
         method: "POST",
         body: {
@@ -65,9 +66,10 @@ export default function InventoryPage() {
           quantity: adj.quantity,
           unit_cost: adj.unit_cost || 0,
           note: adj.note,
+          barcodes: parsedBarcodes,
         },
       });
-      setAdj({ product: "", movement_type: "ADJUST_IN", quantity: "", unit_cost: "", note: "" });
+      setAdj({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
       await load();
     } catch (e: any) {
       alert(e?.message || "Could not adjust stock");
@@ -117,8 +119,8 @@ export default function InventoryPage() {
         <div className="card shadow-sm">
           <div className="card-body">
             <div className="fw-semibold mb-3">Manual stock adjustment</div>
-            <form onSubmit={submitAdjust} className="row g-2 align-items-end">
-              <div className="col-md-4">
+            <form onSubmit={submitAdjust} className="row g-2 align-items-start">
+              <div className="col-md-3">
                 <label className="small">Product</label>
                 <select required className="form-select form-select-sm" value={adj.product} onChange={(e) => setAdj({ ...adj, product: e.target.value })}>
                   <option value="">Select…</option>
@@ -138,7 +140,7 @@ export default function InventoryPage() {
                   <option value="opening">Opening balance</option>
                 </select>
               </div>
-              <div className="col-md-2">
+              <div className="col-md-1">
                 <label className="small">Quantity</label>
                 <input required type="number" step="0.01" className="form-control form-control-sm" value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} />
               </div>
@@ -146,12 +148,48 @@ export default function InventoryPage() {
                 <label className="small">Unit cost</label>
                 <input type="number" step="0.01" className="form-control form-control-sm" value={adj.unit_cost} onChange={(e) => setAdj({ ...adj, unit_cost: e.target.value })} />
               </div>
-              <div className="col-md-2">
+              <div className="col-md-4">
+                <label className="small">Barcodes (One per line)</label>
+                <textarea 
+                  className="form-control form-control-sm font-monospace" 
+                  rows={3} 
+                  placeholder="Scan or paste barcodes (optional)"
+                  value={adj.barcodes || ""} 
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const parts = val.split("\n");
+                    const last = parts[parts.length - 1];
+                    // Optional auto-newline after 8+ chars (simple continuous scan support)
+                    if (last.length >= 13) {
+                      setAdj({ ...adj, barcodes: val.trimEnd() + "\n" });
+                    } else {
+                      setAdj({ ...adj, barcodes: val });
+                    }
+                  }} 
+                />
+                {adj.barcodes && (
+                  <div className={`small mt-1 ${
+                    adj.barcodes.split("\n").filter(b => b.trim()).length !== Number(adj.quantity || 0) 
+                      ? "text-danger fw-bold" 
+                      : "text-success fw-bold"
+                  }`}>
+                    {adj.barcodes.split("\n").filter(b => b.trim()).length} barcodes scanned.
+                    {adj.barcodes.split("\n").filter(b => b.trim()).length !== Number(adj.quantity || 0) && " Must match quantity!"}
+                  </div>
+                )}
+              </div>
+              
+              <div className="col-md-6 mt-2">
                 <label className="small">Note</label>
                 <input className="form-control form-control-sm" value={adj.note} onChange={(e) => setAdj({ ...adj, note: e.target.value })} placeholder="Optional…" />
               </div>
-              <div className="col-md-2 d-flex align-items-end">
-                <button className="btn btn-brand btn-sm w-100" disabled={saving}>
+              <div className="col-md-6 mt-2 d-flex align-items-end justify-content-end">
+                <button 
+                  className="btn btn-brand btn-sm w-100" 
+                  disabled={saving || (
+                    adj.barcodes?.trim() ? adj.barcodes.split("\n").filter(b => b.trim()).length !== Number(adj.quantity || 0) : false
+                  )}
+                >
                   {saving ? "Saving…" : "Apply adjustment"}
                 </button>
               </div>

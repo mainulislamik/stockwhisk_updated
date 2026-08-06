@@ -18,7 +18,7 @@ def _signed(movement_type, quantity) -> Decimal:
 @transaction.atomic
 def apply_movement(
     *, product, movement_type, quantity, unit_cost=0, variation=None,
-    branch=None, reference_type="", reference_id="", note="", created_by=None,
+    branch=None, reference_type="", reference_id="", note="", barcodes=None, created_by=None,
     shop=None,
 ):
     """
@@ -37,6 +37,22 @@ def apply_movement(
         note=note, created_by=created_by,
     )
     _apply_stock_delta(product, variation, signed)
+    
+    # Process scanned barcodes for serial-tracked items
+    if barcodes:
+        from catalog.models import ProductUnit
+        if movement_type in ["adjust_in", "opening", "purchase_in", "return_in"]:
+            for b in barcodes:
+                ProductUnit.objects.create(
+                    product=product,
+                    barcode=b,
+                    status=ProductUnit.Status.IN_STOCK,
+                    effective_cost_price=unit_cost or 0,
+                    effective_selling_price=product.selling_price
+                )
+        elif movement_type in ["adjust_out", "damage_out", "sale_out"]:
+            ProductUnit.objects.filter(product=product, barcode__in=barcodes).delete()
+
     return movement
 
 

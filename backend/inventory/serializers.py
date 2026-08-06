@@ -31,3 +31,4 @@ class StockAdjustmentSerializer(serializers.Serializer):
     quantity = serializers.DecimalField(max_digits=14, decimal_places=2)
     unit_cost = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     note = serializers.CharField(required=False, allow_blank=True, default="")
+    barcodes = serializers.ListField(child=serializers.CharField(max_length=120), required=False, default=list)
