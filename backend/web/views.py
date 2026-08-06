@@ -1249,10 +1249,12 @@ def pos_add_customer(request):
     phone = (payload.get("phone") or "").strip()
     if not name or not phone:
         return JsonResponse({"error": "Name and phone are required."}, status=400)
-    customer = Customer.objects.create(
-        shop=request.user.shop, name=_clip(name, 150), phone=_clip(phone, 30),
-        address=(payload.get("address") or "").strip(),
-    )
+    customer = Customer.objects.filter(shop=request.user.shop, phone=phone).first()
+    if customer is None:
+        customer = Customer.objects.create(
+            shop=request.user.shop, name=_clip(name, 150), phone=_clip(phone, 30),
+            address=(payload.get("address") or "").strip(),
+        )
     return JsonResponse({"id": customer.id, "name": customer.name})
 
 

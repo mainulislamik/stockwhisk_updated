@@ -14,3 +14,17 @@ class CustomerSerializer(serializers.ModelSerializer):
             "days_since_last_purchase", "is_active",
         ]
         read_only_fields = ["due_balance", "total_purchased", "last_purchase_at"]
+
+    def validate_phone(self, value):
+        value = value.strip()
+        if not value:
+            return value
+        
+        qs = Customer.objects.filter(phone=value)
+        if self.instance:
+            qs = qs.exclude(id=self.instance.id)
+            
+        if qs.exists():
+            raise serializers.ValidationError("A customer with this mobile number already exists.")
+            
+        return value

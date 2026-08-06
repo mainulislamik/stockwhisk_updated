@@ -26,6 +26,16 @@ class CustomerViewSet(TenantScopedViewSet):
             qs = qs.filter(Q(name__icontains=search) | Q(phone__icontains=search))
         return qs
 
+    def create(self, request, *args, **kwargs):
+        phone = request.data.get("phone", "").strip()
+        if phone:
+            existing = self.get_queryset().filter(phone=phone).first()
+            if existing:
+                from rest_framework import status
+                serializer = self.get_serializer(existing)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
+
     @action(detail=False, methods=["get"])
     def inactive(self, request):
         """Customers with no purchase in N (default 60) days."""
