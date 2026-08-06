@@ -118,6 +118,16 @@ export const getTheme = (mode: 'light' | 'dark') => {
           },
         },
       },
+      MuiInputLabel: {
+        styleOverrides: {
+          root: {
+            color: isDark ? '#cbd5e1' : '#475569',
+            '&.Mui-focused': {
+              color: isDark ? '#818cf8' : '#6366f1',
+            },
+          },
+        },
+      },
     },
   });
 };
