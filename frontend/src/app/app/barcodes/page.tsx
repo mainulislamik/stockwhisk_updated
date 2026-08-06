@@ -5,7 +5,8 @@ import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, usePagination } from "@/components/ui";
 
-type Product = { id: number; name: string; sku: string; barcode: string };
+type ProductUnit = { id: number; barcode: string; status: string; effective_cost_price?: string; effective_selling_price?: string; created_at: string };
+type Product = { id: number; name: string; sku: string; barcode: string; units?: ProductUnit[] };
 
 export default function BarcodesPage() {
   const { can, isOwner } = useAuth();
@@ -39,7 +40,7 @@ export default function BarcodesPage() {
   useEffect(() => { load(); }, []);
 
   // Products that already have a barcode
-  const withBarcode = allProducts.filter((p) => p.barcode && p.barcode.trim() !== "");
+  const withBarcode = allProducts.filter((p) => (p.barcode && p.barcode.trim() !== "") || (p.units && p.units.length > 0));
   // Products without a barcode (for suggestions) - wait, now they can have multiple, so just all products are valid for suggestions
   // but to keep it simple, we let them search all products.
   const withoutBarcode = allProducts; // They can assign additional barcodes to ANY product now.
@@ -47,7 +48,8 @@ export default function BarcodesPage() {
   // Filter shown list
   const shown = withBarcode.filter((p) => {
     const q = filter.trim().toLowerCase();
-    return !q || `${p.name} ${p.sku} ${p.barcode}`.toLowerCase().includes(q);
+    const unitCodes = (p.units || []).map(u => u.barcode).join(" ");
+    return !q || `${p.name} ${p.sku} ${p.barcode} ${unitCodes}`.toLowerCase().includes(q);
   });
   const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
 
@@ -266,39 +268,57 @@ export default function BarcodesPage() {
                     )}
                   </td>
                 </tr>
-              ) : (
-                paged.flatMap((p, i) => {
-                  const codes = (p.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
-                  if (codes.length === 0) return [];
+) : (
+                paged.map((p, i) => {
+                  const generalCodes = (p.barcode || "").split(",").map(c => c.trim()).filter(Boolean);
+                  const unitCodes = p.units || [];
+                  const rowNum = (page - 1) * 20 + i + 1;
                   
-                  return codes.map((bc, codeIdx) => {
-                    const editKey = `${p.id}-${codeIdx}`;
-                    const editVal = edits[editKey] ?? bc;
-                    const changed = editVal !== bc;
-                    const rowNum = (page - 1) * 20 + i + 1;
-                    return (
-                      <tr key={editKey}>
-                        <td className="text-secondary small">{codeIdx === 0 ? rowNum : ""}</td>
-                        <td className="fw-medium">{codeIdx === 0 ? p.name : <span className="text-secondary">↳</span>}</td>
-                        <td className="text-secondary">{codeIdx === 0 ? (p.sku || "—") : ""}</td>
-                        <td>
-                          <span style={{ fontFamily: "monospace", letterSpacing: ".05em" }}>{bc}</span>
+                  return (
+                    <tr key={p.id}>
+                      <td className="text-secondary small">{rowNum}</td>
+                      <td className="fw-medium">{p.name}</td>
+                      <td className="text-secondary">{p.sku || "—"}</td>
+                      <td>
+                        <div className="d-flex flex-wrap gap-2 align-items-center">
+                          {generalCodes.length === 0 && unitCodes.length === 0 && (
+                            <span className="text-secondary small">None</span>
+                          )}
+                          
+                          {/* General Barcodes */}
+                          {generalCodes.map((bc, codeIdx) => (
+                            <div key={`gen-${codeIdx}`} className="badge bg-light border text-body d-flex align-items-center gap-1" style={{ fontSize: '.75rem', fontFamily: 'monospace' }}>
+                              <span>{bc}</span>
+                              {canManage && (
+                                <button 
+                                  className="btn btn-link btn-sm text-danger p-0 ms-1 d-flex align-items-center justify-content-center" 
+                                  style={{ width: '14px', height: '14px', textDecoration: 'none' }}
+                                  disabled={saving === `${p.id}-${codeIdx}`}
+                                  onClick={() => removeBarcode(p, codeIdx)}
+                                  title="Remove general barcode"
+                                >
+                                  &times;
+                                </button>
+                              )}
+                            </div>
+                          ))}
+                          
+                          {/* Serialized Unit Barcodes */}
+                          {unitCodes.map(u => (
+                            <div key={`unit-${u.id}`} className="badge bg-brand bg-opacity-10 border border-brand border-opacity-25 text-brand d-flex align-items-center" style={{ fontSize: '.75rem', fontFamily: 'monospace' }} title="Serialized Unit">
+                              <span className="me-1">📦</span>
+                              {u.barcode}
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                      {canManage && (
+                        <td className="text-end">
+                           {/* Empty actions column for now, remove button is inline */}
                         </td>
-                        {canManage && (
-                          <td className="text-end text-nowrap pe-2">
-
-                            <button
-                              className="btn btn-sm btn-outline-danger py-0"
-                              disabled={saving === editKey}
-                              onClick={() => removeBarcode(p, codeIdx)}
-                            >
-                              Remove
-                            </button>
-                          </td>
-                        )}
-                      </tr>
-                    );
-                  });
+                      )}
+                    </tr>
+                  );
                 })
               )}
             </tbody>
