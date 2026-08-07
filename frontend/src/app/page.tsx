@@ -75,7 +75,7 @@ export default function LandingPage() {
               StockWhisk
             </Typography>
             
-            <Stack direction="row" spacing={4} alignItems="center" sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <Stack direction="row" spacing={4} sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
               <Link href="#features" style={{ color: '#e2e8f0', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500, transition: 'color 0.2s' }}>Features</Link>
               <Link href="#pricing" style={{ color: '#e2e8f0', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500, transition: 'color 0.2s' }}>Pricing</Link>
               
