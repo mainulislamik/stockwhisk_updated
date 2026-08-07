@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Typography, Button, Container, Stack, Grid, Chip } from '@mui/material';
+import { Box, Typography, Button, Container, Stack, Chip } from '@mui/material';
 import { getAccess } from "@/lib/api";
 
 const COLORS = {
@@ -140,24 +140,31 @@ export default function LandingPage() {
       {/* Stats Section */}
       <Box sx={{ bgcolor: COLORS.statsBg, py: 5, borderBottom: '1px solid #eaeaea' }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4} sx={{ textAlign: 'center' }}>
-            <Grid item xs={6} md={3}>
+          <Box 
+            sx={{ 
+              display: 'grid', 
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
+              gap: 4, 
+              textAlign: 'center' 
+            }}
+          >
+            <Box>
               <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.darkText, mb: 1 }}>1</Typography>
               <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>unified platform</Typography>
-            </Grid>
-            <Grid item xs={6} md={3}>
+            </Box>
+            <Box>
               <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.darkText, mb: 1 }}>10+</Typography>
               <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>connected modules</Typography>
-            </Grid>
-            <Grid item xs={6} md={3}>
+            </Box>
+            <Box>
               <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.darkText, mb: 1 }}>100%</Typography>
               <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>audit-ready stock ledger</Typography>
-            </Grid>
-            <Grid item xs={6} md={3}>
+            </Box>
+            <Box>
               <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.darkText, mb: 1 }}>0</Typography>
               <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>hidden charges</Typography>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Container>
       </Box>
 
