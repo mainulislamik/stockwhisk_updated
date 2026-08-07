@@ -34,7 +34,7 @@ class Migration(migrations.Migration):
             ],
             options={
                 'ordering': ['-opened_at'],
-                'indexes': [models.Index(fields=['shop', 'status', 'opened_at'])],
+                'indexes': [models.Index(fields=['shop', 'status', 'opened_at'], name='accounting_dail_idx')],
             },
         ),
     ]
