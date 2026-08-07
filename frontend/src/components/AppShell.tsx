@@ -74,30 +74,41 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         className={`sidebar d-none d-md-flex flex-column vh-100 position-sticky top-0 flex-shrink-0 ${collapsed ? "sb-collapsed" : ""}`}
         style={{ width: collapsed ? "4.5rem" : "15rem", transition: "width .2s" }}
       >
-        <div className="d-flex align-items-center justify-content-between gap-2 p-3 border-bottom border-secondary border-opacity-25">
+        <div className="d-flex flex-column gap-3 p-3 border-bottom border-secondary border-opacity-25">
+          <div className="d-flex align-items-center justify-content-between">
+            {!collapsed && <div className="fs-5 fw-bold brand-title lh-1">StockWhisk</div>}
+            <button
+              onClick={toggle}
+              className="btn btn-sm text-white-50 flex-shrink-0 ms-auto p-0"
+              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              {collapsed ? "»" : "«"}
+            </button>
+          </div>
+          
           {!collapsed && (
-            <div className="d-flex align-items-center gap-2 text-truncate">
-              {user.shop_logo && (
+            <div className="d-flex align-items-center gap-2 bg-white bg-opacity-10 p-2 rounded shadow-sm border border-white border-opacity-10">
+              {user.shop_logo ? (
                 <div 
-                  className="bg-white rounded d-flex align-items-center justify-content-center flex-shrink-0 p-1 shadow-sm"
-                  style={{ width: "36px", height: "36px" }}
+                  className="bg-white rounded d-flex align-items-center justify-content-center flex-shrink-0 p-1"
+                  style={{ width: "32px", height: "32px" }}
                 >
                   <img src={user.shop_logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
                 </div>
+              ) : (
+                <div 
+                  className="bg-white bg-opacity-25 rounded d-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold shadow-sm"
+                  style={{ width: "32px", height: "32px" }}
+                >
+                  {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
+                </div>
               )}
-              <div className="text-truncate">
-                <div className="fs-5 fw-bold brand-title mb-0 lh-1">StockWhisk</div>
-                <div className="small text-white-50 text-truncate mt-1" style={{ fontSize: "0.75rem" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
+              <div className="text-truncate min-vw-0">
+                <div className="fw-semibold text-white lh-1 text-truncate" style={{ fontSize: "0.9rem" }}>{user.shop_name || "My Shop"}</div>
+                <div className="small text-white-50 text-truncate mt-1" style={{ fontSize: "0.7rem" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
               </div>
             </div>
           )}
-          <button
-            onClick={toggle}
-            className="btn btn-sm text-white-50 flex-shrink-0"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            {collapsed ? "»" : "«"}
-          </button>
         </div>
         <nav className="nav flex-column flex-grow-1 p-2 gap-1 overflow-auto">
           {mounted && <Nav collapsed={collapsed} openGroup={openGroup} setGroup={setGroup} />}
@@ -122,22 +133,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar (mobile offcanvas) */}
       <div className="offcanvas offcanvas-start sidebar text-light d-md-none" tabIndex={-1} id="mobileNav" style={{ width: "15rem" }}>
-        <div className="offcanvas-header border-bottom border-secondary border-opacity-25 align-items-start">
-          <div className="d-flex align-items-center gap-2 text-truncate">
-            {user.shop_logo && (
+        <div className="offcanvas-header border-bottom border-secondary border-opacity-25 flex-column align-items-stretch gap-3">
+          <div className="d-flex align-items-center justify-content-between">
+            <div className="fs-5 fw-bold brand-title lh-1">StockWhisk</div>
+            <button type="button" className="btn-close btn-close-white p-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+          </div>
+          
+          <div className="d-flex align-items-center gap-2 bg-white bg-opacity-10 p-2 rounded shadow-sm border border-white border-opacity-10">
+            {user.shop_logo ? (
               <div 
-                className="bg-white rounded d-flex align-items-center justify-content-center flex-shrink-0 p-1 shadow-sm"
-                style={{ width: "36px", height: "36px" }}
+                className="bg-white rounded d-flex align-items-center justify-content-center flex-shrink-0 p-1"
+                style={{ width: "32px", height: "32px" }}
               >
                 <img src={user.shop_logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
               </div>
+            ) : (
+              <div 
+                className="bg-white bg-opacity-25 rounded d-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold shadow-sm"
+                style={{ width: "32px", height: "32px" }}
+              >
+                {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
+              </div>
             )}
-            <div className="text-truncate">
-              <div className="fs-5 fw-bold brand-title mb-0 lh-1">StockWhisk</div>
-              <div className="small text-white-50 mt-1" style={{ fontSize: "0.75rem" }}>{billing?.plan ? `${billing.plan} plan` : ""}</div>
+            <div className="text-truncate min-vw-0">
+              <div className="fw-semibold text-white lh-1 text-truncate" style={{ fontSize: "0.9rem" }}>{user.shop_name || "My Shop"}</div>
+              <div className="small text-white-50 text-truncate mt-1" style={{ fontSize: "0.7rem" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
             </div>
           </div>
-          <button type="button" className="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div className="offcanvas-body p-2">
           <nav className="nav flex-column gap-1">
