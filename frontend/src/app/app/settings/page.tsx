@@ -123,7 +123,7 @@ export default function SettingsPage() {
               </div>
               <div className="col-md-6">
                 <label className="form-label small fw-medium">Email (Read-only)</label>
-                <input className="form-control form-control-sm bg-light" value={user?.email || ""} readOnly disabled />
+                <input className="form-control form-control-sm" value={user?.email || ""} readOnly disabled />
               </div>
             </div>
             <div className="d-flex align-items-center gap-3 mt-2">
