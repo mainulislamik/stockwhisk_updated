@@ -27,6 +27,8 @@ export default function DailySettlementPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const [filterDate, setFilterDate] = useState("");
+
   const loadData = async () => {
     setLoading(true);
     try {
@@ -90,6 +92,10 @@ export default function DailySettlementPage() {
 
   if (loading) return <div>Loading...</div>;
 
+  const filteredHistory = filterDate 
+    ? history.filter(s => new Date(s.opened_at).toLocaleDateString("en-CA") === filterDate)
+    : history;
+
   return (
     <div className="container-fluid max-w-5xl">
       {error && <div className="alert alert-danger">{error}</div>}
@@ -111,6 +117,34 @@ export default function DailySettlementPage() {
                     </button>
                   </form>
                 </div>
+              ) : current.status === "closed" ? (
+                <div>
+                  <div className="alert alert-success mb-4">
+                    <h5 className="alert-heading fw-bold">✓ Today's Shift is Closed</h5>
+                    <p className="mb-0">You have already closed the settlement for today at {new Date(current.closed_at!).toLocaleTimeString()}. A new shift will automatically start at midnight.</p>
+                  </div>
+                  
+                  <div className="row g-3">
+                    <div className="col-12 col-md-4">
+                      <div className="bg-light rounded p-3 text-center border" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>
+                        <div className="small text-uppercase fw-semibold mb-1 text-muted">Expected</div>
+                        <div className="fs-4 fw-bold">{current.expected_cash}</div>
+                      </div>
+                    </div>
+                    <div className="col-12 col-md-4">
+                      <div className="bg-light rounded p-3 text-center border" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>
+                        <div className="small text-uppercase fw-semibold mb-1 text-muted">Actual Counted</div>
+                        <div className="fs-4 fw-bold">{current.actual_cash}</div>
+                      </div>
+                    </div>
+                    <div className="col-12 col-md-4">
+                      <div className={`rounded p-3 text-center border ${parseFloat(current.discrepancy) < 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success'}`}>
+                        <div className="small text-uppercase fw-semibold mb-1">Discrepancy</div>
+                        <div className="fs-4 fw-bold">{parseFloat(current.discrepancy) > 0 ? '+' : ''}{current.discrepancy}</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 <div>
                   <div className="d-flex justify-content-between mb-3 text-muted small">
@@ -129,7 +163,7 @@ export default function DailySettlementPage() {
                   <form onSubmit={closeShift}>
                     <label className="form-label fw-semibold">Counted Cash in Drawer</label>
                     <div className="input-group input-group-lg mb-3">
-                      <span className="input-group-text bg-white">৳</span>
+                      <span className="input-group-text" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>৳</span>
                       <input 
                         type="number" 
                         step="0.01" 
@@ -138,6 +172,7 @@ export default function DailySettlementPage() {
                         onChange={(e) => setActualCash(e.target.value)} 
                         placeholder="0.00"
                         required 
+                        style={{ backgroundColor: "var(--bs-body-bg)", color: "var(--bs-body-color)" }}
                       />
                     </div>
                     
@@ -165,10 +200,20 @@ export default function DailySettlementPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
-              <h5 className="card-title fw-bold mb-4">Shift History</h5>
-              {history.length === 0 ? (
+              <div className="d-flex justify-content-between align-items-center mb-4">
+                <h5 className="card-title fw-bold mb-0">Shift History</h5>
+                <input 
+                  type="date" 
+                  className="form-control form-control-sm w-auto"
+                  style={{ backgroundColor: "var(--bs-body-bg)", color: "var(--bs-body-color)" }}
+                  value={filterDate}
+                  onChange={e => setFilterDate(e.target.value)}
+                />
+              </div>
+              
+              {filteredHistory.length === 0 ? (
                 <div className="text-center py-5 text-muted">
-                  No past shifts found.
+                  {filterDate ? `No shifts found for ${filterDate}.` : "No past shifts found."}
                 </div>
               ) : (
                 <div className="table-responsive">
@@ -183,7 +228,7 @@ export default function DailySettlementPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {history.map(s => (
+                      {filteredHistory.map(s => (
                         <tr key={s.id}>
                           <td>
                             <div className="fw-medium">{new Date(s.opened_at).toLocaleDateString()}</div>

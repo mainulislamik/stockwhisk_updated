@@ -99,19 +99,22 @@ class DailySettlementViewSet(TenantScopedViewSet):
             
             if not settlement:
                 # If there's no open settlement, check if one was already created today.
+                today_closed = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.CLOSED).first()
+                if today_closed:
+                    # They already closed today's shift! Return it so the UI can show it read-only.
+                    return Response(self.get_serializer(today_closed).data)
+                    
                 # If not, automatically start a new day!
-                has_today = self.get_queryset().filter(opened_at__date=today).exists()
-                if not has_today:
-                    from datetime import datetime, time
-                    start_of_day = timezone.make_aware(datetime.combine(today, time.min))
-                    settlement = DailySettlement.objects.create(
-                        shop=request.tenant,
-                        opening_cash=0,
-                        expected_cash=0,
-                    )
-                    # Force opened_at to start of day so we don't miss earlier sales
-                    settlement.opened_at = start_of_day
-                    settlement.save(update_fields=['opened_at'])
+                from datetime import datetime, time
+                start_of_day = timezone.make_aware(datetime.combine(today, time.min))
+                settlement = DailySettlement.objects.create(
+                    shop=request.tenant,
+                    opening_cash=0,
+                    expected_cash=0,
+                )
+                # Force opened_at to start of day so we don't miss earlier sales
+                settlement.opened_at = start_of_day
+                settlement.save(update_fields=['opened_at'])
             
             if not settlement:
                 return Response(None)
