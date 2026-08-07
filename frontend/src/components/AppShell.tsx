@@ -74,20 +74,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         className={`sidebar d-none d-md-flex flex-column vh-100 position-sticky top-0 flex-shrink-0 ${collapsed ? "sb-collapsed" : ""}`}
         style={{ width: collapsed ? "4.5rem" : "15rem", transition: "width .2s" }}
       >
-        <div className="d-flex flex-column gap-3 p-3 border-bottom border-secondary border-opacity-25">
+        <div className="d-flex flex-column gap-3 p-3 border-bottom" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
             {!collapsed && (
               <div className="d-flex align-items-center" style={{ height: "40px" }}>
                 {user.shop_logo ? (
                   <img src={user.shop_logo} alt="Shop Logo" style={{ maxHeight: "100%", maxWidth: "160px", objectFit: "contain" }} />
                 ) : (
-                  <div className="fs-5 fw-bold brand-title lh-1">StockWhisk</div>
+                  <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>
                 )}
               </div>
             )}
             <button
               onClick={toggle}
-              className="btn btn-sm text-white-50 flex-shrink-0 ms-auto p-0"
+              className="btn btn-sm flex-shrink-0 ms-auto p-0"
+              style={{ color: "var(--text-muted)" }}
               title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
               {collapsed ? "»" : "«"}
@@ -95,16 +96,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           
           {!collapsed && (
-            <div className="d-flex align-items-center gap-2 bg-white bg-opacity-10 p-2 rounded shadow-sm border border-white border-opacity-10">
+            <div className="d-flex align-items-center gap-2 p-2 rounded shadow-sm" style={{ background: "var(--sidebar-hover)", border: "1px solid var(--line)" }}>
               <div 
-                className="bg-white bg-opacity-25 rounded d-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold shadow-sm"
-                style={{ width: "32px", height: "32px" }}
+                className="rounded d-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm"
+                style={{ width: "32px", height: "32px", background: "var(--brand-500)", color: "#fff" }}
               >
                 {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
               </div>
               <div className="text-truncate min-vw-0">
-                <div className="fw-semibold text-white lh-1 text-truncate" style={{ fontSize: "0.9rem" }}>{user.shop_name || "My Shop"}</div>
-                <div className="small text-white-50 text-truncate mt-1" style={{ fontSize: "0.7rem" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
+                <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
+                <div className="small text-truncate mt-1" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
               </div>
             </div>
           )}
@@ -112,10 +113,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <nav className="nav flex-column flex-grow-1 p-2 gap-1 overflow-auto">
           {mounted && <Nav collapsed={collapsed} openGroup={openGroup} setGroup={setGroup} />}
         </nav>
-        <div className="p-3 border-top border-secondary border-opacity-25 small text-white-50">
+        <div className="p-3 border-top small" style={{ borderColor: "var(--line)", color: "var(--text-muted)" }}>
           {!collapsed && (
             <div>
-              <div className="text-truncate">{user.email}</div>
+              <div className="text-truncate" style={{ color: "var(--text-main)" }}>{user.email}</div>
               <div className="text-capitalize">{user.role}</div>
             </div>
           )}
@@ -131,29 +132,29 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Sidebar (mobile offcanvas) */}
-      <div className="offcanvas offcanvas-start sidebar text-light d-md-none" tabIndex={-1} id="mobileNav" style={{ width: "15rem" }}>
-        <div className="offcanvas-header border-bottom border-secondary border-opacity-25 flex-column align-items-stretch gap-3">
+      <div className="offcanvas offcanvas-start sidebar d-md-none" tabIndex={-1} id="mobileNav" style={{ width: "15rem" }}>
+        <div className="offcanvas-header border-bottom flex-column align-items-stretch gap-3" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
             <div className="d-flex align-items-center" style={{ height: "40px" }}>
               {user.shop_logo ? (
                 <img src={user.shop_logo} alt="Shop Logo" style={{ maxHeight: "100%", maxWidth: "160px", objectFit: "contain" }} />
               ) : (
-                <div className="fs-5 fw-bold brand-title lh-1">StockWhisk</div>
+                <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>
               )}
             </div>
-            <button type="button" className="btn-close btn-close-white p-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" className="btn-close p-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
           </div>
           
-          <div className="d-flex align-items-center gap-2 bg-white bg-opacity-10 p-2 rounded shadow-sm border border-white border-opacity-10">
+          <div className="d-flex align-items-center gap-2 p-2 rounded shadow-sm" style={{ background: "var(--sidebar-hover)", border: "1px solid var(--line)" }}>
             <div 
-              className="bg-white bg-opacity-25 rounded d-flex align-items-center justify-content-center flex-shrink-0 text-white fw-bold shadow-sm"
-              style={{ width: "32px", height: "32px" }}
+              className="rounded d-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm"
+              style={{ width: "32px", height: "32px", background: "var(--brand-500)", color: "#fff" }}
             >
               {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
             </div>
             <div className="text-truncate min-vw-0">
-              <div className="fw-semibold text-white lh-1 text-truncate" style={{ fontSize: "0.9rem" }}>{user.shop_name || "My Shop"}</div>
-              <div className="small text-white-50 text-truncate mt-1" style={{ fontSize: "0.7rem" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
+              <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
+              <div className="small text-truncate mt-1" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
             </div>
           </div>
         </div>
@@ -161,8 +162,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <nav className="nav flex-column gap-1">
             {mounted && <Nav collapsed={false} openGroup={openGroup} setGroup={setGroup} />}
           </nav>
-          <div className="border-top border-secondary border-opacity-25 mt-2 pt-2 small text-white-50">
-            <div className="text-truncate">{user.email}</div>
+          <div className="border-top mt-2 pt-2 small" style={{ borderColor: "var(--line)", color: "var(--text-muted)" }}>
+            <div className="text-truncate" style={{ color: "var(--text-main)" }}>{user.email}</div>
             <a onClick={logout} role="button" className="text-danger text-decoration-none">
               Log out →
             </a>
