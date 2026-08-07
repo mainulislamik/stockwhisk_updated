@@ -90,6 +90,22 @@ export default function DailySettlementPage() {
     }
   };
 
+  const reopenShift = async () => {
+    if (!window.confirm("Are you sure you want to reopen today's shift? This will clear the previous closing metrics so you can close it again later.")) return;
+    setSubmitting(true);
+    setError("");
+    try {
+      await api("/api/accounting/daily-settlements/reopen/", {
+        method: "POST"
+      });
+      await loadData();
+    } catch (e: any) {
+      setError(e.data?.error || e.data?.detail || e.message || "Failed to reopen shift");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   if (loading) return <div>Loading...</div>;
 
   const filteredHistory = filterDate 
@@ -124,7 +140,7 @@ export default function DailySettlementPage() {
                     <p className="mb-0">You have already closed the settlement for today at {new Date(current.closed_at!).toLocaleTimeString()}. A new shift will automatically start at midnight.</p>
                   </div>
                   
-                  <div className="row g-3">
+                  <div className="row g-3 mb-4">
                     <div className="col-12 col-md-4">
                       <div className="bg-light rounded p-3 text-center border" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>
                         <div className="small text-uppercase fw-semibold mb-1 text-muted">Expected</div>
@@ -143,6 +159,12 @@ export default function DailySettlementPage() {
                         <div className="fs-4 fw-bold">{parseFloat(current.discrepancy) > 0 ? '+' : ''}{current.discrepancy}</div>
                       </div>
                     </div>
+                  </div>
+                  
+                  <div className="d-flex justify-content-end mt-2">
+                    <button onClick={reopenShift} className="btn btn-outline-danger px-4 rounded-pill d-flex align-items-center gap-2" disabled={submitting}>
+                      <i className="bi bi-arrow-counterclockwise"></i> Undo Closure & Reopen Shift
+                    </button>
                   </div>
                 </div>
               ) : (

@@ -174,3 +174,22 @@ class DailySettlementViewSet(TenantScopedViewSet):
         settlement.save()
         
         return Response(self.get_serializer(settlement).data)
+
+    @action(detail=False, methods=["post"])
+    def reopen(self, request):
+        today = timezone.localdate()
+        settlement = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.CLOSED).first()
+        if not settlement:
+            raise ValidationError("No closed settlement found for today to reopen.")
+        
+        settlement.status = DailySettlement.Status.OPEN
+        settlement.closed_at = None
+        settlement.closed_by = None
+        settlement.actual_cash = 0
+        settlement.discrepancy = 0
+        settlement.total_sales = 0
+        settlement.total_expenses = 0
+        settlement.total_refunds = 0
+        settlement.save()
+        
+        return Response(self.get_serializer(settlement).data)
