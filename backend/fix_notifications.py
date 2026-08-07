@@ -1,3 +1,9 @@
+import os
+import django
+
+os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
+django.setup()
+
 from catalog.models import Product
 from notifications.models import Notification, NotificationType
 from notifications.services import notify
