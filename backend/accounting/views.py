@@ -81,20 +81,31 @@ class DailySettlementViewSet(TenantScopedViewSet):
     def get_queryset(self):
         return DailySettlement.objects.all()
 
+    def list(self, request, *args, **kwargs):
+        import traceback
+        try:
+            return super().list(request, *args, **kwargs)
+        except Exception as e:
+            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=500)
+
     @action(detail=False, methods=["get"])
     def current(self, request):
-        settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
-        if not settlement:
-            return Response(None)
-        
-        ledger_sum = LedgerEntry.objects.filter(
-            shop=request.tenant, 
-            account=LedgerEntry.Account.CASH, 
-            created_at__gte=settlement.opened_at
-        ).aggregate(t=Sum("amount"))["t"] or 0
-        
-        settlement.expected_cash = float(settlement.opening_cash) + float(ledger_sum)
-        return Response(self.get_serializer(settlement).data)
+        import traceback
+        try:
+            settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+            if not settlement:
+                return Response(None)
+            
+            ledger_sum = LedgerEntry.objects.filter(
+                shop=request.tenant, 
+                account=LedgerEntry.Account.CASH, 
+                created_at__gte=settlement.opened_at
+            ).aggregate(t=Sum("amount"))["t"] or 0
+            
+            settlement.expected_cash = float(settlement.opening_cash) + float(ledger_sum)
+            return Response(self.get_serializer(settlement).data)
+        except Exception as e:
+            return Response({"error": str(e), "traceback": traceback.format_exc()}, status=500)
 
     @action(detail=False, methods=["post"])
     def open(self, request):

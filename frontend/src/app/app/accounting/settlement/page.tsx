@@ -38,7 +38,7 @@ export default function DailySettlementPage() {
         setHistory(hist.results.filter(s => s.status === "closed"));
       }
     } catch (e: any) {
-      setError(e.message || "Failed to load settlement data");
+      setError(e.data?.error || e.data?.detail || e.message || "Failed to load settlement data");
     } finally {
       setLoading(false);
     }
@@ -63,7 +63,7 @@ export default function DailySettlementPage() {
       });
       await loadData();
     } catch (e: any) {
-      setError(e.message || "Failed to open shift");
+      setError(e.data?.error || e.data?.detail || e.message || "Failed to open shift");
     } finally {
       setSubmitting(false);
     }
@@ -82,7 +82,7 @@ export default function DailySettlementPage() {
       setActualCash("");
       await loadData();
     } catch (e: any) {
-      setError(e.message || "Failed to close shift");
+      setError(e.data?.error || e.data?.detail || e.message || "Failed to close shift");
     } finally {
       setSubmitting(false);
     }
