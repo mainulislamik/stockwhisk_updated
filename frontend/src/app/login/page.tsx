@@ -121,12 +121,14 @@ export default function LoginPage() {
                 autoFocus
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <EmailIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
@@ -150,12 +152,14 @@ export default function LoginPage() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LockIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
-                    </InputAdornment>
-                  ),
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <LockIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
+                      </InputAdornment>
+                    ),
+                  }
                 }}
                 sx={{
                   '& .MuiOutlinedInput-root': {
