@@ -30,10 +30,10 @@ export default function DailySettlementPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const cur = await api<Settlement | null>("/api/auth/daily-settlements/current/");
+      const cur = await api<Settlement | null>("/api/accounting/daily-settlements/current/");
       setCurrent(cur || null);
       
-      const hist = await api<{results: Settlement[]}>("/api/auth/daily-settlements/");
+      const hist = await api<{results: Settlement[]}>("/api/accounting/daily-settlements/");
       if (hist && hist.results) {
         setHistory(hist.results.filter(s => s.status === "closed"));
       }
@@ -57,7 +57,7 @@ export default function DailySettlementPage() {
     setSubmitting(true);
     setError("");
     try {
-      await api("/api/auth/daily-settlements/open/", {
+      await api("/api/accounting/daily-settlements/open/", {
         method: "POST",
         body: { opening_cash: 0 }
       });
@@ -75,7 +75,7 @@ export default function DailySettlementPage() {
     setSubmitting(true);
     setError("");
     try {
-      await api("/api/auth/daily-settlements/close/", {
+      await api("/api/accounting/daily-settlements/close/", {
         method: "POST",
         body: { actual_cash: actualCash || "0" }
       });
