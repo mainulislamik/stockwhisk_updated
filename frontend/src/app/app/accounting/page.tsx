@@ -12,6 +12,7 @@ type Profit = {
   expenses: string;
   net_profit: string;
   sales_count: number;
+  payment_methods?: Record<string, string>;
 };
 type Position = { cash_balance: string; bank_balance: string; receivables: string; payables: string };
 
@@ -130,6 +131,26 @@ export default function AccountingPage() {
                   </tr>
                 </tbody>
               </table>
+            </div>
+          </div>
+          
+          <div className="card shadow-sm mt-3">
+            <div className="card-body">
+              <div className="fw-semibold mb-3">Payments collected (by method)</div>
+              {profit?.payment_methods && Object.keys(profit.payment_methods).length > 0 ? (
+                <table className="table table-sm mb-0">
+                  <tbody>
+                    {Object.entries(profit.payment_methods).map(([method, amount]) => (
+                      <tr key={method}>
+                        <td className="text-secondary text-capitalize">{method}</td>
+                        <td className="text-end fw-medium">{money(amount as string)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : (
+                <div className="text-muted small">No payments recorded.</div>
+              )}
             </div>
           </div>
         </div>

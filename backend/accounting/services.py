@@ -14,7 +14,7 @@ from django.db.models.functions import Coalesce
 
 from crm.models import Customer
 from purchasing.models import Supplier
-from sales.models import Sale, SaleItem, SaleReturn, SaleReturnItem
+from sales.models import Sale, SaleItem, SaleReturn, SaleReturnItem, Payment
 
 from .models import Expense, ExpenseCategory, LedgerEntry
 
@@ -34,17 +34,20 @@ def profit_summary(shop, start=None, end=None):
     )
     returns = SaleReturn.all_objects.filter(shop_id=shop.id)
     expenses = Expense.all_objects.filter(shop_id=shop.id)
+    payments = Payment.all_objects.filter(shop_id=shop.id)
 
     if start is not None:
         sales = sales.filter(sale_date__gte=start)
         items = items.filter(sale__sale_date__gte=start)
         returns = returns.filter(created_at__gte=start)
         expenses = expenses.filter(spent_on__gte=start)
+        payments = payments.filter(paid_at__gte=start)
     if end is not None:
         sales = sales.filter(sale_date__lte=end)
         items = items.filter(sale__sale_date__lte=end)
         returns = returns.filter(created_at__lte=end)
         expenses = expenses.filter(spent_on__lte=end)
+        payments = payments.filter(paid_at__lte=end)
 
     # Revenue is net of the invoice-level discount (item.subtotal only carries
     # line discounts) and excludes VAT (a pass-through liability, not income).
@@ -67,6 +70,9 @@ def profit_summary(shop, start=None, end=None):
 
     gross_profit = (revenue - returns_amount) - (cogs - returned_cogs)
     net_profit = gross_profit - total_expenses
+    
+    payment_totals_qs = payments.values("method").annotate(total=Sum("amount"))
+    payment_methods = {item["method"]: item["total"] for item in payment_totals_qs}
 
     return {
         "revenue": revenue,
@@ -76,6 +82,7 @@ def profit_summary(shop, start=None, end=None):
         "expenses": total_expenses,
         "net_profit": net_profit,
         "sales_count": sales.count(),
+        "payment_methods": payment_methods,
     }
 
 
