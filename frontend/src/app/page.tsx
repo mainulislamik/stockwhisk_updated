@@ -37,7 +37,7 @@ export default function LandingPage() {
               StockWhisk
             </Typography>
             
-            <Stack direction="row" spacing={4} alignItems="center" sx={{ display: { xs: 'none', md: 'flex' } }}>
+            <Stack direction="row" spacing={4} sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
               <Link href="#features" style={{ color: '#fff', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Features</Link>
               <Link href="#pricing" style={{ color: '#fff', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Pricing</Link>
               <Link href="#contact" style={{ color: '#fff', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>Contact</Link>
@@ -93,7 +93,7 @@ export default function LandingPage() {
               POS, inventory, purchasing, customers, dues, service tickets, accounting and analytics — built for electronics, mobile, computer and general retail shops in Bangladesh.
             </Typography>
             
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mb: 3 }}>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3, justifyContent: 'center' }}>
               <Button 
                 variant="contained" 
                 size="large"
