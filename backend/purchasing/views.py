@@ -20,7 +20,15 @@ class SupplierViewSet(TenantScopedViewSet):
     required_perm = "manage_purchasing"
 
     def get_queryset(self):
-        return Supplier.objects.all()
+        qs = Supplier.objects.all()
+        if search := self.request.query_params.get("search"):
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(name__icontains=search) |
+                Q(phone__icontains=search) |
+                Q(email__icontains=search)
+            )
+        return qs
 
 
 class PurchaseOrderViewSet(TenantScopedViewSet):

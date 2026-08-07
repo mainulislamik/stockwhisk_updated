@@ -40,6 +40,15 @@ class SaleViewSet(
             qs = qs.filter(status=s)
         if self.request.query_params.get("with_due") in {"1", "true"}:
             qs = qs.exclude(status__in=[Sale.Status.PAID, Sale.Status.CANCELLED])
+        if search := self.request.query_params.get("search"):
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(invoice_no__icontains=search) |
+                Q(customer_name__icontains=search) |
+                Q(customer_phone__icontains=search) |
+                Q(customer__name__icontains=search) |
+                Q(customer__phone__icontains=search)
+            )
         return qs
 
     def get_serializer_class(self):
