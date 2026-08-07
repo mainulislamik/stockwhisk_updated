@@ -76,15 +76,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="d-flex flex-column gap-3 p-3 border-bottom" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
-            {!collapsed && (
-              <div className="d-flex align-items-center" style={{ height: "40px" }}>
-                {user.shop_logo ? (
-                  <img src={user.shop_logo} alt="Shop Logo" style={{ maxHeight: "100%", maxWidth: "160px", objectFit: "contain" }} />
-                ) : (
-                  <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>
-                )}
-              </div>
-            )}
+            {!collapsed && <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>}
             <button
               onClick={toggle}
               className="btn btn-sm flex-shrink-0 ms-auto p-0"
@@ -97,12 +89,21 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           
           {!collapsed && (
             <div className="d-flex align-items-center gap-2 p-2 rounded shadow-sm" style={{ background: "var(--sidebar-hover)", border: "1px solid var(--line)" }}>
-              <div 
-                className="rounded d-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm"
-                style={{ width: "32px", height: "32px", background: "var(--brand-500)", color: "#fff" }}
-              >
-                {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
-              </div>
+              {user.shop_logo ? (
+                <div 
+                  className="rounded d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
+                  style={{ width: "32px", height: "32px", background: "var(--glass-bg)", overflow: "hidden" }}
+                >
+                  <img src={user.shop_logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                </div>
+              ) : (
+                <div 
+                  className="rounded d-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm"
+                  style={{ width: "32px", height: "32px", background: "var(--brand-500)", color: "#fff" }}
+                >
+                  {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
+                </div>
+              )}
               <div className="text-truncate min-vw-0">
                 <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
                 <div className="small text-truncate mt-1" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
@@ -135,23 +136,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="offcanvas offcanvas-start sidebar d-md-none" tabIndex={-1} id="mobileNav" style={{ width: "15rem" }}>
         <div className="offcanvas-header border-bottom flex-column align-items-stretch gap-3" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
-            <div className="d-flex align-items-center" style={{ height: "40px" }}>
-              {user.shop_logo ? (
-                <img src={user.shop_logo} alt="Shop Logo" style={{ maxHeight: "100%", maxWidth: "160px", objectFit: "contain" }} />
-              ) : (
-                <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>
-              )}
-            </div>
+            <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>
             <button type="button" className="btn-close p-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
           </div>
           
           <div className="d-flex align-items-center gap-2 p-2 rounded shadow-sm" style={{ background: "var(--sidebar-hover)", border: "1px solid var(--line)" }}>
-            <div 
-              className="rounded d-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm"
-              style={{ width: "32px", height: "32px", background: "var(--brand-500)", color: "#fff" }}
-            >
-              {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
-            </div>
+            {user.shop_logo ? (
+              <div 
+                className="rounded d-flex align-items-center justify-content-center flex-shrink-0 shadow-sm"
+                style={{ width: "32px", height: "32px", background: "var(--glass-bg)", overflow: "hidden" }}
+              >
+                <img src={user.shop_logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              </div>
+            ) : (
+              <div 
+                className="rounded d-flex align-items-center justify-content-center flex-shrink-0 fw-bold shadow-sm"
+                style={{ width: "32px", height: "32px", background: "var(--brand-500)", color: "#fff" }}
+              >
+                {user.shop_name ? user.shop_name.charAt(0).toUpperCase() : "🏪"}
+              </div>
+            )}
             <div className="text-truncate min-vw-0">
               <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
               <div className="small text-truncate mt-1" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
