@@ -140,7 +140,7 @@ export default function LandingPage() {
       {/* Stats Section */}
       <Box sx={{ bgcolor: COLORS.statsBg, py: 5, borderBottom: '1px solid #eaeaea' }}>
         <Container maxWidth="lg">
-          <Grid container spacing={4} textAlign="center">
+          <Grid container spacing={4} sx={{ textAlign: 'center' }}>
             <Grid item xs={6} md={3}>
               <Typography variant="h3" sx={{ fontWeight: 700, color: COLORS.darkText, mb: 1 }}>1</Typography>
               <Typography variant="body2" sx={{ color: '#666', fontWeight: 500 }}>unified platform</Typography>
