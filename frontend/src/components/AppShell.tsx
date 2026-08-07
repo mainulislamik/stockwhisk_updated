@@ -76,9 +76,19 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="d-flex align-items-center justify-content-between gap-2 p-3 border-bottom border-secondary border-opacity-25">
           {!collapsed && (
-            <div className="text-truncate">
-              <div className="fs-5 fw-bold brand-title">StockWhisk</div>
-              <div className="small text-white-50 text-truncate">{billing?.plan ? `${billing.plan} plan` : " "}</div>
+            <div className="d-flex align-items-center gap-2 text-truncate">
+              {user.shop_logo && (
+                <div 
+                  className="bg-white rounded d-flex align-items-center justify-content-center flex-shrink-0 p-1 shadow-sm"
+                  style={{ width: "36px", height: "36px" }}
+                >
+                  <img src={user.shop_logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+                </div>
+              )}
+              <div className="text-truncate">
+                <div className="fs-5 fw-bold brand-title mb-0 lh-1">StockWhisk</div>
+                <div className="small text-white-50 text-truncate mt-1" style={{ fontSize: "0.75rem" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
+              </div>
             </div>
           )}
           <button
@@ -112,10 +122,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar (mobile offcanvas) */}
       <div className="offcanvas offcanvas-start sidebar text-light d-md-none" tabIndex={-1} id="mobileNav" style={{ width: "15rem" }}>
-        <div className="offcanvas-header border-bottom border-secondary border-opacity-25">
-          <div>
-            <div className="fs-5 fw-bold brand-title">StockWhisk</div>
-            <div className="small text-white-50">{billing?.plan ? `${billing.plan} plan` : ""}</div>
+        <div className="offcanvas-header border-bottom border-secondary border-opacity-25 align-items-start">
+          <div className="d-flex align-items-center gap-2 text-truncate">
+            {user.shop_logo && (
+              <div 
+                className="bg-white rounded d-flex align-items-center justify-content-center flex-shrink-0 p-1 shadow-sm"
+                style={{ width: "36px", height: "36px" }}
+              >
+                <img src={user.shop_logo} alt="Logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain" }} />
+              </div>
+            )}
+            <div className="text-truncate">
+              <div className="fs-5 fw-bold brand-title mb-0 lh-1">StockWhisk</div>
+              <div className="small text-white-50 mt-1" style={{ fontSize: "0.75rem" }}>{billing?.plan ? `${billing.plan} plan` : ""}</div>
+            </div>
           </div>
           <button type="button" className="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>

@@ -58,6 +58,8 @@ class ShopSettingsView(APIView):
     """Return and update the current user's shop settings (owner only for updates)."""
 
     permission_classes = [IsAuthenticated]
+    from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
 
     def get(self, request):
         if not request.user.shop:

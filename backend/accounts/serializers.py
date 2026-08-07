@@ -26,14 +26,23 @@ class ShopRegistrationSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source="shop.name", read_only=True, default=None)
     shop_phone = serializers.CharField(source="shop.phone", read_only=True, default=None)
+    shop_logo = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "phone",
-            "role", "shop", "shop_name", "shop_phone", "branch", "is_staff",
+            "role", "shop", "shop_name", "shop_phone", "shop_logo", "branch", "is_staff",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_phone", "branch", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_phone", "shop_logo", "branch", "is_staff"]
+
+    def get_shop_logo(self, obj):
+        if obj.shop and obj.shop.logo:
+            request = self.context.get("request")
+            if request:
+                return request.build_absolute_uri(obj.shop.logo.url)
+            return obj.shop.logo.url
+        return None
 
 
 class ShopSettingsSerializer(serializers.ModelSerializer):
@@ -42,7 +51,7 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
         fields = [
             "name", "phone", "email", "address", "business_type", 
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
-            "invoice_settings"
+            "invoice_settings", "logo"
         ]
 
 

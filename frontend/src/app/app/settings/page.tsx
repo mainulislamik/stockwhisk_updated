@@ -3,7 +3,7 @@
 import { useAuth } from "@/components/AuthProvider";
 import { Card } from "@/components/ui";
 import { fmtDate } from "@/components/ui";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 
 export default function SettingsPage() {
@@ -14,6 +14,9 @@ export default function SettingsPage() {
   const [profileSuccess, setProfileSuccess] = useState(false);
 
   const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0 });
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [currentLogo, setCurrentLogo] = useState<string | null>(null);
+  const logoInputRef = useRef<HTMLInputElement>(null);
   const [shopBusy, setShopBusy] = useState(false);
   const [shopSuccess, setShopSuccess] = useState(false);
 
@@ -35,6 +38,9 @@ export default function SettingsPage() {
           vat_enabled: data.vat_enabled || false,
           vat_percent: data.vat_percent || 0,
         });
+        if (data.logo) {
+          setCurrentLogo(data.logo);
+        }
       }).catch(console.error);
     }
   }, [user, isOwner]);
@@ -60,7 +66,22 @@ export default function SettingsPage() {
     setShopBusy(true);
     setShopSuccess(false);
     try {
-      await api("/accounts/auth/shop-settings/", { method: "PATCH", body: shopForm });
+      const formData = new FormData();
+      formData.append("name", shopForm.name);
+      formData.append("phone", shopForm.phone);
+      formData.append("address", shopForm.address);
+      formData.append("currency", shopForm.currency);
+      formData.append("vat_enabled", shopForm.vat_enabled.toString());
+      formData.append("vat_percent", shopForm.vat_percent.toString());
+      
+      if (logoFile) {
+        formData.append("logo", logoFile);
+      }
+
+      const res = await api<any>("/accounts/auth/shop-settings/", { method: "PATCH", body: formData });
+      if (res.logo) {
+        setCurrentLogo(res.logo);
+      }
       setShopSuccess(true);
       await reload(); // reload user to get updated shop name
       setTimeout(() => setShopSuccess(false), 3000);
@@ -70,6 +91,14 @@ export default function SettingsPage() {
       setShopBusy(false);
     }
   }
+
+  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setLogoFile(e.target.files[0]);
+    }
+  };
+
+  const logoPreview = logoFile ? URL.createObjectURL(logoFile) : currentLogo;
 
   return (
     <div className="vstack gap-4" style={{ maxWidth: "48rem" }}>
@@ -113,6 +142,41 @@ export default function SettingsPage() {
           <div className="card-body">
             <form onSubmit={updateShop} className="vstack gap-3">
               <div className="row g-3">
+                <div className="col-12 mb-3">
+                  <label className="form-label small fw-medium d-block">Shop Logo</label>
+                  <div className="d-flex align-items-center gap-3">
+                    <div 
+                      className="border rounded d-flex align-items-center justify-content-center bg-body-tertiary shadow-sm"
+                      style={{ width: "80px", height: "80px", overflow: "hidden" }}
+                    >
+                      {logoPreview ? (
+                        <img src={logoPreview} alt="Shop Logo" style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                      ) : (
+                        <span className="fs-3 opacity-50">🏪</span>
+                      )}
+                    </div>
+                    <div>
+                      <button 
+                        type="button" 
+                        className="btn btn-outline-secondary btn-sm mb-1"
+                        onClick={() => logoInputRef.current?.click()}
+                      >
+                        Choose Image
+                      </button>
+                      <div className="small text-secondary" style={{ fontSize: "0.75rem" }}>
+                        Recommended size: 200x50px. Max 2MB.
+                      </div>
+                      <input 
+                        type="file" 
+                        ref={logoInputRef} 
+                        className="d-none" 
+                        accept="image/*"
+                        onChange={handleLogoChange}
+                      />
+                    </div>
+                  </div>
+                </div>
+
                 <div className="col-md-12">
                   <label className="form-label small fw-medium">Shop Name</label>
                   <input className="form-control form-control-sm" required value={shopForm.name} onChange={e => setShopForm({...shopForm, name: e.target.value})} />
@@ -144,7 +208,7 @@ export default function SettingsPage() {
                   </div>
                 )}
               </div>
-              <div className="d-flex align-items-center gap-3 mt-2">
+              <div className="d-flex align-items-center gap-3 mt-3">
                 <button type="submit" className="btn btn-primary btn-sm px-4" disabled={shopBusy}>
                   {shopBusy ? "Saving..." : "Save Shop Settings"}
                 </button>
