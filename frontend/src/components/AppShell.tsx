@@ -41,7 +41,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         .catch(() => {});
     fetch();
     pollRef.current = setInterval(fetch, 30_000);
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    
+    const handleUpdate = () => fetch();
+    window.addEventListener("notifications_updated", handleUpdate);
+    
+    return () => { 
+      if (pollRef.current) clearInterval(pollRef.current); 
+      window.removeEventListener("notifications_updated", handleUpdate);
+    };
   }, [user]);
 
   function toggle() {
@@ -203,7 +210,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <UniversalSearch />
           <div className="d-flex align-items-center gap-3">
             {billing?.on_trial && <span className="badge text-bg-warning">Trial</span>}
-            <Link href="/app/notifications" className="position-relative text-decoration-none fs-5" aria-label="Notifications" onClick={() => setUnread(0)} style={{ color: "var(--topbar-color)" }}>
+            <Link href="/app/notifications" className="position-relative text-decoration-none fs-5" aria-label="Notifications" style={{ color: "var(--topbar-color)" }}>
               🔔
               {unread > 0 && (
                 <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style={{ fontSize: "0.6rem", lineHeight: 1.4, minWidth: "1.2rem" }}>

@@ -35,6 +35,7 @@ export default function NotificationsPage() {
     try {
       await api(`/notifications/notifications/${n.id}/read/`, { method: "POST" });
       setRows((rs) => rs.map((r) => (r.id === n.id ? { ...r, is_read: true } : r)));
+      window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
       alert(e?.message || "Could not update");
     }
@@ -44,6 +45,7 @@ export default function NotificationsPage() {
     try {
       await api(`/notifications/notifications/read_all/`, { method: "POST" });
       setRows((rs) => rs.map((r) => ({ ...r, is_read: true })));
+      window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
       alert(e?.message || "Could not update");
     }
