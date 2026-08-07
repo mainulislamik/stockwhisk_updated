@@ -23,7 +23,6 @@ export default function DailySettlementPage() {
   const [history, setHistory] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);
   
-  const [openingCash, setOpeningCash] = useState("0");
   const [actualCash, setActualCash] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
@@ -60,7 +59,7 @@ export default function DailySettlementPage() {
     try {
       await api("/api/auth/daily-settlements/open/", {
         method: "POST",
-        body: { opening_cash: openingCash }
+        body: { opening_cash: 0 }
       });
       await loadData();
     } catch (e: any) {
@@ -107,20 +106,8 @@ export default function DailySettlementPage() {
                   <h4 className="fw-semibold">No active shift</h4>
                   <p className="text-muted">Open a shift to start tracking today's expected cash.</p>
                   <form onSubmit={openShift} className="mt-4 max-w-sm mx-auto">
-                    <div className="input-group mb-3">
-                      <span className="input-group-text bg-light border-0">Opening Cash</span>
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        min="0" 
-                        className="form-control bg-light border-0" 
-                        value={openingCash} 
-                        onChange={(e) => setOpeningCash(e.target.value)} 
-                        required 
-                      />
-                    </div>
                     <button type="submit" className="btn btn-primary w-100 rounded-pill" disabled={submitting}>
-                      Open Shift
+                      Start New Day
                     </button>
                   </form>
                 </div>
@@ -131,13 +118,7 @@ export default function DailySettlementPage() {
                   </div>
                   
                   <div className="row g-3 mb-4">
-                    <div className="col-6">
-                      <div className="bg-light rounded p-3 text-center h-100">
-                        <div className="text-muted small text-uppercase fw-semibold mb-1">Opening Cash</div>
-                        <div className="fs-4 fw-bold">{current.opening_cash}</div>
-                      </div>
-                    </div>
-                    <div className="col-6">
+                    <div className="col-12">
                       <div className="bg-primary bg-opacity-10 rounded p-3 text-center h-100 border border-primary border-opacity-25">
                         <div className="text-primary small text-uppercase fw-semibold mb-1">Expected Cash</div>
                         <div className="fs-3 fw-bold text-primary">{current.expected_cash}</div>
