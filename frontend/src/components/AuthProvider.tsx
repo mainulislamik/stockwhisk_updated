@@ -13,6 +13,7 @@ export type User = {
   shop: number | null;
   shop_name: string | null;
   shop_phone: string | null;
+  shop_logo: string | null;
   branch: number | null;
   is_staff: boolean;
 };
