@@ -39,10 +39,11 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, viewsets.GenericViewSe
             from django.db.models import F
             from notifications.services import alert_low_stock_realtime
             
+            from django.db.models import Q
             # Auto-generate missing notifications for any products currently in low stock
             low_products = Product.objects.filter(
-                shop_id=shop.id, track_inventory=True, is_active=True,
-                current_stock__lte=F("reorder_level")
+                Q(current_stock__lte=F("reorder_level")) | Q(current_stock__lte=5),
+                shop_id=shop.id, track_inventory=True, is_active=True
             )
             alert_low_stock_realtime(shop=shop, products=low_products)
 
