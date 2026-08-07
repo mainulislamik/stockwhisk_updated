@@ -34,6 +34,12 @@ class DashboardView(_AnalyticsBase):
         return Response(services.dashboard_summary(self.shop, days=days))
 
 
+class DashboardComprehensiveView(_AnalyticsBase):
+    def get(self, request):
+        days = int(request.query_params.get("days", 30))
+        return Response(services.dashboard_comprehensive(self.shop, days=days))
+
+
 class InventoryAnalyticsView(_AnalyticsBase):
     required_perm = "view_inventory"
 

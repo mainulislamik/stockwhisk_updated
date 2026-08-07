@@ -642,3 +642,68 @@ def reports_charts(shop, use_cache=True):
     if use_cache:
         cache.set(key, data, getattr(settings, "ANALYTICS_CACHE_TTL", 60))
     return data
+
+
+def dashboard_comprehensive(shop, days=30):
+    """
+    Comprehensive analytics covering Revenue Trends, Payment Methods, CLV, and Returns.
+    """
+    now = timezone.now()
+    start = now - timedelta(days=days)
+    
+    # 1. Revenue trend
+    trend = list(
+        Sale.all_objects.filter(shop_id=shop.id, sale_date__gte=start)
+        .exclude(status=Sale.Status.CANCELLED)
+        .annotate(day=TruncDate("sale_date"))
+        .values("day")
+        .annotate(
+            revenue=Coalesce(Sum("total", output_field=_DEC), ZERO, output_field=_DEC),
+            discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC),
+            tax=Coalesce(Sum("tax", output_field=_DEC), ZERO, output_field=_DEC)
+        )
+        .order_by("day")
+    )
+    
+    # 2. Payment methods chart
+    from sales.models import Payment, SaleReturnItem
+    payments = Payment.all_objects.filter(shop_id=shop.id, paid_at__gte=start)
+    payment_methods = list(
+        payments.values("method").annotate(total=Coalesce(Sum("amount", output_field=_DEC), ZERO, output_field=_DEC))
+    )
+    
+    # 3. Top customers CLV
+    top_customers = list(
+        Sale.all_objects.filter(shop_id=shop.id, customer__isnull=False)
+        .exclude(status=Sale.Status.CANCELLED)
+        .values("customer__id", "customer__name")
+        .annotate(
+            total_spent=Coalesce(Sum("total", output_field=_DEC), ZERO, output_field=_DEC),
+            order_count=Count("id")
+        )
+        .order_by("-total_spent")[:10]
+    )
+    
+    # 4. High return rate products
+    returns = list(
+        SaleReturnItem.all_objects.filter(sale_return__shop_id=shop.id, sale_return__created_at__gte=start)
+        .values("sale_item__product__name")
+        .annotate(
+            qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
+            refund_amount=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("sale_item__unit_price"), output_field=_DEC)), ZERO, output_field=_DEC)
+        )
+        .order_by("-qty")[:10]
+    )
+    
+    # 5. Financial metrics over period
+    from accounting.services import profit_summary
+    metrics = profit_summary(shop, start=start, end=now)
+    
+    return {
+        "trend": trend,
+        "payment_methods": payment_methods,
+        "top_customers": top_customers,
+        "top_returns": returns,
+        "metrics": metrics
+    }
+
