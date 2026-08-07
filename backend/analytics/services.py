@@ -730,8 +730,8 @@ def dashboard_comprehensive(shop, days=30):
                 
             recent_transactions.append({
                 "id": sale.id,
-                "invoice_number": sale.invoice_number,
-                "created_at": sale.created_at.isoformat() if getattr(sale, 'created_at', None) else None,
+                "invoice_number": sale.invoice_no,
+                "created_at": sale.sale_date.isoformat() if getattr(sale, 'sale_date', None) else None,
                 "total": float(sale.total or 0),
                 "payment_method": method,
                 "customer_name": sale.bill_name
