@@ -699,11 +699,58 @@ def dashboard_comprehensive(shop, days=30):
     from accounting.services import profit_summary
     metrics = profit_summary(shop, start=start, end=now)
     
+    # 6. Customer Acquisition (New vs Returning)
+    acquisition = customer_acquisition(shop, months=6)
+    
+    # 7. Top Selling Products
+    top_prods = top_products(shop, start=start, end=now, limit=10)
+    
+    # 8. Sales by Category
+    category_sales_data = sales_by_category(shop, start=start, end=now)
+    
+    # 9. Recent Transactions
+    from django.db.models import Prefetch
+    from sales.models import Payment
+    recent_sales = list(
+        Sale.all_objects.filter(shop_id=shop.id)
+        .exclude(status=Sale.Status.CANCELLED)
+        .prefetch_related(Prefetch('payments', queryset=Payment.all_objects.all(), to_attr='cached_payments'))
+        .order_by("-created_at")[:10]
+    )
+    
+    recent_transactions = []
+    for sale in recent_sales:
+        method = "Mixed"
+        if sale.cached_payments:
+            if len(sale.cached_payments) == 1:
+                method = sale.cached_payments[0].method
+        else:
+            method = "Unpaid"
+            
+        recent_transactions.append({
+            "id": sale.id,
+            "invoice_number": sale.invoice_number,
+            "created_at": sale.created_at.isoformat(),
+            "total": float(sale.total or 0),
+            "payment_method": method,
+            "customer_name": sale.customer.name if sale.customer else "Walk-in Customer"
+        })
+        
+    # 10. Low Stock Alerts
+    low_stock = low_stock_list(shop)
+    out_of_stock = out_of_stock_list(shop)
+    
     return {
         "trend": trend,
         "payment_methods": payment_methods,
         "top_customers": top_customers,
         "top_returns": returns,
-        "metrics": metrics
+        "metrics": metrics,
+        "customer_acquisition": acquisition,
+        "top_products": top_prods,
+        "sales_by_category": category_sales_data,
+        "recent_transactions": recent_transactions,
+        "low_stock": low_stock,
+        "out_of_stock": out_of_stock,
     }
 

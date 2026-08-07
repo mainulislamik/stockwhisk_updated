@@ -9,6 +9,11 @@ type PaymentMethod = { method: string; total: string };
 type TopCustomer = { customer__id: number; customer__name: string; total_spent: string; order_count: number };
 type TopReturn = { sale_item__product__name: string; qty: string; refund_amount: string };
 type Metrics = { revenue: string; cogs: string; gross_profit: string; expenses: string; net_profit: string; sales_count: number };
+type Acquisition = { labels: string[]; new: number[]; returning: number[] };
+type TopProduct = { product_id: number; product__name: string; qty: string; revenue: string; profit: string };
+type CategorySale = { product__category__name: string | null; revenue: string };
+type RecentTransaction = { id: number; invoice_number: string; created_at: string; total: number; payment_method: string; customer_name: string };
+type LowStock = { id: number; name: string; sku: string; current_stock: number; reorder_level: number };
 
 type DashboardData = {
   trend: DayTrend[];
@@ -16,6 +21,12 @@ type DashboardData = {
   top_customers: TopCustomer[];
   top_returns: TopReturn[];
   metrics: Metrics;
+  customer_acquisition: Acquisition;
+  top_products: TopProduct[];
+  sales_by_category: CategorySale[];
+  recent_transactions: RecentTransaction[];
+  low_stock: LowStock[];
+  out_of_stock: LowStock[];
 };
 
 export default function ReportsPage() {
@@ -29,6 +40,15 @@ export default function ReportsPage() {
   
   const paymentChartRef = useRef<HTMLCanvasElement>(null);
   const paymentChartInst = useRef<any>(null);
+
+  const acqChartRef = useRef<HTMLCanvasElement>(null);
+  const acqChartInst = useRef<any>(null);
+
+  const catChartRef = useRef<HTMLCanvasElement>(null);
+  const catChartInst = useRef<any>(null);
+
+  const topProdChartRef = useRef<HTMLCanvasElement>(null);
+  const topProdChartInst = useRef<any>(null);
 
   useEffect(() => {
     (async () => {
@@ -51,7 +71,7 @@ export default function ReportsPage() {
     const Chart = (window as any).Chart;
     if (!Chart || !data) return;
 
-    // Revenue Trend Line Chart
+    // 1. Revenue & Discount Trend Line Chart
     if (trendChartRef.current) {
       if (trendChartInst.current) trendChartInst.current.destroy();
       trendChartInst.current = new Chart(trendChartRef.current, {
@@ -66,6 +86,14 @@ export default function ReportsPage() {
               backgroundColor: "rgba(0, 140, 84, 0.1)",
               fill: true,
               tension: 0.3
+            },
+            {
+              label: "Discounts Given",
+              data: data.trend.map(t => Number(t.discount)),
+              borderColor: "#ffa600",
+              backgroundColor: "rgba(255, 166, 0, 0.1)",
+              fill: true,
+              tension: 0.3
             }
           ]
         },
@@ -73,7 +101,7 @@ export default function ReportsPage() {
       });
     }
 
-    // Payment Methods Doughnut Chart
+    // 2. Payment Methods Doughnut Chart
     if (paymentChartRef.current) {
       if (paymentChartInst.current) paymentChartInst.current.destroy();
       paymentChartInst.current = new Chart(paymentChartRef.current, {
@@ -83,7 +111,7 @@ export default function ReportsPage() {
           datasets: [
             {
               data: data.payment_methods.map(p => Number(p.total)),
-              backgroundColor: ["#003f5c", "#006770", "#008c54", "#7aa609", "#ffa600"]
+              backgroundColor: ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600"]
             }
           ]
         },
@@ -91,9 +119,84 @@ export default function ReportsPage() {
       });
     }
 
+    // 3. New vs Returning Customers Stacked Bar Chart
+    if (acqChartRef.current && data.customer_acquisition) {
+      if (acqChartInst.current) acqChartInst.current.destroy();
+      acqChartInst.current = new Chart(acqChartRef.current, {
+        type: "bar",
+        data: {
+          labels: data.customer_acquisition.labels,
+          datasets: [
+            {
+              label: "New Customers",
+              data: data.customer_acquisition.new,
+              backgroundColor: "#008c54",
+            },
+            {
+              label: "Returning Customers",
+              data: data.customer_acquisition.returning,
+              backgroundColor: "#2f4b7c",
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { stacked: true },
+            y: { stacked: true }
+          }
+        }
+      });
+    }
+
+    // 4. Sales by Category Doughnut Chart
+    if (catChartRef.current && data.sales_by_category) {
+      if (catChartInst.current) catChartInst.current.destroy();
+      catChartInst.current = new Chart(catChartRef.current, {
+        type: "doughnut",
+        data: {
+          labels: data.sales_by_category.map(c => c.product__category__name || "Uncategorized"),
+          datasets: [
+            {
+              data: data.sales_by_category.map(c => Number(c.revenue)),
+              backgroundColor: ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600"]
+            }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+    }
+
+    // 5. Top Products Horizontal Bar Chart
+    if (topProdChartRef.current && data.top_products) {
+      if (topProdChartInst.current) topProdChartInst.current.destroy();
+      topProdChartInst.current = new Chart(topProdChartRef.current, {
+        type: "bar",
+        data: {
+          labels: data.top_products.map(p => p.product__name.substring(0, 20) + (p.product__name.length > 20 ? "..." : "")),
+          datasets: [
+            {
+              label: "Revenue",
+              data: data.top_products.map(p => Number(p.revenue)),
+              backgroundColor: "#008c54",
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          indexAxis: "y", // horizontal bar
+        }
+      });
+    }
+
     return () => {
       trendChartInst.current?.destroy();
       paymentChartInst.current?.destroy();
+      acqChartInst.current?.destroy();
+      catChartInst.current?.destroy();
+      topProdChartInst.current?.destroy();
     };
   }, [data]);
 
@@ -118,7 +221,7 @@ export default function ReportsPage() {
   if (!data) return null;
 
   return (
-    <div className="vstack gap-3">
+    <div className="vstack gap-4">
       {/* Financial Metrics Summary */}
       <div className="row g-3">
         <div className="col-12 col-md-3">
@@ -157,11 +260,12 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* Row 1: Trends & Payments */}
       <div className="row g-3">
         <div className="col-lg-8">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Revenue Trend (Last 30 Days)</div>
+              <div className="fw-semibold mb-3">Revenue & Discount Trend (Last 30 Days)</div>
               <div style={{ height: 300 }}>
                 <canvas ref={trendChartRef}></canvas>
               </div>
@@ -180,14 +284,88 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* Row 2: Customer Acquisition & Top Products */}
+      <div className="row g-3">
+        <div className="col-lg-6">
+          <div className="card shadow-sm h-100">
+            <div className="card-body">
+              <div className="fw-semibold mb-3">Customer Acquisition (New vs. Returning)</div>
+              <div style={{ height: 300 }}>
+                <canvas ref={acqChartRef}></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-6">
+          <div className="card shadow-sm h-100">
+            <div className="card-body">
+              <div className="fw-semibold mb-3">Top Selling Products</div>
+              <div style={{ height: 300 }}>
+                <canvas ref={topProdChartRef}></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Sales by Category & Recent Transactions */}
+      <div className="row g-3">
+        <div className="col-lg-4">
+          <div className="card shadow-sm h-100">
+            <div className="card-body">
+              <div className="fw-semibold mb-3">Sales by Category</div>
+              <div style={{ height: 300 }}>
+                <canvas ref={catChartRef}></canvas>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-lg-8">
+          <div className="card shadow-sm h-100">
+            <div className="card-body">
+              <div className="fw-semibold mb-3">Recent Transactions</div>
+              <div className="table-responsive">
+                <table className="table table-striped table-sm mb-0">
+                  <thead className="thead-3">
+                    <tr>
+                      <th>Date</th>
+                      <th>Invoice</th>
+                      <th>Customer</th>
+                      <th>Method</th>
+                      <th className="text-end">Amount</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {data.recent_transactions.length === 0 ? (
+                      <tr><td colSpan={5} className="text-secondary">No transactions.</td></tr>
+                    ) : (
+                      data.recent_transactions.map((t) => (
+                        <tr key={t.id}>
+                          <td>{new Date(t.created_at).toLocaleString()}</td>
+                          <td>{t.invoice_number}</td>
+                          <td>{t.customer_name}</td>
+                          <td className="text-capitalize">{t.payment_method}</td>
+                          <td className="text-end fw-medium">{money(t.total.toString())}</td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 4: Top Customers & High Return Products */}
       <div className="row g-3">
         <div className="col-lg-6">
           <div className="card shadow-sm h-100">
             <div className="card-body">
               <div className="fw-semibold mb-3">Top Customers (Lifetime Value)</div>
-              <div className="table-responsive">
+              <div className="table-responsive" style={{ maxHeight: 300 }}>
                 <table className="table table-striped table-sm mb-0">
-                  <thead className="thead-3">
+                  <thead className="thead-3 sticky-top">
                     <tr>
                       <th>Customer</th>
                       <th className="text-end">Orders</th>
@@ -216,9 +394,9 @@ export default function ReportsPage() {
           <div className="card shadow-sm h-100">
             <div className="card-body">
               <div className="fw-semibold mb-3">High Return Rate Products</div>
-              <div className="table-responsive">
+              <div className="table-responsive" style={{ maxHeight: 300 }}>
                 <table className="table table-striped table-sm mb-0">
-                  <thead className="thead-3">
+                  <thead className="thead-3 sticky-top">
                     <tr>
                       <th>Product</th>
                       <th className="text-end">Qty Returned</th>
@@ -245,6 +423,50 @@ export default function ReportsPage() {
         </div>
       </div>
 
+      {/* Row 5: Low Stock Alerts */}
+      <div className="card shadow-sm">
+        <div className="card-body">
+          <div className="fw-semibold mb-3 text-danger"><i className="bi bi-exclamation-triangle-fill me-2"></i>Inventory Status (Low & Out of Stock)</div>
+          <div className="table-responsive">
+            <table className="table table-striped table-sm mb-0">
+              <thead className="thead-3">
+                <tr>
+                  <th>Product</th>
+                  <th>SKU</th>
+                  <th className="text-end">Current Stock</th>
+                  <th className="text-end">Reorder Level</th>
+                  <th className="text-end">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.out_of_stock.map(item => (
+                  <tr key={item.id}>
+                    <td>{item.name}</td>
+                    <td>{item.sku}</td>
+                    <td className="text-end fw-bold text-danger">{item.current_stock}</td>
+                    <td className="text-end">{item.reorder_level}</td>
+                    <td className="text-end"><span className="badge bg-danger">Out of Stock</span></td>
+                  </tr>
+                ))}
+                {data.low_stock.map(item => (
+                  <tr key={item.id}>
+                    <td>{item.name}</td>
+                    <td>{item.sku}</td>
+                    <td className="text-end fw-bold text-warning">{item.current_stock}</td>
+                    <td className="text-end">{item.reorder_level}</td>
+                    <td className="text-end"><span className="badge bg-warning text-dark">Low Stock</span></td>
+                  </tr>
+                ))}
+                {data.out_of_stock.length === 0 && data.low_stock.length === 0 && (
+                  <tr><td colSpan={5} className="text-secondary text-center">All inventory levels are healthy.</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Legacy Reports Export */}
       <div className="card shadow-sm">
         <div className="card-body">
           <div className="fw-semibold mb-3">Export Reports</div>
