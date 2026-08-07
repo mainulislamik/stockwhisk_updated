@@ -119,10 +119,12 @@ def stock_by_brand(shop):
 
 
 def low_stock_list(shop):
+    from django.db.models import Q
     return list(
         Product.all_objects.filter(
+            Q(current_stock__lte=F("reorder_level")) | Q(current_stock__lte=5),
             shop_id=shop.id, track_inventory=True, is_active=True,
-            current_stock__gt=0, current_stock__lte=F("reorder_level"),
+            current_stock__gt=0,
         ).values("id", "name", "sku", "current_stock", "reorder_level")
     )
 

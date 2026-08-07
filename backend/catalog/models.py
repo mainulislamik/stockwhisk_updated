@@ -119,7 +119,7 @@ class Product(TenantScopedModel):
 
     @property
     def is_low_stock(self) -> bool:
-        return self.track_inventory and self.current_stock <= self.reorder_level
+        return self.track_inventory and (self.current_stock <= self.reorder_level or self.current_stock <= 5)
 
 
 class ProductUnit(TenantScopedModel):
