@@ -4,9 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
-import { Box, Card, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton } from '@mui/material';
+import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment } from '@mui/material';
 import LightModeIcon from '@mui/icons-material/LightMode';
 import DarkModeIcon from '@mui/icons-material/DarkMode';
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
 import { useThemeMode } from '@/components/ThemeRegistry';
 
 export default function LoginPage() {
@@ -33,60 +35,181 @@ export default function LoginPage() {
     }
   }
 
+  const isDark = mode === 'dark';
+
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', p: 2 }}>
-      <Card sx={{ p: { xs: 4, md: 5 }, width: '100%', maxWidth: '400px', position: 'relative' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+      {/* Left Side: Brand Imagery */}
+      <Box 
+        sx={{ 
+          flex: { xs: '0 0 auto', md: '1 1 50%', lg: '1 1 60%' }, 
+          minHeight: { xs: '30vh', md: '100vh' },
+          backgroundImage: 'url(/login-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        {/* Glassmorphism overlay for text */}
+        <Box sx={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.1))',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 4,
+          textAlign: 'center'
+        }}>
+          <Typography variant="h1" sx={{ fontWeight: 800, color: '#fff', textShadow: '0px 4px 12px rgba(0,0,0,0.6)', mb: 2, letterSpacing: '-1.5px', fontSize: { xs: '3rem', md: '4.5rem' } }}>
+            StockWhisk
+          </Typography>
+          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', maxWidth: 500, fontWeight: 400, textShadow: '0px 2px 8px rgba(0,0,0,0.5)', fontSize: { xs: '1rem', md: '1.25rem' }, lineHeight: 1.6 }}>
+            The smartest way to manage your inventory, analytics, and daily retail operations all in one place.
+          </Typography>
+        </Box>
+      </Box>
+
+      {/* Right Side: Login Form */}
+      <Box 
+        sx={{ 
+          flex: { xs: '1 1 auto', md: '1 1 50%', lg: '1 1 40%' }, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          p: { xs: 3, sm: 6, md: 8 },
+          backgroundColor: isDark ? '#0F172A' : '#ffffff',
+          position: 'relative',
+          borderLeft: isDark ? '1px solid rgba(255,255,255,0.05)' : 'none'
+        }}
+      >
         <IconButton 
           onClick={toggleTheme} 
-          sx={{ position: 'absolute', top: 16, right: 16 }}
+          sx={{ position: 'absolute', top: 24, right: 24, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }}
           color="inherit"
         >
-          {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
+          {isDark ? <LightModeIcon /> : <DarkModeIcon />}
         </IconButton>
-        <Box sx={{ textAlign: "center", mb: 4 }}>
-          <Typography variant="h4" sx={{ fontWeight: 700 }}>StockWhisk</Typography>
-          <Typography variant="body2" color="text.secondary">Sign in to your shop</Typography>
+
+        <Box sx={{ width: '100%', maxWidth: '440px' }}>
+          <Box sx={{ mb: 5 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
+              Welcome back
+            </Typography>
+            <Typography variant="body1" sx={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '1.05rem' }}>
+              Please enter your details to sign in.
+            </Typography>
+          </Box>
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 4, borderRadius: 2, fontWeight: 500 }}>
+              {error}
+            </Alert>
+          )}
+          
+          <form onSubmit={onSubmit}>
+            <Stack spacing={3.5}>
+              <TextField
+                label="Email or Username"
+                variant="outlined"
+                fullWidth
+                required
+                autoFocus
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <EmailIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2.5,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9',
+                    }
+                  },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                  }
+                }}
+              />
+              <TextField
+                label="Password"
+                type="password"
+                variant="outlined"
+                fullWidth
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <LockIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  '& .MuiOutlinedInput-root': {
+                    borderRadius: 2.5,
+                    backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+                    transition: 'all 0.2s',
+                    '&:hover': {
+                      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9',
+                    }
+                  },
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
+                  }
+                }}
+              />
+              <Button
+                type="submit"
+                variant="contained"
+                fullWidth
+                size="large"
+                disabled={busy}
+                startIcon={busy ? <CircularProgress size={20} color="inherit" /> : null}
+                sx={{ 
+                  py: 1.8, 
+                  borderRadius: 2.5, 
+                  textTransform: 'none', 
+                  fontSize: '1.1rem', 
+                  fontWeight: 600,
+                  letterSpacing: '0.5px',
+                  boxShadow: isDark ? '0 8px 20px rgba(0,0,0,0.5)' : '0 8px 20px rgba(99,102,241,0.25)',
+                  background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                  transition: 'all 0.3s ease',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                    transform: 'translateY(-2px)',
+                    boxShadow: isDark ? '0 12px 24px rgba(0,0,0,0.6)' : '0 12px 24px rgba(99,102,241,0.35)',
+                  },
+                  '&:active': {
+                    transform: 'translateY(0)',
+                  }
+                }}
+              >
+                {busy ? "Signing in..." : "Sign in to Dashboard"}
+              </Button>
+            </Stack>
+          </form>
+          
+          <Box sx={{ mt: 5, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: isDark ? '#64748b' : '#94a3b8' }}>
+              &copy; {new Date().getFullYear()} StockWhisk. All rights reserved.
+            </Typography>
+          </Box>
         </Box>
-        
-        {error && (
-          <Alert severity="error" sx={{ mb: 3 }}>
-            {error}
-          </Alert>
-        )}
-        
-        <form onSubmit={onSubmit}>
-          <Stack spacing={3}>
-            <TextField
-              label="Username or Email"
-              variant="outlined"
-              fullWidth
-              required
-              autoFocus
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-            <TextField
-              label="Password"
-              type="password"
-              variant="outlined"
-              fullWidth
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-            />
-            <Button
-              type="submit"
-              variant="contained"
-              fullWidth
-              size="large"
-              disabled={busy}
-              startIcon={busy ? <CircularProgress size={20} color="inherit" /> : null}
-            >
-              {busy ? "Working..." : "Sign in"}
-            </Button>
-          </Stack>
-        </form>
-      </Card>
+      </Box>
     </Box>
   );
 }
