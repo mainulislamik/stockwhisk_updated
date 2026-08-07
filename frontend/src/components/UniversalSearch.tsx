@@ -85,38 +85,30 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
           aria-label="Universal search"
           autoComplete="off"
           placeholder="Search invoices, products, barcode, customers, suppliers..."
-          className="form-control border-0 shadow-none"
+          className="form-control border shadow-sm"
           style={{
             borderRadius: "30px",
             paddingLeft: "2.8rem",
-            backgroundColor: "rgba(255, 255, 255, 0.15)",
-            color: "#fff",
             height: "40px",
-            backdropFilter: "blur(4px)",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
+            backgroundColor: "var(--bs-body-bg)",
+            color: "var(--bs-body-color)",
+            borderColor: "var(--bs-border-color)",
           }}
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onFocus={(e) => {
-            e.target.style.backgroundColor = "#fff";
-            e.target.style.color = "#333";
-            e.target.style.boxShadow = "0 4px 15px rgba(0,0,0,0.1)";
+            e.target.style.boxShadow = "0 4px 15px rgba(0,0,0,0.15)";
+            e.target.style.borderColor = "var(--bs-primary)";
             if (q.trim()) setOpen(true);
           }}
           onBlur={(e) => {
-            if (!q) {
-              e.target.style.backgroundColor = "rgba(255, 255, 255, 0.15)";
-              e.target.style.color = "#fff";
-              e.target.style.boxShadow = "none";
-            } else {
-              // keep it white if there is text
-              e.target.style.backgroundColor = "#fff";
-              e.target.style.color = "#333";
-            }
+            e.target.style.boxShadow = "none";
+            e.target.style.borderColor = "var(--bs-border-color)";
           }}
         />
         <div
-          className="position-absolute d-flex align-items-center justify-content-center"
+          className="position-absolute d-flex align-items-center justify-content-center text-body-secondary"
           style={{ 
             left: "1rem", 
             top: "50%", 
@@ -130,14 +122,15 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
       </div>
       {open && (
         <div
-          className="position-absolute bg-white mt-2"
+          className="position-absolute mt-2"
           style={{
             zIndex: 1080,
             maxHeight: "75vh",
             overflow: "auto",
             boxShadow: "0 10px 40px rgba(0,0,0,0.2)",
             borderRadius: "16px",
-            border: "1px solid rgba(0,0,0,0.05)",
+            border: "1px solid var(--bs-border-color)",
+            backgroundColor: "var(--bs-body-bg)",
             ...(mobile ? { left: 0, right: 0 } : { width: "100%" }),
           }}
         >
@@ -159,8 +152,8 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
                 return (
                   <div key={key} className="mb-3">
                     <div
-                      className="px-4 py-1 small fw-bold text-uppercase"
-                      style={{ color: "#95a5a6", letterSpacing: "0.08em", fontSize: "0.7rem", marginBottom: "4px" }}
+                      className="px-4 py-1 small fw-bold text-uppercase text-secondary"
+                      style={{ letterSpacing: "0.08em", fontSize: "0.7rem", marginBottom: "4px" }}
                     >
                       {label}
                     </div>
@@ -173,7 +166,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
                           transition: "background-color 0.2s, padding-left 0.2s",
                         }}
                         onMouseEnter={(e) => {
-                          e.currentTarget.style.backgroundColor = "#f8f9fa";
+                          e.currentTarget.style.backgroundColor = "var(--bs-tertiary-bg)";
                           e.currentTarget.style.paddingLeft = "2rem";
                         }}
                         onMouseLeave={(e) => {
@@ -181,7 +174,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
                           e.currentTarget.style.paddingLeft = "1.5rem"; // 1.5rem is px-4 padding
                         }}
                       >
-                        <span className="fw-semibold text-dark" style={{ fontSize: "0.95rem" }}>
+                        <span className="fw-semibold text-body" style={{ fontSize: "0.95rem" }}>
                           {r.label}
                         </span>
                         <span className="text-secondary mt-1" style={{ fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
