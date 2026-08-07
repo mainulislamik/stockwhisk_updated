@@ -64,3 +64,79 @@ class CashFlowView(_ReportBase):
         start = parse_datetime(request.query_params.get("start", "") or "")
         end = parse_datetime(request.query_params.get("end", "") or "")
         return Response(cash_flow(request.user.shop, start=start, end=end))
+
+
+from django.db.models import Sum
+from django.utils import timezone
+from rest_framework.decorators import action
+from rest_framework.exceptions import ValidationError
+from sales.models import Sale, SaleReturn
+from .models import DailySettlement, LedgerEntry
+from .serializers import DailySettlementSerializer
+
+class DailySettlementViewSet(TenantScopedViewSet):
+    serializer_class = DailySettlementSerializer
+    required_perm = "view_profit"
+
+    def get_queryset(self):
+        return DailySettlement.objects.all()
+
+    @action(detail=False, methods=["get"])
+    def current(self, request):
+        settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+        if not settlement:
+            return Response(None)
+        
+        ledger_sum = LedgerEntry.objects.filter(
+            shop=request.tenant, 
+            account=LedgerEntry.Account.CASH, 
+            created_at__gte=settlement.opened_at
+        ).aggregate(t=Sum("amount"))["t"] or 0
+        
+        settlement.expected_cash = float(settlement.opening_cash) + float(ledger_sum)
+        return Response(self.get_serializer(settlement).data)
+
+    @action(detail=False, methods=["post"])
+    def open(self, request):
+        if self.get_queryset().filter(status=DailySettlement.Status.OPEN).exists():
+            raise ValidationError("A settlement is already open.")
+        opening_cash = request.data.get("opening_cash", 0)
+        settlement = DailySettlement.objects.create(
+            shop=request.tenant,
+            opening_cash=opening_cash,
+            expected_cash=opening_cash,
+        )
+        return Response(self.get_serializer(settlement).data)
+
+    @action(detail=False, methods=["post"])
+    def close(self, request):
+        settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+        if not settlement:
+            raise ValidationError("No open settlement found.")
+        
+        actual_cash = request.data.get("actual_cash", 0)
+        
+        ledger_sum = LedgerEntry.objects.filter(
+            shop=request.tenant, 
+            account=LedgerEntry.Account.CASH, 
+            created_at__gte=settlement.opened_at
+        ).aggregate(t=Sum("amount"))["t"] or 0
+        
+        expected_cash = float(settlement.opening_cash) + float(ledger_sum)
+        
+        sales_sum = Sale.objects.filter(shop=request.tenant, created_at__gte=settlement.opened_at).aggregate(t=Sum("total"))["t"] or 0
+        expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__gte=settlement.opened_at).aggregate(t=Sum("amount"))["t"] or 0
+        refunds_sum = SaleReturn.objects.filter(shop=request.tenant, created_at__gte=settlement.opened_at).aggregate(t=Sum("total_refund"))["t"] or 0
+        
+        settlement.expected_cash = expected_cash
+        settlement.actual_cash = actual_cash
+        settlement.discrepancy = float(actual_cash) - float(expected_cash)
+        settlement.total_sales = sales_sum
+        settlement.total_expenses = expenses_sum
+        settlement.total_refunds = refunds_sum
+        settlement.status = DailySettlement.Status.CLOSED
+        settlement.closed_at = timezone.now()
+        settlement.closed_by = request.user
+        settlement.save()
+        
+        return Response(self.get_serializer(settlement).data)

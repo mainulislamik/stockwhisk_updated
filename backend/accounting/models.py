@@ -85,3 +85,35 @@ class LedgerEntry(TenantScopedModel):
 
     def __str__(self):
         return f"{self.account} {self.amount}"
+
+
+class DailySettlement(TenantScopedModel):
+    """
+    End of Day (EOD) / Shift closing record. Tracks expected vs actual cash.
+    """
+
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        CLOSED = "closed", "Closed"
+
+    opened_at = models.DateTimeField(auto_now_add=True)
+    closed_at = models.DateTimeField(null=True, blank=True)
+    opening_cash = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    expected_cash = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    actual_cash = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    discrepancy = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_sales = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_refunds = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
+    closed_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="settlements"
+    )
+
+    class Meta:
+        ordering = ["-opened_at"]
+        indexes = [models.Index(fields=["shop", "status", "opened_at"])]
+
+    def __str__(self):
+        return f"Settlement {self.id} ({self.status})"

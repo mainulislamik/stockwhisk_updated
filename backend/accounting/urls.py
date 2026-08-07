@@ -7,11 +7,13 @@ from .views import (
     ExpenseViewSet,
     FinancialPositionView,
     ProfitReportView,
+    DailySettlementViewSet,
 )
 
 router = DefaultRouter()
 router.register("expense-categories", ExpenseCategoryViewSet, basename="expense-category")
 router.register("expenses", ExpenseViewSet, basename="expense")
+router.register("daily-settlements", DailySettlementViewSet, basename="daily-settlement")
 
 urlpatterns = [
     path("reports/profit/", ProfitReportView.as_view(), name="profit-report"),

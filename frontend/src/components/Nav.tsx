@@ -109,7 +109,12 @@ export default function Nav({
       {showFinance && (
         <NavGroup id="finance" icon="bi-bank" label="Finance" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
           {(isOwner || can("manage_expenses")) && <Item href="/app/expenses" icon="bi-cash-stack" label="Expenses" />}
-          {(isOwner || can("view_profit")) && <Item href="/app/accounting" icon="bi-calculator" label="Accounting" />}
+          {(isOwner || can("view_profit")) && (
+            <>
+              <Item href="/app/accounting" icon="bi-calculator" label="Accounting" />
+              <Item href="/app/accounting/settlement" icon="bi-journal-check" label="Daily Settlement" />
+            </>
+          )}
           {(isOwner || can("view_reports")) && <Item href="/app/reports" icon="bi-graph-up" label="Reports" />}
         </NavGroup>
       )}

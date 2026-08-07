@@ -18,3 +18,20 @@ class ExpenseSerializer(serializers.ModelSerializer):
             "id", "category", "category_name", "amount", "spent_on",
             "payment_method", "note", "created_at",
         ]
+
+
+class DailySettlementSerializer(serializers.ModelSerializer):
+    closed_by_name = serializers.CharField(source="closed_by.get_full_name", read_only=True)
+
+    class Meta:
+        from .models import DailySettlement
+        model = DailySettlement
+        fields = [
+            "id", "opened_at", "closed_at", "opening_cash", "expected_cash",
+            "actual_cash", "discrepancy", "total_sales", "total_expenses",
+            "total_refunds", "status", "closed_by", "closed_by_name"
+        ]
+        read_only_fields = [
+            "opened_at", "closed_at", "expected_cash", "discrepancy",
+            "total_sales", "total_expenses", "total_refunds", "status", "closed_by"
+        ]
