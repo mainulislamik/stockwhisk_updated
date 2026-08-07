@@ -356,7 +356,7 @@ export default function PosPage() {
                         </td>
                         <td style={{ width: "5rem" }}>
                           {l.selectedUnits.length > 0 ? (
-                            <div className="text-center fw-semibold small bg-light border rounded px-2 py-1">
+                            <div className="text-center fw-semibold small bg-body-secondary border rounded px-2 py-1">
                               {l.qty}
                             </div>
                           ) : (
