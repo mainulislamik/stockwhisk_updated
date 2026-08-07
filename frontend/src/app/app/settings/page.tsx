@@ -29,7 +29,7 @@ export default function SettingsPage() {
       });
     }
     if (isOwner) {
-      api<any>("/accounts/auth/shop-settings/").then(data => {
+      api<any>("/auth/shop-settings/").then(data => {
         setShopForm({
           name: data.name || "",
           phone: data.phone || "",
@@ -50,7 +50,7 @@ export default function SettingsPage() {
     setProfileBusy(true);
     setProfileSuccess(false);
     try {
-      await api("/accounts/auth/me/", { method: "PATCH", body: profileForm });
+      await api("/auth/me/", { method: "PATCH", body: profileForm });
       setProfileSuccess(true);
       await reload();
       setTimeout(() => setProfileSuccess(false), 3000);
@@ -78,7 +78,7 @@ export default function SettingsPage() {
         formData.append("logo", logoFile);
       }
 
-      const res = await api<any>("/accounts/auth/shop-settings/", { method: "PATCH", body: formData });
+      const res = await api<any>("/auth/shop-settings/", { method: "PATCH", body: formData });
       if (res.logo) {
         setCurrentLogo(res.logo);
       }
