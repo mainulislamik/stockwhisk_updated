@@ -21,12 +21,20 @@ export default function AccountingPage() {
   const [position, setPosition] = useState<Position | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  
+  // Running date by default
+  const today = new Date().toISOString().split("T")[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
 
   useEffect(() => {
     (async () => {
+      setLoading(true);
       try {
+        const startStr = startDate ? startDate + "T00:00:00Z" : "";
+        const endStr = endDate ? endDate + "T23:59:59Z" : "";
         const [p, pos] = await Promise.all([
-          api<Profit>("/accounting/reports/profit/"),
+          api<Profit>("/accounting/reports/profit/", { params: { start: startStr, end: endStr } }),
           api<Position>("/accounting/reports/position/"),
         ]);
         setProfit(p);
@@ -37,14 +45,41 @@ export default function AccountingPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [startDate, endDate]);
 
-  if (loading) return <Spinner label="Loading accounting…" />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
-      <div className="row g-3">
+      {/* Date Filter */}
+      <div className="card shadow-sm mb-2">
+        <div className="card-body py-3 d-flex flex-wrap align-items-center gap-3">
+          <div className="fw-semibold me-auto">Date Filter</div>
+          <div className="d-flex align-items-center gap-2">
+            <label className="text-secondary small fw-medium">Start Date</label>
+            <input 
+              type="date" 
+              className="form-control form-control-sm" 
+              value={startDate} 
+              onChange={e => setStartDate(e.target.value)} 
+            />
+          </div>
+          <div className="d-flex align-items-center gap-2">
+            <label className="text-secondary small fw-medium">End Date</label>
+            <input 
+              type="date" 
+              className="form-control form-control-sm" 
+              value={endDate} 
+              onChange={e => setEndDate(e.target.value)} 
+            />
+          </div>
+        </div>
+      </div>
+      
+      {loading && <Spinner label="Loading accounting…" />}
+      {!loading && profit && position && (
+        <>
+          <div className="row g-3">
         <div className="col-6 col-lg-3">
           <Card>
             <div className="small text-secondary">Revenue</div>
@@ -155,6 +190,8 @@ export default function AccountingPage() {
           </div>
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 }
