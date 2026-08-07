@@ -92,7 +92,27 @@ class DailySettlementViewSet(TenantScopedViewSet):
     def current(self, request):
         import traceback
         try:
+            from django.utils import timezone
+            today = timezone.localdate()
+            
             settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+            
+            if not settlement:
+                # If there's no open settlement, check if one was already created today.
+                # If not, automatically start a new day!
+                has_today = self.get_queryset().filter(opened_at__date=today).exists()
+                if not has_today:
+                    from datetime import datetime, time
+                    start_of_day = timezone.make_aware(datetime.combine(today, time.min))
+                    settlement = DailySettlement.objects.create(
+                        shop=request.tenant,
+                        opening_cash=0,
+                        expected_cash=0,
+                    )
+                    # Force opened_at to start of day so we don't miss earlier sales
+                    settlement.opened_at = start_of_day
+                    settlement.save(update_fields=['opened_at'])
+            
             if not settlement:
                 return Response(None)
             
