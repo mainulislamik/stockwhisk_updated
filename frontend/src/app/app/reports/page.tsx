@@ -57,6 +57,9 @@ export default function ReportsPage() {
           api<DashboardData>("/analytics/dashboard-comprehensive/", { params: { days: 30 } }),
           api<{ reports: string[] }>("/reports/").catch(() => ({ reports: [] })),
         ]);
+        if ((dash as any).error) {
+          throw new Error((dash as any).error);
+        }
         setData(dash);
         setReports((rep as any).reports || []);
       } catch (e: any) {
