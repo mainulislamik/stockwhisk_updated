@@ -9,6 +9,7 @@ type ProductUnit = { id: number; barcode: string; effective_selling_price?: stri
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
+  warranty_months?: number;
   units?: ProductUnit[];
   scanned_unit?: ProductUnit;
 };
@@ -335,13 +336,26 @@ export default function PosPage() {
                     ) : cart.map((l) => (
                       <tr key={l.product.id}>
                         <td className="ps-3">
-                          <div className="small fw-semibold">{l.product.name}</div>
+                          <div className="small fw-semibold">
+                            {l.product.name}
+                            {!!l.product.warranty_months && l.selectedUnits.length === 0 && (
+                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-2 fw-normal" style={{ fontSize: '.6rem' }}>
+                                <i className="bi bi-shield-check me-1"></i>
+                                {l.product.warranty_months} Mo
+                              </span>
+                            )}
+                          </div>
                           <div className="text-secondary" style={{ fontSize: ".72rem" }}>{money(l.price)} each</div>
                           {l.selectedUnits.length > 0 && (
                             <div className="mt-1 d-flex flex-wrap gap-1">
                               {l.selectedUnits.map(u => (
                                 <span key={u.id} className="badge bg-body-secondary text-secondary border fw-normal" style={{ fontSize: ".65rem" }}>
                                   {u.barcode}
+                                  {!!u.effective_warranty_months && (
+                                    <span className="text-warning-emphasis ms-1">
+                                      <i className="bi bi-shield-check"></i> {u.effective_warranty_months}M
+                                    </span>
+                                  )}
                                 </span>
                               ))}
                               <button 

@@ -130,69 +130,76 @@ export default function PosCustomerPage() {
 
       {/* Customer + payment */}
       <div className="col-lg-5">
-        <div className="card shadow-sm">
-          <div className="card-header fw-semibold">Customer</div>
-          <div className="card-body vstack gap-3">
-            <div>
+        <div className="card shadow border-0 rounded-4">
+          <div className="card-header bg-transparent border-0 pt-4 pb-2 px-4 fw-bold fs-5">
+            Customer & Payment
+          </div>
+          <div className="card-body vstack gap-3 px-4 pb-4">
+            <div className="form-floating">
               <select
-                className="form-select form-select-sm"
+                className="form-select form-select-lg shadow-sm" id="customerMode"
                 value={customerMode === "existing" ? customerId || "existing" : "walkin"}
                 onChange={(e) => {
                   if (e.target.value === "walkin") { setCustomerMode("walkin"); setCustomerId(""); }
                   else { setCustomerMode("existing"); setCustomerId(e.target.value); }
                 }}
               >
-                <option value="walkin">Walk-in customer</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>{c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
+                <option value="walkin">🚶 Walk-in customer</option>
+                {customers.map((c) => <option key={c.id} value={c.id}>👤 {c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
               </select>
+              <label htmlFor="customerMode">Select Customer</label>
             </div>
 
             {customerMode === "walkin" && (
-              <>
-                <div>
-                  <label className="small fw-medium">Customer name *</label>
-                  <input className="form-control form-control-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder="Enter name…" />
+              <div className="p-3 bg-light rounded-3 border vstack gap-3">
+                <div className="form-floating">
+                  <input id="walkName" className="form-control shadow-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder="Enter name…" />
+                  <label htmlFor="walkName">Customer name *</label>
                 </div>
-                <div>
-                  <label className="small fw-medium">Phone *</label>
-                  <input className="form-control form-control-sm" value={walkPhone} onChange={(e) => setWalkPhone(e.target.value)} placeholder="01XXXXXXXXX" />
+                <div className="form-floating">
+                  <input id="walkPhone" className="form-control shadow-sm" value={walkPhone} onChange={(e) => setWalkPhone(e.target.value)} placeholder="01XXXXXXXXX" />
+                  <label htmlFor="walkPhone">Phone *</label>
                 </div>
-                <div>
-                  <label className="small fw-medium">Address</label>
-                  <input className="form-control form-control-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
+                <div className="form-floating">
+                  <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
+                  <label htmlFor="walkAddress">Address (Optional)</label>
                 </div>
-              </>
+              </div>
             )}
 
-            <div className="row g-2">
+            <div className="row g-3">
               <div className="col-6">
-                <label className="small fw-medium">Discount</label>
-                <input type="number" min={0} className="form-control form-control-sm" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} />
+                <div className="form-floating">
+                  <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} />
+                  <label htmlFor="discountInput">Discount (৳)</label>
+                </div>
               </div>
               <div className="col-6">
-                <label className="small fw-medium">Amount paid *</label>
-                <input type="number" min={0} className="form-control form-control-sm" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder={String(total)} />
+                <div className="form-floating">
+                  <input id="paidInput" type="number" min={0} className="form-control fw-bold text-primary shadow-sm" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder={String(total)} />
+                  <label htmlFor="paidInput">Amount paid *</label>
+                </div>
               </div>
             </div>
 
-            <div>
-              <label className="small fw-medium">Payment method</label>
-              <select className="form-select form-select-sm" value={method} onChange={(e) => setMethod(e.target.value)}>
+            <div className="form-floating">
+              <select id="payMethod" className="form-select shadow-sm" value={method} onChange={(e) => setMethod(e.target.value)}>
                 {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
+              <label htmlFor="payMethod">Payment method</label>
             </div>
 
-            <div className="border-top pt-3">
-              <div className="d-flex justify-content-between small mb-1"><span className="text-secondary">Subtotal</span><span>{money(subtotal)}</span></div>
-              {discount > 0 && <div className="d-flex justify-content-between small mb-1 text-success"><span>Discount</span><span>- {money(discount)}</span></div>}
-              <div className="d-flex justify-content-between fw-bold mb-1"><span>Total</span><span>{money(total)}</span></div>
-              {change > 0 && <div className="d-flex justify-content-between small text-success"><span>Change</span><span>{money(change)}</span></div>}
+            <div className="border-top border-bottom py-3 my-2 bg-body-tertiary rounded-3 px-3 shadow-sm">
+              <div className="d-flex justify-content-between text-secondary mb-2"><span>Subtotal</span><span>{money(subtotal)}</span></div>
+              {discount > 0 && <div className="d-flex justify-content-between text-success mb-2"><span>Discount</span><span>- {money(discount)}</span></div>}
+              <div className="d-flex justify-content-between fw-bold fs-5 mb-2"><span>Total</span><span>{money(total)}</span></div>
+              {change > 0 && <div className="d-flex justify-content-between text-info fw-semibold border-top pt-2 mt-2"><span>Change due</span><span>{money(change)}</span></div>}
             </div>
 
-            {error && <div className="alert alert-danger py-2 px-3 small mb-0">{error}</div>}
+            {error && <div className="alert alert-danger py-2 px-3 small mb-0 shadow-sm"><i className="bi bi-exclamation-triangle me-2"></i>{error}</div>}
 
-            <button className="btn btn-success w-100 fw-semibold" disabled={busy} onClick={complete} style={{ padding: "0.6rem" }}>
-              {busy ? <span className="spinner-border spinner-border-sm me-2" /> : null}
+            <button className="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-3 mt-2" disabled={busy} onClick={complete} style={{ padding: "1rem" }}>
+              {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-receipt me-2"></i>}
               Complete sale &amp; print invoice
             </button>
           </div>
