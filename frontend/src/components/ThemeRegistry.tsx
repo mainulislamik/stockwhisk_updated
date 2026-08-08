@@ -88,6 +88,7 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
                 right: 24,
                 zIndex: 9999,
                 boxShadow: '0 8px 16px rgba(99, 102, 241, 0.4)',
+                '@media print': { display: 'none' }
               }}
             >
               {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
