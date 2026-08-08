@@ -62,6 +62,17 @@ class ProductViewSet(TenantScopedViewSet):
         search = params.get("search")
         return ProductService.get_catalog_queryset(low_stock=low_stock, search=search)
 
+    def perform_update(self, serializer):
+        old_price = self.get_object().selling_price
+        product = serializer.save()
+        
+        # Cascade selling price changes to all unsold stock units
+        if product.selling_price != old_price:
+            ProductUnit.objects.filter(
+                product=product,
+                status=ProductUnit.Status.IN_STOCK
+            ).update(selling_price=product.selling_price)
+
 
 class ProductVariationViewSet(TenantScopedViewSet):
     serializer_class = ProductVariationSerializer
