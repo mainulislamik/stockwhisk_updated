@@ -9,17 +9,39 @@ export default function BackupsPage() {
   const [restoring, setRestoring] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   
-  const [driveJson, setDriveJson] = useState("");
+  const [driveClientId, setDriveClientId] = useState("");
+  const [driveClientSecret, setDriveClientSecret] = useState("");
   const [driveFolderId, setDriveFolderId] = useState("");
   const [savingConfig, setSavingConfig] = useState(false);
   const [triggeringDrive, setTriggeringDrive] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
   
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    // Check for OAuth callback code
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("code");
+    if (code) {
+      setMsg({ ok: true, text: "Authenticating with Google..." });
+      api<{detail: string}>("/platform/backups/drive-callback/", {
+        method: "POST",
+        body: { code, redirect_uri: window.location.origin + window.location.pathname }
+      }).then(res => {
+        setMsg({ ok: true, text: "Google Drive connected successfully!" });
+        setIsConnected(true);
+        // Remove code from URL cleanly
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }).catch(e => {
+        setMsg({ ok: false, text: e?.data?.detail || "Failed to connect Google Drive." });
+      });
+    }
+
     api<any>("/platform/backups/drive-config/").then((data) => {
-      setDriveJson(data.drive_credentials_json || "");
+      setDriveClientId(data.drive_client_id || "");
+      setDriveClientSecret(data.drive_client_secret || "");
       setDriveFolderId(data.drive_folder_id || "");
+      setIsConnected(!!data.has_refresh_token);
     }).catch(console.error);
   }, []);
 
@@ -40,14 +62,21 @@ export default function BackupsPage() {
       await api("/platform/backups/drive-config/", {
         method: "PUT",
         body: {
-          drive_credentials_json: driveJson,
+          drive_client_id: driveClientId,
+          drive_client_secret: driveClientSecret,
           drive_folder_id: parsedFolderId
         }
       });
-      setMsg({ ok: true, text: "Google Drive configuration saved successfully." });
+      
+      // After saving, generate auth URL and redirect
+      const authRes = await api<{auth_url: string}>("/platform/backups/drive-auth-url/", {
+        method: "POST",
+        body: { redirect_uri: window.location.origin + window.location.pathname }
+      });
+      window.location.href = authRes.auth_url;
+      
     } catch (e: any) {
-      setMsg({ ok: false, text: "Failed to save Drive config." });
-    } finally {
+      setMsg({ ok: false, text: e?.data?.detail || "Failed to save Drive config or start auth." });
       setSavingConfig(false);
     }
   }
@@ -107,76 +136,86 @@ export default function BackupsPage() {
   }
 
   return (
-    <div className="vstack gap-4">
+    <div className="space-y-6 animate-fade-in max-w-4xl">
       <PageHeader title="System Backups" />
 
       {msg && (
-        <div className={`alert ${msg.ok ? "alert-success" : "alert-danger"} py-3 px-4 rounded-4 shadow-sm border-0 d-flex align-items-center gap-2 mb-0`} style={{ maxWidth: "52rem" }}>
-          <i className={`bi ${msg.ok ? "bi-check-circle-fill text-success" : "bi-exclamation-triangle-fill text-danger"} fs-5`}></i>
+        <div className={`p-4 rounded-lg font-medium text-sm flex items-center gap-2 ${msg.ok ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+          <i className={`bi ${msg.ok ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
           {msg.text}
         </div>
       )}
 
-      {/* Google Drive Integration Section */}
-      <div className="card border-0 shadow-sm rounded-4 overflow-hidden" style={{ maxWidth: "52rem" }}>
-        <div className="card-header bg-primary bg-opacity-10 border-0 py-3">
-          <div className="d-flex align-items-center gap-2">
-            <i className="bi bi-google text-primary fs-5"></i>
-            <h5 className="mb-0 fw-bold text-primary">Automated Google Drive Backups</h5>
-          </div>
-        </div>
-        <div className="card-body p-4">
-          <p className="text-secondary mb-4">
-            Configure automatic daily backups directly to Google Drive. This uses no local server storage. 
-            You must provide a Service Account JSON and a shared folder ID.
+      {/* Google Drive Automated Backups Card */}
+      <Card className="border-t-4 border-t-blue-500 bg-slate-900/40">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-blue-400">
+            <i className="bi bi-google"></i> Automated Google Drive Backups
+          </h2>
+          <p className="text-slate-400 text-sm mb-6">
+            Configure automatic daily backups directly to Google Drive. This uses no local server storage. You must provide a Google OAuth Client ID and a shared folder ID.
           </p>
-          
-          <form onSubmit={saveDriveConfig} className="vstack gap-3 mb-4">
+
+          <form onSubmit={saveDriveConfig} className="space-y-4">
             <div className="form-floating">
-              <input 
-                type="text" 
-                className="form-control" 
-                id="folderId" 
-                placeholder="Folder ID"
+              <input
+                type="text"
+                className="form-control font-mono text-sm"
+                placeholder="Google Drive Folder ID"
                 value={driveFolderId}
-                onChange={(e) => setDriveFolderId(e.target.value)}
+                onChange={e => setDriveFolderId(e.target.value)}
+                required
               />
-              <label htmlFor="folderId">Google Drive Folder ID</label>
+              <label>Google Drive Folder ID</label>
             </div>
             
             <div className="form-floating">
-              <textarea 
-                className="form-control font-monospace text-muted" 
-                id="serviceJson" 
-                placeholder="{...}"
-                style={{ height: "150px" }}
-                value={driveJson}
-                onChange={(e) => setDriveJson(e.target.value)}
-              ></textarea>
-              <label htmlFor="serviceJson">Service Account credentials.json</label>
+              <input
+                type="text"
+                className="form-control font-mono text-sm"
+                placeholder="OAuth Client ID"
+                value={driveClientId}
+                onChange={e => setDriveClientId(e.target.value)}
+                required
+              />
+              <label>OAuth Client ID</label>
             </div>
             
-            <div className="d-flex justify-content-end gap-2 mt-2">
+            <div className="form-floating">
+              <input
+                type="text"
+                className="form-control font-mono text-sm"
+                placeholder="OAuth Client Secret"
+                value={driveClientSecret}
+                onChange={e => setDriveClientSecret(e.target.value)}
+                required
+              />
+              <label>OAuth Client Secret</label>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700/50">
+              {isConnected && (
+                <span className="text-green-500 text-sm font-medium mr-auto flex items-center gap-2">
+                  <i className="bi bi-check-circle-fill"></i> Connected to Google Drive
+                </span>
+              )}
+              
               <button 
                 type="button" 
-                className="btn btn-outline-primary rounded-pill px-4" 
                 onClick={triggerDriveBackup}
-                disabled={triggeringDrive || !driveFolderId}
+                disabled={triggeringDrive || !isConnected}
+                className="btn btn-outline-primary rounded-pill px-4"
               >
-                {triggeringDrive ? (
-                  <><span className="spinner-border spinner-border-sm me-2"></span>Triggering...</>
-                ) : (
-                  <><i className="bi bi-cloud-arrow-up me-2"></i>Trigger Drive Backup Now</>
-                )}
+                {triggeringDrive ? <><span className="spinner-border spinner-border-sm me-2"></span>Triggering...</> : <><i className="bi bi-cloud-arrow-up me-2"></i>Trigger Drive Backup Now</>}
               </button>
-              
-              <button type="submit" className="btn btn-primary rounded-pill px-4 shadow-sm" disabled={savingConfig}>
-                {savingConfig ? "Saving…" : "Save Configuration"}
+
+              <button type="submit" disabled={savingConfig} className="btn btn-primary rounded-pill px-4 shadow-sm">
+                {savingConfig ? "Saving..." : "Save & Connect Google Drive"}
               </button>
             </div>
           </form>
         </div>
-      </div>
+      </Card>
 
       <div className="row g-3" style={{ maxWidth: "52rem" }}>
         <div className="col-md-6">

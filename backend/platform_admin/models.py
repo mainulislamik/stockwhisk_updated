@@ -68,8 +68,10 @@ class PlatformConfig(TimeStampedModel):
     Singleton model for platform-wide configuration.
     Stores Google Drive service account credentials and backup folder ID.
     """
-    drive_credentials_json = models.TextField(blank=True, default="")
     drive_folder_id = models.CharField(max_length=255, blank=True, default="")
+    drive_client_id = models.CharField(max_length=255, blank=True, default="")
+    drive_client_secret = models.CharField(max_length=255, blank=True, default="")
+    drive_refresh_token = models.TextField(blank=True, default="")
 
     class Meta:
         verbose_name_plural = "Platform Config"

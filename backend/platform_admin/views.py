@@ -646,22 +646,95 @@ def _db_env():
 from .models import PlatformConfig
 
 class PlatformConfigView(APIView):
-    """Get or update platform-wide configuration (like Google Drive)."""
+    """Get or update platform-wide settings."""
     permission_classes = [IsPlatformStaff]
 
     def get(self, request):
         config = PlatformConfig.get_solo()
         return Response({
-            "drive_credentials_json": config.drive_credentials_json,
             "drive_folder_id": config.drive_folder_id,
+            "drive_client_id": config.drive_client_id,
+            "drive_client_secret": config.drive_client_secret,
+            "has_refresh_token": bool(config.drive_refresh_token),
         })
 
     def put(self, request):
         config = PlatformConfig.get_solo()
-        config.drive_credentials_json = request.data.get("drive_credentials_json", config.drive_credentials_json)
+        config.drive_client_id = request.data.get("drive_client_id", config.drive_client_id)
+        config.drive_client_secret = request.data.get("drive_client_secret", config.drive_client_secret)
         config.drive_folder_id = request.data.get("drive_folder_id", config.drive_folder_id)
         config.save()
         return Response({"status": "updated"})
+
+
+from google_auth_oauthlib.flow import Flow
+
+class DriveAuthStartView(APIView):
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        config = PlatformConfig.get_solo()
+        if not config.drive_client_id or not config.drive_client_secret:
+            return Response({"detail": "Client ID and Secret are required."}, status=400)
+            
+        redirect_uri = request.data.get("redirect_uri")
+        if not redirect_uri:
+            return Response({"detail": "redirect_uri is required."}, status=400)
+
+        client_config = {
+            "web": {
+                "client_id": config.drive_client_id,
+                "client_secret": config.drive_client_secret,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [redirect_uri],
+            }
+        }
+        flow = Flow.from_client_config(
+            client_config,
+            scopes=['https://www.googleapis.com/auth/drive.file']
+        )
+        flow.redirect_uri = redirect_uri
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+        return Response({"auth_url": auth_url})
+
+class DriveAuthCallbackView(APIView):
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        code = request.data.get("code")
+        redirect_uri = request.data.get("redirect_uri")
+        if not code or not redirect_uri:
+            return Response({"detail": "code and redirect_uri are required."}, status=400)
+
+        config = PlatformConfig.get_solo()
+        client_config = {
+            "web": {
+                "client_id": config.drive_client_id,
+                "client_secret": config.drive_client_secret,
+                "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+                "token_uri": "https://oauth2.googleapis.com/token",
+                "redirect_uris": [redirect_uri],
+            }
+        }
+        
+        try:
+            flow = Flow.from_client_config(
+                client_config,
+                scopes=['https://www.googleapis.com/auth/drive.file']
+            )
+            flow.redirect_uri = redirect_uri
+            flow.fetch_token(code=code)
+            creds = flow.credentials
+            
+            if not creds.refresh_token:
+                return Response({"detail": "No refresh token returned. Revoke access in your Google account and try again."}, status=400)
+                
+            config.drive_refresh_token = creds.refresh_token
+            config.save()
+            return Response({"status": "success"})
+        except Exception as e:
+            return Response({"detail": f"Failed to authenticate: {str(e)}"}, status=400)
 
 
 class TriggerDriveBackupView(APIView):

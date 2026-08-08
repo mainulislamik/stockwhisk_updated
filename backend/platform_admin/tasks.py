@@ -5,7 +5,7 @@ import tempfile
 import time
 import json
 from celery import shared_task
-from google.oauth2.service_account import Credentials
+from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
@@ -19,22 +19,25 @@ def _db_env():
     return env, {
         "host": os.environ.get("DB_HOST", "db"),
         "port": os.environ.get("DB_PORT", "5432"),
-        "name": os.environ.get("DB_NAME", "stockwhisk"),
         "user": os.environ.get("DB_USER", "stockwhisk"),
+        "name": os.environ.get("DB_NAME", "stockwhisk"),
     }
 
 @shared_task
 def perform_drive_backup():
     config = PlatformConfig.get_solo()
-    if not config.drive_credentials_json or not config.drive_folder_id:
-        msg = "Google Drive backup skipped: Missing credentials or folder ID."
+    if not config.drive_refresh_token or not config.drive_folder_id or not config.drive_client_id or not config.drive_client_secret:
+        msg = "Google Drive backup skipped: Missing OAuth config or folder ID."
         logger.warning(msg)
         return False, msg
         
     try:
-        creds_info = json.loads(config.drive_credentials_json)
-        credentials = Credentials.from_service_account_info(
-            creds_info, scopes=['https://www.googleapis.com/auth/drive.file']
+        credentials = Credentials(
+            token=None,
+            refresh_token=config.drive_refresh_token,
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=config.drive_client_id,
+            client_secret=config.drive_client_secret
         )
         drive_service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
     except Exception as e:
