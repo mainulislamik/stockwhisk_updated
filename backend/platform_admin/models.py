@@ -72,6 +72,10 @@ class PlatformConfig(TimeStampedModel):
     drive_client_id = models.CharField(max_length=255, blank=True, default="")
     drive_client_secret = models.CharField(max_length=255, blank=True, default="")
     drive_refresh_token = models.TextField(blank=True, default="")
+    
+    # Automated Google Drive Backup Settings
+    drive_backup_enabled = models.BooleanField(default=False)
+    drive_backup_interval_minutes = models.PositiveIntegerField(default=1440)  # Default: 24 hours
 
     class Meta:
         verbose_name_plural = "Platform Config"

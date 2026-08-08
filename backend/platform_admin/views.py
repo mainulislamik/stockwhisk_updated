@@ -656,6 +656,8 @@ class PlatformConfigView(APIView):
             "drive_client_id": config.drive_client_id,
             "drive_client_secret": config.drive_client_secret,
             "has_refresh_token": bool(config.drive_refresh_token),
+            "drive_backup_enabled": config.drive_backup_enabled,
+            "drive_backup_interval_minutes": config.drive_backup_interval_minutes,
         })
 
     def put(self, request):
@@ -663,7 +665,37 @@ class PlatformConfigView(APIView):
         config.drive_client_id = request.data.get("drive_client_id", config.drive_client_id)
         config.drive_client_secret = request.data.get("drive_client_secret", config.drive_client_secret)
         config.drive_folder_id = request.data.get("drive_folder_id", config.drive_folder_id)
+        
+        if "drive_backup_enabled" in request.data:
+            config.drive_backup_enabled = str(request.data.get("drive_backup_enabled")).lower() == "true"
+        if "drive_backup_interval_minutes" in request.data:
+            try:
+                config.drive_backup_interval_minutes = int(request.data.get("drive_backup_interval_minutes"))
+            except ValueError:
+                pass
         config.save()
+        
+        # Update Celery Beat Schedule
+        from django_celery_beat.models import PeriodicTask, IntervalSchedule
+        task_name = "automated-drive-backup-dynamic"
+        task_path = "platform_admin.tasks.perform_drive_backup"
+        
+        if not config.drive_backup_enabled:
+            PeriodicTask.objects.filter(name=task_name).update(enabled=False)
+        else:
+            schedule, _ = IntervalSchedule.objects.get_or_create(
+                every=config.drive_backup_interval_minutes,
+                period=IntervalSchedule.MINUTES
+            )
+            task, created = PeriodicTask.objects.get_or_create(
+                name=task_name,
+                defaults={'task': task_path, 'interval': schedule, 'enabled': True}
+            )
+            if not created:
+                task.interval = schedule
+                task.enabled = True
+                task.save()
+
         return Response({"status": "updated"})
 
 

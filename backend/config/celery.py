@@ -27,10 +27,6 @@ app.conf.beat_schedule = {
         "task": "service.tasks.scan_warranty_expiry",
         "schedule": 86400.0,
     },
-    "automated-drive-backup-daily": {
-        "task": "platform_admin.tasks.perform_drive_backup",
-        "schedule": 86400.0,  # runs daily
-    },
     # Nightly reconcile of cached stock against the movement ledger (drift safety
     # net for the O(1) incremental write path).
     "reconcile-stock-daily": {

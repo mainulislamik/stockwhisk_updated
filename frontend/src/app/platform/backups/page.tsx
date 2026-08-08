@@ -12,6 +12,8 @@ export default function BackupsPage() {
   const [driveClientId, setDriveClientId] = useState("");
   const [driveClientSecret, setDriveClientSecret] = useState("");
   const [driveFolderId, setDriveFolderId] = useState("");
+  const [backupEnabled, setBackupEnabled] = useState(false);
+  const [backupInterval, setBackupInterval] = useState(1440);
   const [savingConfig, setSavingConfig] = useState(false);
   const [triggeringDrive, setTriggeringDrive] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
@@ -41,6 +43,8 @@ export default function BackupsPage() {
       setDriveClientId(data.drive_client_id || "");
       setDriveClientSecret(data.drive_client_secret || "");
       setDriveFolderId(data.drive_folder_id || "");
+      setBackupEnabled(data.drive_backup_enabled || false);
+      setBackupInterval(data.drive_backup_interval_minutes || 1440);
       setIsConnected(!!data.has_refresh_token);
     }).catch(console.error);
   }, []);
@@ -64,7 +68,9 @@ export default function BackupsPage() {
         body: {
           drive_client_id: driveClientId,
           drive_client_secret: driveClientSecret,
-          drive_folder_id: parsedFolderId
+          drive_folder_id: parsedFolderId,
+          drive_backup_enabled: backupEnabled,
+          drive_backup_interval_minutes: backupInterval
         }
       });
       
@@ -157,6 +163,35 @@ export default function BackupsPage() {
           </p>
 
           <form onSubmit={saveDriveConfig} className="space-y-4">
+            <div className="form-check form-switch mb-4">
+              <input 
+                className="form-check-input" 
+                type="checkbox" 
+                role="switch" 
+                id="enableBackupSwitch" 
+                checked={backupEnabled}
+                onChange={e => setBackupEnabled(e.target.checked)}
+              />
+              <label className="form-check-label text-slate-300" htmlFor="enableBackupSwitch">
+                Enable Automated Google Drive Backups
+              </label>
+            </div>
+
+            {backupEnabled && (
+              <div className="form-floating">
+                <input
+                  type="number"
+                  min="1"
+                  className="form-control font-mono text-sm"
+                  placeholder="Backup Interval (minutes)"
+                  value={backupInterval}
+                  onChange={e => setBackupInterval(parseInt(e.target.value) || 1)}
+                  required
+                />
+                <label>Backup Interval (minutes)</label>
+              </div>
+            )}
+
             <div className="form-floating">
               <input
                 type="text"
