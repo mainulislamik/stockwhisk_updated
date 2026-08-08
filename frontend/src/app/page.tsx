@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack } from '@mui/material';
 import { getAccess } from "@/lib/api";
+import { useThemeMode } from "@/components/ThemeRegistry";
 
-const COLORS = {
+const LIGHT_COLORS = {
   surface: '#f8f9ff',
   onSurface: '#0b1c30',
   onSurfaceVariant: '#434655',
@@ -24,10 +25,31 @@ const COLORS = {
   secondaryFixedDim: '#bec6e0'
 };
 
+const DARK_COLORS = {
+  surface: '#0f172a',
+  onSurface: '#f8fafc',
+  onSurfaceVariant: '#cbd5e1',
+  primary: '#38bdf8',
+  onPrimary: '#020617',
+  surfaceTint: '#7dd3fc',
+  surfaceContainerLowest: '#020617',
+  surfaceContainer: '#1e293b',
+  surfaceContainerLow: '#0f172a',
+  outlineVariant: '#334155',
+  outline: '#475569',
+  secondary: '#94a3b8',
+  inverseSurface: '#f1f5f9',
+  inverseOnSurface: '#0f172a',
+  secondaryFixedDim: '#475569'
+};
+
 export default function LandingPage() {
   const router = useRouter();
+  const { mode } = useThemeMode();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
   useEffect(() => {
     setMounted(true);
