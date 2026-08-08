@@ -56,10 +56,10 @@ export default function BackupsPage() {
     setTriggeringDrive(true);
     setMsg(null);
     try {
-      await api("/platform/backups/drive-trigger/", { method: "POST" });
-      setMsg({ ok: true, text: "Google Drive backup queued. It will run in the background." });
+      const res = await api<{detail: string}>("/platform/backups/drive-trigger/", { method: "POST" });
+      setMsg({ ok: true, text: res.detail || "Google Drive backup completed successfully." });
     } catch (e: any) {
-      setMsg({ ok: false, text: "Failed to trigger Google Drive backup." });
+      setMsg({ ok: false, text: e?.data?.detail || e?.message || "Failed to trigger Google Drive backup." });
     } finally {
       setTriggeringDrive(false);
     }

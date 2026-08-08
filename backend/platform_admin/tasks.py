@@ -27,8 +27,9 @@ def _db_env():
 def perform_drive_backup():
     config = PlatformConfig.get_solo()
     if not config.drive_credentials_json or not config.drive_folder_id:
-        logger.warning("Google Drive backup skipped: Missing credentials or folder ID.")
-        return False
+        msg = "Google Drive backup skipped: Missing credentials or folder ID."
+        logger.warning(msg)
+        return False, msg
         
     try:
         creds_info = json.loads(config.drive_credentials_json)
@@ -37,8 +38,9 @@ def perform_drive_backup():
         )
         drive_service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
     except Exception as e:
-        logger.error(f"Google Drive authentication failed: {e}")
-        return False
+        msg = f"Google Drive authentication failed: {e}"
+        logger.error(msg)
+        return False, msg
 
     env, db = _db_env()
     filename = f"stockwhisk_backup_{time.strftime('%Y%m%d-%H%M%S')}.sql"
@@ -50,17 +52,24 @@ def perform_drive_backup():
     try:
         # 2. Run pg_dump to dump to the temp file
         with open(tmp_path, "wb") as f_out:
-            proc = subprocess.Popen(
-                ["pg_dump", "-h", db["host"], "-p", db["port"], "-U", db["user"],
-                 "-d", db["name"], "--clean", "--if-exists", "--no-owner",
-                 "--no-privileges"],
-                stdout=f_out, stderr=subprocess.PIPE, env=env,
-            )
+            try:
+                proc = subprocess.Popen(
+                    ["pg_dump", "-h", db["host"], "-p", db["port"], "-U", db["user"],
+                     "-d", db["name"], "--clean", "--if-exists", "--no-owner",
+                     "--no-privileges"],
+                    stdout=f_out, stderr=subprocess.PIPE, env=env,
+                )
+            except FileNotFoundError:
+                msg = "pg_dump command not found on server."
+                logger.error(msg)
+                return False, msg
+
             proc.wait()
             if proc.returncode != 0:
                 err = proc.stderr.read().decode(errors="replace")
-                logger.error(f"pg_dump failed: {err}")
-                return False
+                msg = f"pg_dump failed: {err}"
+                logger.error(msg)
+                return False, msg
 
         # 3. Upload to Google Drive
         file_metadata = {
@@ -70,12 +79,17 @@ def perform_drive_backup():
         media = MediaFileUpload(tmp_path, mimetype='application/sql', resumable=True)
         drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
         
-        logger.info(f"Google Drive backup successful: {filename}")
-        return True
+        msg = f"Google Drive backup successful: {filename}"
+        logger.info(msg)
+        return True, msg
     except Exception as e:
-        logger.error(f"Google Drive backup failed: {e}")
-        return False
+        msg = f"Google Drive backup failed: {e}"
+        logger.error(msg)
+        return False, msg
     finally:
         # 4. Remove the temporary file from VPS storage immediately
         if os.path.exists(tmp_path):
-            os.remove(tmp_path)
+            try:
+                os.remove(tmp_path)
+            except:
+                pass

@@ -670,9 +670,14 @@ class TriggerDriveBackupView(APIView):
 
     def post(self, request):
         from .tasks import perform_drive_backup
-        # Run it asynchronously
-        perform_drive_backup.delay()
-        return Response({"status": "Backup task queued"})
+        
+        # Run it synchronously to give immediate feedback for manual triggers
+        success, msg = perform_drive_backup()
+        
+        if success:
+            return Response({"status": "success", "detail": msg})
+        else:
+            return Response({"detail": msg}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class BackupDownloadView(APIView):
