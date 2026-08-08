@@ -80,8 +80,21 @@ def perform_drive_backup():
             'parents': [config.drive_folder_id]
         }
         media = MediaFileUpload(tmp_path, mimetype='application/sql', resumable=True)
-        drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
         
+        # 4. Delete old backups in the folder to save space
+        try:
+            query = f"'{config.drive_folder_id}' in parents and name contains 'stockwhisk_backup_' and trashed=false"
+            results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+            items = results.get('files', [])
+            for item in items:
+                # Do not delete the one we just uploaded
+                if item['id'] != uploaded_file.get('id'):
+                    drive_service.files().delete(fileId=item['id']).execute()
+                    logger.info(f"Deleted old backup from Drive: {item['name']}")
+        except Exception as e:
+            logger.warning(f"Failed to delete old backups from Drive: {e}")
+
         msg = f"Google Drive backup successful: {filename}"
         logger.info(msg)
         return True, msg
