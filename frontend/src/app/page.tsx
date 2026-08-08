@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Typography, Button, Container, Stack, Grid } from '@mui/material';
+import { Box, Typography, Button, Container, Stack } from '@mui/material';
 import { getAccess } from "@/lib/api";
 
 const COLORS = {
@@ -250,16 +250,16 @@ export default function LandingPage() {
       {/* Footer */}
       <Box component="footer" sx={{ bgcolor: COLORS.surfaceContainerLowest, borderTop: `1px solid ${COLORS.outlineVariant}`, mt: 'auto', py: 6 }}>
         <Container maxWidth="xl">
-          <Grid container spacing={4}>
-            <Grid item xs={12} md={6}>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+            <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 45%' } }}>
               <Typography variant="h6" sx={{ fontWeight: 700, color: COLORS.primary, mb: 1, fontFamily: 'Outfit, sans-serif' }}>
                 StockWhisk
               </Typography>
               <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontFamily: 'Outfit, sans-serif' }}>
                 © {new Date().getFullYear()} StockWhisk Inc. All rights reserved.
               </Typography>
-            </Grid>
-            <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: { xs: 4, md: 8 } }}>
+            </Box>
+            <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 45%' }, display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: { xs: 4, md: 8 } }}>
               <Stack spacing={1}>
                 <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Product</Typography>
                 <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Login</Link>
@@ -270,8 +270,8 @@ export default function LandingPage() {
                 <span style={{ color: COLORS.onSurfaceVariant, fontSize: '0.875rem', cursor: 'pointer' }}>Privacy</span>
                 <span style={{ color: COLORS.onSurfaceVariant, fontSize: '0.875rem', cursor: 'pointer' }}>Terms</span>
               </Stack>
-            </Grid>
-          </Grid>
+            </Box>
+          </Box>
         </Container>
       </Box>
     </Box>
