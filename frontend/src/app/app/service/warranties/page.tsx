@@ -15,6 +15,14 @@ type Warranty = {
   status: string;
 };
 
+type Product = {
+  id: number;
+  name: string;
+  sku: string;
+  warranty_months: number;
+  current_stock: string;
+};
+
 const statusBadge: Record<string, string> = {
   active: "text-bg-success",
   expiring_soon: "text-bg-warning",
@@ -24,7 +32,9 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function WarrantiesPage() {
-  const [rows, setRows] = useState<Warranty[]>([]);
+  const [activeTab, setActiveTab] = useState<"products" | "issued">("products");
+  const [warranties, setWarranties] = useState<Warranty[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
@@ -32,66 +42,141 @@ export default function WarrantiesPage() {
   useEffect(() => {
     (async () => {
       try {
-        setRows(await fetchAll<Warranty>("/service/warranties/"));
+        const [wList, pList] = await Promise.all([
+          fetchAll<Warranty>("/service/warranties/"),
+          fetchAll<Product>("/catalog/products/")
+        ]);
+        setWarranties(wList);
+        setProducts(pList.filter(p => p.warranty_months && p.warranty_months > 0));
       } catch (e: any) {
-        setError(e?.message || "Failed to load warranties");
+        setError(e?.message || "Failed to load data");
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  const shown = rows.filter((w) => {
+  const shownWarranties = warranties.filter((w) => {
     const q = filter.trim().toLowerCase();
     return !q || `${w.product_name} ${w.serial_no} ${w.customer_name || ""}`.toLowerCase().includes(q);
   });
-  const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
+  const { paged: pagedWarranties, page: pageW, setPage: setPageW, totalPages: totalPagesW, total: totalW } = usePagination(shownWarranties, [filter, activeTab]);
 
-  if (loading) return <Spinner label="Loading warranties…" />;
+  const shownProducts = products.filter((p) => {
+    const q = filter.trim().toLowerCase();
+    return !q || `${p.name} ${p.sku}`.toLowerCase().includes(q);
+  });
+  const { paged: pagedProducts, page: pageP, setPage: setPageP, totalPages: totalPagesP, total: totalP } = usePagination(shownProducts, [filter, activeTab]);
+
+  if (loading) return <Spinner label="Loading warranty data…" />;
   if (error) return <ErrorState error={error} />;
 
   return (
-    <div className="vstack gap-3">
-      <input placeholder="Filter product/serial/customer…" className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
-      <div className="card shadow-sm">
+    <div className="vstack gap-4">
+      {/* Modernized Header & Tabs */}
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+        <div className="nav nav-pills p-1 bg-light rounded-3" style={{ width: "fit-content" }}>
+          <button 
+            className={`nav-link border-0 rounded-2 ${activeTab === "products" ? "active shadow-sm fw-semibold" : "text-dark"}`} 
+            onClick={() => { setActiveTab("products"); setFilter(""); }}
+          >
+            <i className="bi bi-box-seam me-2"></i>Warrantied Products
+          </button>
+          <button 
+            className={`nav-link border-0 rounded-2 ${activeTab === "issued" ? "active shadow-sm fw-semibold" : "text-dark"}`} 
+            onClick={() => { setActiveTab("issued"); setFilter(""); }}
+          >
+            <i className="bi bi-shield-check me-2"></i>Coverage Records
+          </button>
+        </div>
+        
+        <input 
+          placeholder={activeTab === "products" ? "Filter products/sku…" : "Filter product/serial/customer…"} 
+          className="form-control form-control-sm rounded-pill px-3 shadow-sm border-0" 
+          style={{ maxWidth: "22rem" }} 
+          value={filter} 
+          onChange={(e) => setFilter(e.target.value)} 
+        />
+      </div>
+
+      <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
         <div className="table-responsive">
-          <table className="table table-striped table-sm align-middle mb-0">
-            <thead className="thead-3">
-              <tr>
-                <th>Product</th>
-                <th>Serial</th>
-                <th>Customer</th>
-                <th>Start</th>
-                <th>Expiry</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.length === 0 ? (
-                <tr data-empty="">
-                  <td colSpan={6} className="text-center text-secondary py-5">
-                    <div style={{ fontSize: "2.5rem" }}>🛡️</div>
-                    No warranties recorded.
-                  </td>
+          <table className="table table-hover table-borderless align-middle mb-0">
+            <thead className="table-light border-bottom">
+              {activeTab === "products" ? (
+                <tr>
+                  <th className="ps-4 py-3">Product Name</th>
+                  <th className="py-3">SKU</th>
+                  <th className="py-3 text-center">Warranty Period</th>
+                  <th className="pe-4 py-3 text-end">Current Stock</th>
                 </tr>
               ) : (
-                paged.map((w) => (
-                  <tr key={w.id}>
-                    <td className="fw-medium">{w.product_name}</td>
-                    <td className="text-secondary">{w.serial_no || "—"}</td>
-                    <td className="text-secondary">{w.customer_name || "—"}</td>
-                    <td className="text-secondary">{fmtDate(w.start_date)}</td>
-                    <td className="text-secondary">{fmtDate(w.expiry_date)}</td>
-                    <td>
-                      <span className={`badge ${statusBadge[w.status] || "text-bg-light"}`}>{w.status}</span>
+                <tr>
+                  <th className="ps-4 py-3">Product</th>
+                  <th className="py-3">Serial</th>
+                  <th className="py-3">Customer</th>
+                  <th className="py-3">Start</th>
+                  <th className="py-3">Expiry</th>
+                  <th className="pe-4 py-3">Status</th>
+                </tr>
+              )}
+            </thead>
+            <tbody>
+              {activeTab === "products" ? (
+                shownProducts.length === 0 ? (
+                  <tr data-empty="">
+                    <td colSpan={4} className="text-center text-secondary py-5">
+                      <div className="display-4 mb-3">🛍️</div>
+                      <h5>No products with warranty</h5>
+                      <p className="text-muted">Edit products in your catalog to add warranty periods.</p>
                     </td>
                   </tr>
-                ))
+                ) : (
+                  pagedProducts.map((p) => (
+                    <tr key={p.id} className="border-bottom">
+                      <td className="ps-4 fw-medium text-dark">{p.name}</td>
+                      <td className="text-secondary">{p.sku || "—"}</td>
+                      <td className="text-center">
+                        <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2">
+                          {p.warranty_months} {p.warranty_months === 1 ? 'Month' : 'Months'}
+                        </span>
+                      </td>
+                      <td className="pe-4 text-end fw-semibold">{p.current_stock}</td>
+                    </tr>
+                  ))
+                )
+              ) : (
+                shownWarranties.length === 0 ? (
+                  <tr data-empty="">
+                    <td colSpan={6} className="text-center text-secondary py-5">
+                      <div className="display-4 mb-3">🛡️</div>
+                      <h5>No warranties recorded</h5>
+                      <p className="text-muted">Sell products via POS to automatically record warranty coverage.</p>
+                    </td>
+                  </tr>
+                ) : (
+                  pagedWarranties.map((w) => (
+                    <tr key={w.id} className="border-bottom">
+                      <td className="ps-4 fw-medium text-dark">{w.product_name}</td>
+                      <td className="text-secondary">{w.serial_no || "—"}</td>
+                      <td className="text-secondary">{w.customer_name || "—"}</td>
+                      <td className="text-secondary">{fmtDate(w.start_date)}</td>
+                      <td className="text-secondary">{fmtDate(w.expiry_date)}</td>
+                      <td className="pe-4">
+                        <span className={`badge ${statusBadge[w.status] || "text-bg-light"} rounded-pill px-2 py-1`}>{w.status.replace("_", " ")}</span>
+                      </td>
+                    </tr>
+                  ))
+                )
               )}
             </tbody>
           </table>
         </div>
-        <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
+        {activeTab === "products" ? (
+           <Pagination page={pageP} totalPages={totalPagesP} setPage={setPageP} total={totalP} />
+        ) : (
+           <Pagination page={pageW} totalPages={totalPagesW} setPage={setPageW} total={totalW} />
+        )}
       </div>
     </div>
   );
