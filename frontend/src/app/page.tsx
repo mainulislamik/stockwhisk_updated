@@ -52,7 +52,7 @@ export default function LandingPage() {
               StockWhisk
             </Typography>
             
-            <Stack direction="row" spacing={2} alignItems="center">
+            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
               {mounted && isLoggedIn ? (
                 <Button 
                   component={Link} 
@@ -139,7 +139,7 @@ export default function LandingPage() {
               The modern retail dashboard built for clarity, speed, and precision. Manage inventory, track sales, and grow your business without the cognitive load.
             </Typography>
             
-            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 8 }}>
+            <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', mb: 8 }}>
               <Button 
                 component={Link}
                 href="/login"
@@ -200,7 +200,7 @@ export default function LandingPage() {
         {/* Trust Strip */}
         <Box sx={{ bgcolor: COLORS.surfaceContainer, py: 6, borderTop: `1px solid ${COLORS.outlineVariant}`, borderBottom: `1px solid ${COLORS.outlineVariant}` }}>
           <Container maxWidth="lg">
-            <Stack direction="row" flexWrap="wrap" justifyContent="center" gap={{ xs: 4, md: 8 }}>
+            <Stack direction="row" sx={{ flexWrap: 'wrap', justifyContent: 'center', gap: { xs: 4, md: 8 } }}>
               {[
                 { icon: 'bi-box-seam', label: 'Inventory' },
                 { icon: 'bi-shop', label: 'POS' },
@@ -208,7 +208,7 @@ export default function LandingPage() {
                 { icon: 'bi-people', label: 'Customers' },
                 { icon: 'bi-pie-chart', label: 'Reports' },
               ].map((item) => (
-                <Stack key={item.label} alignItems="center" spacing={1} sx={{ color: COLORS.secondary }}>
+                <Stack key={item.label} spacing={1} sx={{ alignItems: 'center', color: COLORS.secondary }}>
                   <i className={`bi ${item.icon}`} style={{ fontSize: '2rem' }}></i>
                   <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', fontFamily: 'Outfit, sans-serif' }}>{item.label}</Typography>
                 </Stack>
