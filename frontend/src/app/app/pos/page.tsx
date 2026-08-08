@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 
-type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string };
+type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
@@ -516,6 +516,12 @@ export default function PosPage() {
                           <div className="font-monospace small fw-medium">{u.barcode}</div>
                         </div>
                         <div className="text-end" style={{ fontSize: '.7rem' }}>
+                          {!!u.effective_warranty_months && (
+                            <span className="badge bg-warning-subtle text-warning-emphasis rounded-pill me-2 border border-warning-subtle">
+                              <i className="bi bi-shield-check me-1"></i>
+                              {u.effective_warranty_months} Mo Warranty
+                            </span>
+                          )}
                           <span className="text-secondary">Cost: {money(u.effective_cost_price || unitSelectProduct.cost_price || 0)}</span>
                           <span className="ms-2 fw-semibold text-body">Price: {money(u.effective_selling_price || unitSelectProduct.selling_price || 0)}</span>
                         </div>
