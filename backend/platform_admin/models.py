@@ -61,3 +61,23 @@ class ContactMessage(TimeStampedModel):
 
     def __str__(self):
         return f"{self.name} <{self.email}>"
+
+
+class PlatformConfig(TimeStampedModel):
+    """
+    Singleton model for platform-wide configuration.
+    Stores Google Drive service account credentials and backup folder ID.
+    """
+    drive_credentials_json = models.TextField(blank=True, default="")
+    drive_folder_id = models.CharField(max_length=255, blank=True, default="")
+
+    class Meta:
+        verbose_name_plural = "Platform Config"
+
+    @classmethod
+    def get_solo(cls):
+        obj, created = cls.objects.get_or_create(id=1)
+        return obj
+
+    def __str__(self):
+        return "Platform Configuration"

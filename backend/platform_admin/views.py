@@ -642,6 +642,39 @@ def _db_env():
     }
 
 
+
+from .models import PlatformConfig
+
+class PlatformConfigView(APIView):
+    """Get or update platform-wide configuration (like Google Drive)."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        config = PlatformConfig.get_solo()
+        return Response({
+            "drive_credentials_json": config.drive_credentials_json,
+            "drive_folder_id": config.drive_folder_id,
+        })
+
+    def put(self, request):
+        config = PlatformConfig.get_solo()
+        config.drive_credentials_json = request.data.get("drive_credentials_json", config.drive_credentials_json)
+        config.drive_folder_id = request.data.get("drive_folder_id", config.drive_folder_id)
+        config.save()
+        return Response({"status": "updated"})
+
+
+class TriggerDriveBackupView(APIView):
+    """Manually trigger a Google Drive backup task immediately."""
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        from .tasks import perform_drive_backup
+        # Run it asynchronously
+        perform_drive_backup.delay()
+        return Response({"status": "Backup task queued"})
+
+
 class BackupDownloadView(APIView):
     """Stream a full pg_dump SQL backup to the caller (staff only)."""
 
