@@ -20,8 +20,18 @@ type Product = {
   description: string;
 };
 type Movement = { id: number; movement_type: string; quantity: string; note: string; created_at: string };
-type ProductUnit = { id: number; barcode: string; status: string; effective_cost_price: string; effective_selling_price: string; created_at: string };
-
+type ProductUnit = { 
+  id: number; 
+  barcode: string; 
+  status: string; 
+  cost_price: string | null; 
+  selling_price: string | null; 
+  warranty_months: number | null; 
+  effective_cost_price: string; 
+  effective_selling_price: string; 
+  effective_warranty_months: number; 
+  created_at: string; 
+};
 export default function ProductProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [p, setP] = useState<Product | null>(null);
@@ -29,6 +39,34 @@ export default function ProductProfilePage() {
   const [units, setUnits] = useState<ProductUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingUnit, setEditingUnit] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ cost_price: "", selling_price: "", warranty_months: "" });
+
+  const startEditing = (u: ProductUnit) => {
+    setEditingUnit(u.id);
+    setEditForm({
+      cost_price: u.cost_price?.toString() ?? u.effective_cost_price?.toString() ?? "",
+      selling_price: u.selling_price?.toString() ?? u.effective_selling_price?.toString() ?? "",
+      warranty_months: u.warranty_months?.toString() ?? u.effective_warranty_months?.toString() ?? "",
+    });
+  };
+
+  const saveUnit = async (u: ProductUnit) => {
+    try {
+      const data = {
+        cost_price: editForm.cost_price ? Number(editForm.cost_price) : null,
+        selling_price: editForm.selling_price ? Number(editForm.selling_price) : null,
+        warranty_months: editForm.warranty_months ? Number(editForm.warranty_months) : null,
+      };
+      await api(`/catalog/product-units/${u.id}/`, { method: "PATCH", body: data });
+      
+      const un = await api<ProductUnit[]>(`/catalog/product-units/`, { params: { product: id, status: "in_stock" } });
+      setUnits(unwrap(un));
+      setEditingUnit(null);
+    } catch (e: any) {
+      alert(e.message || "Failed to update unit");
+    }
+  };
 
   useEffect(() => {
     (async () => {
@@ -118,26 +156,72 @@ export default function ProductProfilePage() {
                     <th>Barcode / Serial</th>
                     <th className="text-end">Cost Price</th>
                     <th className="text-end">Selling Price</th>
+                    <th className="text-end">Warranty (Months)</th>
                     <th className="text-end">Status</th>
+                    <th className="text-end">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {units.map((u) => (
-                    <tr key={u.id}>
-                      <td className="text-secondary small">{fmtDate(u.created_at)}</td>
-                      <td className="fw-medium font-monospace small">
-                        <i className="bi bi-upc-scan me-2 text-secondary"></i>
-                        {u.barcode}
-                      </td>
-                      <td className="text-end text-secondary small">{money(u.effective_cost_price)}</td>
-                      <td className="text-end fw-semibold text-brand small">{money(u.effective_selling_price)}</td>
-                      <td className="text-end">
-                        <span className="badge bg-success-subtle text-success text-capitalize px-2 py-1">
-                          {u.status.replace("_", " ")}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {units.map((u) => {
+                    const isEditing = editingUnit === u.id;
+                    return (
+                      <tr key={u.id}>
+                        <td className="text-secondary small">{fmtDate(u.created_at)}</td>
+                        <td className="fw-medium font-monospace small">
+                          <i className="bi bi-upc-scan me-2 text-secondary"></i>
+                          {u.barcode}
+                        </td>
+                        <td className="text-end">
+                          {isEditing ? (
+                            <input 
+                              type="number" className="form-control form-control-sm text-end"
+                              value={editForm.cost_price} 
+                              onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })}
+                            />
+                          ) : (
+                            <span className="text-secondary small">{money(u.effective_cost_price)}</span>
+                          )}
+                        </td>
+                        <td className="text-end fw-semibold text-brand small">
+                          {isEditing ? (
+                            <input 
+                              type="number" className="form-control form-control-sm text-end"
+                              value={editForm.selling_price} 
+                              onChange={(e) => setEditForm({ ...editForm, selling_price: e.target.value })}
+                            />
+                          ) : (
+                            money(u.effective_selling_price)
+                          )}
+                        </td>
+                        <td className="text-end small">
+                          {isEditing ? (
+                            <input 
+                              type="number" className="form-control form-control-sm text-end"
+                              value={editForm.warranty_months} 
+                              onChange={(e) => setEditForm({ ...editForm, warranty_months: e.target.value })}
+                            />
+                          ) : (
+                            u.effective_warranty_months || "—"
+                          )}
+                        </td>
+                        <td className="text-end">
+                          <span className="badge bg-success-subtle text-success text-capitalize px-2 py-1">
+                            {u.status.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          {isEditing ? (
+                            <div className="btn-group btn-group-sm">
+                              <button className="btn btn-primary" onClick={() => saveUnit(u)}>Save</button>
+                              <button className="btn btn-light" onClick={() => setEditingUnit(null)}>Cancel</button>
+                            </div>
+                          ) : (
+                            <button className="btn btn-sm btn-light" onClick={() => startEditing(u)}>Edit</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
