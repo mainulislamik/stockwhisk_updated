@@ -134,7 +134,7 @@ export default function WarrantiesPage() {
                 ) : (
                   pagedProducts.map((p) => (
                     <tr key={p.id} className="border-bottom">
-                      <td className="ps-4 fw-medium text-dark">{p.name}</td>
+                      <td className="ps-4 fw-medium">{p.name}</td>
                       <td className="text-secondary">{p.sku || "—"}</td>
                       <td className="text-center">
                         <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2">
@@ -157,7 +157,7 @@ export default function WarrantiesPage() {
                 ) : (
                   pagedWarranties.map((w) => (
                     <tr key={w.id} className="border-bottom">
-                      <td className="ps-4 fw-medium text-dark">{w.product_name}</td>
+                      <td className="ps-4 fw-medium">{w.product_name}</td>
                       <td className="text-secondary">{w.serial_no || "—"}</td>
                       <td className="text-secondary">{w.customer_name || "—"}</td>
                       <td className="text-secondary">{fmtDate(w.start_date)}</td>
