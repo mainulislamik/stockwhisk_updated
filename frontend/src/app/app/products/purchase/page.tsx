@@ -275,11 +275,12 @@ export default function PurchaseProductPage() {
       const po = await api<{ id: number }>("/purchasing/purchase-orders/", { method: "POST", body: poData });
       await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid } });
 
-      // Update product selling prices if they were modified during purchase
+      // Update product selling prices and warranties if they were modified during purchase
       for (const l of lines) {
         const patchData: Record<string, any> = {};
         
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
+        if (l.product.warranty_months !== undefined && l.product.warranty_months !== null) patchData.warranty_months = l.product.warranty_months;
         
         if (Object.keys(patchData).length > 0) {
           await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData });
@@ -459,7 +460,12 @@ export default function PurchaseProductPage() {
                   className="form-control" type="number" min="0"
                   value={selected?.warranty_months ?? ""}
                   placeholder="0" disabled={!selected}
-                  onChange={(e) => selected && setSelected({ ...selected, warranty_months: Number(e.target.value) })}
+                  onChange={(e) => {
+                    if (!selected) return;
+                    const val = Number(e.target.value);
+                    setSelected({ ...selected, warranty_months: val });
+                    setLines((prev) => prev.map((l) => l.product.id === selected.id ? { ...l, product: { ...l.product, warranty_months: val } } : l));
+                  }}
                 />
                 <div className="small text-muted mt-1">Applied to every unit received in this batch.</div>
               </div>
