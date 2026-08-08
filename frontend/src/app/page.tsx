@@ -3,51 +3,26 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Typography, Button, Container, Stack, Chip, keyframes } from '@mui/material';
+import { Box, Typography, Button, Container, Stack, Grid } from '@mui/material';
 import { getAccess } from "@/lib/api";
-import BarChartIcon from '@mui/icons-material/BarChart';
-import InventoryIcon from '@mui/icons-material/Inventory';
-import PointOfSaleIcon from '@mui/icons-material/PointOfSale';
-import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
-import GroupsIcon from '@mui/icons-material/Groups';
-import StorefrontIcon from '@mui/icons-material/Storefront';
 
 const COLORS = {
-  darkBg: '#0f172a', // Deep slate
-  pillBg: 'rgba(255, 255, 255, 0.1)',
-  textLight: '#94a3b8',
-  btnBg: '#3b82f6',
-  btnText: '#ffffff',
-  statsBg: '#020617', // Extremely dark blue/black
-  darkText: '#f8fafc',
-  cardBg: 'rgba(30, 41, 59, 0.7)',
-  cardBorder: 'rgba(255, 255, 255, 0.05)',
-  accent: '#38bdf8'
+  surface: '#f8f9ff',
+  onSurface: '#0b1c30',
+  onSurfaceVariant: '#434655',
+  primary: '#004ac6',
+  onPrimary: '#ffffff',
+  surfaceTint: '#0053db',
+  surfaceContainerLowest: '#ffffff',
+  surfaceContainer: '#e5eeff',
+  surfaceContainerLow: '#eff4ff',
+  outlineVariant: '#c3c6d7',
+  outline: '#737686',
+  secondary: '#565e74',
+  inverseSurface: '#213145',
+  inverseOnSurface: '#eaf1ff',
+  secondaryFixedDim: '#bec6e0'
 };
-
-// Animations
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
-`;
-
-const pulseGlow = keyframes`
-  0% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4); }
-  70% { box-shadow: 0 0 0 15px rgba(56, 189, 248, 0); }
-  100% { box-shadow: 0 0 0 0 rgba(56, 189, 248, 0); }
-`;
-
-const gradientBg = keyframes`
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-`;
-
-const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
-`;
 
 export default function LandingPage() {
   const router = useRouter();
@@ -60,271 +35,243 @@ export default function LandingPage() {
   }, []);
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.darkBg, overflowX: 'hidden' }}>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
       
-      {/* Background Glowing Orbs */}
-      <Box sx={{ position: 'fixed', top: '-20%', left: '-10%', width: '50vw', height: '50vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(56,189,248,0.15) 0%, rgba(15,23,42,0) 70%)', filter: 'blur(60px)', zIndex: 0, pointerEvents: 'none' }} />
-      <Box sx={{ position: 'fixed', bottom: '-20%', right: '-10%', width: '50vw', height: '50vw', borderRadius: '50%', background: 'radial-gradient(circle, rgba(139,92,246,0.15) 0%, rgba(15,23,42,0) 70%)', filter: 'blur(60px)', zIndex: 0, pointerEvents: 'none' }} />
-
-      {/* Hero & Nav Section */}
-      <Box sx={{ color: '#fff', pt: 3, pb: { xs: 8, md: 15 }, position: 'relative', zIndex: 1 }}>
-        <Container maxWidth="lg">
-          {/* Navbar */}
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: { xs: 8, md: 12 }, animation: `${fadeIn} 0.6s ease-out` }}>
-            <Typography variant="h5" sx={{ fontWeight: 800, letterSpacing: '-0.5px', background: 'linear-gradient(to right, #fff, #94a3b8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+      {/* Navigation */}
+      <Box sx={{ 
+        bgcolor: COLORS.surface, 
+        borderBottom: `1px solid ${COLORS.outlineVariant}`, 
+        position: 'sticky', 
+        top: 0, 
+        zIndex: 50, 
+        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' 
+      }}>
+        <Container maxWidth="xl">
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
+            <Typography variant="h6" sx={{ fontWeight: 700, color: COLORS.primary, fontFamily: 'Outfit, sans-serif' }}>
               StockWhisk
             </Typography>
             
-            <Stack direction="row" spacing={4} sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center' }}>
-              <Link href="#features" style={{ color: '#e2e8f0', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500, transition: 'color 0.2s' }}>Features</Link>
-              <Link href="#pricing" style={{ color: '#e2e8f0', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500, transition: 'color 0.2s' }}>Pricing</Link>
-              
+            <Stack direction="row" spacing={2} alignItems="center">
               {mounted && isLoggedIn ? (
-                <Link href="/app" style={{ color: '#e2e8f0', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>
+                <Button 
+                  component={Link} 
+                  href="/app" 
+                  sx={{ 
+                    bgcolor: COLORS.primary, 
+                    color: COLORS.onPrimary, 
+                    fontWeight: 600, 
+                    textTransform: 'none',
+                    borderRadius: '8px',
+                    px: 3,
+                    '&:hover': { bgcolor: COLORS.surfaceTint }
+                  }}
+                >
                   Dashboard
-                </Link>
+                </Button>
               ) : (
-                <Link href="/login" style={{ color: '#e2e8f0', textDecoration: 'none', fontSize: '0.95rem', fontWeight: 500 }}>
-                  Log in
-                </Link>
+                <>
+                  <Button 
+                    component={Link} 
+                    href="/login" 
+                    sx={{ 
+                      color: COLORS.onSurfaceVariant, 
+                      fontWeight: 600, 
+                      textTransform: 'none',
+                      px: 2,
+                      display: { xs: 'none', md: 'inline-flex' },
+                      '&:hover': { color: COLORS.primary, bgcolor: 'transparent' }
+                    }}
+                  >
+                    Login
+                  </Button>
+                  <Button 
+                    component={Link} 
+                    href="/login" 
+                    sx={{ 
+                      bgcolor: COLORS.primary, 
+                      color: COLORS.onPrimary, 
+                      fontWeight: 600, 
+                      textTransform: 'none',
+                      borderRadius: '8px',
+                      px: 3,
+                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                      '&:hover': { bgcolor: COLORS.surfaceTint }
+                    }}
+                  >
+                    Get Started
+                  </Button>
+                </>
               )}
-              
-              <Button 
-                variant="contained" 
-                sx={{ 
-                  bgcolor: '#ffffff', 
-                  color: '#0f172a', 
-                  fontWeight: 700, 
-                  textTransform: 'none',
-                  borderRadius: '12px',
-                  px: 3,
-                  py: 1,
-                  boxShadow: '0 4px 14px 0 rgba(255, 255, 255, 0.2)',
-                  transition: 'all 0.2s ease',
-                  '&:hover': { bgcolor: '#f1f5f9', transform: 'translateY(-2px)', boxShadow: '0 6px 20px rgba(255,255,255,0.25)' }
-                }}
-              >
-                Request access
-              </Button>
             </Stack>
           </Box>
+        </Container>
+      </Box>
 
-          {/* Hero Content */}
-          <Box sx={{ textAlign: 'center', maxWidth: '850px', mx: 'auto', animation: `${fadeIn} 0.8s ease-out 0.1s both` }}>
-            <Chip 
-              label="RETAIL OPERATING SYSTEM" 
-              sx={{ 
-                bgcolor: COLORS.pillBg, 
-                color: COLORS.accent, 
-                fontWeight: 700, 
-                fontSize: '0.75rem', 
-                letterSpacing: '1.5px',
-                borderRadius: '16px',
-                mb: 4,
-                px: 2,
-                py: 2.5,
-                border: '1px solid rgba(56, 189, 248, 0.3)',
-                backdropFilter: 'blur(10px)',
-                animation: `${float} 4s ease-in-out infinite`
-              }} 
-            />
-            
-            <Typography variant="h1" sx={{ 
-              fontWeight: 900, 
+      {/* Main Content Canvas */}
+      <Box component="main" sx={{ flexGrow: 1 }}>
+        
+        {/* Hero Section */}
+        <Box sx={{ py: { xs: 8, md: 12 }, textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <Container maxWidth="lg">
+            <Typography variant="h2" sx={{ 
+              fontWeight: 700, 
+              color: COLORS.onSurface, 
               mb: 3, 
-              letterSpacing: '-2px', 
-              fontSize: { xs: '3rem', sm: '4rem', md: '5.5rem' }, 
-              lineHeight: 1.05,
-              background: 'linear-gradient(135deg, #ffffff 30%, #94a3b8 100%)',
-              WebkitBackgroundClip: 'text',
-              WebkitTextFillColor: 'transparent',
-              textShadow: '0 10px 30px rgba(0,0,0,0.5)'
+              maxWidth: '900px', 
+              mx: 'auto',
+              fontFamily: 'Outfit, sans-serif',
+              fontSize: { xs: '2.2rem', md: '3.5rem' },
+              lineHeight: 1.2,
+              letterSpacing: '-0.02em'
             }}>
-              Run your entire shop<br/>from one dashboard
+              Run Your Shop Smarter with StockWhisk
+            </Typography>
+            <Typography variant="h6" sx={{ 
+              color: COLORS.onSurfaceVariant, 
+              mb: 5, 
+              maxWidth: '700px', 
+              mx: 'auto',
+              fontWeight: 400, 
+              fontFamily: 'Outfit, sans-serif',
+              lineHeight: 1.6
+            }}>
+              The modern retail dashboard built for clarity, speed, and precision. Manage inventory, track sales, and grow your business without the cognitive load.
             </Typography>
             
-            <Typography variant="h6" sx={{ color: COLORS.textLight, fontWeight: 400, mb: 6, fontSize: { xs: '1.1rem', md: '1.35rem' }, lineHeight: 1.6, maxWidth: '700px', mx: 'auto' }}>
-              POS, inventory, purchasing, customers, dues, service tickets, accounting and analytics — built for modern retail shops.
-            </Typography>
-            
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 4, justifyContent: 'center' }}>
+            <Stack direction="row" spacing={2} justifyContent="center" sx={{ mb: 8 }}>
               <Button 
-                variant="contained" 
-                size="large"
+                component={Link}
+                href="/login"
                 sx={{ 
-                  background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-                  color: '#fff', 
+                  bgcolor: COLORS.primary, 
+                  color: COLORS.onPrimary, 
                   fontWeight: 600, 
                   textTransform: 'none',
-                  borderRadius: '12px',
-                  px: 5,
-                  py: 1.8,
-                  fontSize: '1.15rem',
-                  animation: `${pulseGlow} 2s infinite`,
-                  transition: 'all 0.3s ease',
-                  '&:hover': { transform: 'translateY(-2px)', filter: 'brightness(1.1)' }
+                  borderRadius: '8px',
+                  px: 4,
+                  py: 1.5,
+                  boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                  '&:hover': { bgcolor: COLORS.surfaceTint }
                 }}
               >
-                Request access
+                Start Free Trial
               </Button>
               <Button 
-                variant="outlined" 
-                size="large"
+                variant="outlined"
+                component={Link}
+                href="/login"
                 sx={{ 
-                  color: '#fff', 
-                  borderColor: 'rgba(255,255,255,0.2)', 
-                  fontWeight: 500, 
+                  bgcolor: COLORS.surfaceContainerLowest, 
+                  color: COLORS.onSurface, 
+                  borderColor: COLORS.outline,
+                  fontWeight: 600, 
                   textTransform: 'none',
-                  borderRadius: '12px',
-                  px: 5,
-                  py: 1.8,
-                  fontSize: '1.15rem',
-                  backdropFilter: 'blur(10px)',
-                  transition: 'all 0.3s ease',
-                  '&:hover': { borderColor: '#fff', bgcolor: 'rgba(255,255,255,0.05)', transform: 'translateY(-2px)' }
+                  borderRadius: '8px',
+                  px: 4,
+                  py: 1.5,
+                  '&:hover': { bgcolor: COLORS.surfaceContainerLow, borderColor: COLORS.outline }
                 }}
               >
-                See features
+                View Demo
               </Button>
             </Stack>
-            
-            <Typography variant="body2" sx={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>
-              Accounts are set up by our team — no credit card, no setup fees.
+
+            <Box sx={{ 
+              width: '100%', 
+              maxWidth: '1000px', 
+              mx: 'auto',
+              borderRadius: '16px', 
+              border: `1px solid ${COLORS.outlineVariant}`,
+              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+              bgcolor: COLORS.surfaceContainerLowest,
+              overflow: 'hidden',
+              p: 2
+            }}>
+              <img 
+                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAzW48uV3r9MWwBqJgAj-m2e4b-mqOQeLGhp8qAU8ShWp3_GLXapYYsvWl4tPUdyr5QuBSlsvMjKrg1qZl4_BfW-JNc5Z1_LbfPIzpAkH6ubNjGAnULLL6YIulypogv6btGeL7w4Sy7hkOcYKjuNoDNhw8Y2oN46JA4Chx9k3yFBYsuAWNQZlaiKrUcg4Ff_sCEAYCIRQdIYnalKDez1C4548B2VwmVorZKLSO-rcCO2TOnLczVNbVU" 
+                alt="StockWhisk Dashboard Mockup" 
+                style={{ width: '100%', height: 'auto', borderRadius: '8px', objectFit: 'cover' }}
+              />
+            </Box>
+          </Container>
+        </Box>
+
+        {/* Trust Strip */}
+        <Box sx={{ bgcolor: COLORS.surfaceContainer, py: 6, borderTop: `1px solid ${COLORS.outlineVariant}`, borderBottom: `1px solid ${COLORS.outlineVariant}` }}>
+          <Container maxWidth="lg">
+            <Stack direction="row" flexWrap="wrap" justifyContent="center" gap={{ xs: 4, md: 8 }}>
+              {[
+                { icon: 'bi-box-seam', label: 'Inventory' },
+                { icon: 'bi-shop', label: 'POS' },
+                { icon: 'bi-graph-up', label: 'Sales' },
+                { icon: 'bi-people', label: 'Customers' },
+                { icon: 'bi-pie-chart', label: 'Reports' },
+              ].map((item) => (
+                <Stack key={item.label} alignItems="center" spacing={1} sx={{ color: COLORS.secondary }}>
+                  <i className={`bi ${item.icon}`} style={{ fontSize: '2rem' }}></i>
+                  <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', fontFamily: 'Outfit, sans-serif' }}>{item.label}</Typography>
+                </Stack>
+              ))}
+            </Stack>
+          </Container>
+        </Box>
+
+        {/* Final CTA */}
+        <Box sx={{ py: 10, bgcolor: COLORS.inverseSurface, color: COLORS.inverseOnSurface, textAlign: 'center' }}>
+          <Container maxWidth="md">
+            <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.01em' }}>
+              Ready to Take Control of Your Shop?
             </Typography>
-          </Box>
-        </Container>
+            <Typography variant="h6" sx={{ color: COLORS.secondaryFixedDim, mb: 5, fontWeight: 400, fontFamily: 'Outfit, sans-serif' }}>
+              Join thousands of modern retail owners who trust StockWhisk for high-velocity utility and absolute clarity.
+            </Typography>
+            <Button 
+              component={Link}
+              href="/login"
+              sx={{ 
+                bgcolor: COLORS.primary, 
+                color: COLORS.onPrimary, 
+                fontWeight: 600, 
+                textTransform: 'none',
+                borderRadius: '8px',
+                px: 5,
+                py: 1.5,
+                boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
+                '&:hover': { bgcolor: COLORS.surfaceTint }
+              }}
+            >
+              Create Your Shop Today
+            </Button>
+          </Container>
+        </Box>
       </Box>
 
-      {/* Stats Section */}
-      <Box sx={{ bgcolor: 'rgba(2, 6, 23, 0.7)', py: 6, borderTop: '1px solid rgba(255,255,255,0.05)', borderBottom: '1px solid rgba(255,255,255,0.05)', backdropFilter: 'blur(10px)', position: 'relative', zIndex: 1 }}>
-        <Container maxWidth="lg">
-          <Box 
-            sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' }, 
-              gap: 4, 
-              textAlign: 'center',
-              animation: `${fadeIn} 0.8s ease-out 0.3s both`
-            }}
-          >
-            <Box>
-              <Typography variant="h2" sx={{ fontWeight: 800, color: COLORS.darkText, mb: 0.5 }}>1</Typography>
-              <Typography variant="body1" sx={{ color: COLORS.textLight, fontWeight: 500 }}>unified platform</Typography>
-            </Box>
-            <Box>
-              <Typography variant="h2" sx={{ fontWeight: 800, color: COLORS.darkText, mb: 0.5 }}>10+</Typography>
-              <Typography variant="body1" sx={{ color: COLORS.textLight, fontWeight: 500 }}>connected modules</Typography>
-            </Box>
-            <Box>
-              <Typography variant="h2" sx={{ fontWeight: 800, color: COLORS.darkText, mb: 0.5 }}>100%</Typography>
-              <Typography variant="body1" sx={{ color: COLORS.textLight, fontWeight: 500 }}>audit-ready stock</Typography>
-            </Box>
-            <Box>
-              <Typography variant="h2" sx={{ fontWeight: 800, color: COLORS.darkText, mb: 0.5 }}>0</Typography>
-              <Typography variant="body1" sx={{ color: COLORS.textLight, fontWeight: 500 }}>hidden charges</Typography>
-            </Box>
-          </Box>
-        </Container>
-      </Box>
-
-      {/* Modern Bento Grid Features */}
-      <Box sx={{ pt: { xs: 10, md: 15 }, pb: 15, position: 'relative', zIndex: 1 }} id="features">
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8, animation: `${fadeIn} 0.8s ease-out 0.4s both` }}>
-            <Typography variant="h2" sx={{ fontWeight: 800, color: '#fff', mb: 2, letterSpacing: '-1px', fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-              Everything your shop needs.
-            </Typography>
-            <Typography variant="h6" sx={{ color: COLORS.textLight, fontWeight: 400, lineHeight: 1.6, maxWidth: '600px', mx: 'auto' }}>
-              No more juggling notebooks, spreadsheets and separate apps. Every sale, purchase and repair updates the same source of truth.
-            </Typography>
-          </Box>
-
-          {/* Bento Grid */}
-          <Box 
-            sx={{ 
-              display: 'grid', 
-              gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' }, 
-              gridAutoRows: 'minmax(250px, auto)',
-              gap: 3,
-              animation: `${fadeIn} 0.8s ease-out 0.5s both`
-            }}
-          >
-            {/* Large Card 1 */}
-            <Box sx={{ 
-              gridColumn: { xs: '1', md: 'span 2' }, 
-              bgcolor: COLORS.cardBg, 
-              border: `1px solid ${COLORS.cardBorder}`,
-              borderRadius: '24px',
-              p: 5,
-              backdropFilter: 'blur(20px)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'transform 0.3s ease, border-color 0.3s ease',
-              '&:hover': { transform: 'translateY(-5px)', borderColor: 'rgba(56, 189, 248, 0.3)' }
-            }}>
-              <Box sx={{ position: 'absolute', top: -50, right: -50, opacity: 0.1 }}>
-                <PointOfSaleIcon sx={{ fontSize: 200, color: COLORS.accent }} />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#fff', mb: 2, position: 'relative' }}>Lightning Fast POS</Typography>
-              <Typography variant="body1" sx={{ color: COLORS.textLight, mb: 4, maxWidth: '400px', position: 'relative' }}>Process sales, scan barcodes, and print receipts in seconds. Works completely seamlessly with your inventory.</Typography>
-            </Box>
-
-            {/* Small Card 1 */}
-            <Box sx={{ 
-              bgcolor: COLORS.cardBg, 
-              border: `1px solid ${COLORS.cardBorder}`,
-              borderRadius: '24px',
-              p: 4,
-              backdropFilter: 'blur(20px)',
-              transition: 'transform 0.3s ease, border-color 0.3s ease',
-              '&:hover': { transform: 'translateY(-5px)', borderColor: 'rgba(56, 189, 248, 0.3)' }
-            }}>
-              <InventoryIcon sx={{ fontSize: 40, color: COLORS.accent, mb: 2 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700, color: '#fff', mb: 1 }}>Smart Inventory</Typography>
-              <Typography variant="body2" sx={{ color: COLORS.textLight }}>Real-time stock tracking with automated low-stock notifications and supplier management.</Typography>
-            </Box>
-
-            {/* Small Card 2 */}
-            <Box sx={{ 
-              bgcolor: COLORS.cardBg, 
-              border: `1px solid ${COLORS.cardBorder}`,
-              borderRadius: '24px',
-              p: 4,
-              backdropFilter: 'blur(20px)',
-              transition: 'transform 0.3s ease, border-color 0.3s ease',
-              '&:hover': { transform: 'translateY(-5px)', borderColor: 'rgba(56, 189, 248, 0.3)' }
-            }}>
-              <ReceiptLongIcon sx={{ fontSize: 40, color: COLORS.accent, mb: 2 }} />
-              <Typography variant="h5" sx={{ fontWeight: 700, color: '#fff', mb: 1 }}>Daily Accounting</Typography>
-              <Typography variant="body2" sx={{ color: COLORS.textLight }}>End-of-day settlements, cash discrepancy tracking, and profit margins automatically calculated.</Typography>
-            </Box>
-
-            {/* Large Card 2 */}
-            <Box sx={{ 
-              gridColumn: { xs: '1', md: 'span 2' }, 
-              bgcolor: COLORS.cardBg, 
-              border: `1px solid ${COLORS.cardBorder}`,
-              borderRadius: '24px',
-              p: 5,
-              backdropFilter: 'blur(20px)',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'transform 0.3s ease, border-color 0.3s ease',
-              '&:hover': { transform: 'translateY(-5px)', borderColor: 'rgba(56, 189, 248, 0.3)' }
-            }}>
-              <Box sx={{ position: 'absolute', bottom: -50, right: -50, opacity: 0.1 }}>
-                <BarChartIcon sx={{ fontSize: 200, color: COLORS.accent }} />
-              </Box>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: '#fff', mb: 2, position: 'relative' }}>Powerful Analytics</Typography>
-              <Typography variant="body1" sx={{ color: COLORS.textLight, mb: 4, maxWidth: '400px', position: 'relative' }}>Visualize your sales trends, top performing products, and customer behavior with stunning, easy-to-read reports.</Typography>
-            </Box>
-          </Box>
+      {/* Footer */}
+      <Box component="footer" sx={{ bgcolor: COLORS.surfaceContainerLowest, borderTop: `1px solid ${COLORS.outlineVariant}`, mt: 'auto', py: 6 }}>
+        <Container maxWidth="xl">
+          <Grid container spacing={4}>
+            <Grid item xs={12} md={6}>
+              <Typography variant="h6" sx={{ fontWeight: 700, color: COLORS.primary, mb: 1, fontFamily: 'Outfit, sans-serif' }}>
+                StockWhisk
+              </Typography>
+              <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontFamily: 'Outfit, sans-serif' }}>
+                © {new Date().getFullYear()} StockWhisk Inc. All rights reserved.
+              </Typography>
+            </Grid>
+            <Grid item xs={12} md={6} sx={{ display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: { xs: 4, md: 8 } }}>
+              <Stack spacing={1}>
+                <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Product</Typography>
+                <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Login</Link>
+                <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Get Started</Link>
+              </Stack>
+              <Stack spacing={1}>
+                <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Legal</Typography>
+                <span style={{ color: COLORS.onSurfaceVariant, fontSize: '0.875rem', cursor: 'pointer' }}>Privacy</span>
+                <span style={{ color: COLORS.onSurfaceVariant, fontSize: '0.875rem', cursor: 'pointer' }}>Terms</span>
+              </Stack>
+            </Grid>
+          </Grid>
         </Container>
       </Box>
     </Box>
