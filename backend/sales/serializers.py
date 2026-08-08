@@ -10,7 +10,9 @@ class SaleItemSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True, default="")
     product_barcode = serializers.CharField(source="product.barcode", read_only=True, default="")
+    product_warranty_months = serializers.IntegerField(source="product.warranty_months", read_only=True, default=0)
     unit_barcodes = serializers.SerializerMethodField()
+    unit_warranties = serializers.SerializerMethodField()
 
     def get_unit_barcodes(self, obj):
         if not getattr(obj, "sale", None):
@@ -22,10 +24,23 @@ class SaleItemSerializer(serializers.ModelSerializer):
             return []
         return [u.barcode for u in units if u.product_id == obj.product_id]
 
+    def get_unit_warranties(self, obj):
+        if not getattr(obj, "sale", None):
+            return []
+        units = getattr(obj.sale, "units", None)
+        if hasattr(units, "all"):
+            units = units.all()
+        if not units:
+            return []
+        return [
+            u.warranty_months if u.warranty_months is not None else getattr(obj.product, "warranty_months", 0)
+            for u in units if u.product_id == obj.product_id
+        ]
+
     class Meta:
         model = SaleItem
         fields = [
-            "id", "product", "product_name", "product_sku", "product_barcode", "unit_barcodes", "variation", "quantity",
+            "id", "product", "product_name", "product_sku", "product_barcode", "product_warranty_months", "unit_barcodes", "unit_warranties", "variation", "quantity",
             "unit_price", "unit_cost", "discount", "subtotal",
         ]
         read_only_fields = ["unit_cost", "subtotal"]

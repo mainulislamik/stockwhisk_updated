@@ -18,6 +18,8 @@ type SaleItem = {
   subtotal: string;
   unit_barcodes?: string[];
   product_barcode?: string;
+  product_warranty_months?: number;
+  unit_warranties?: number[];
 };
 type Payment = { id: number; amount: string; method: string };
 type Sale = {
@@ -170,7 +172,8 @@ export default function InvoicePage() {
                   _extId: `${it.id}-${i}`,
                   _qty: 1,
                   _subtotal: Number(it.subtotal) / qty,
-                  _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || ""
+                  _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || "",
+                  _warranty: (it.unit_warranties && it.unit_warranties[i]) || it.product_warranty_months || 0
                 }));
               }
               return [{
@@ -178,13 +181,15 @@ export default function InvoicePage() {
                 _extId: String(it.id),
                 _qty: qty,
                 _subtotal: Number(it.subtotal),
-                _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || ""
+                _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || "",
+                _warranty: (it.unit_warranties && it.unit_warranties[0]) || it.product_warranty_months || 0
               }];
             }).map((item, i) => (
               <tr key={item._extId} className={i % 2 === 0 ? "inv-row-even" : "inv-row-odd"}>
                 <td className="inv-td-center inv-row-no">{String(i + 1).padStart(2, "0")}</td>
                 <td className="inv-product-name">
                   {item.product_name}
+                  {!!item._warranty && <span style={{ marginLeft: "4px", fontSize: "0.85em", color: "#475569" }}>- Warranty: {item._warranty} Months</span>}
                   {item._barcode && <div style={{ fontSize: "0.85em", color: "#64748b" }}>Barcode: {item._barcode}</div>}
                 </td>
                 <td className="inv-td-center">{item._qty}</td>
