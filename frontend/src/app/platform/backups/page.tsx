@@ -27,13 +27,22 @@ export default function BackupsPage() {
     e.preventDefault();
     setSavingConfig(true);
     setMsg(null);
+    
+    // Automatically extract folder ID if they pasted a full URL
+    let parsedFolderId = driveFolderId.trim();
+    const folderMatch = parsedFolderId.match(/folders\/([a-zA-Z0-9_-]+)/);
+    if (folderMatch) {
+      parsedFolderId = folderMatch[1];
+      setDriveFolderId(parsedFolderId); // update UI
+    }
+
     try {
       await api("/platform/backups/drive-config/", {
         method: "PUT",
-        body: JSON.stringify({
+        body: {
           drive_credentials_json: driveJson,
-          drive_folder_id: driveFolderId
-        })
+          drive_folder_id: parsedFolderId
+        }
       });
       setMsg({ ok: true, text: "Google Drive configuration saved successfully." });
     } catch (e: any) {
