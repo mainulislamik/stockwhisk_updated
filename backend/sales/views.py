@@ -200,3 +200,136 @@ class SaleViewSet(
         unit.save(update_fields=["status", "sale", "sold_at"])
 
         return Response({"detail": "Return processed successfully.", "new_status": unit.status})
+
+    @action(detail=False, methods=["post"], url_path="replace-unit")
+    def replace_unit(self, request):
+        if not request.user.has_perm_code("process_return"):
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+
+        old_barcode = request.data.get("old_barcode", "").strip()
+        new_barcode = request.data.get("new_barcode", "").strip()
+
+        if not old_barcode or not new_barcode:
+            return Response({"detail": "Both old and new barcodes are required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from catalog.models import ProductUnit
+        old_unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=old_barcode).first()
+        new_unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=new_barcode).first()
+
+        if not old_unit or not new_unit:
+            return Response({"detail": "One or both barcodes not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if old_unit.status != ProductUnit.Status.SOLD or not old_unit.sale_id:
+            return Response({"detail": f"Old unit must be SOLD. Current status: {old_unit.get_status_display()}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if new_unit.status != ProductUnit.Status.IN_STOCK:
+            return Response({"detail": f"New unit must be IN STOCK. Current status: {new_unit.get_status_display()}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        sale = old_unit.sale
+        old_sale_item = sale.items.filter(product=old_unit.product, variation=old_unit.variation).first()
+        
+        if not old_sale_item:
+            return Response({"detail": "Sale item for old unit not found on the invoice."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from django.db import transaction
+        from django.utils import timezone
+        
+        with transaction.atomic():
+            # If same product & variation, it's a 1:1 unit swap.
+            if old_unit.product_id == new_unit.product_id and old_unit.variation_id == new_unit.variation_id:
+                old_unit.status = ProductUnit.Status.TESTING_PENDING
+                old_unit.sale = None
+                old_unit.sold_at = None
+                old_unit.save(update_fields=["status", "sale", "sold_at"])
+
+                new_unit.status = ProductUnit.Status.SOLD
+                new_unit.sale = sale
+                new_unit.sold_at = timezone.now()
+                new_unit.save(update_fields=["status", "sale", "sold_at"])
+                
+                from service.models import Warranty
+                warranty = Warranty.all_objects.filter(product_unit_id=old_unit.id).first()
+                if warranty:
+                    warranty.product_unit = new_unit
+                    warranty.save(update_fields=["product_unit"])
+                
+                return Response({"detail": "Unit exchanged successfully (same product)."})
+
+            else:
+                from inventory.models import MovementType
+                from inventory.services import apply_movement
+                from .models import SaleItem
+                from decimal import Decimal
+                
+                if old_sale_item.quantity <= Decimal("1"):
+                    old_sale_item.delete()
+                else:
+                    old_sale_item.quantity -= Decimal("1")
+                    old_sale_item.save()
+
+                if old_unit.product.track_inventory:
+                    apply_movement(
+                        shop=sale.shop, product=old_unit.product, variation=old_unit.variation,
+                        movement_type=MovementType.SALE_RETURN_IN, quantity=Decimal("1"),
+                        unit_cost=old_sale_item.unit_cost, reference_type="Sale",
+                        reference_id=sale.id, note="Exchange: return old unit", created_by=request.user
+                    )
+                
+                old_unit.status = ProductUnit.Status.TESTING_PENDING
+                old_unit.sale = None
+                old_unit.sold_at = None
+                old_unit.save(update_fields=["status", "sale", "sold_at"])
+                
+                new_sale_item = sale.items.filter(product=new_unit.product, variation=new_unit.variation).first()
+                if new_sale_item:
+                    new_sale_item.quantity += Decimal("1")
+                    new_sale_item.save()
+                else:
+                    unit_cost = new_unit.variation.effective_cost if new_unit.variation else new_unit.product.cost_price
+                    new_sale_item = SaleItem.objects.create(
+                        shop=sale.shop, sale=sale, product=new_unit.product, variation=new_unit.variation,
+                        quantity=Decimal("1"), unit_price=new_unit.product.selling_price, unit_cost=unit_cost,
+                        discount=Decimal("0")
+                    )
+                
+                if new_unit.product.track_inventory:
+                    apply_movement(
+                        shop=sale.shop, product=new_unit.product, variation=new_unit.variation,
+                        movement_type=MovementType.SALE_OUT, quantity=Decimal("1"),
+                        unit_cost=new_sale_item.unit_cost, reference_type="Sale",
+                        reference_id=sale.id, note="Exchange: sell new unit", created_by=request.user
+                    )
+                
+                new_unit.status = ProductUnit.Status.SOLD
+                new_unit.sale = sale
+                new_unit.sold_at = timezone.now()
+                new_unit.save(update_fields=["status", "sale", "sold_at"])
+                
+                months = new_unit.product.warranty_months or 0
+                if months > 0:
+                    from service.models import Warranty
+                    Warranty.all_objects.create(
+                        shop_id=sale.shop.id, product=new_unit.product, product_unit=new_unit,
+                        customer=sale.customer, sale_item=new_sale_item,
+                        serial_no=f"{sale.invoice_no}-{new_sale_item.id}-EXC",
+                        period_months=months, start_date=timezone.localdate()
+                    )
+
+                subtotal = sum(item.subtotal for item in sale.items.all())
+                total = subtotal - sale.discount + (sale.tax or Decimal("0"))
+                
+                old_total = sale.total or Decimal("0")
+                sale.subtotal = subtotal
+                sale.total = total
+                
+                from sales.services import _resolve_status
+                sale.status = _resolve_status(total, sale.paid or Decimal("0"))
+                sale.save(update_fields=["subtotal", "total", "status", "updated_at"])
+                
+                if sale.customer_id:
+                    customer = sale.customer
+                    customer.due_balance = (customer.due_balance or Decimal("0")) + (total - old_total)
+                    customer.total_purchased = (customer.total_purchased or Decimal("0")) + (total - old_total)
+                    customer.save(update_fields=["due_balance", "total_purchased"])
+
+                return Response({"detail": "Unit exchanged with price adjustment.", "new_total": total})

@@ -136,6 +136,7 @@ class ProductUnit(TenantScopedModel):
         RETURNED = "returned", "Returned"
         DEFECTIVE = "defective", "Defective"
         RETURNED_SUPPLIER = "returned_supplier", "Returned to supplier"
+        TESTING_PENDING = "testing_pending", "Testing Pending"
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="units")
     barcode = models.CharField(max_length=120, db_index=True)
