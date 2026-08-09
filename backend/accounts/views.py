@@ -47,14 +47,34 @@ class InitiateRegistrationView(APIView):
             }
         )
         
+        # Try to get dynamic SMTP settings from PlatformConfig
+        from django.core.mail import get_connection
+        from platform_admin.models import PlatformConfig
+        
+        config = PlatformConfig.get_solo()
+        
+        connection = None
+        from_email = settings.DEFAULT_FROM_EMAIL
+        
+        if config.smtp_host and config.smtp_user:
+            connection = get_connection(
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_user,
+                password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+            )
+            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
+
         # Send OTP email
         try:
             send_mail(
                 subject="Your StockWhisk Verification Code",
                 message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 15 minutes.",
-                from_email=settings.DEFAULT_FROM_EMAIL,
+                from_email=from_email,
                 recipient_list=[email],
                 fail_silently=False,
+                connection=connection,
             )
         except Exception as e:
             return Response({"detail": "Failed to send email. Check SMTP configuration.", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

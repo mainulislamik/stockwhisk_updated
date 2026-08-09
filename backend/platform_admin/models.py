@@ -77,6 +77,14 @@ class PlatformConfig(TimeStampedModel):
     drive_backup_enabled = models.BooleanField(default=False)
     drive_backup_interval_minutes = models.PositiveIntegerField(default=1440)  # Default: 24 hours
 
+    # SMTP Settings
+    smtp_host = models.CharField(max_length=255, blank=True, default="")
+    smtp_port = models.PositiveIntegerField(default=587)
+    smtp_user = models.CharField(max_length=255, blank=True, default="")
+    smtp_password = models.CharField(max_length=255, blank=True, default="")
+    smtp_use_tls = models.BooleanField(default=True)
+    smtp_default_from = models.CharField(max_length=255, blank=True, default="noreply@stockwhisk.com")
+
     class Meta:
         verbose_name_plural = "Platform Config"
 

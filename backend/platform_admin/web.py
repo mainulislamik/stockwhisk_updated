@@ -575,3 +575,29 @@ def restore_database(request):
         messages.error(request, f"Restore system error: {str(e)}")
 
     return redirect("platform:dashboard")
+
+@platform_staff_required
+def platform_settings(request):
+    config = PlatformConfig.get_solo()
+    if request.method == "POST":
+        config.smtp_host = request.POST.get("smtp_host", "").strip()
+        
+        # Handle port parsing safely
+        try:
+            config.smtp_port = int(request.POST.get("smtp_port", 587))
+        except ValueError:
+            pass
+            
+        config.smtp_user = request.POST.get("smtp_user", "").strip()
+        config.smtp_password = request.POST.get("smtp_password", "").strip()
+        config.smtp_default_from = request.POST.get("smtp_default_from", "").strip()
+        config.smtp_use_tls = request.POST.get("smtp_use_tls") == "on"
+        
+        config.save()
+        messages.success(request, "Platform settings saved successfully.")
+        return redirect("platform:settings")
+        
+    return render(request, "platform/settings.html", {
+        "active": "settings",
+        "config": config,
+    })

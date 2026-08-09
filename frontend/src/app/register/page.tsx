@@ -164,7 +164,7 @@ export default function RegisterPage() {
                   required
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  inputProps={{ maxLength: 6, style: { textAlign: 'center', letterSpacing: '8px', fontSize: '1.5rem', fontWeight: 700 } }}
+                  slotProps={{ htmlInput: { maxLength: 6, style: { textAlign: 'center', letterSpacing: '8px', fontSize: '1.5rem', fontWeight: 700 } } }}
                 />
                 <Button
                   fullWidth

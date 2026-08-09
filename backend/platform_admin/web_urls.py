@@ -29,4 +29,5 @@ urlpatterns = [
     path("backup/", web.backups_page, name="backups"),
     path("backup/download/", web.download_database_backup, name="download_database_backup"),
     path("backup/restore/", web.restore_database, name="restore_database"),
+    path("settings/", web.platform_settings, name="settings"),
 ]

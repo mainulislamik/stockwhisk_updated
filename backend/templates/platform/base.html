@@ -44,6 +44,7 @@
       <a href="{% url 'platform:messages' %}" class="nav-link {% if active == 'messages' %}active{% endif %}">✉️ Messages</a>
       <a href="{% url 'platform:tutorials' %}" class="nav-link {% if active == 'tutorials' %}active{% endif %}">🎬 Tutorials</a>
       <a href="{% url 'platform:backups' %}" class="nav-link {% if active == 'backups' %}active{% endif %}">💾 System Backups</a>
+      <a href="{% url 'platform:settings' %}" class="nav-link {% if active == 'settings' %}active{% endif %}">⚙️ Platform Settings</a>
       <a href="/admin/" class="nav-link">🛠️ Django Admin</a>
     </nav>
     <div class="p-3 border-top border-secondary border-opacity-25 small text-white-50">

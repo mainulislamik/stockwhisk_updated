@@ -1,0 +1,62 @@
+{% extends "platform/base.html" %}
+
+{% block title %}Platform Settings{% endblock %}
+{% block heading %}Platform Settings{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-header bg-white border-bottom py-3">
+                <h5 class="card-title mb-0">SMTP Email Configuration</h5>
+                <p class="text-muted small mb-0 mt-1">
+                    Configure the platform's email server used for sending Registration OTPs, password resets, and notifications. 
+                    Leave host/user blank to fallback to environment variables.
+                </p>
+            </div>
+            <div class="card-body">
+                <form method="POST" action="{% url 'platform:settings' %}">
+                    {% csrf_token %}
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold">SMTP Host</label>
+                            <input type="text" class="form-control" name="smtp_host" value="{{ config.smtp_host }}" placeholder="e.g., smtp.gmail.com">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">SMTP Port</label>
+                            <input type="number" class="form-control" name="smtp_port" value="{{ config.smtp_port }}" placeholder="e.g., 587">
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">SMTP Username</label>
+                        <input type="text" class="form-control" name="smtp_user" value="{{ config.smtp_user }}" placeholder="e.g., your.email@gmail.com">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">SMTP Password / App Password</label>
+                        <input type="password" class="form-control" name="smtp_password" value="{{ config.smtp_password }}" placeholder="••••••••••••••••">
+                        <div class="form-text">If using Gmail, generate a 16-character App Password.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Default From Email</label>
+                        <input type="email" class="form-control" name="smtp_default_from" value="{{ config.smtp_default_from }}" placeholder="e.g., noreply@stockwhisk.com">
+                        <div class="form-text">The email address shown to recipients as the sender.</div>
+                    </div>
+                    
+                    <div class="form-check mb-4">
+                        <input class="form-check-input" type="checkbox" name="smtp_use_tls" id="smtp_use_tls" {% if config.smtp_use_tls %}checked{% endif %}>
+                        <label class="form-check-label fw-semibold" for="smtp_use_tls">
+                            Use TLS (Recommended)
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-brand px-4">Save Configuration</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
