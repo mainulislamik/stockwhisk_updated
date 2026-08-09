@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment } from '@mui/material';
@@ -206,6 +207,15 @@ export default function LoginPage() {
               </Button>
             </Stack>
           </form>
+
+          <Box sx={{ mt: 3, textAlign: 'center' }}>
+            <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+              Don't have an account?{' '}
+              <Link href="/register" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>
+                Sign up
+              </Link>
+            </Typography>
+          </Box>
           
           <Box sx={{ mt: 5, textAlign: 'center' }}>
             <Typography variant="body2" sx={{ color: isDark ? '#64748b' : '#94a3b8' }}>

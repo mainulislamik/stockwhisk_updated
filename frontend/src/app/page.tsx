@@ -124,7 +124,7 @@ export default function LandingPage() {
                       '&:hover': { bgcolor: COLORS.surfaceTint }
                     }}
                   >
-                    Get Started
+                    Sign Up
                   </Button>
                 </>
               )}
@@ -180,7 +180,7 @@ export default function LandingPage() {
                   '&:hover': { bgcolor: COLORS.surfaceTint }
                 }}
               >
-                Start Free Trial
+                Register Now
               </Button>
               <Button 
                 variant="outlined"
@@ -266,7 +266,7 @@ export default function LandingPage() {
                 '&:hover': { bgcolor: COLORS.surfaceTint }
               }}
             >
-              Create Your Shop Today
+              Sign Up Today
             </Button>
           </Container>
         </Box>
@@ -289,7 +289,7 @@ export default function LandingPage() {
                 <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Product</Typography>
                 <Link href="/blog" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Blog</Link>
                 <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Login</Link>
-                <Link href="/register" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Get Started</Link>
+                <Link href="/register" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Sign Up</Link>
               </Stack>
               <Stack spacing={1}>
                 <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Legal</Typography>
