@@ -17,7 +17,8 @@ class ProductService(BaseService[Product]):
             qs = qs.filter(
                 Q(name__icontains=search) | 
                 Q(sku__icontains=search) | 
-                Q(barcode__icontains=search)
-            )
+                Q(barcode__icontains=search) |
+                Q(units__barcode__icontains=search)
+            ).distinct()
             
         return qs
