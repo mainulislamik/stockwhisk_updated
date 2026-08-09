@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { api, unwrap } from "@/lib/api";
 import { money } from "@/components/ui";
 
@@ -13,18 +13,33 @@ export default function ItemLookupPage() {
   const [searched, setSearched] = useState(false);
   const [busy, setBusy] = useState(false);
 
-  async function search(e: React.FormEvent) {
-    e.preventDefault();
-    if (!q.trim()) return;
+  async function doSearch(query: string) {
     setBusy(true);
     try {
-      setRows(unwrap<Product>(await api("/catalog/products/", { params: { search: q } })));
+      setRows(unwrap<Product>(await api("/catalog/products/", { params: { search: query } })));
       setSearched(true);
     } catch (err: any) {
       alert(err?.message || "Lookup failed");
     } finally {
       setBusy(false);
     }
+  }
+
+  useEffect(() => {
+    const delayDebounceFn = setTimeout(() => {
+      if (q.trim()) {
+        doSearch(q);
+      } else {
+        setRows([]);
+        setSearched(false);
+      }
+    }, 300);
+    return () => clearTimeout(delayDebounceFn);
+  }, [q]);
+
+  function search(e: React.FormEvent) {
+    e.preventDefault();
+    if (q.trim()) doSearch(q);
   }
 
   return (
