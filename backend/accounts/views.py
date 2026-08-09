@@ -58,6 +58,7 @@ class InitiateRegistrationView(APIView):
         
         if config.smtp_host and config.smtp_user:
             connection = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
                 host=config.smtp_host,
                 port=config.smtp_port,
                 username=config.smtp_user,
@@ -77,7 +78,13 @@ class InitiateRegistrationView(APIView):
                 connection=connection,
             )
         except Exception as e:
-            return Response({"detail": "Failed to send email. Check SMTP configuration.", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            import traceback
+            error_trace = traceback.format_exc()
+            return Response({
+                "detail": "Failed to send email. Check SMTP configuration.", 
+                "error": str(e),
+                "trace": error_trace
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "OTP sent to email."}, status=status.HTTP_200_OK)
 

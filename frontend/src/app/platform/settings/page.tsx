@@ -5,8 +5,9 @@ import { api } from "@/lib/api";
 import { Card, PageHeader } from "@/components/ui";
 
 export default function PlatformSettingsPage() {
-  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [msg, setMsg] = useState<{ ok: boolean; text: string; trace?: string } | null>(null);
   const [saving, setSaving] = useState(false);
+  const [testing, setTesting] = useState(false);
   
   const [smtpHost, setSmtpHost] = useState("");
   const [smtpPort, setSmtpPort] = useState("587");
@@ -51,14 +52,38 @@ export default function PlatformSettingsPage() {
     }
   }
 
+  async function testConnection() {
+    setTesting(true);
+    setMsg(null);
+    try {
+      await api("/platform/smtp-test/", { method: "POST" });
+      setMsg({ ok: true, text: "Connection successful! A test email was sent to your SMTP Username." });
+    } catch (e: any) {
+      setMsg({ 
+        ok: false, 
+        text: e?.data?.detail || "Connection failed.", 
+        trace: e?.data?.trace 
+      });
+    } finally {
+      setTesting(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
       <PageHeader title="Platform Settings" />
 
       {msg && (
-        <div className={`p-4 rounded-lg font-medium text-sm flex items-center gap-2 ${msg.ok ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-          <i className={`bi ${msg.ok ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
-          {msg.text}
+        <div className={`p-4 rounded-lg font-medium text-sm flex flex-col gap-2 ${msg.ok ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
+          <div className="flex items-center gap-2">
+            <i className={`bi ${msg.ok ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
+            {msg.text}
+          </div>
+          {msg.trace && (
+            <pre className="mt-2 p-2 bg-black/10 rounded overflow-x-auto text-xs whitespace-pre-wrap">
+              {msg.trace}
+            </pre>
+          )}
         </div>
       )}
 
@@ -148,8 +173,16 @@ export default function PlatformSettingsPage() {
               </label>
             </div>
 
-            <div className="flex items-center justify-end pt-4 border-t border-gray-200">
-              <button type="submit" disabled={saving} className="btn btn-primary rounded-pill px-5 shadow-sm">
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+              <button 
+                type="button" 
+                onClick={testConnection} 
+                disabled={testing || saving || !smtpHost} 
+                className="btn btn-outline-secondary rounded-pill px-4 shadow-sm"
+              >
+                {testing ? "Testing..." : "Test Connection"}
+              </button>
+              <button type="submit" disabled={saving || testing} className="btn btn-primary rounded-pill px-5 shadow-sm">
                 {saving ? "Saving..." : "Save Configuration"}
               </button>
             </div>

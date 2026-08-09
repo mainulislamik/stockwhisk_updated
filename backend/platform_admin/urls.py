@@ -22,6 +22,7 @@ from .views import (
     BlogPostAdminViewSet,
     PublicBlogViewSet,
     SmtpSettingsView,
+    TestSmtpConnectionView,
 )
 
 app_name = "platform_admin"
@@ -42,6 +43,7 @@ urlpatterns = [
     path("active-users/", ActiveUsersView.as_view(), name="active-users"),
     path("plan/", PlanView.as_view(), name="plan"),
     path("smtp-settings/", SmtpSettingsView.as_view(), name="smtp-settings"),
+    path("smtp-test/", TestSmtpConnectionView.as_view(), name="smtp-test"),
     path("backups/download/", BackupDownloadView.as_view(), name="backup-download"),
     path("backups/restore/", BackupRestoreView.as_view(), name="backup-restore"),
     path("backups/drive-config/", PlatformConfigView.as_view(), name="platform-drive-config"),

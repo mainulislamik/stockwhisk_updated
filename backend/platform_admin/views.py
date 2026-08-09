@@ -678,6 +678,45 @@ class SmtpSettingsView(APIView):
         config.save()
         return Response({"status": "updated"})
 
+class TestSmtpConnectionView(APIView):
+    """Test SMTP connection using saved settings."""
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        config = PlatformConfig.get_solo()
+        if not config.smtp_host or not config.smtp_user:
+            return Response({"detail": "SMTP host and user are not configured."}, status=400)
+            
+        from django.core.mail import get_connection, EmailMessage
+        import traceback
+        
+        try:
+            connection = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_user,
+                password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+                fail_silently=False
+            )
+            msg = EmailMessage(
+                subject='Test Email from StockWhisk',
+                body='This is a test email to verify SMTP configuration.',
+                from_email=config.smtp_default_from or config.smtp_user,
+                to=[config.smtp_user],
+                connection=connection
+            )
+            msg.send(fail_silently=False)
+            return Response({"status": "success", "detail": "Test email sent successfully!"})
+        except Exception as e:
+            error_trace = traceback.format_exc()
+            return Response({
+                "status": "error",
+                "detail": str(e),
+                "trace": error_trace
+            }, status=500)
+
 from .models import PlatformConfig
 
 class PlatformConfigView(APIView):
