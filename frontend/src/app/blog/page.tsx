@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, CardMedia, Chip } from '@mui/material';
-import { getAccess, api } from "@/lib/api";
+import { getAccess, api, unwrap } from "@/lib/api";
 import { useThemeMode } from "@/components/ThemeRegistry";
 
 const LIGHT_COLORS = {
@@ -54,9 +54,9 @@ export default function BlogListPage() {
   useEffect(() => {
     setMounted(true);
     setIsLoggedIn(!!getAccess());
-    api<BlogPost[]>("/platform/public/blogs/")
+    api<any>("/platform/public/blogs/")
       .then((data) => {
-        setBlogs(data || []);
+        setBlogs(unwrap(data));
       })
       .catch((e) => console.error("Failed to load blogs", e))
       .finally(() => setLoading(false));

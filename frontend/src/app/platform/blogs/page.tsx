@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { api } from "@/lib/api";
+import { api, unwrap } from "@/lib/api";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
 
 type BlogPost = {
@@ -19,8 +19,8 @@ export default function BlogsAdminPage() {
   const [error, setError] = useState("");
 
   const fetchBlogs = () => {
-    api<BlogPost[]>("/platform/blogs/")
-      .then(setBlogs)
+    api<any>("/platform/blogs/")
+      .then((data) => setBlogs(unwrap(data)))
       .catch((e) => setError(e?.message || "Failed to load blogs."));
   };
 
