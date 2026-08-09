@@ -571,18 +571,10 @@ export default function PurchaseProductPage() {
                 {Object.entries(PAY_METHODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
 
-              <div className="d-flex justify-content-between small mb-3">
+              <div className="d-flex justify-content-between small mb-1">
                 <span className="text-secondary">Supplier due after payment</span>
                 <span className="fw-semibold text-success">{money(supplierDue)}</span>
               </div>
-
-              {error && <div className="alert alert-danger py-2 px-3 small mb-2">{error}</div>}
-
-              <button className="btn btn-brand w-100 mb-1" disabled={busy || lines.length === 0} onClick={pushToStock}>
-                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "↑ "}
-                Push to Stock
-              </button>
-              <div className="text-center text-secondary small mb-3">ⓘ Updates ledger &amp; inventory levels</div>
             </div>
 
             {/* Purchase Summary */}
@@ -621,6 +613,16 @@ export default function PurchaseProductPage() {
                   </select>
                 </div>
               )}
+            </div>
+
+            <div className="px-3 pb-3">
+              {error && <div className="alert alert-danger py-2 px-3 small mb-2">{error}</div>}
+
+              <button className="btn btn-brand w-100 mb-1" disabled={busy || lines.length === 0} onClick={pushToStock}>
+                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "↑ "}
+                Push to Stock
+              </button>
+              <div className="text-center text-secondary small mb-1">ⓘ Updates ledger &amp; inventory levels</div>
             </div>
           </div>
         </div>
