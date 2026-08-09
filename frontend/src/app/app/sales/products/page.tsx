@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 
-type Top = { product_id: number; product__name: string; qty: number; revenue: number; profit: number };
+type Top = { product_id: number; product__name: string; product__current_stock: number; qty: number; revenue: number; profit: number };
 
 export default function SoldProductsPage() {
   const [rows, setRows] = useState<Top[]>([]);
@@ -39,6 +39,7 @@ export default function SoldProductsPage() {
               <tr>
                 <th>Product</th>
                 <th className="text-end">Qty sold</th>
+                <th className="text-end">Unsold / Stock</th>
                 <th className="text-end">Revenue</th>
                 <th className="text-end">Profit</th>
               </tr>
@@ -46,13 +47,14 @@ export default function SoldProductsPage() {
             <tbody>
               {shown.length === 0 ? (
                 <tr data-empty="">
-                  <td colSpan={4} className="text-center text-secondary py-5">No sales yet.</td>
+                  <td colSpan={5} className="text-center text-secondary py-5">No sales yet.</td>
                 </tr>
               ) : (
                 shown.map((r) => (
                   <tr key={r.product_id}>
                     <td className="fw-medium">{r.product__name}</td>
                     <td className="text-end">{Number(r.qty)}</td>
+                    <td className="text-end">{Number(r.product__current_stock || 0)}</td>
                     <td className="text-end">{money(r.revenue)}</td>
                     <td className="text-end text-success">{money(r.profit)}</td>
                   </tr>

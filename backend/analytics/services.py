@@ -254,7 +254,7 @@ def _sales_by_dimension(shop, field, period):
 def top_products(shop, start=None, end=None, limit=10):
     return list(
         _sale_items(shop, start, end)
-        .values("product_id", "product__name")
+        .values("product_id", "product__name", "product__current_stock")
         .annotate(
             qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
             revenue=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC),
