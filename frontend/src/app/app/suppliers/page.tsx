@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, usePagination } from "@/components/ui";
@@ -20,6 +20,11 @@ export default function SuppliersPage() {
   const [form, setForm] = useState({ ...BLANK });
   const [editing, setEditing] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ ...BLANK });
+  
+  // Payment State
+  const [paying, setPaying] = useState<number | null>(null);
+  const [payForm, setPayForm] = useState({ type: "payment", amount: "", method: "cash", note: "" });
+  
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -53,6 +58,34 @@ export default function SuppliersPage() {
     finally { setSaving(false); }
   }
 
+  async function processPayment(e: React.FormEvent, s: Supplier) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // If type is settlement, we override the method to "settlement"
+      const method = payForm.type === "settlement" ? "settlement" : payForm.method;
+      
+      const updatedSupplier = await api<Supplier>(`/purchasing/suppliers/${s.id}/pay-due/`, {
+        method: "POST",
+        body: {
+          amount: payForm.amount,
+          method: method,
+          note: payForm.note
+        }
+      });
+      
+      toast.success(payForm.type === "settlement" ? "Settlement recorded successfully!" : "Payment recorded successfully!");
+      setPaying(null);
+      
+      // Update row in state
+      setRows(r => r.map(x => x.id === s.id ? updatedSupplier : x));
+    } catch (e: any) { 
+      toast.error(e?.message || "Could not process payment"); 
+    } finally { 
+      setSaving(false); 
+    }
+  }
+
   async function remove(s: Supplier) {
     if (!confirm(`Delete supplier "${s.name}"? This cannot be undone.`)) return;
     try {
@@ -63,7 +96,15 @@ export default function SuppliersPage() {
 
   function startEdit(s: Supplier) {
     setEditing(s.id);
+    setPaying(null);
     setEditForm({ name: s.name, phone: s.phone, email: s.email, address: s.address });
+    setShowAdd(false);
+  }
+
+  function startPay(s: Supplier) {
+    setPaying(s.id);
+    setEditing(null);
+    setPayForm({ type: "payment", amount: s.due_balance, method: "cash", note: "" });
     setShowAdd(false);
   }
 
@@ -106,7 +147,7 @@ export default function SuppliersPage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input placeholder="Filter name/phone/email…" className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
-          <button onClick={() => { setShowAdd((s) => !s); setEditing(null); }} className="btn btn-brand btn-sm">
+          <button onClick={() => { setShowAdd((s) => !s); setEditing(null); setPaying(null); }} className="btn btn-brand btn-sm">
             + New supplier
           </button>
         )}
@@ -143,8 +184,8 @@ export default function SuppliersPage() {
                   </td>
                 </tr>
               ) : paged.map((s) => (
-                <>
-                  <tr key={s.id}>
+                <React.Fragment key={s.id}>
+                  <tr>
                     <td className="fw-medium">{s.name}</td>
                     <td className="text-secondary">{s.phone || "—"}</td>
                     <td className="text-secondary">{s.email || "—"}</td>
@@ -152,19 +193,70 @@ export default function SuppliersPage() {
                     <td className={`text-end ${Number(s.due_balance) > 0 ? "text-danger fw-semibold" : ""}`}>{money(s.due_balance)}</td>
                     {canManage && (
                       <td className="text-end text-nowrap">
+                        {Number(s.due_balance) > 0 && (
+                          <button className="btn btn-brand btn-sm py-0 px-2 me-2" style={{ fontSize: "0.8rem" }} onClick={() => startPay(s)}>Pay / Settle</button>
+                        )}
                         <button className="btn btn-link btn-sm p-0 me-2" onClick={() => startEdit(s)}>Edit</button>
                         <button className="btn btn-link btn-sm text-danger p-0" onClick={() => remove(s)}>Delete</button>
                       </td>
                     )}
                   </tr>
+                  
+                  {/* EDIT FORM */}
                   {editing === s.id && (
-                    <tr key={`edit-${s.id}`}>
-                      <td colSpan={canManage ? 6 : 5} className="bg-light p-3">
+                    <tr className="border-bottom">
+                      <td colSpan={canManage ? 6 : 5} className="bg-light p-3 border-start border-4 border-primary">
                         <SupplierForm values={editForm} onChange={setEditForm} onSubmit={(e) => saveEdit(e, s.id)} label="Update supplier" />
                       </td>
                     </tr>
                   )}
-                </>
+                  
+                  {/* PAY FORM */}
+                  {paying === s.id && (
+                    <tr className="border-bottom">
+                      <td colSpan={canManage ? 6 : 5} className="bg-light p-3 border-start border-4 border-success">
+                        <form onSubmit={(e) => processPayment(e, s)} className="row g-3 align-items-end">
+                          <div className="col-12 mb-1">
+                            <span className="fw-bold text-success me-2">Clear Dues for {s.name}</span>
+                            <span className="text-muted small">(Outstanding: {money(s.due_balance)})</span>
+                          </div>
+                          <div className="col-md-3">
+                            <label className="small fw-medium">Action Type</label>
+                            <select className="form-select form-select-sm" value={payForm.type} onChange={e => setPayForm({...payForm, type: e.target.value})}>
+                              <option value="payment">Pay Dues (Cash Outflow)</option>
+                              <option value="settlement">Settle / Adjust (No Cash Impact)</option>
+                            </select>
+                          </div>
+                          <div className="col-md-2">
+                            <label className="small fw-medium">Amount</label>
+                            <input type="number" step="0.01" max={s.due_balance} required className="form-control form-control-sm" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} />
+                          </div>
+                          {payForm.type === "payment" && (
+                            <div className="col-md-2">
+                              <label className="small fw-medium">Payment Method</label>
+                              <select className="form-select form-select-sm" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
+                                <option value="cash">Cash</option>
+                                <option value="bkash">bKash</option>
+                                <option value="nagad">Nagad</option>
+                                <option value="bank">Bank</option>
+                              </select>
+                            </div>
+                          )}
+                          <div className={payForm.type === "payment" ? "col-md-3" : "col-md-5"}>
+                            <label className="small fw-medium">Note / Reference</label>
+                            <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder="Optional reference..." />
+                          </div>
+                          <div className="col-md-2 d-flex gap-2">
+                            <button type="submit" className="btn btn-success btn-sm w-100" disabled={saving}>
+                              {saving ? "Processing…" : "Submit"}
+                            </button>
+                            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>Cancel</button>
+                          </div>
+                        </form>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
               ))}
             </tbody>
           </table>

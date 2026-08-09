@@ -110,11 +110,13 @@ def pay_supplier(*, supplier, amount, method=SupplierPayment.Method.CASH,
     )
     supplier.due_balance = outstanding - amount
     supplier.save(update_fields=["due_balance"])
-    LedgerEntry.objects.create(
-        shop_id=supplier.shop_id, account=LedgerEntry.Account.CASH, amount=-amount,
-        source_type="SupplierPayment", source_id=str(payment.id),
-        description=f"Payment to {supplier.name}",
-    )
+    
+    if method != SupplierPayment.Method.SETTLEMENT:
+        LedgerEntry.objects.create(
+            shop_id=supplier.shop_id, account=LedgerEntry.Account.CASH, amount=-amount,
+            source_type="SupplierPayment", source_id=str(payment.id),
+            description=f"Payment to {supplier.name}",
+        )
     return payment
 
 

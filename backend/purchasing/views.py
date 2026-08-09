@@ -30,6 +30,30 @@ class SupplierViewSet(TenantScopedViewSet):
             )
         return qs
 
+    @action(detail=True, methods=["post"], url_path="pay-due")
+    def pay_due(self, request, pk=None):
+        supplier = self.get_object()
+        amount = request.data.get("amount")
+        method = request.data.get("method", "cash")
+        note = request.data.get("note", "")
+
+        if not amount:
+            return Response({"detail": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from decimal import Decimal
+            amount = Decimal(str(amount))
+            from .services import pay_supplier
+            pay_supplier(
+                supplier=supplier, amount=amount, method=method,
+                note=note, created_by=request.user
+            )
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        supplier.refresh_from_db()
+        return Response(self.get_serializer(supplier).data)
+
 
 class PurchaseOrderViewSet(TenantScopedViewSet):
     required_perm = "manage_purchasing"

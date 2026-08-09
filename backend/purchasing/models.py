@@ -123,6 +123,7 @@ class SupplierPayment(TenantScopedModel):
         BKASH = "bkash", "bKash"
         NAGAD = "nagad", "Nagad"
         BANK = "bank", "Bank transfer"
+        SETTLEMENT = "settlement", "Settlement / Adjustment"
 
     supplier = models.ForeignKey(Supplier, on_delete=models.PROTECT, related_name="payments")
     amount = models.DecimalField(max_digits=14, decimal_places=2)
