@@ -380,7 +380,7 @@ export default function PurchaseProductPage() {
 
             {searchResults !== null && !searching && (
               <div className="border rounded">
-                <div className="px-3 py-2 bg-light border-bottom small fw-semibold text-secondary">
+                <div className="px-3 py-2 bg-secondary bg-opacity-10 border-bottom small fw-semibold text-secondary">
                   SEARCH RESULTS ({searchResults.length})
                 </div>
                 {searchResults.length === 0 ? (
@@ -393,7 +393,7 @@ export default function PurchaseProductPage() {
                 ) : searchResults.map((p) => (
                   <label
                     key={p.id}
-                    className={`d-flex align-items-center gap-3 px-3 py-2 border-bottom ${selected?.id === p.id ? "bg-light" : ""}`}
+                    className={`d-flex align-items-center gap-3 px-3 py-2 border-bottom ${selected?.id === p.id ? "bg-secondary bg-opacity-10" : ""}`}
                     style={{ cursor: "pointer" }}
                     onClick={() => selectProduct(p)}
                   >
@@ -408,7 +408,7 @@ export default function PurchaseProductPage() {
             )}
 
             {selected && (
-              <div className="mt-2 p-2 border rounded bg-light d-flex align-items-center justify-content-between">
+              <div className="mt-2 p-2 border rounded bg-secondary bg-opacity-10 d-flex align-items-center justify-content-between">
                 <div>
                   <span className="fw-semibold">✓ {selected.name}</span>
                   <span className="text-secondary small ms-2">SKU: {selected.sku || "—"} · Stock: {selected.current_stock}</span>
