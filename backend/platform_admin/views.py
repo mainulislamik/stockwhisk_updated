@@ -643,6 +643,41 @@ def _db_env():
 
 
 
+class SmtpSettingsView(APIView):
+    """Get or update SMTP settings for the platform."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        config = PlatformConfig.get_solo()
+        return Response({
+            "smtp_host": config.smtp_host,
+            "smtp_port": config.smtp_port,
+            "smtp_user": config.smtp_user,
+            "smtp_password": config.smtp_password,
+            "smtp_use_tls": config.smtp_use_tls,
+            "smtp_default_from": config.smtp_default_from,
+        })
+
+    def put(self, request):
+        config = PlatformConfig.get_solo()
+        
+        config.smtp_host = request.data.get("smtp_host", "").strip()
+        try:
+            config.smtp_port = int(request.data.get("smtp_port", 587))
+        except ValueError:
+            pass
+        config.smtp_user = request.data.get("smtp_user", "").strip()
+        config.smtp_password = request.data.get("smtp_password", "").strip()
+        config.smtp_default_from = request.data.get("smtp_default_from", "").strip()
+        
+        # Boolean handling
+        tls_val = request.data.get("smtp_use_tls")
+        if tls_val is not None:
+            config.smtp_use_tls = str(tls_val).lower() == "true" or tls_val is True
+            
+        config.save()
+        return Response({"status": "updated"})
+
 from .models import PlatformConfig
 
 class PlatformConfigView(APIView):
