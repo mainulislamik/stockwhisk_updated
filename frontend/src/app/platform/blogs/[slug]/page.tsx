@@ -75,7 +75,11 @@ export default function BlogEditorPage() {
     <>
       <PageHeader 
         title={isNew ? "Create Blog Post" : "Edit Blog Post"} 
-        onBack={() => router.push("/platform/blogs")}
+        actions={
+          <button onClick={() => router.push("/platform/blogs")} className="btn btn-outline-secondary">
+            ← Back
+          </button>
+        }
       />
 
       <Card>

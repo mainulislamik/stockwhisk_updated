@@ -116,7 +116,7 @@ export default function BlogListPage() {
           ) : (
             <Grid container spacing={4}>
               {blogs.map((blog) => (
-                <Grid item xs={12} md={6} lg={4} key={blog.slug}>
+                <Grid size={{ xs: 12, md: 6, lg: 4 }} key={blog.slug}>
                   <Card 
                     elevation={0}
                     sx={{ 
