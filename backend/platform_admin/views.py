@@ -867,3 +867,28 @@ class BackupRestoreView(APIView):
                              "detail": "Database restored. You may need to log in again."})
         return Response({"detail": f"Restore completed with errors: {result.stderr[:300]}"},
                         status=status.HTTP_400_BAD_REQUEST)
+
+# --- Blog Posts --------------------------------------------------------------
+
+from .models import BlogPost
+
+class BlogPostSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = BlogPost
+        fields = '__all__'
+
+class BlogPostAdminViewSet(viewsets.ModelViewSet):
+    """CRUD for super admins to manage marketing blogs."""
+    permission_classes = [IsPlatformStaff]
+    serializer_class = BlogPostSerializer
+    queryset = BlogPost.objects.all()
+    lookup_field = 'slug'
+
+class PublicBlogViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only view for the public marketing site."""
+    permission_classes = [] # AllowAny
+    serializer_class = BlogPostSerializer
+    lookup_field = 'slug'
+
+    def get_queryset(self):
+        return BlogPost.objects.filter(is_published=True).order_by('-published_at')

@@ -75,6 +75,9 @@ export default function LandingPage() {
             </Typography>
             
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+              <Button component={Link} href="/blog" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
+                Blog
+              </Button>
               {mounted && isLoggedIn ? (
                 <Button 
                   component={Link} 
@@ -284,6 +287,7 @@ export default function LandingPage() {
             <Box sx={{ flex: { xs: '1 1 100%', md: '1 1 45%' }, display: 'flex', justifyContent: { xs: 'flex-start', md: 'flex-end' }, gap: { xs: 4, md: 8 } }}>
               <Stack spacing={1}>
                 <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Product</Typography>
+                <Link href="/blog" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Blog</Link>
                 <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Login</Link>
                 <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Get Started</Link>
               </Stack>

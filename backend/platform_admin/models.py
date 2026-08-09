@@ -87,3 +87,23 @@ class PlatformConfig(TimeStampedModel):
 
     def __str__(self):
         return "Platform Configuration"
+
+class BlogPost(TimeStampedModel):
+    """
+    Public blog posts for the marketing site.
+    Managed exclusively by super admins.
+    """
+    title = models.CharField(max_length=255)
+    slug = models.SlugField(max_length=255, unique=True, db_index=True)
+    content = models.TextField(help_text="Markdown or HTML content")
+    excerpt = models.TextField(blank=True, help_text="Short summary for the blog listing")
+    is_published = models.BooleanField(default=False, db_index=True)
+    published_at = models.DateTimeField(null=True, blank=True)
+    cover_image_url = models.URLField(blank=True, help_text="Optional absolute URL for a cover image")
+
+    class Meta:
+        ordering = ["-published_at", "-created_at"]
+        indexes = [models.Index(fields=["is_published", "published_at"])]
+
+    def __str__(self):
+        return self.title

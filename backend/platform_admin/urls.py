@@ -19,6 +19,8 @@ from .views import (
     StopImpersonationView,
     TutorialVideoViewSet,
     ServerMetricsView,
+    BlogPostAdminViewSet,
+    PublicBlogViewSet,
 )
 
 app_name = "platform_admin"
@@ -29,6 +31,8 @@ router.register("manual-payments", ManualPaymentAdminViewSet, basename="admin-ma
 router.register("api-keys", APIKeyAdminViewSet, basename="admin-api-keys")
 router.register("messages", ContactMessageViewSet, basename="admin-messages")
 router.register("tutorials", TutorialVideoViewSet, basename="admin-tutorials")
+router.register("blogs", BlogPostAdminViewSet, basename="admin-blogs")
+router.register("public/blogs", PublicBlogViewSet, basename="public-blogs")
 
 urlpatterns = [
     path("dashboard/", PlatformDashboardView.as_view(), name="dashboard"),
