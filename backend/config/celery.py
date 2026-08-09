@@ -33,6 +33,10 @@ app.conf.beat_schedule = {
         "task": "inventory.tasks.reconcile_stock",
         "schedule": 86400.0,
     },
+    "delete-old-notifications-daily": {
+        "task": "notifications.tasks.delete_old_notifications",
+        "schedule": 86400.0,
+    },
 }
 
 
