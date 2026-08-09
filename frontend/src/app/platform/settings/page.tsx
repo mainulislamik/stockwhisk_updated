@@ -16,7 +16,7 @@ export default function PlatformSettingsPage() {
   const [smtpUseTls, setSmtpUseTls] = useState(true);
 
   useEffect(() => {
-    api<any>("/platform_admin/smtp-settings/").then((data) => {
+    api<any>("/platform/smtp-settings/").then((data) => {
       setSmtpHost(data.smtp_host || "");
       setSmtpPort(data.smtp_port?.toString() || "587");
       setSmtpUser(data.smtp_user || "");
@@ -32,7 +32,7 @@ export default function PlatformSettingsPage() {
     setMsg(null);
     
     try {
-      await api("/platform_admin/smtp-settings/", {
+      await api("/platform/smtp-settings/", {
         method: "PUT",
         body: {
           smtp_host: smtpHost,
