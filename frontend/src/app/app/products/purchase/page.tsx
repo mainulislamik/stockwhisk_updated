@@ -272,10 +272,7 @@ export default function PurchaseProductPage() {
       if (supplier) poData.supplier = Number(supplier);
       if (branch) poData.branch = Number(branch);
 
-      const po = await api<{ id: number }>("/purchasing/purchase-orders/", { method: "POST", body: poData });
-      await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid } });
-
-      // Update product selling prices and warranties if they were modified during purchase
+      // Update product selling prices and warranties FIRST so backend uses them during receive
       for (const l of lines) {
         const patchData: Record<string, any> = {};
         
@@ -286,6 +283,9 @@ export default function PurchaseProductPage() {
           await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData });
         }
       }
+
+      const po = await api<{ id: number }>("/purchasing/purchase-orders/", { method: "POST", body: poData });
+      await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid } });
 
       router.push("/app/products");
     } catch (e: any) {
