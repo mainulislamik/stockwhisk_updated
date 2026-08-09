@@ -6,7 +6,7 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 
-type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string };
+type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
 type Payment = { id: number; amount: string; method: string; paid_at: string; note: string };
 type Sale = {
   id: number;
@@ -15,6 +15,7 @@ type Sale = {
   sale_date: string;
   subtotal: string;
   discount: string;
+  delivery_charge: string;
   tax: string;
   total: string;
   paid: string;
@@ -88,7 +89,9 @@ export default function SaleDetailPage() {
                     _qty: 1,
                     _subtotal: Number(it.subtotal) / qty,
                     _discount: Number(it.discount) / qty,
-                    _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || ""
+                    _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || "",
+                    _warranty: (it.unit_warranties && it.unit_warranties[i]) ?? it.product_warranty_months ?? 0,
+                    _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[i]) ?? it.product_replacement_guarantee_days ?? 0,
                   }));
                 }
                 return [{
@@ -97,13 +100,17 @@ export default function SaleDetailPage() {
                   _qty: qty,
                   _subtotal: Number(it.subtotal),
                   _discount: Number(it.discount),
-                  _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || ""
+                  _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || "",
+                  _warranty: (it.unit_warranties && it.unit_warranties[0]) ?? it.product_warranty_months ?? 0,
+                  _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[0]) ?? it.product_replacement_guarantee_days ?? 0,
                 }];
               }).map((it) => (
                 <tr key={it._extId}>
                   <td>
-                    {it.product_name}
+                    <div className="fw-medium">{it.product_name}</div>
                     {it._barcode && <div className="text-secondary" style={{fontSize: "0.75rem"}}>Barcode: {it._barcode}</div>}
+                    {it._warranty > 0 && <div className="text-success" style={{fontSize: "0.75rem"}}>Warranty: {it._warranty} Months</div>}
+                    {it._guarantee > 0 && <div className="text-info" style={{fontSize: "0.75rem"}}>Replacement Guarantee: {it._guarantee} Days</div>}
                   </td>
                   <td className="text-end">{it._qty}</td>
                   <td className="text-end">{money(it.unit_price)}</td>
@@ -148,14 +155,24 @@ export default function SaleDetailPage() {
                     <td className="text-secondary">Subtotal</td>
                     <td className="text-end">{money(sale.subtotal)}</td>
                   </tr>
-                  <tr>
-                    <td className="text-secondary">Discount</td>
-                    <td className="text-end">{money(sale.discount)}</td>
-                  </tr>
-                  <tr>
-                    <td className="text-secondary">Tax</td>
-                    <td className="text-end">{money(sale.tax)}</td>
-                  </tr>
+                  {Number(sale.discount) > 0 && (
+                    <tr>
+                      <td className="text-secondary">Discount</td>
+                      <td className="text-end">- {money(sale.discount)}</td>
+                    </tr>
+                  )}
+                  {Number(sale.delivery_charge) > 0 && (
+                    <tr>
+                      <td className="text-secondary">Delivery Charge</td>
+                      <td className="text-end">+ {money(sale.delivery_charge)}</td>
+                    </tr>
+                  )}
+                  {Number(sale.tax) > 0 && (
+                    <tr>
+                      <td className="text-secondary">Tax</td>
+                      <td className="text-end">+ {money(sale.tax)}</td>
+                    </tr>
+                  )}
                   <tr className="fw-bold">
                     <td>Total</td>
                     <td className="text-end">{money(sale.total)}</td>

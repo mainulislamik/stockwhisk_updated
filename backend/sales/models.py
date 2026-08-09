@@ -33,6 +33,7 @@ class Sale(TenantScopedModel):
 
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    delivery_charge = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     tax = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     paid = models.DecimalField(max_digits=14, decimal_places=2, default=0)

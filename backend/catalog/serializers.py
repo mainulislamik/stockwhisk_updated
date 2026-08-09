@@ -43,6 +43,7 @@ class ProductSerializer(serializers.ModelSerializer):
             "description", "cost_price", "selling_price", "tax_percent",
             "track_inventory", "reorder_level", "current_stock",
             "is_low_stock", "is_active", "variations", "warranty_months",
+            "replacement_guarantee_days",
             "units",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]
@@ -57,6 +58,7 @@ class ProductUnitSerializer(serializers.ModelSerializer):
     effective_cost_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     effective_selling_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     effective_warranty_months = serializers.IntegerField(read_only=True)
+    effective_replacement_guarantee_days = serializers.IntegerField(read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
     variation_name = serializers.CharField(source='variation.name', read_only=True, allow_null=True)
 
@@ -64,7 +66,7 @@ class ProductUnitSerializer(serializers.ModelSerializer):
         model = ProductUnit
         fields = [
             'id', 'product', 'variation', 'barcode', 'status', 'cost_price', 'selling_price', 
-            'warranty_months', 'effective_cost_price', 'effective_selling_price', 
-            'effective_warranty_months', 'product_name', 'variation_name', 'created_at'
+            'warranty_months', 'replacement_guarantee_days', 'effective_cost_price', 'effective_selling_price', 
+            'effective_warranty_months', 'effective_replacement_guarantee_days', 'product_name', 'variation_name', 'created_at'
         ]
-        read_only_fields = ['id', 'effective_cost_price', 'effective_selling_price', 'effective_warranty_months', 'created_at']
+        read_only_fields = ['id', 'effective_cost_price', 'effective_selling_price', 'effective_warranty_months', 'effective_replacement_guarantee_days', 'created_at']

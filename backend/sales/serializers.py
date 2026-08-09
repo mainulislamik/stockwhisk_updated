@@ -11,8 +11,10 @@ class SaleItemSerializer(serializers.ModelSerializer):
     product_sku = serializers.CharField(source="product.sku", read_only=True, default="")
     product_barcode = serializers.CharField(source="product.barcode", read_only=True, default="")
     product_warranty_months = serializers.IntegerField(source="product.warranty_months", read_only=True, default=0)
+    product_replacement_guarantee_days = serializers.IntegerField(source="product.replacement_guarantee_days", read_only=True, default=0)
     unit_barcodes = serializers.SerializerMethodField()
     unit_warranties = serializers.SerializerMethodField()
+    unit_replacement_guarantees = serializers.SerializerMethodField()
 
     def get_unit_barcodes(self, obj):
         if not getattr(obj, "sale", None):
@@ -36,11 +38,23 @@ class SaleItemSerializer(serializers.ModelSerializer):
             u.warranty_months if u.warranty_months is not None else getattr(obj.product, "warranty_months", 0)
             for u in units if u.product_id == obj.product_id
         ]
+    def get_unit_replacement_guarantees(self, obj):
+        if not getattr(obj, "sale", None):
+            return []
+        units = getattr(obj.sale, "units", None)
+        if hasattr(units, "all"):
+            units = units.all()
+        if not units:
+            return []
+        return [
+            u.replacement_guarantee_days if u.replacement_guarantee_days is not None else getattr(obj.product, "replacement_guarantee_days", 0)
+            for u in units if u.product_id == obj.product_id
+        ]
 
     class Meta:
         model = SaleItem
         fields = [
-            "id", "product", "product_name", "product_sku", "product_barcode", "product_warranty_months", "unit_barcodes", "unit_warranties", "variation", "quantity",
+            "id", "product", "product_name", "product_sku", "product_barcode", "product_warranty_months", "product_replacement_guarantee_days", "unit_barcodes", "unit_warranties", "unit_replacement_guarantees", "variation", "quantity",
             "unit_price", "unit_cost", "discount", "subtotal",
         ]
         read_only_fields = ["unit_cost", "subtotal"]
@@ -71,7 +85,7 @@ class SaleSerializer(serializers.ModelSerializer):
         fields = [
             "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone",
             "branch", "sale_date",
-            "subtotal", "discount", "tax", "total", "paid", "due", "status",
+            "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
             "note", "items", "payments", "created_at",
         ]
         read_only_fields = fields
@@ -104,6 +118,7 @@ class SaleCreateSerializer(serializers.Serializer):
         queryset=Customer.objects, required=False, allow_null=True
     )
     discount = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
+    delivery_charge = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
     tax = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
     note = serializers.CharField(required=False, allow_blank=True, default="")
     items = SaleItemInputSerializer(many=True)

@@ -27,6 +27,7 @@ export default function PosCustomerPage() {
   const [walkPhone, setWalkPhone] = useState("");
   const [walkAddress, setWalkAddress] = useState("");
   const [discount, setDiscount] = useState(0);
+  const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");
   const [method, setMethod] = useState("cash");
   const [busy, setBusy] = useState(false);
@@ -40,7 +41,7 @@ export default function PosCustomerPage() {
   }, [router]);
 
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
-  const total = Math.max(0, subtotal - discount);
+  const total = Math.max(0, subtotal - discount + deliveryCharge);
   const paidNum = Number(paid) || 0;
   const change = paidNum > total ? paidNum - total : 0;
 
@@ -66,6 +67,7 @@ export default function PosCustomerPage() {
         body: {
           customer: customerId2,
           discount,
+          delivery_charge: deliveryCharge,
           tax: 0,
           note: "",
           items: cart.map((l) => ({ 
@@ -168,13 +170,19 @@ export default function PosCustomerPage() {
             )}
 
             <div className="row g-3">
-              <div className="col-6">
+              <div className="col-4">
                 <div className="form-floating">
                   <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} />
                   <label htmlFor="discountInput">Discount (৳)</label>
                 </div>
               </div>
-              <div className="col-6">
+              <div className="col-4">
+                <div className="form-floating">
+                  <input id="deliveryChargeInput" type="number" min={0} className="form-control fw-bold text-info shadow-sm" value={deliveryCharge} onChange={(e) => setDeliveryCharge(Number(e.target.value) || 0)} />
+                  <label htmlFor="deliveryChargeInput" style={{ fontSize: "0.8rem" }}>Delivery (৳)</label>
+                </div>
+              </div>
+              <div className="col-4">
                 <div className="form-floating">
                   <input id="paidInput" type="number" min={0} className="form-control fw-bold text-primary shadow-sm" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder={String(total)} />
                   <label htmlFor="paidInput">Amount paid *</label>
@@ -192,6 +200,7 @@ export default function PosCustomerPage() {
             <div className="border-top border-bottom py-3 my-2 bg-body-tertiary rounded-3 px-3 shadow-sm">
               <div className="d-flex justify-content-between text-secondary mb-2"><span>Subtotal</span><span>{money(subtotal)}</span></div>
               {discount > 0 && <div className="d-flex justify-content-between text-success mb-2"><span>Discount</span><span>- {money(discount)}</span></div>}
+              {deliveryCharge > 0 && <div className="d-flex justify-content-between text-info mb-2"><span>Delivery Charge</span><span>+ {money(deliveryCharge)}</span></div>}
               <div className="d-flex justify-content-between fw-bold fs-5 mb-2"><span>Total</span><span>{money(total)}</span></div>
               {change > 0 && <div className="d-flex justify-content-between text-info fw-semibold border-top pt-2 mt-2"><span>Change due</span><span>{money(change)}</span></div>}
             </div>

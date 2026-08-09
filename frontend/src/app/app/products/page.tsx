@@ -32,7 +32,7 @@ export default function ProductsPage() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "" });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
   const [saving, setSaving] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
@@ -74,9 +74,10 @@ export default function ProductsPage() {
           selling_price: form.selling_price || 0,
           reorder_level: form.reorder_level || 5,
           warranty_months: form.warranty_months || 0,
+          replacement_guarantee_days: form.replacement_guarantee_days || 0,
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "" });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
       setShowAdd(false);
       await load();
     } catch (e: any) {
@@ -202,9 +203,13 @@ export default function ProductsPage() {
                 <label className="small">Reorder level</label>
                 <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="5" />
               </div>
-              <div className="col-md-3">
+              <div className="col-md-2">
                 <label className="small">Warranty (months)</label>
                 <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
+              </div>
+              <div className="col-md-2">
+                <label className="small" title="Replacement Guarantee (Days)">Replacement (Days)</label>
+                <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
               </div>
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>

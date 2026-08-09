@@ -19,7 +19,9 @@ type SaleItem = {
   unit_barcodes?: string[];
   product_barcode?: string;
   product_warranty_months?: number;
+  product_replacement_guarantee_days?: number;
   unit_warranties?: number[];
+  unit_replacement_guarantees?: number[];
 };
 type Payment = { id: number; amount: string; method: string };
 type Sale = {
@@ -30,6 +32,7 @@ type Sale = {
   sale_date: string;
   subtotal: string;
   discount: string;
+  delivery_charge: string;
   tax: string;
   total: string;
   paid: string;
@@ -177,7 +180,8 @@ export default function InvoicePage() {
                   _qty: 1,
                   _subtotal: Number(it.subtotal) / qty,
                   _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || "",
-                  _warranty: (it.unit_warranties && it.unit_warranties[i]) || it.product_warranty_months || 0
+                  _warranty: (it.unit_warranties && it.unit_warranties[i]) ?? it.product_warranty_months ?? 0,
+                  _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[i]) ?? it.product_replacement_guarantee_days ?? 0,
                 }));
               }
               return [{
@@ -186,7 +190,8 @@ export default function InvoicePage() {
                 _qty: qty,
                 _subtotal: Number(it.subtotal),
                 _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || "",
-                _warranty: (it.unit_warranties && it.unit_warranties[0]) || it.product_warranty_months || 0
+                _warranty: (it.unit_warranties && it.unit_warranties[0]) ?? it.product_warranty_months ?? 0,
+                _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[0]) ?? it.product_replacement_guarantee_days ?? 0,
               }];
             }).map((item, i) => (
               <tr key={item._extId} className={i % 2 === 0 ? "inv-row-even" : "inv-row-odd"}>
@@ -194,6 +199,7 @@ export default function InvoicePage() {
                 <td className="inv-product-name">
                   {item.product_name}
                   {!!item._warranty && <span style={{ marginLeft: "4px", fontSize: "0.85em", color: "#475569" }}>- Warranty: {item._warranty} Months</span>}
+                  {!!item._guarantee && <span style={{ marginLeft: "4px", fontSize: "0.85em", color: "#0ea5e9" }}>- Guarantee: {item._guarantee} Days</span>}
                   {item._barcode && <div style={{ fontSize: "0.85em", color: "#64748b" }}>Barcode: {item._barcode}</div>}
                 </td>
                 <td className="inv-td-center">{item._qty}</td>
@@ -225,6 +231,11 @@ export default function InvoicePage() {
             {totalDiscount > 0 && (
               <div className="inv-total-row inv-disc-row">
                 <span>Total Discounts</span><span>-{fmt(totalDiscount)}</span>
+              </div>
+            )}
+            {Number(sale.delivery_charge) > 0 && (
+              <div className="inv-total-row">
+                <span>Delivery Charge</span><span>{fmt(sale.delivery_charge)}</span>
               </div>
             )}
             {Number(sale.tax) > 0 && (

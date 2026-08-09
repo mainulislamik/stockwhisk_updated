@@ -31,7 +31,7 @@ def _next_invoice_no(shop) -> str:
 
 @transaction.atomic
 def create_sale(
-    *, shop, items, customer=None, branch=None, discount=ZERO, tax=ZERO,
+    *, shop, items, customer=None, branch=None, discount=ZERO, delivery_charge=ZERO, tax=ZERO,
     payments=None, sale_date=None, note="", created_by=None,
     customer_name="", customer_phone="", customer_address="",
     idempotency_key="",
@@ -88,6 +88,7 @@ def create_sale(
                 )
 
     discount = Decimal(discount or 0)
+    delivery_charge = Decimal(delivery_charge or 0)
     tax = Decimal(tax or 0)
     sale_date = sale_date or timezone.now()
     payments = payments or []
@@ -98,7 +99,7 @@ def create_sale(
     # a savepoint inside the outer atomic block.
     common = dict(
         shop=shop, customer=customer, branch=branch, sale_date=sale_date,
-        discount=discount, tax=tax, note=note, created_by=created_by,
+        discount=discount, delivery_charge=delivery_charge, tax=tax, note=note, created_by=created_by,
         status=Sale.Status.DUE, idempotency_key=idempotency_key,
         # Clip walk-in receipt fields to their CharField limits (Postgres/MySQL
         # raise on overflow; SQLite silently truncates — keep both consistent).
@@ -165,7 +166,7 @@ def create_sale(
         tax = ((subtotal - discount) * Decimal(shop.vat_percent) / Decimal("100")).quantize(Decimal("0.01"))
         sale.tax = tax
 
-    total = subtotal - discount + tax
+    total = subtotal - discount + delivery_charge + tax
     paid = ZERO
     for p in payments:
         amount = Decimal(p["amount"])
@@ -184,7 +185,7 @@ def create_sale(
     sale.total = total
     sale.paid = paid
     sale.status = _resolve_status(total, paid)
-    sale.save(update_fields=["subtotal", "total", "paid", "status", "discount", "tax"])
+    sale.save(update_fields=["subtotal", "total", "paid", "status", "discount", "delivery_charge", "tax"])
 
     if customer is not None:
         _update_customer_after_sale(customer, total=total, due=total - paid, when=sale_date)

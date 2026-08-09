@@ -81,6 +81,8 @@ class Product(TenantScopedModel):
     )
     # Default warranty period offered on this product, in months (0 = none).
     warranty_months = models.PositiveSmallIntegerField(default=0)
+    # Default replacement guarantee in days (e.g. 7, 30) (0 = none).
+    replacement_guarantee_days = models.PositiveSmallIntegerField(default=0)
 
     description = models.TextField(blank=True)
     cost_price = models.DecimalField(
@@ -150,6 +152,7 @@ class ProductUnit(TenantScopedModel):
     # Warranty duration snapshotted per barcode at purchase, so this row alone is
     # the single source of truth a POS scan reads (price + cost + warranty).
     warranty_months = models.PositiveIntegerField(null=True, blank=True)
+    replacement_guarantee_days = models.PositiveIntegerField(null=True, blank=True)
     sale = models.ForeignKey(
         "sales.Sale", on_delete=models.SET_NULL, null=True, blank=True, related_name="units"
     )
@@ -176,6 +179,10 @@ class ProductUnit(TenantScopedModel):
     @property
     def effective_warranty_months(self):
         return self.warranty_months if self.warranty_months is not None else (self.product.warranty_months or 0)
+
+    @property
+    def effective_replacement_guarantee_days(self):
+        return self.replacement_guarantee_days if self.replacement_guarantee_days is not None else (self.product.replacement_guarantee_days or 0)
 
     @property
     def effective_profit(self):
