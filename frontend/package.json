@@ -14,6 +14,7 @@
     "@mui/icons-material": "^9.2.0",
     "@mui/material": "^9.2.0",
     "@mui/material-nextjs": "^9.1.1",
+    "html5-qrcode": "^2.3.8",
     "next": "14.2.15",
     "react": "18.3.1",
     "react-barcode": "^1.6.1",

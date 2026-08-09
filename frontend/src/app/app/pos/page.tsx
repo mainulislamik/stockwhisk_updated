@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
+import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
@@ -27,6 +28,7 @@ export default function PosPage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
   const [scanning, setScanning] = useState(false);
+  const [showScanner, setShowScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState<ScanMsg>(null);
   const msgTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -128,9 +130,8 @@ export default function PosPage() {
     );
   }, [barcodeProducts, query]);
 
-  // ── Enter / scan handler ────────────────────────────────────────────────
-  const handleEnter = useCallback(async () => {
-    const code = query.trim();
+  // ── Process code ────────────────────────────────────────────────────────
+  const processCode = useCallback(async (code: string) => {
     if (!code) return;
 
     // 1. Exact barcode match
@@ -142,10 +143,10 @@ export default function PosPage() {
     if (bySku) { tryAdd(bySku); return; }
 
     // 3. Exactly one filtered result → auto-add
-    if (shown.length === 1) { tryAdd(shown[0]); return; }
+    if (shown.length === 1 && query === code) { tryAdd(shown[0]); return; }
 
     // 4. Multiple results → keep showing
-    if (shown.length > 1) return;
+    if (shown.length > 1 && query === code) return;
 
     // 5. No local match → backend lookup
     setScanning(true);
@@ -163,7 +164,12 @@ export default function PosPage() {
     } finally {
       setScanning(false);
     }
-  }, [query, products, shown]);
+  }, [products, shown, query, tryAdd]);
+
+  // ── Enter / scan handler ────────────────────────────────────────────────
+  const handleEnter = useCallback(async () => {
+    await processCode(query.trim());
+  }, [query, processCode]);
 
   // ── Assign barcode from within POS ─────────────────────────────────────
   const assignSuggestions = useMemo(() => {
@@ -232,6 +238,13 @@ export default function PosPage() {
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleEnter(); } }}
                 />
+                <button 
+                  className="btn btn-outline-secondary d-md-none" 
+                  onClick={() => setShowScanner(true)}
+                  title="Scan with Mobile Camera"
+                >
+                  📷
+                </button>
                 {query && (
                   <button className="btn btn-outline-secondary" onClick={() => { setQuery(""); inputRef.current?.focus(); }}>✕</button>
                 )}
@@ -556,6 +569,18 @@ export default function PosPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ── Camera Scanner Modal ── */}
+      {showScanner && (
+        <ScannerModal
+          onScan={(code) => {
+            setShowScanner(false);
+            setQuery(code);
+            processCode(code);
+          }}
+          onClose={() => setShowScanner(false)}
+        />
       )}
     </>
   );
