@@ -125,3 +125,13 @@ export function fmtDate(v: any): string {
   if (isNaN(d.getTime())) return String(v);
   return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
 }
+
+export function fmtDateTime(v: any): string {
+  if (!v) return "—";
+  const d = new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleString(undefined, { 
+    year: "numeric", month: "short", day: "numeric", 
+    hour: "numeric", minute: "numeric", hour12: true 
+  });
+}

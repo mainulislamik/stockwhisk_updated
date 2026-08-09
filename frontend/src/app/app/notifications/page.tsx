@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
-import { ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
+import { ErrorState, PageHeader, Spinner, fmtDateTime } from "@/components/ui";
 
 type Note = { id: number; type: string; title: string; message: string; is_read: boolean; created_at: string };
 
@@ -92,7 +92,7 @@ export default function NotificationsPage() {
                       {n.title}
                     </div>
                     {n.message && <div className="small text-secondary mt-1">{n.message}</div>}
-                    <div className="small text-secondary mt-1">{fmtDate(n.created_at)}</div>
+                    <div className="small text-secondary mt-1">{fmtDateTime(n.created_at)}</div>
                   </div>
                 </div>
                 {!n.is_read && (
