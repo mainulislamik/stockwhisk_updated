@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
@@ -188,7 +189,7 @@ export default function PosPage() {
       setQuery("");
       flash(`✓ Barcode assigned to "${assignSelected.name}" — scan again to add`, true);
     } catch (e: any) {
-      alert(e?.message || "Could not assign barcode");
+      toast.error(e?.message || "Could not assign barcode");
     } finally {
       setAssignSaving(false);
       setTimeout(() => inputRef.current?.focus(), 100);

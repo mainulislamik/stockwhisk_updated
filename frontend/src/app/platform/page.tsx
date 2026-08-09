@@ -6,6 +6,7 @@ import { api } from "@/lib/api";
 import { startImpersonation } from "@/lib/impersonation";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner, StatCard, money } from "@/components/ui";
 import { ServerMetrics } from "./ServerMetrics";
+import toast from "react-hot-toast";
 
 type Shop = {
   id: number;
@@ -44,7 +45,7 @@ export default function OverviewPage() {
       );
       startImpersonation(t);
     } catch (e: any) {
-      alert(e?.message || "Could not log in as this shop.");
+      toast.error(e?.message || "Could not log in as this shop.");
     }
   }, []);
 

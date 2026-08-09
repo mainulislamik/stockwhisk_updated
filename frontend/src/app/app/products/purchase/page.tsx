@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Product = {
   id: number; name: string; sku: string; barcode: string;
@@ -117,7 +118,7 @@ export default function PurchaseProductPage() {
       // also add to receive list automatically
       setLines((prev) => [...prev, { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: [] }]);
     } catch (e: any) {
-      alert(e?.message || "Could not create product");
+      toast.error(e?.message || "Could not create product");
     } finally { setSavingProd(false); }
   }
 
@@ -133,7 +134,7 @@ export default function PurchaseProductPage() {
       setShowNewVendor(false);
       setNewVendor({ name: "", phone: "", address: "" });
     } catch (e: any) {
-      alert(e?.message || "Could not add vendor");
+      toast.error(e?.message || "Could not add vendor");
     } finally { setSavingVendor(false); }
   }
 

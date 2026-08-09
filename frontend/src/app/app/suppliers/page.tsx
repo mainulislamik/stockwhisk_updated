@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Supplier = { id: number; name: string; phone: string; email: string; address: string; due_balance: string; is_active: boolean };
 const BLANK = { name: "", phone: "", email: "", address: "" };
@@ -37,7 +38,7 @@ export default function SuppliersPage() {
       setForm({ ...BLANK });
       setShowAdd(false);
       await load();
-    } catch (e: any) { alert(e?.message || "Could not save supplier"); }
+    } catch (e: any) { toast.error(e?.message || "Could not save supplier"); }
     finally { setSaving(false); }
   }
 
@@ -48,7 +49,7 @@ export default function SuppliersPage() {
       await api(`/purchasing/suppliers/${id}/`, { method: "PATCH", body: editForm });
       setEditing(null);
       await load();
-    } catch (e: any) { alert(e?.message || "Could not update supplier"); }
+    } catch (e: any) { toast.error(e?.message || "Could not update supplier"); }
     finally { setSaving(false); }
   }
 
@@ -57,7 +58,7 @@ export default function SuppliersPage() {
     try {
       await api(`/purchasing/suppliers/${s.id}/`, { method: "DELETE" });
       setRows((r) => r.filter((x) => x.id !== s.id));
-    } catch (e: any) { alert(e?.message || "Could not delete supplier"); }
+    } catch (e: any) { toast.error(e?.message || "Could not delete supplier"); }
   }
 
   function startEdit(s: Supplier) {

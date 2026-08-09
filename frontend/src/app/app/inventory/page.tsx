@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type InvSummary = {
   stock_value: number;
@@ -72,7 +73,7 @@ export default function InventoryPage() {
       setAdj({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not adjust stock");
+      toast.error(e?.message || "Could not adjust stock");
     } finally {
       setSaving(false);
     }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Key = {
   id: number;
@@ -59,7 +60,7 @@ export default function ApiKeysPage() {
       setForm((f) => ({ ...f, name: "" }));
       await load();
     } catch (e: any) {
-      alert(e?.data?.detail || e?.message || "Could not create key.");
+      toast.error(e?.data?.detail || e?.message || "Could not create key.");
     } finally {
       setBusy(false);
     }
@@ -68,7 +69,7 @@ export default function ApiKeysPage() {
   async function revoke(k: Key) {
     if (!confirm(`Revoke "${k.name}"?`)) return;
     try { await api(`/platform/api-keys/${k.id}/`, { method: "DELETE" }); await load(); }
-    catch (e: any) { alert(e?.message || "Failed."); }
+    catch (e: any) { toast.error(e?.message || "Failed."); }
   }
 
   async function regenerate(k: Key) {
@@ -77,7 +78,7 @@ export default function ApiKeysPage() {
       const res = await api<Key & { raw_key: string }>(`/platform/api-keys/${k.id}/regenerate/`, { method: "POST" });
       setRawKey({ name: res.name, key: res.raw_key });
       await load();
-    } catch (e: any) { alert(e?.message || "Failed."); }
+    } catch (e: any) { toast.error(e?.message || "Failed."); }
   }
 
   if (error) return <ErrorState error={error} />;

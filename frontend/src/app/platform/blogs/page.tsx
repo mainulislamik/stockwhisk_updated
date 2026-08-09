@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, unwrap } from "@/lib/api";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type BlogPost = {
   id: number;
@@ -34,7 +35,7 @@ export default function BlogsAdminPage() {
       await api(`/platform/blogs/${slug}/`, { method: "DELETE" });
       fetchBlogs();
     } catch (e: any) {
-      alert(e?.message || "Failed to delete blog.");
+      toast.error(e?.message || "Failed to delete blog.");
     }
   };
 

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Card, PageHeader, Spinner, ErrorState } from "@/components/ui";
+import toast from "react-hot-toast";
 
 export default function BlogEditorPage() {
   const params = useParams();
@@ -62,7 +63,7 @@ export default function BlogEditorPage() {
       }
       router.push("/platform/blogs");
     } catch (err: any) {
-      alert(err?.message || "Failed to save blog post.");
+      toast.error(err?.message || "Failed to save blog post.");
     } finally {
       setSaving(false);
     }

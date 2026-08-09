@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Ticket = {
   id: number;
@@ -74,7 +75,7 @@ export default function TicketsPage() {
       setShowAdd(false);
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not create ticket");
+      toast.error(e?.message || "Could not create ticket");
     } finally {
       setSaving(false);
     }

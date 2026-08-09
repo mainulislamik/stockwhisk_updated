@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { ErrorState, Spinner } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Named = { id: number; name: string };
 
@@ -58,7 +59,7 @@ export default function ProductEditPage() {
       });
       router.push(`/app/products/${id}`);
     } catch (e: any) {
-      alert(e?.message || "Could not save");
+      toast.error(e?.message || "Could not save");
       setSaving(false);
     }
   }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Message = {
   id: number;
@@ -44,12 +45,12 @@ export default function MessagesPage() {
 
   async function markRead(m: Message) {
     try { await api(`/platform/messages/${m.id}/mark-read/`, { method: "POST" }); await load(); }
-    catch (e: any) { alert(e?.message || "Failed."); }
+    catch (e: any) { toast.error(e?.message || "Failed."); }
   }
   async function del(m: Message) {
     if (!confirm("Delete this message?")) return;
     try { await api(`/platform/messages/${m.id}/`, { method: "DELETE" }); await load(); }
-    catch (e: any) { alert(e?.message || "Failed."); }
+    catch (e: any) { toast.error(e?.message || "Failed."); }
   }
 
   if (error) return <ErrorState error={error} />;

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { EmptyRow, ErrorState, PageHeader, Spinner, fmtDate, money } from "@/components/ui";
+import toast from "react-hot-toast";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
 
@@ -56,7 +57,7 @@ export default function PaymentsPage() {
       await api(`/platform/manual-payments/${p.id}/${decision}/`, { method: "POST", body: decision === "reject" ? { reason } : undefined });
       await load();
     } catch (e: any) {
-      alert(e?.data?.detail || e?.message || "Action failed.");
+      toast.error(e?.data?.detail || e?.message || "Action failed.");
     } finally {
       setBusy(null);
     }

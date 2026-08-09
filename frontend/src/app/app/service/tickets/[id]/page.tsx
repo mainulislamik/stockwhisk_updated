@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Part = { id: number; product_name: string; quantity: string; unit_cost: string };
 type History = { id: number; from_status: string; to_status: string; note: string; created_at: string };
@@ -51,7 +52,7 @@ export default function TicketDetailPage() {
       await api(`/service/tickets/${id}/change_status/`, { method: "POST", body: { status } });
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not change status");
+      toast.error(e?.message || "Could not change status");
     }
   }
 

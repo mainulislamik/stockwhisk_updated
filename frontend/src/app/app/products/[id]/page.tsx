@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { Card, ErrorState, Spinner, money, fmtDate } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Product = {
   id: number;
@@ -64,7 +65,7 @@ export default function ProductProfilePage() {
       setUnits(unwrap(un));
       setEditingUnit(null);
     } catch (e: any) {
-      alert(e.message || "Failed to update unit");
+      toast.error(e.message || "Failed to update unit");
     }
   };
 

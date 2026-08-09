@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type DayTrend = { day: string; revenue: string; discount: string; tax: string };
 type PaymentMethod = { method: string; total: string };
@@ -215,7 +216,7 @@ export default function ReportsPage() {
       a.click();
       URL.revokeObjectURL(url);
     } catch (e: any) {
-      alert(e?.message || "Could not export");
+      toast.error(e?.message || "Could not export");
     }
   }
 

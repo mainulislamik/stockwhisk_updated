@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Video = {
   id: number;
@@ -40,7 +41,7 @@ export default function TutorialsPage() {
       setForm({ title: "", youtube_url: "", sequence: "" });
       await load();
     } catch (e: any) {
-      alert(e?.data?.youtube_url || e?.data?.detail || e?.message || "Could not add video.");
+      toast.error(e?.data?.youtube_url || e?.data?.detail || e?.message || "Could not add video.");
     } finally { setBusy(false); }
   }
 
@@ -54,14 +55,14 @@ export default function TutorialsPage() {
       setEditing(null);
       await load();
     } catch (e: any) {
-      alert(e?.data?.youtube_url || e?.data?.detail || e?.message || "Save failed.");
+      toast.error(e?.data?.youtube_url || e?.data?.detail || e?.message || "Save failed.");
     }
   }
 
   async function del(v: Video) {
     if (!confirm(`Delete "${v.title}"?`)) return;
     try { await api(`/platform/tutorials/${v.id}/`, { method: "DELETE" }); await load(); }
-    catch (e: any) { alert(e?.message || "Failed."); }
+    catch (e: any) { toast.error(e?.message || "Failed."); }
   }
 
   if (error) return <ErrorState error={error} />;

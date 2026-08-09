@@ -5,6 +5,7 @@ import { Card } from "@/components/ui";
 import { fmtDate } from "@/components/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
+import toast from "react-hot-toast";
 
 export default function SettingsPage() {
   const { user, billing, isOwner, reload } = useAuth();
@@ -55,7 +56,7 @@ export default function SettingsPage() {
       await reload();
       setTimeout(() => setProfileSuccess(false), 3000);
     } catch (err: any) {
-      alert(err?.message || "Failed to update profile");
+      toast.error(err?.message || "Failed to update profile");
     } finally {
       setProfileBusy(false);
     }
@@ -86,7 +87,7 @@ export default function SettingsPage() {
       await reload(); // reload user to get updated shop name
       setTimeout(() => setShopSuccess(false), 3000);
     } catch (err: any) {
-      alert(err?.message || "Failed to update shop settings");
+      toast.error(err?.message || "Failed to update shop settings");
     } finally {
       setShopBusy(false);
     }

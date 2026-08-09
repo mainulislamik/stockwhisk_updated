@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { api, unwrap } from "@/lib/api";
 import { money } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Product = { id: number; name: string; sku: string; barcode: string; selling_price: string; cost_price: string; current_stock: string };
 
@@ -19,7 +20,7 @@ export default function ItemLookupPage() {
       setRows(unwrap<Product>(await api("/catalog/products/", { params: { search: query } })));
       setSearched(true);
     } catch (err: any) {
-      alert(err?.message || "Lookup failed");
+      toast.error(err?.message || "Lookup failed");
     } finally {
       setBusy(false);
     }

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Role = { id: number; role_type: string; name: string; is_system: boolean; permission_codes: string[] };
 type Perm = { id: number; code: string; name: string; category: string; description: string };
@@ -86,7 +87,7 @@ export default function UsersPage() {
       setEditingRole(null);
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not save permissions");
+      toast.error(e?.message || "Could not save permissions");
     } finally {
       setSavingRole(false);
     }
@@ -108,7 +109,7 @@ export default function UsersPage() {
         setShowAddUser(true); // Keep modal open just to show password
       }
     } catch (e: any) {
-      alert(e?.message || "Failed to create user");
+      toast.error(e?.message || "Failed to create user");
     } finally {
       setAddingUser(false);
     }
@@ -120,7 +121,7 @@ export default function UsersPage() {
       await api(`/users/${u.id}/`, { method: "PATCH", body: { is_active: !u.is_active } });
       await load();
     } catch (e: any) {
-      alert(e?.message || "Failed to update user status");
+      toast.error(e?.message || "Failed to update user status");
     }
   };
 

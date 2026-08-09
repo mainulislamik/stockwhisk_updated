@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -55,7 +56,7 @@ export default function ImportsPage() {
   async function upload(e: React.FormEvent) {
     e.preventDefault();
     const f = fileRef.current?.files?.[0];
-    if (!shop || !f) { alert("Pick a shop and a file."); return; }
+    if (!shop || !f) { toast.error("Pick a shop and a file."); return; }
     setBusy(true);
     try {
       const fd = new FormData();
@@ -65,7 +66,7 @@ export default function ImportsPage() {
       const job = await api<{ id: string }>("/platform/imports/upload/", { method: "POST", body: fd });
       router.push(`/platform/imports/${job.id}`);
     } catch (e: any) {
-      alert(e?.data?.detail || e?.message || "Upload failed.");
+      toast.error(e?.data?.detail || e?.message || "Upload failed.");
       setBusy(false);
     }
   }

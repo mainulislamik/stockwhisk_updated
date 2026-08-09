@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Product = {
   id: number;
@@ -79,7 +80,7 @@ export default function ProductsPage() {
       setShowAdd(false);
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not save product");
+      toast.error(e?.message || "Could not save product");
     } finally {
       setSaving(false);
     }
@@ -90,7 +91,7 @@ export default function ProductsPage() {
       await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { is_active: !p.is_active } });
       setProducts((ps) => ps.map((x) => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)));
     } catch (e: any) {
-      alert(e?.message || "Could not update");
+      toast.error(e?.message || "Could not update");
     }
   }
 
@@ -100,7 +101,7 @@ export default function ProductsPage() {
       await api(`/catalog/products/${p.id}/`, { method: "DELETE" });
       setProducts((ps) => ps.filter((x) => x.id !== p.id));
     } catch (e: any) {
-      alert(e?.message || "Could not delete");
+      toast.error(e?.message || "Could not delete");
     }
   }
 
@@ -113,7 +114,7 @@ export default function ProductsPage() {
       else { setBrands((b) => [...b, created]); setNewBrand(""); }
       setForm((f: any) => ({ ...f, [kind]: created.id }));
     } catch (e: any) {
-      alert(e?.message || "Could not add");
+      toast.error(e?.message || "Could not add");
     }
   }
 

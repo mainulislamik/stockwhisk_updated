@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner, fmtDateTime } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Note = { id: number; type: string; title: string; message: string; is_read: boolean; created_at: string };
 
@@ -37,7 +38,7 @@ export default function NotificationsPage() {
       setRows((rs) => rs.map((r) => (r.id === n.id ? { ...r, is_read: true } : r)));
       window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
-      alert(e?.message || "Could not update");
+      toast.error(e?.message || "Could not update");
     }
   }
 
@@ -47,7 +48,7 @@ export default function NotificationsPage() {
       setRows((rs) => rs.map((r) => ({ ...r, is_read: true })));
       window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
-      alert(e?.message || "Could not update");
+      toast.error(e?.message || "Could not update");
     }
   }
 

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, fetchAll } from "@/lib/api";
 import { startImpersonation } from "@/lib/impersonation";
 import { EmptyRow, ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Shop = {
   id: number;
@@ -59,7 +60,7 @@ export default function ShopsPage() {
         `/platform/shops/${shop.id}/login-as/`, { method: "POST" });
       startImpersonation(t);
     } catch (e: any) {
-      alert(e?.message || "Could not log in as this shop.");
+      toast.error(e?.message || "Could not log in as this shop.");
     }
   }, []);
 
@@ -69,7 +70,7 @@ export default function ShopsPage() {
       await api(`/platform/shops/${shop.id}/${shop.is_active ? "suspend" : "activate"}/`, { method: "POST" });
       await load();
     } catch (e: any) {
-      alert(e?.message || "Action failed.");
+      toast.error(e?.message || "Action failed.");
     } finally {
       setBusy(null);
     }
@@ -159,7 +160,7 @@ function OwnerPwModal({ shop, onClose }: { shop: Shop; onClose: () => void }) {
     setBusy(true);
     try {
       await api(`/platform/shops/${shop.id}/owner-password/`, { method: "POST", body: { new_password: pw } });
-      alert(`Owner password reset for ${shop.name}.`);
+      toast.error(`Owner password reset for ${shop.name}.`);
       onClose();
     } catch (e: any) {
       setErr(e?.data?.detail || e?.message || "Failed.");
@@ -197,7 +198,7 @@ function DeleteModal({ shop, onClose }: { shop: Shop; onClose: (done?: boolean) 
     setBusy(true);
     try {
       await api(`/platform/shops/${shop.id}/`, { method: "DELETE", body: { confirm_name: name } });
-      alert(`Shop '${shop.name}' permanently deleted.`);
+      toast.error(`Shop '${shop.name}' permanently deleted.`);
       onClose(true);
     } catch (e: any) {
       setErr(e?.data?.detail || e?.message || "Failed.");

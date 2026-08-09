@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -219,7 +220,7 @@ function CommittedStep({ job, onDone }: { job: Job; onDone: () => void }) {
       await api(`/platform/imports/jobs/${job.id}/rollback/`, { method: "POST" });
       onDone();
     } catch (e: any) {
-      alert(e?.data?.detail || e?.message || "Rollback failed.");
+      toast.error(e?.data?.detail || e?.message || "Rollback failed.");
     } finally {
       setBusy(false);
     }

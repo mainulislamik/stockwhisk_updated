@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type PO = {
   id: number;
@@ -51,7 +52,7 @@ export default function PurchasesPage() {
       await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid: Number(paid) || 0 } });
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not receive PO");
+      toast.error(e?.message || "Could not receive PO");
     }
   }
 

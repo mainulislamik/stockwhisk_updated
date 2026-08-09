@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Expense = { id: number; category: number | null; category_name: string | null; amount: string; spent_on: string; payment_method: string; note: string };
 type Cat = { id: number; name: string };
@@ -42,7 +43,7 @@ export default function ExpensesPage() {
       setForm({ category: "", amount: "", spent_on: new Date().toISOString().slice(0, 10), payment_method: "CASH", note: "" });
       await load();
     } catch (err: any) {
-      alert(err?.message || "Could not save expense");
+      toast.error(err?.message || "Could not save expense");
     } finally {
       setSaving(false);
     }

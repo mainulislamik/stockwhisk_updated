@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import ThemeRegistry from '@/components/ThemeRegistry';
 import { AuthProvider } from "@/components/AuthProvider";
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "StockWhisk",
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <ThemeRegistry>
           <AuthProvider>{children}</AuthProvider>
         </ThemeRegistry>
+        <Toaster position="bottom-center" />
         {/* Bootstrap bundle for offcanvas/modal/dropdown behaviour. */}
         <Script
           src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

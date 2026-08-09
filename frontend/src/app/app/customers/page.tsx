@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Customer = {
   id: number;
@@ -52,7 +53,7 @@ export default function CustomersPage() {
       setShowAdd(false);
       await load();
     } catch (e: any) {
-      alert(e?.message || "Could not save customer");
+      toast.error(e?.message || "Could not save customer");
     } finally {
       setSaving(false);
     }
