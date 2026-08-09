@@ -2,9 +2,16 @@
 # One command:  docker compose up -d --build
 # Frontend:  http://localhost:3000     Backend API/docs:  http://localhost:8000/api/docs/
 
+x-logging: &default-logging
+  driver: "json-file"
+  options:
+    max-size: "10m"
+    max-file: "3"
+
 services:
   db:
     image: postgres:16-alpine
+    command: postgres -c shared_buffers=128MB -c work_mem=4MB -c maintenance_work_mem=16MB
     environment:
       POSTGRES_DB: stockwhisk
       POSTGRES_USER: stockwhisk
@@ -17,10 +24,15 @@ services:
       timeout: 5s
       retries: 10
     restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   redis:
     image: redis:7-alpine
-    command: ["redis-server", "--save", "60", "1", "--appendonly", "no"]
+    command: ["redis-server", "--save", "60", "1", "--appendonly", "no", "--maxmemory", "64mb", "--maxmemory-policy", "allkeys-lru"]
     volumes:
       - redisdata:/data
     healthcheck:
@@ -29,6 +41,11 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   backend:
     build: ./backend
@@ -48,7 +65,7 @@ services:
       CORS_ALLOW_ALL_ORIGINS: "True"
       SECURE_SSL_REDIRECT: "False"
       WEB_CONCURRENCY: "1"
-      GUNICORN_THREADS: "4"
+      GUNICORN_THREADS: "2"
       DB_CONN_MAX_AGE: "600"
     ports:
       - "8000:8000"
@@ -64,10 +81,15 @@ services:
       timeout: 5s
       retries: 5
     restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   worker:
     build: ./backend
-    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1"]
+    command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1", "--max-tasks-per-child=50"]
     environment:
       DB_ENGINE: postgres
       DB_HOST: db
@@ -82,6 +104,11 @@ services:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   beat:
     build: ./backend
@@ -99,6 +126,11 @@ services:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
   frontend:
     build:
@@ -110,9 +142,15 @@ services:
         NEXT_PUBLIC_API_BASE: ""
     environment:
       NODE_ENV: production
+      NODE_OPTIONS: "--max-old-space-size=256"
     depends_on:
       backend: { condition: service_started }
     restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 384M
 
   caddy:
     image: caddy:2-alpine
@@ -129,6 +167,11 @@ services:
     depends_on:
       - frontend
       - backend
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 128M
 
 volumes:
   pgdata:
