@@ -116,7 +116,11 @@ export default function InvoicePage() {
           {/* Left: shop info */}
           <div className="inv-shop-block">
             <div className="d-flex align-items-center gap-2 mb-1">
-              <div className="inv-shop-icon">🏪</div>
+              {user?.shop_logo ? (
+                <img src={user.shop_logo} alt="Logo" style={{ width: "36px", height: "36px", objectFit: "contain", borderRadius: "4px" }} />
+              ) : (
+                <div className="inv-shop-icon">🏪</div>
+              )}
               <div>
                 <div className="inv-shop-name">{shopName}</div>
                 <div className="inv-shop-sub">Business Management System</div>
