@@ -60,13 +60,12 @@ class ProductUnitSerializer(serializers.ModelSerializer):
     effective_warranty_months = serializers.IntegerField(read_only=True)
     effective_replacement_guarantee_days = serializers.IntegerField(read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
-    variation_name = serializers.CharField(source='variation.name', read_only=True, allow_null=True)
 
     class Meta:
         model = ProductUnit
         fields = [
-            'id', 'product', 'variation', 'barcode', 'status', 'cost_price', 'selling_price', 
+            'id', 'product', 'barcode', 'status', 'cost_price', 'selling_price', 
             'warranty_months', 'replacement_guarantee_days', 'effective_cost_price', 'effective_selling_price', 
-            'effective_warranty_months', 'effective_replacement_guarantee_days', 'product_name', 'variation_name', 'created_at'
+            'effective_warranty_months', 'effective_replacement_guarantee_days', 'product_name', 'created_at'
         ]
         read_only_fields = ['id', 'effective_cost_price', 'effective_selling_price', 'effective_warranty_months', 'effective_replacement_guarantee_days', 'created_at']
