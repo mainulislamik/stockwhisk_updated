@@ -43,3 +43,29 @@ class CustomerViewSet(TenantScopedViewSet):
         cutoff = timezone.now() - timedelta(days=days)
         qs = self.get_queryset().filter(last_purchase_at__lt=cutoff)
         return Response(self.get_serializer(qs, many=True).data)
+
+    @action(detail=True, methods=["post"], url_path="pay-due")
+    def pay_due(self, request, pk=None):
+        customer = self.get_object()
+        amount = request.data.get("amount")
+        method = request.data.get("method", "cash")
+        note = request.data.get("note", "")
+
+        if not amount:
+            from rest_framework import status
+            return Response({"detail": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from decimal import Decimal
+            amount = Decimal(str(amount))
+            from .services import pay_customer_due
+            pay_customer_due(
+                customer=customer, amount=amount, method=method,
+                note=note, created_by=request.user
+            )
+        except Exception as e:
+            from rest_framework import status
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        customer.refresh_from_db()
+        return Response(self.get_serializer(customer).data)

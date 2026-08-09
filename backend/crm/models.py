@@ -43,3 +43,35 @@ class Customer(TenantScopedModel):
         if not self.last_purchase_at:
             return None
         return (timezone.now() - self.last_purchase_at).days
+
+class CustomerPayment(TenantScopedModel):
+    """A payment made by a customer against their outstanding due. Reduces
+    the customer's cached ``due_balance`` and records a cash inflow."""
+
+    class Method(models.TextChoices):
+        CASH = "cash", "Cash"
+        BKASH = "bkash", "bKash"
+        NAGAD = "nagad", "Nagad"
+        BANK = "bank", "Bank transfer"
+        SETTLEMENT = "settlement", "Settlement / Adjustment"
+
+    customer = models.ForeignKey(Customer, on_delete=models.PROTECT, related_name="payments")
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    method = models.CharField(max_length=20, choices=Method.choices, default=Method.CASH)
+    reference = models.CharField(max_length=100, blank=True)
+    note = models.CharField(max_length=255, blank=True)
+    paid_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="customer_payments",
+    )
+
+    class Meta:
+        ordering = ["-paid_at"]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(amount__gt=0), name="customer_payment_amount_positive"),
+        ]
+
+    def __str__(self):
+        return f"{self.amount} from customer#{self.customer_id}"
+

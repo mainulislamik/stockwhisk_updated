@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
@@ -28,6 +28,11 @@ export default function CustomersPage() {
   const [filter, setFilter] = useState("");
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
+  
+  // Payment State
+  const [paying, setPaying] = useState<number | null>(null);
+  const [payForm, setPayForm] = useState({ type: "payment", amount: "", method: "cash", note: "" });
+
   const [saving, setSaving] = useState(false);
 
   async function load() {
@@ -40,6 +45,7 @@ export default function CustomersPage() {
       setLoading(false);
     }
   }
+  
   useEffect(() => {
     load();
   }, []);
@@ -59,6 +65,40 @@ export default function CustomersPage() {
     }
   }
 
+  async function processPayment(e: React.FormEvent, c: Customer) {
+    e.preventDefault();
+    setSaving(true);
+    try {
+      // If type is settlement, override method
+      const method = payForm.type === "settlement" ? "settlement" : payForm.method;
+      
+      const updatedCustomer = await api<Customer>(`/crm/customers/${c.id}/pay-due/`, {
+        method: "POST",
+        body: {
+          amount: payForm.amount,
+          method: method,
+          note: payForm.note
+        }
+      });
+      
+      toast.success(payForm.type === "settlement" ? "Settlement recorded successfully!" : "Payment received successfully!");
+      setPaying(null);
+      
+      // Update row in state
+      setRows(r => r.map(x => x.id === c.id ? updatedCustomer : x));
+    } catch (e: any) { 
+      toast.error(e?.message || "Could not process payment"); 
+    } finally { 
+      setSaving(false); 
+    }
+  }
+
+  function startPay(c: Customer) {
+    setPaying(c.id);
+    setPayForm({ type: "payment", amount: c.due_balance, method: "cash", note: "" });
+    setShowAdd(false);
+  }
+
   const shown = rows.filter((c) => {
     const q = filter.trim().toLowerCase();
     return !q || `${c.name} ${c.phone} ${c.email}`.toLowerCase().includes(q);
@@ -73,7 +113,7 @@ export default function CustomersPage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input placeholder="Filter name/phone…" className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
-          <button onClick={() => setShowAdd((s) => !s)} className="btn btn-brand btn-sm">
+          <button onClick={() => { setShowAdd((s) => !s); setPaying(null); }} className="btn btn-brand btn-sm">
             + New customer
           </button>
         )}
@@ -119,25 +159,83 @@ export default function CustomersPage() {
                 <th className="text-end">Total purchased</th>
                 <th className="text-end">Due</th>
                 <th>Last purchase</th>
+                {canManage && <th></th>}
               </tr>
             </thead>
             <tbody>
               {shown.length === 0 ? (
                 <tr data-empty="">
-                  <td colSpan={5} className="text-center text-secondary py-5">
+                  <td colSpan={canManage ? 6 : 5} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>👥</div>
                     No customers yet.
                   </td>
                 </tr>
               ) : (
                 paged.map((c) => (
-                  <tr key={c.id}>
-                    <td className="fw-medium">{c.name}</td>
-                    <td className="text-secondary">{c.phone || "—"}</td>
-                    <td className="text-end">{money(c.total_purchased)}</td>
-                    <td className={`text-end ${Number(c.due_balance) > 0 ? "text-danger fw-semibold" : ""}`}>{money(c.due_balance)}</td>
-                    <td className="text-secondary">{fmtDate(c.last_purchase_at)}</td>
-                  </tr>
+                  <React.Fragment key={c.id}>
+                    <tr>
+                      <td className="fw-medium">{c.name}</td>
+                      <td className="text-secondary">{c.phone || "—"}</td>
+                      <td className="text-end">{money(c.total_purchased)}</td>
+                      <td className={`text-end ${Number(c.due_balance) > 0 ? "text-danger fw-semibold" : ""}`}>{money(c.due_balance)}</td>
+                      <td className="text-secondary">{fmtDate(c.last_purchase_at)}</td>
+                      {canManage && (
+                        <td className="text-end text-nowrap">
+                          {Number(c.due_balance) > 0 && (
+                            <button className="btn btn-brand btn-sm py-0 px-2" style={{ fontSize: "0.8rem" }} onClick={() => startPay(c)}>
+                              Receive / Settle
+                            </button>
+                          )}
+                        </td>
+                      )}
+                    </tr>
+                    
+                    {/* PAY FORM */}
+                    {paying === c.id && (
+                      <tr className="border-bottom">
+                        <td colSpan={canManage ? 6 : 5} className="bg-light p-3 border-start border-4 border-success">
+                          <form onSubmit={(e) => processPayment(e, c)} className="row g-3 align-items-end">
+                            <div className="col-12 mb-1">
+                              <span className="fw-bold text-success me-2">Clear Dues for {c.name}</span>
+                              <span className="text-muted small">(Outstanding: {money(c.due_balance)})</span>
+                            </div>
+                            <div className="col-md-3">
+                              <label className="small fw-medium">Action Type</label>
+                              <select className="form-select form-select-sm" value={payForm.type} onChange={e => setPayForm({...payForm, type: e.target.value})}>
+                                <option value="payment">Receive Payment (Cash Inflow)</option>
+                                <option value="settlement">Settle / Adjust (No Cash Impact)</option>
+                              </select>
+                            </div>
+                            <div className="col-md-2">
+                              <label className="small fw-medium">Amount</label>
+                              <input type="number" step="0.01" max={c.due_balance} required className="form-control form-control-sm" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} />
+                            </div>
+                            {payForm.type === "payment" && (
+                              <div className="col-md-2">
+                                <label className="small fw-medium">Payment Method</label>
+                                <select className="form-select form-select-sm" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
+                                  <option value="cash">Cash</option>
+                                  <option value="bkash">bKash</option>
+                                  <option value="nagad">Nagad</option>
+                                  <option value="bank">Bank</option>
+                                </select>
+                              </div>
+                            )}
+                            <div className={payForm.type === "payment" ? "col-md-3" : "col-md-5"}>
+                              <label className="small fw-medium">Note / Reference</label>
+                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder="Optional reference..." />
+                            </div>
+                            <div className="col-md-2 d-flex gap-2">
+                              <button type="submit" className="btn btn-success btn-sm w-100" disabled={saving}>
+                                {saving ? "Processing…" : "Submit"}
+                              </button>
+                              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>Cancel</button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 ))
               )}
             </tbody>
