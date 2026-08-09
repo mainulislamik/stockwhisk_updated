@@ -23,6 +23,11 @@ class ShopRegistrationSerializer(serializers.Serializer):
         return value
 
 
+class VerifyOTPRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+
+
 class UserSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source="shop.name", read_only=True, default=None)
     shop_phone = serializers.CharField(source="shop.phone", read_only=True, default=None)

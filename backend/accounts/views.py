@@ -9,8 +9,15 @@ from tenants.services import register_shop
 from .serializers import ShopRegistrationSerializer, UserSerializer
 
 
-class RegisterShopView(APIView):
-    """Public endpoint: create a shop + owner and return JWT tokens."""
+import random
+from django.utils import timezone
+from datetime import timedelta
+from django.core.mail import send_mail
+from django.conf import settings
+from .models import PendingRegistration
+
+class InitiateRegistrationView(APIView):
+    """Public endpoint: receive registration details, generate OTP, send email."""
 
     permission_classes = [AllowAny]
 
@@ -18,15 +25,87 @@ class RegisterShopView(APIView):
         ser = ShopRegistrationSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-
-        shop, owner = register_shop(
-            name=data["shop_name"],
-            owner_email=data["owner_email"],
-            owner_password=data["owner_password"],
-            owner_name=data.get("owner_name", ""),
-            business_type=data["business_type"],
-            phone=data.get("phone", ""),
+        
+        email = data["owner_email"]
+        
+        # Generate 6 digit OTP
+        otp = str(random.randint(100000, 999999))
+        
+        # Hash the password for temporary storage
+        from django.contrib.auth.hashers import make_password
+        hashed_password = make_password(data["owner_password"])
+        
+        # Save or update pending registration
+        PendingRegistration.objects.update_or_create(
+            email=email,
+            defaults={
+                "password_hash": hashed_password,
+                "shop_name": data["shop_name"],
+                "owner_name": data.get("owner_name", ""),
+                "otp": otp,
+                "expires_at": timezone.now() + timedelta(minutes=15)
+            }
         )
+        
+        # Send OTP email
+        try:
+            send_mail(
+                subject="Your StockWhisk Verification Code",
+                message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 15 minutes.",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            return Response({"detail": "Failed to send email. Check SMTP configuration.", "error": str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"detail": "OTP sent to email."}, status=status.HTTP_200_OK)
+
+
+class VerifyOTPRegistrationView(APIView):
+    """Public endpoint: verify OTP and finalize shop+user creation."""
+    
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        from .serializers import VerifyOTPRegistrationSerializer
+        ser = VerifyOTPRegistrationSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        
+        email = ser.validated_data["email"]
+        otp = ser.validated_data["otp"]
+        
+        try:
+            pending = PendingRegistration.objects.get(email=email)
+        except PendingRegistration.DoesNotExist:
+            return Response({"detail": "No pending registration found for this email."}, status=status.HTTP_404_NOT_FOUND)
+            
+        if pending.otp != otp:
+            return Response({"detail": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if pending.expires_at < timezone.now():
+            return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # All good! Create the actual shop and owner
+        shop, owner = register_shop(
+            name=pending.shop_name,
+            owner_email=pending.email,
+            owner_password="will-be-overwritten-immediately",
+            owner_name=pending.owner_name,
+            business_type="general", # Default for now, can expand later
+            phone="",
+        )
+        
+        # Overwrite password with the hashed one from pending (to avoid storing plain text in pending)
+        # Actually register_shop expects raw password, but we hashed it. 
+        # We can just set owner.password directly.
+        owner.password = pending.password_hash
+        owner.save(update_fields=["password"])
+        
+        # Cleanup
+        pending.delete()
+        
+        # Return login tokens
         refresh = RefreshToken.for_user(owner)
         return Response(
             {

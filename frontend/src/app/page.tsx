@@ -112,7 +112,7 @@ export default function LandingPage() {
                   </Button>
                   <Button 
                     component={Link} 
-                    href="/login" 
+                    href="/register" 
                     sx={{ 
                       bgcolor: COLORS.primary, 
                       color: COLORS.onPrimary, 
@@ -167,7 +167,7 @@ export default function LandingPage() {
             <Stack direction="row" spacing={2} sx={{ justifyContent: 'center', mb: 8 }}>
               <Button 
                 component={Link}
-                href="/login"
+                href="/register"
                 sx={{ 
                   bgcolor: COLORS.primary, 
                   color: COLORS.onPrimary, 
@@ -253,7 +253,7 @@ export default function LandingPage() {
             </Typography>
             <Button 
               component={Link}
-              href="/login"
+              href="/register"
               sx={{ 
                 bgcolor: COLORS.primary, 
                 color: COLORS.onPrimary, 
@@ -289,7 +289,7 @@ export default function LandingPage() {
                 <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Product</Typography>
                 <Link href="/blog" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Blog</Link>
                 <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Login</Link>
-                <Link href="/login" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Get Started</Link>
+                <Link href="/register" style={{ color: COLORS.onSurfaceVariant, textDecoration: 'none', fontSize: '0.875rem' }}>Get Started</Link>
               </Stack>
               <Stack spacing={1}>
                 <Typography sx={{ fontWeight: 700, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif', fontSize: '0.9rem' }}>Legal</Typography>

@@ -158,3 +158,18 @@ class User(AbstractUser):
             shop_id=self.shop_id, role_type=self.role,
             permissions__code=code,
         ).exists()
+
+
+class PendingRegistration(TimeStampedModel):
+    """
+    Temporarily stores registration details until the user verifies their email via OTP.
+    """
+    email = models.EmailField(unique=True)
+    password_hash = models.CharField(max_length=255)
+    shop_name = models.CharField(max_length=150)
+    owner_name = models.CharField(max_length=150)
+    otp = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+    
+    def __str__(self):
+        return f"{self.email} ({self.otp})"

@@ -67,6 +67,11 @@ services:
       WEB_CONCURRENCY: "1"
       GUNICORN_THREADS: "2"
       DB_CONN_MAX_AGE: "600"
+      EMAIL_HOST: "smtp.gmail.com"
+      EMAIL_PORT: "587"
+      EMAIL_HOST_USER: "${EMAIL_HOST_USER:-}"
+      EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD:-}"
+      DEFAULT_FROM_EMAIL: "${EMAIL_HOST_USER:-}"
     ports:
       - "8000:8000"
     volumes:
@@ -100,6 +105,11 @@ services:
       SECRET_KEY: django-insecure-default-key-for-zero-config
       DEBUG: "False"
       DB_CONN_MAX_AGE: "600"
+      EMAIL_HOST: "smtp.gmail.com"
+      EMAIL_PORT: "587"
+      EMAIL_HOST_USER: "${EMAIL_HOST_USER:-}"
+      EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD:-}"
+      DEFAULT_FROM_EMAIL: "${EMAIL_HOST_USER:-}"
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
