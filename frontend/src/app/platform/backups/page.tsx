@@ -74,15 +74,34 @@ export default function BackupsPage() {
         }
       });
       
-      // After saving, generate auth URL and redirect
+      if (!isConnected) {
+        // After saving, generate auth URL and redirect
+        const authRes = await api<{auth_url: string}>("/platform/backups/drive-auth-url/", {
+          method: "POST",
+          body: { redirect_uri: window.location.origin + window.location.pathname }
+        });
+        window.location.href = authRes.auth_url;
+      } else {
+        setMsg({ ok: true, text: "Settings saved successfully." });
+        setSavingConfig(false);
+      }
+      
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.detail || "Failed to save Drive config or start auth." });
+      setSavingConfig(false);
+    }
+  }
+
+  async function reconnectGoogleDrive() {
+    setSavingConfig(true);
+    try {
       const authRes = await api<{auth_url: string}>("/platform/backups/drive-auth-url/", {
         method: "POST",
         body: { redirect_uri: window.location.origin + window.location.pathname }
       });
       window.location.href = authRes.auth_url;
-      
     } catch (e: any) {
-      setMsg({ ok: false, text: e?.data?.detail || "Failed to save Drive config or start auth." });
+      setMsg({ ok: false, text: e?.data?.detail || "Failed to start auth." });
       setSavingConfig(false);
     }
   }
@@ -241,11 +260,22 @@ export default function BackupsPage() {
                 disabled={triggeringDrive || !isConnected}
                 className="btn btn-outline-primary rounded-pill px-4"
               >
-                {triggeringDrive ? <><span className="spinner-border spinner-border-sm me-2"></span>Triggering...</> : <><i className="bi bi-cloud-arrow-up me-2"></i>Trigger Drive Backup Now</>}
+                {triggeringDrive ? <><span className="spinner-border spinner-border-sm me-2"></span>Triggering...</> : <><i className="bi bi-cloud-arrow-up me-2"></i>Trigger Backup Now</>}
               </button>
 
+              {isConnected && (
+                <button 
+                  type="button" 
+                  onClick={reconnectGoogleDrive}
+                  disabled={savingConfig}
+                  className="btn btn-outline-secondary rounded-pill px-4"
+                >
+                  Reconnect Google
+                </button>
+              )}
+
               <button type="submit" disabled={savingConfig} className="btn btn-primary rounded-pill px-4 shadow-sm">
-                {savingConfig ? "Saving..." : "Save & Connect Google Drive"}
+                {savingConfig ? "Saving..." : (isConnected ? "Save Settings" : "Save & Connect Google Drive")}
               </button>
             </div>
           </form>
