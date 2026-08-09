@@ -134,10 +134,12 @@ class ProductUnit(TenantScopedModel):
         IN_STOCK = "in_stock", "In stock"
         SOLD = "sold", "Sold"
         RETURNED = "returned", "Returned"
+        DEFECTIVE = "defective", "Defective"
+        RETURNED_SUPPLIER = "returned_supplier", "Returned to supplier"
 
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="units")
     barcode = models.CharField(max_length=120, db_index=True)
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.IN_STOCK)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.IN_STOCK)
     # Per-unit price snapshot taken at purchase time. A product has ONE
     # ``selling_price`` field that the latest purchase overwrites, so without this
     # a scanned unit from an earlier batch would sell at the newest price. When

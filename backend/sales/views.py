@@ -120,3 +120,83 @@ class SaleViewSet(
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(SaleSerializer(sale).data)
+
+    @action(detail=False, methods=["get"], url_path="scan-return")
+    def scan_return(self, request):
+        barcode = request.query_params.get("barcode", "").strip()
+        if not barcode:
+            return Response({"detail": "Barcode is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from catalog.models import ProductUnit
+        unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=barcode).first()
+        if not unit:
+            return Response({"detail": "Barcode not found."}, status=status.HTTP_404_NOT_FOUND)
+        if unit.status != ProductUnit.Status.SOLD or not unit.sale_id:
+            return Response(
+                {"detail": f"This unit is currently {unit.get_status_display()}, not sold."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        sale = unit.sale
+        from catalog.serializers import ProductUnitSerializer
+        
+        # We need to find the SaleItem for this product/variation
+        # For simplicity, we just filter by product and variation. If there are multiple, first is fine (they are identical items)
+        sale_item = sale.items.filter(product=unit.product, variation=unit.variation).first()
+        if not sale_item:
+            return Response({"detail": "Could not locate the sale item for this unit."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "unit": ProductUnitSerializer(unit).data,
+            "sale": SaleSerializer(sale).data,
+            "sale_item_id": sale_item.id
+        })
+
+    @action(detail=False, methods=["post"], url_path="process-scan-return")
+    def process_scan_return(self, request):
+        if not request.user.has_perm_code("process_return"):
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+
+        barcode = request.data.get("barcode", "").strip()
+        action_type = request.data.get("action", "restock")
+        refund_method = request.data.get("refund_method", "cash")
+
+        from catalog.models import ProductUnit
+        unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=barcode).first()
+        if not unit or unit.status != ProductUnit.Status.SOLD or not unit.sale_id:
+            return Response({"detail": "Invalid or unsold barcode."}, status=status.HTTP_400_BAD_REQUEST)
+
+        sale = unit.sale
+        sale_item = sale.items.filter(product=unit.product, variation=unit.variation).first()
+        if not sale_item:
+            return Response({"detail": "Sale item not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        restock = (action_type == "restock")
+
+        # 1. Process the refund via create_return
+        try:
+            lines = [{"sale_item": sale_item, "quantity": Decimal("1")}]
+            create_return(
+                sale=sale,
+                lines=lines,
+                reason=f"Barcode scan return: {action_type}",
+                refund_method=refund_method,
+                restock=restock,
+                created_by=request.user
+            )
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 2. Update the physical unit status
+        if action_type == "restock":
+            unit.status = ProductUnit.Status.IN_STOCK
+            unit.sale = None
+            unit.sold_at = None
+        elif action_type == "defective":
+            unit.status = ProductUnit.Status.DEFECTIVE
+        elif action_type == "return_supplier":
+            unit.status = ProductUnit.Status.RETURNED_SUPPLIER
+
+        unit.save(update_fields=["status", "sale", "sold_at"])
+
+        return Response({"detail": "Return processed successfully.", "new_status": unit.status})
