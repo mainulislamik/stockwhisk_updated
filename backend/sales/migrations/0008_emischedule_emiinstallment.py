@@ -7,7 +7,7 @@ from django.db import migrations, models
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('crm', '0003_customer_due_balance_customer_total_purchased'),
+        ('crm', '0004_customerpayment'),
         ('sales', '0007_sale_delivery_charge'),
     ]
 
