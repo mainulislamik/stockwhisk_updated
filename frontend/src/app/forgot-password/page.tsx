@@ -36,7 +36,7 @@ export default function ForgotPasswordPage() {
     try {
       await api("/auth/password-reset/request-otp/", {
         method: "POST",
-        body: JSON.stringify({ email })
+        body: { email }
       });
       setSuccess("If an account with that email exists, an OTP has been sent.");
       setStep(1);
@@ -74,7 +74,7 @@ export default function ForgotPasswordPage() {
     try {
       await api("/auth/password-reset/verify-otp/", {
         method: "POST",
-        body: JSON.stringify({ email, otp, new_password: password })
+        body: { email, otp, new_password: password }
       });
       setSuccess("Your password has been successfully reset. Redirecting to login...");
       setTimeout(() => {
