@@ -1060,3 +1060,66 @@ class PublicBlogViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return BlogPost.objects.filter(is_published=True).order_by('-published_at')
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .mail_service import MailServerConfigService
+
+class MailAccountView(APIView):
+    permission_classes = [IsPlatformAdmin]
+    
+    def get(self, request):
+        service = MailServerConfigService()
+        return Response(service.list_accounts())
+
+    def post(self, request):
+        service = MailServerConfigService()
+        email = request.data.get('email')
+        password = request.data.get('password')
+        quota = request.data.get('quota')
+        if not email or not password:
+            return Response({'error': 'Email and password required'}, status=400)
+        try:
+            service.add_account(email, password, quota)
+            return Response({'status': 'success'})
+        except Exception as e:
+            return Response({'error': str(e)}, status=400)
+
+    def patch(self, request):
+        service = MailServerConfigService()
+        email = request.data.get('email')
+        password = request.data.get('password')
+        quota = request.data.get('quota')
+        if not email:
+            return Response({'error': 'Email required'}, status=400)
+        
+        if password:
+            service.update_password(email, password)
+        if quota is not None:
+            service.update_quota(email, quota)
+        return Response({'status': 'success'})
+
+    def delete(self, request):
+        service = MailServerConfigService()
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email required'}, status=400)
+        service.delete_account(email)
+        return Response({'status': 'success'})
+
+class MailSSOView(APIView):
+    permission_classes = [IsPlatformAdmin]
+    
+    def post(self, request):
+        email = request.data.get('email')
+        if not email:
+            return Response({'error': 'Email required'}, status=400)
+        # We return the master credentials so the frontend can auto-login the user.
+        # The master user allows logging in as any user.
+        return Response({
+            '_user': f'{email}*master_admin',
+            '_pass': 'stockwhisk_master_2026',
+            '_action': 'login'
+        })
+

@@ -17,6 +17,7 @@ const ITEMS: { href: string; icon: string; label: string }[] = [
   { href: "/platform/blogs", icon: "bi-journal-text", label: "Blogs" },
   { href: "/platform/tutorials", icon: "bi-camera-video", label: "Tutorials" },
   { href: "/platform/backups", icon: "bi-device-hdd", label: "System Backups" },
+  { href: "/platform/mail-server", icon: "bi-envelope-at", label: "Mail Server Admin" },
   { href: "/platform/settings", icon: "bi-gear", label: "Platform Settings" },
 ];
 

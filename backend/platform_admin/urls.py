@@ -23,6 +23,8 @@ from .views import (
     ServerMetricsView,
     BlogPostAdminViewSet,
     PublicBlogViewSet,
+    MailAccountView,
+    MailSSOView,
     SmtpSettingsView,
     TestSmtpConnectionView,
 )
@@ -55,6 +57,8 @@ urlpatterns = [
     path("backups/drive-callback/", DriveAuthCallbackView.as_view(), name="platform-drive-callback"),
     path("backups/drive-trigger/", TriggerDriveBackupView.as_view(), name="platform-drive-trigger"),
     path("impersonate/stop/", StopImpersonationView.as_view(), name="impersonate_stop"),
+    path("mail-accounts/", MailAccountView.as_view(), name="mail-accounts"),
+    path("mail-accounts/sso/", MailSSOView.as_view(), name="mail-accounts-sso"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]

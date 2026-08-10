@@ -1,1 +1,8 @@
 disable_plaintext_auth = no
+
+auth_master_user_separator = *
+passdb {
+  driver = passwd-file
+  master = yes
+  args = /tmp/docker-mailserver/dovecot-master-users
+}

@@ -72,11 +72,13 @@ services:
       EMAIL_HOST_USER: "${EMAIL_HOST_USER:-}"
       EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD:-}"
       DEFAULT_FROM_EMAIL: "${EMAIL_HOST_USER:-}"
+      MAILSERVER_CONFIG_DIR: "/app/mailserver-config"
     ports:
       - "8000:8000"
     volumes:
       - static:/app/staticfiles
       - media:/app/media
+      - ./mailserver/config:/app/mailserver-config
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -110,11 +112,13 @@ services:
       EMAIL_HOST_USER: "${EMAIL_HOST_USER:-}"
       EMAIL_HOST_PASSWORD: "${EMAIL_HOST_PASSWORD:-}"
       DEFAULT_FROM_EMAIL: "${EMAIL_HOST_USER:-}"
+      MAILSERVER_CONFIG_DIR: "/app/mailserver-config"
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
     volumes:
       - media:/app/media
+      - ./mailserver/config:/app/mailserver-config
     restart: unless-stopped
     logging: *default-logging
     deploy:
