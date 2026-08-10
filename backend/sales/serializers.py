@@ -183,6 +183,6 @@ class EMIScheduleSerializer(serializers.ModelSerializer):
         model = EMISchedule
         fields = [
             "id", "sale", "invoice_no", "customer", "customer_name", "customer_phone",
-            "total_emi_amount", "down_payment", "total_months", "monthly_installment",
+            "total_emi_amount", "down_payment", "interest_percent", "total_months", "monthly_installment",
             "status", "total_paid", "total_due", "installments"
         ]
