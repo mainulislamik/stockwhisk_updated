@@ -117,11 +117,12 @@ export function unwrap<T>(data: Paginated<T> | T[]): T[] {
   return data?.results ?? [];
 }
 
-// The backend paginates lists at 25/page. Walk every page and concatenate.
+// The backend paginates lists. We use page_size=200 and walk every page.
 // We rely on `next` only as a boolean (there is another page) — never its URL,
 // which is an internal address the browser cannot reach through the proxy.
 export async function fetchAll<T = any>(path: string, params: Record<string, any> = {}): Promise<T[]> {
-  const firstData = await api<Paginated<T> | T[]>(path, { params: { ...params, page: 1 } });
+  const fetchParams = { ...params, page_size: 200 };
+  const firstData = await api<Paginated<T> | T[]>(path, { params: { ...fetchParams, page: 1 } });
   
   // If endpoint isn't paginated
   if (Array.isArray(firstData)) return firstData;
@@ -132,25 +133,30 @@ export async function fetchAll<T = any>(path: string, params: Record<string, any
   if (!firstData.next || !firstData.count) return out;
   
   // Calculate how many pages remain
-  const pageSize = firstData.results?.length || 25; // fallback to 25 if empty
+  const pageSize = firstData.results?.length || 200; // fallback to 200 if empty
   const totalPages = Math.ceil(firstData.count / pageSize);
   
-  // Fetch remaining pages in parallel for massive performance boost
+  // Fetch remaining pages in chunked parallel to avoid saturating backend
   if (totalPages > 1) {
-    const promises = [];
-    // Cap at 200 pages to prevent memory blowouts (5000 items)
-    const limit = Math.min(totalPages, 200);
+    // Cap at 50 pages * 200 = 10,000 items to prevent memory blowouts
+    const limit = Math.min(totalPages, 50);
     
-    for (let p = 2; p <= limit; p++) {
-      promises.push(api<Paginated<T>>(path, { params: { ...params, page: p } }).catch(() => null));
-    }
-    
-    const remainingData = await Promise.all(promises);
-    remainingData.forEach(data => {
-      if (data && data.results) {
-        out.push(...data.results);
+    // Chunking to prevent backend saturation (max 3 concurrent requests)
+    const CONCURRENCY = 3;
+    let p = 2;
+    while (p <= limit) {
+      const promises = [];
+      for (let i = 0; i < CONCURRENCY && p <= limit; i++, p++) {
+        promises.push(api<Paginated<T>>(path, { params: { ...fetchParams, page: p } }).catch(() => null));
       }
-    });
+      
+      const chunkData = await Promise.all(promises);
+      chunkData.forEach(data => {
+        if (data && data.results) {
+          out.push(...data.results);
+        }
+      });
+    }
   }
   
   return out;
