@@ -153,15 +153,15 @@ export default function ReturnsPage() {
       <ul className="nav nav-pills gap-2 mb-2">
         <li className="nav-item">
           <button 
-            className={`nav-link fw-medium ${activeTab === "return" ? "active" : "bg-white text-dark border shadow-sm"}`}
+            className={`nav-link fw-medium ${activeTab === "return" ? "active" : "bg-secondary bg-opacity-10 text-body border shadow-sm"}`}
             onClick={() => setActiveTab("return")}
           >
             <i className="bi bi-arrow-return-left me-2"></i> Return & Refund
           </button>
         </li>
-        <li className="nav-item">
+        <li className="nav-item flex-fill text-center">
           <button 
-            className={`nav-link fw-medium ${activeTab === "replace" ? "active" : "bg-white text-dark border shadow-sm"}`}
+            className={`nav-link fw-medium ${activeTab === "replace" ? "active" : "bg-secondary bg-opacity-10 text-body border shadow-sm"}`}
             onClick={() => setActiveTab("replace")}
           >
             <i className="bi bi-arrow-left-right me-2"></i> Replace / Exchange
@@ -300,7 +300,7 @@ export default function ReturnsPage() {
           <div className="row g-3">
             <div className="col-md-6">
               <div className="card shadow-sm border-0 h-100">
-                <div className="card-header bg-light fw-bold text-danger border-bottom-0 pt-3">
+                <div className="card-header bg-secondary bg-opacity-10 fw-bold text-danger border-bottom-0 pt-3">
                   1. Scan Original Unit
                 </div>
                 <div className="card-body p-4">
@@ -340,7 +340,7 @@ export default function ReturnsPage() {
 
             <div className="col-md-6">
               <div className="card shadow-sm border-0 h-100">
-                <div className="card-header bg-light fw-bold text-success border-bottom-0 pt-3">
+                <div className="card-header bg-secondary bg-opacity-10 fw-bold text-success border-bottom-0 pt-3">
                   2. Scan Replacement Unit
                 </div>
                 <div className="card-body p-4">
