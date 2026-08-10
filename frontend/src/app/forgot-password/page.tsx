@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -16,6 +16,25 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
   const { mode, toggleTheme } = useThemeMode();
   const [step, setStep] = useState(0); // 0: Request OTP, 1: Verify OTP & Reset
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (step === 1 && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [step, timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
   
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
@@ -28,8 +47,8 @@ export default function ForgotPasswordPage() {
 
   const isDark = mode === 'dark';
 
-  async function handleRequestOTP(e: React.FormEvent) {
-    e.preventDefault();
+  async function handleRequestOTP(e?: React.FormEvent) {
+    if (e) e.preventDefault();
     setError("");
     setSuccess("");
     setBusy(true);
@@ -40,6 +59,7 @@ export default function ForgotPasswordPage() {
       });
       setSuccess("If an account with that email exists, an OTP has been sent.");
       setStep(1);
+      setTimeLeft(180);
     } catch (err: any) {
       let errorMsg = "An error occurred while requesting OTP.";
       if (err?.data?.detail) {
@@ -277,9 +297,28 @@ export default function ForgotPasswordPage() {
                     },
                     '& .MuiOutlinedInput-notchedOutline': {
                       borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
-                    }
                   }}
                 />
+
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: -1.5, mb: 1 }}>
+                  <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+                    {timeLeft > 0 ? (
+                      <>Code expires in: <strong style={{ color: isDark ? '#fff' : '#0F172A', paddingLeft: 4 }}>{formatTime(timeLeft)}</strong></>
+                    ) : (
+                      <span style={{ color: '#ef4444', fontWeight: 600 }}>Code expired</span>
+                    )}
+                  </Typography>
+                  
+                  <Button 
+                    variant="text" 
+                    onClick={() => handleRequestOTP()} 
+                    disabled={timeLeft > 0 || busy}
+                    sx={{ textTransform: 'none', fontWeight: 600, color: '#4f46e5', '&:disabled': { color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.26)' } }}
+                  >
+                    Resend Code
+                  </Button>
+                </Box>
+
                 <TextField
                   label="New Password"
                   type="password"

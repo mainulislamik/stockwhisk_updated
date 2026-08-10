@@ -165,7 +165,7 @@ class RequestPasswordResetOTPView(APIView):
             email=email,
             defaults={
                 "otp": otp,
-                "expires_at": timezone.now() + timedelta(minutes=15)
+                "expires_at": timezone.now() + timedelta(minutes=3)
             }
         )
         
@@ -190,7 +190,7 @@ class RequestPasswordResetOTPView(APIView):
         try:
             send_mail(
                 subject="StockWhisk Password Reset Code",
-                message=f"Your password reset verification code is: {otp}\n\nThis code expires in 15 minutes.\nIf you did not request a password reset, please ignore this email.",
+                message=f"Your password reset verification code is: {otp}\n\nThis code expires in 3 minutes.\nIf you did not request a password reset, please ignore this email.",
                 from_email=from_email,
                 recipient_list=[email],
                 fail_silently=False,
