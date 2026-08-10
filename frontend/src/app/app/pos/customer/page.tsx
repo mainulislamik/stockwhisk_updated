@@ -53,8 +53,11 @@ export default function PosCustomerPage() {
   const change = paidNum > total ? paidNum - total : 0;
 
   async function complete() {
-    if (discount === "") { await showError("Validation Error", "Please enter the discount amount (enter 0 if none)."); return; }
-    if (paid === "") { await showError("Validation Error", "Please enter the amount paid (enter 0 for full due)."); return; }
+    if (discount === "" && paid === "") {
+      await showError("Validation Error", "Please enter either Discount or Amount paid (enter 0 if none).");
+      return;
+    }
+    const finalPaid = paid === "" ? total : Number(paid);
     if (customerMode === "walkin" && !walkName.trim()) { await showError("Validation Error", "Customer name is required."); return; }
     if (customerMode === "walkin" && !walkPhone.trim()) { await showError("Validation Error", "Phone is required."); return; }
     if (isEmi) {
@@ -101,10 +104,10 @@ export default function PosCustomerPage() {
             discount: l.discount,
             unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
           })),
-          payments: paidNum > 0 ? [{ amount: paidNum, method }] : (isEmi ? [] : [{ amount: total, method }]),
+          payments: finalPaid > 0 ? [{ amount: finalPaid, method }] : [],
           is_emi: isEmi,
           emi_months: isEmi ? emiMonths : 0,
-          down_payment: isEmi ? paidNum : 0,
+          down_payment: isEmi ? finalPaid : 0,
           emi_interest_percent: isEmi ? emiInterestPercent : 0,
         },
       });
