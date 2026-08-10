@@ -1,5 +1,3 @@
-version: '3'
-
 services:
   mailserver:
     image: mailserver/docker-mailserver:latest
@@ -40,8 +38,9 @@ services:
     image: roundcube/roundcubemail:latest
     container_name: roundcube
     restart: always
-    ports:
-      - "8080:80"
+    # No longer exposed directly - accessed via nginx reverse proxy
+    expose:
+      - "80"
     environment:
       - ROUNDCUBEMAIL_DB_TYPE=mysql
       - ROUNDCUBEMAIL_DB_HOST=mail_db
@@ -59,3 +58,28 @@ services:
     depends_on:
       - mailserver
       - mail_db
+
+  # Nginx reverse proxy with SSL
+  mail_nginx:
+    image: nginx:alpine
+    container_name: mail_nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/mail.conf:/etc/nginx/conf.d/mail.conf:ro
+      - ./certbot/www:/var/www/certbot:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+    depends_on:
+      - roundcube
+
+  # Certbot for automatic SSL certificate management
+  certbot:
+    image: certbot/certbot:latest
+    container_name: mail_certbot
+    volumes:
+      - ./certbot/www:/var/www/certbot
+      - ./certbot/conf:/etc/letsencrypt
+    # Run once to issue cert, then handled by cron
+    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
