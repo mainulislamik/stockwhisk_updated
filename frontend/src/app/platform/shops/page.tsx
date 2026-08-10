@@ -106,7 +106,11 @@ export default function ShopsPage() {
               {filtered.length === 0 && <EmptyRow cols={7} text="No shops match." />}
               {filtered.map((s) => (
                 <tr key={s.id}>
-                  <td className="fw-semibold">{s.name}</td>
+                  <td className="fw-semibold">
+                    <Link href={`/platform/shops/${s.id}`} className="text-decoration-none text-white">
+                      {s.name}
+                    </Link>
+                  </td>
                   <td>{TYPE_LABELS[s.business_type] || s.business_type}</td>
                   <td>{s.plan_tier || "—"}</td>
                   <td>{s.user_count}</td>

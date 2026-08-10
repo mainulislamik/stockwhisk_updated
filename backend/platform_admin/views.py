@@ -53,12 +53,16 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     owner_name = serializers.CharField(write_only=True, required=False, allow_blank=True)
     owner_password = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
+    # We redefine owner_name as a SerializerMethodField for reading, but it's used as write-only in create().
+    # To support both, we keep owner_name for writing, and add a read-only field for the UI.
+    owner_full_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Shop
         fields = [
-            "id", "name", "slug", "business_type", "phone", "email",
+            "id", "name", "slug", "business_type", "phone", "email", "address",
             "plan", "plan_tier", "is_active", "trial_ends_at", "suspended_at",
-            "user_count", "owner_email", "can_delete", "days_suspended",
+            "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
             "created_at", "owner_name", "owner_password",
         ]
         read_only_fields = ["id", "slug", "created_at", "suspended_at"]
@@ -66,6 +70,12 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     def get_owner_email(self, obj):
         owner = User.objects.filter(shop_id=obj.id, role=RoleType.OWNER).first()
         return owner.email if owner else None
+
+    def get_owner_full_name(self, obj):
+        owner = User.objects.filter(shop_id=obj.id, role=RoleType.OWNER).first()
+        if owner:
+            return f"{owner.first_name} {owner.last_name}".strip()
+        return None
 
     def _days_suspended(self, obj):
         if obj.is_active or not obj.suspended_at:
