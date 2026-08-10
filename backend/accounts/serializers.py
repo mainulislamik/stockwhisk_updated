@@ -69,7 +69,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ShopSettingsSerializer(serializers.ModelSerializer):
-    shop_code = serializers.CharField(source="shop_code", read_only=True, default=None)
+    shop_code = serializers.CharField(read_only=True, default=None)
 
     class Meta:
         model = Shop

@@ -57,7 +57,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     # To support both, we keep owner_name for writing, and add a read-only field for the UI.
     owner_full_name = serializers.SerializerMethodField()
 
-    shop_code = serializers.CharField(source="shop_code", read_only=True, default=None)
+    shop_code = serializers.CharField(read_only=True, default=None)
 
     class Meta:
         model = Shop
