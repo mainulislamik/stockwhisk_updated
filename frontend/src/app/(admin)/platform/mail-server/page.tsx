@@ -100,7 +100,7 @@ export default function MailServerPage() {
   };
 
   return (
-    <PageWrapper title="Mail Server Admin" breadcrumbs={[{ label: "Mail Server" }]}>
+    <PageWrapper>
       <div className="d-flex justify-content-between align-items-center mb-4">
         <div>
           <h4 className="fw-bold text-white mb-1">Email Accounts</h4>
