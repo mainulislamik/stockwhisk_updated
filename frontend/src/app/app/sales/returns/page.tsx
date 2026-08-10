@@ -217,7 +217,7 @@ export default function ReturnsPage() {
                   </div>
                 </div>
 
-                <div className="bg-light rounded p-3">
+                <div className="bg-secondary bg-opacity-10 border rounded p-3">
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <div className="fw-bold">Original Sale Invoice</div>
                     <Link href={`/app/sales/${scanResult.sale.id}`} target="_blank" className="btn btn-sm btn-outline-secondary">
