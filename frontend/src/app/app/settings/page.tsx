@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0 });
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -38,6 +38,7 @@ export default function SettingsPage() {
           currency: data.currency || "BDT",
           vat_enabled: data.vat_enabled || false,
           vat_percent: data.vat_percent || 0,
+          emi_enabled: data.emi_enabled || false,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -74,6 +75,7 @@ export default function SettingsPage() {
       formData.append("currency", shopForm.currency);
       formData.append("vat_enabled", shopForm.vat_enabled.toString());
       formData.append("vat_percent", shopForm.vat_percent.toString());
+      formData.append("emi_enabled", shopForm.emi_enabled.toString());
       
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -208,6 +210,14 @@ export default function SettingsPage() {
                     <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={shopForm.vat_percent} onChange={e => setShopForm({...shopForm, vat_percent: parseFloat(e.target.value) || 0})} />
                   </div>
                 )}
+                
+                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">Feature Flags</div>
+                <div className="col-md-12">
+                  <div className="form-check form-switch">
+                    <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={shopForm.emi_enabled} onChange={e => setShopForm({...shopForm, emi_enabled: e.target.checked})} />
+                    <label className="form-check-label small" htmlFor="emiSwitch">Enable EMI (Installments)</label>
+                  </div>
+                </div>
               </div>
               <div className="d-flex align-items-center gap-3 mt-3">
                 <button type="submit" className="btn btn-primary btn-sm px-4" disabled={shopBusy}>

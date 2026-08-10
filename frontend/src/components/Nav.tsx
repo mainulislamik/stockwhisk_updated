@@ -86,7 +86,9 @@ export default function Nav({
       <NavGroup id="sales" icon="bi-receipt" label="Sales" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
         <Item href="/app/sales" icon="bi-receipt-cutoff" label="Invoices" />
         <Item href="/app/sales/returns" icon="bi-arrow-return-left" label="Returns" />
-        <Item href="/app/emi" icon="bi-calendar-check" label="EMI Management" />
+        {useAuth().billing?.shop?.emi_enabled && (
+          <Item href="/app/emi" icon="bi-calendar-check" label="EMI Management" />
+        )}
         {showReports && (
           <>
             <Item href="/app/sales/products" icon="bi-list-check" label="Sold products" />

@@ -72,7 +72,7 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
         fields = [
             "name", "phone", "email", "address", "business_type", 
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
-            "invoice_settings", "logo"
+            "invoice_settings", "logo", "emi_enabled"
         ]
 
 

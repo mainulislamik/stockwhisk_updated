@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { Spinner, money } from "@/components/ui";
+import { useAuth } from "@/components/AuthProvider";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
@@ -19,6 +20,7 @@ const PAY_METHODS = [
 
 export default function PosCustomerPage() {
   const router = useRouter();
+  const { billing } = useAuth();
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerMode, setCustomerMode] = useState<"walkin" | "existing">("walkin");
@@ -213,10 +215,12 @@ export default function PosCustomerPage() {
               </div>
             </div>
 
-            <div className="form-check form-switch fs-5 mt-2 mb-1">
-              <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={isEmi} onChange={(e) => setIsEmi(e.target.checked)} />
-              <label className="form-check-label ms-2 fw-semibold text-primary" htmlFor="emiSwitch">Enable EMI (Installments)</label>
-            </div>
+            {billing?.shop?.emi_enabled && (
+              <div className="form-check form-switch fs-5 mt-2 mb-1">
+                <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={isEmi} onChange={(e) => setIsEmi(e.target.checked)} />
+                <label className="form-check-label ms-2 fw-semibold text-primary" htmlFor="emiSwitch">Enable EMI (Installments)</label>
+              </div>
+            )}
 
             {isEmi && (
               <div className="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary vstack gap-2 shadow-sm">

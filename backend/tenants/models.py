@@ -87,6 +87,9 @@ class Shop(TimeStampedModel):
     # Invoice presentation settings (prefix, footer note, etc.)
     invoice_settings = models.JSONField(default=dict, blank=True)
     opening_hours = models.JSONField(default=dict, blank=True)
+    
+    # Feature flags
+    emi_enabled = models.BooleanField(default=False)
 
     # Subscription state (denormalized current plan for fast gating).
     plan = models.ForeignKey(
