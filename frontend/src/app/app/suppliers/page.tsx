@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import React, { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
@@ -87,7 +89,7 @@ export default function SuppliersPage() {
   }
 
   async function remove(s: Supplier) {
-    if (!confirm(`Delete supplier "${s.name}"? This cannot be undone.`)) return;
+    if (!(await confirmAction(`Delete supplier "${s.name}"? This cannot be undone.`))) return;
     try {
       await api(`/purchasing/suppliers/${s.id}/`, { method: "DELETE" });
       setRows((r) => r.filter((x) => x.id !== s.id));

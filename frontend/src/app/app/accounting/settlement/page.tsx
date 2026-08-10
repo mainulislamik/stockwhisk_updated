@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 
@@ -73,7 +75,7 @@ export default function DailySettlementPage() {
 
   const closeShift = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!window.confirm("Are you sure you want to close this shift? This action cannot be undone.")) return;
+    if (!(await confirmAction("Are you sure you want to close this shift? This action cannot be undone."))) return;
     setSubmitting(true);
     setError("");
     try {
@@ -91,7 +93,7 @@ export default function DailySettlementPage() {
   };
 
   const reopenShift = async () => {
-    if (!window.confirm("Are you sure you want to reopen today's shift? This will clear the previous closing metrics so you can close it again later.")) return;
+    if (!(await confirmAction("Are you sure you want to reopen today's shift? This will clear the previous closing metrics so you can close it again later."))) return;
     setSubmitting(true);
     setError("");
     try {

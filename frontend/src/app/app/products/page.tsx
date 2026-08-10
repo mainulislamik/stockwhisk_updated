@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
@@ -97,7 +99,7 @@ export default function ProductsPage() {
   }
 
   async function remove(p: Product) {
-    if (!confirm(`Delete "${p.name}" permanently?`)) return;
+    if (!(await confirmAction(`Delete "${p.name}" permanently?`))) return;
     try {
       await api(`/catalog/products/${p.id}/`, { method: "DELETE" });
       setProducts((ps) => ps.filter((x) => x.id !== p.id));

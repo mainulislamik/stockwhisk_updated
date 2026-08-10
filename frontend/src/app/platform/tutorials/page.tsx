@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useCallback, useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
@@ -60,7 +62,7 @@ export default function TutorialsPage() {
   }
 
   async function del(v: Video) {
-    if (!confirm(`Delete "${v.title}"?`)) return;
+    if (!(await confirmAction(`Delete "${v.title}"?`))) return;
     try { await api(`/platform/tutorials/${v.id}/`, { method: "DELETE" }); await load(); }
     catch (e: any) { toast.error(e?.message || "Failed."); }
   }

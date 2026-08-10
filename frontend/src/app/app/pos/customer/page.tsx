@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { toast } from "react-hot-toast";
+import { showError } from "@/lib/dialogs";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { Spinner, money } from "@/components/ui";
@@ -28,7 +30,7 @@ export default function PosCustomerPage() {
   const [walkName, setWalkName] = useState("");
   const [walkPhone, setWalkPhone] = useState("");
   const [walkAddress, setWalkAddress] = useState("");
-  const [discount, setDiscount] = useState(0);
+  const [discount, setDiscount] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");
   const [method, setMethod] = useState("cash");
@@ -36,7 +38,6 @@ export default function PosCustomerPage() {
   const [emiMonths, setEmiMonths] = useState(3);
   const [emiInterestPercent, setEmiInterestPercent] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const saved = sessionStorage.getItem("pos_cart");
@@ -45,31 +46,33 @@ export default function PosCustomerPage() {
     fetchAll<Customer>("/crm/customers/").then(setCustomers).catch(() => {});
   }, [router]);
 
+  const discountNum = Number(discount) || 0;
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
-  const total = Math.max(0, subtotal - discount + deliveryCharge);
+  const total = Math.max(0, subtotal - discountNum + deliveryCharge);
   const paidNum = Number(paid) || 0;
   const change = paidNum > total ? paidNum - total : 0;
 
   async function complete() {
-    if (customerMode === "walkin" && !walkName.trim()) { setError("Customer name is required."); return; }
-    if (customerMode === "walkin" && !walkPhone.trim()) { setError("Phone is required."); return; }
+    if (discount === "") { await showError("Validation Error", "Please enter the discount amount (enter 0 if none)."); return; }
+    if (paid === "") { await showError("Validation Error", "Please enter the amount paid (enter 0 for full due)."); return; }
+    if (customerMode === "walkin" && !walkName.trim()) { await showError("Validation Error", "Customer name is required."); return; }
+    if (customerMode === "walkin" && !walkPhone.trim()) { await showError("Validation Error", "Phone is required."); return; }
     if (isEmi) {
       if (customerMode === "walkin") {
-        setError("EMI sales require an existing registered customer.");
+        await showError("Validation Error", "EMI sales require an existing registered customer.");
         return;
       }
       const selectedCustomer = customers.find(c => c.id === Number(customerId));
       if (!selectedCustomer?.email || !selectedCustomer?.phone) {
-        setError("EMI sales require the customer to have a registered email and phone number.");
+        await showError("Validation Error", "EMI sales require the customer to have a registered email and phone number.");
         return;
       }
       if (paidNum >= total) {
-        setError("Down payment cannot cover the full amount for an EMI sale.");
+        await showError("Validation Error", "Down payment cannot cover the full amount for an EMI sale.");
         return;
       }
     }
     
-    setError("");
     setBusy(true);
     try {
       let customerId2: number | null = customerMode === "existing" && customerId ? Number(customerId) : null;
@@ -87,7 +90,7 @@ export default function PosCustomerPage() {
         method: "POST",
         body: {
           customer: customerId2,
-          discount,
+          discount: discountNum,
           delivery_charge: deliveryCharge,
           tax: 0,
           note: "",
@@ -109,7 +112,8 @@ export default function PosCustomerPage() {
       sessionStorage.removeItem("pos_cart");
       router.push(`/invoice/${sale.id}`);
     } catch (e: any) {
-      setError(e?.data?.detail || e?.message || "Checkout failed. Please try again.");
+      const msg = e?.data?.detail || e?.message || "Checkout failed. Please try again.";
+      await showError("Transaction Failed", msg);
     } finally {
       setBusy(false);
     }
@@ -197,8 +201,8 @@ export default function PosCustomerPage() {
             <div className="row g-3">
               <div className="col-4">
                 <div className="form-floating">
-                  <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(Number(e.target.value) || 0)} />
-                  <label htmlFor="discountInput">Discount (৳)</label>
+                  <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
+                  <label htmlFor="discountInput">Discount (৳) *</label>
                 </div>
               </div>
               <div className="col-4">
@@ -272,18 +276,18 @@ export default function PosCustomerPage() {
 
             <div className="border-top border-bottom py-3 my-2 bg-body-tertiary rounded-3 px-3 shadow-sm">
               <div className="d-flex justify-content-between text-secondary mb-2"><span>Subtotal</span><span>{money(subtotal)}</span></div>
-              {discount > 0 && <div className="d-flex justify-content-between text-success mb-2"><span>Discount</span><span>- {money(discount)}</span></div>}
+              {discountNum > 0 && <div className="d-flex justify-content-between text-success mb-2"><span>Discount</span><span>- {money(discountNum)}</span></div>}
               {deliveryCharge > 0 && <div className="d-flex justify-content-between text-info mb-2"><span>Delivery Charge</span><span>+ {money(deliveryCharge)}</span></div>}
               <div className="d-flex justify-content-between fw-bold fs-5 mb-2"><span>Total</span><span>{money(total)}</span></div>
               {change > 0 && <div className="d-flex justify-content-between text-info fw-semibold border-top pt-2 mt-2"><span>Change due</span><span>{money(change)}</span></div>}
             </div>
 
-            {error && <div className="alert alert-danger py-2 px-3 small mb-0 shadow-sm"><i className="bi bi-exclamation-triangle me-2"></i>{error}</div>}
-
-            <button className="btn btn-primary btn-lg w-100 fw-bold shadow-sm rounded-3 mt-2" disabled={busy} onClick={complete} style={{ padding: "1rem" }}>
-              {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-receipt me-2"></i>}
-              Complete sale &amp; print invoice
-            </button>
+            <div className="d-grid mt-4">
+              <button className="btn btn-primary btn-lg fw-semibold rounded-3 shadow" disabled={busy} onClick={complete} style={{ padding: "1rem" }}>
+                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-receipt me-2"></i>}
+                Complete sale &amp; print invoice
+              </button>
+            </div>
           </div>
         </div>
       </div>

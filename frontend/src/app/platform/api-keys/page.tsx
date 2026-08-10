@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useCallback, useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { Card, EmptyRow, ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
@@ -67,13 +69,13 @@ export default function ApiKeysPage() {
   }
 
   async function revoke(k: Key) {
-    if (!confirm(`Revoke "${k.name}"?`)) return;
+    if (!(await confirmAction(`Revoke "${k.name}"?`))) return;
     try { await api(`/platform/api-keys/${k.id}/`, { method: "DELETE" }); await load(); }
     catch (e: any) { toast.error(e?.message || "Failed."); }
   }
 
   async function regenerate(k: Key) {
-    if (!confirm(`Regenerate "${k.name}"? The old secret stops working.`)) return;
+    if (!(await confirmAction(`Regenerate "${k.name}"? The old secret stops working.`))) return;
     try {
       const res = await api<Key & { raw_key: string }>(`/platform/api-keys/${k.id}/regenerate/`, { method: "POST" });
       setRawKey({ name: res.name, key: res.raw_key });

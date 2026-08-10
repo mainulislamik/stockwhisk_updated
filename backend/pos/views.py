@@ -69,14 +69,21 @@ class CheckoutView(_POSBase):
         ser = SaleCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
-        sale = create_sale(
-            shop=request.user.shop,
-            customer=data.get("customer"),
-            discount=data.get("discount", 0),
-            tax=data.get("tax", 0),
-            note=data.get("note", ""),
-            items=data["items"],
-            payments=data.get("payments", []),
-            created_by=request.user,
-        )
+        try:
+            sale = create_sale(
+                shop=request.user.shop,
+                customer=data.get("customer"),
+                discount=data.get("discount", 0),
+                tax=data.get("tax", 0),
+                note=data.get("note", ""),
+                items=data["items"],
+                payments=data.get("payments", []),
+                created_by=request.user,
+                is_emi=data.get("is_emi", False),
+                emi_months=data.get("emi_months", 0),
+                down_payment=data.get("down_payment", 0),
+                emi_interest_percent=data.get("emi_interest_percent", 0),
+            )
+        except ValueError as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)

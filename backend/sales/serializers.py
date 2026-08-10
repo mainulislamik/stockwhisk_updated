@@ -128,6 +128,7 @@ class SaleCreateSerializer(serializers.Serializer):
     is_emi = serializers.BooleanField(default=False)
     emi_months = serializers.IntegerField(required=False, default=0)
     down_payment = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
+    emi_interest_percent = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=0)
 
     def validate_items(self, value):
         if not value:

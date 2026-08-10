@@ -1,4 +1,6 @@
 "use client";
+
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useState } from "react";
@@ -214,7 +216,7 @@ function CommittedStep({ job, onDone }: { job: Job; onDone: () => void }) {
   }
 
   async function rollback() {
-    if (!confirm("Roll back this import? Created records are deleted and updated records restored.")) return;
+    if (!(await confirmAction("Roll back this import? Created records are deleted and updated records restored."))) return;
     setBusy(true);
     try {
       await api(`/platform/imports/jobs/${job.id}/rollback/`, { method: "POST" });

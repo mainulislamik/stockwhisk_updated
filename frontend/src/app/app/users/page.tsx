@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useEffect, useMemo, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner } from "@/components/ui";
@@ -109,14 +111,14 @@ export default function UsersPage() {
         setShowAddUser(true); // Keep modal open just to show password
       }
     } catch (e: any) {
-      toast.error(e?.message || "Failed to create user");
+      await showError("Request failed", e?.message || "Failed to create user");
     } finally {
       setAddingUser(false);
     }
   };
 
   const toggleUserActive = async (u: ShopUser) => {
-    if (!confirm(`Are you sure you want to ${u.is_active ? "deactivate" : "activate"} ${u.email}?`)) return;
+    if (!(await confirmAction(`Are you sure you want to ${u.is_active ? "deactivate" : "activate"} ${u.email}?`))) return;
     try {
       await api(`/users/${u.id}/`, { method: "PATCH", body: { is_active: !u.is_active } });
       await load();

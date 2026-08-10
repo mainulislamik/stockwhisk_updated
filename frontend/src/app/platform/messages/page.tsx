@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
@@ -48,7 +50,7 @@ export default function MessagesPage() {
     catch (e: any) { toast.error(e?.message || "Failed."); }
   }
   async function del(m: Message) {
-    if (!confirm("Delete this message?")) return;
+    if (!(await confirmAction("Delete this message?"))) return;
     try { await api(`/platform/messages/${m.id}/`, { method: "DELETE" }); await load(); }
     catch (e: any) { toast.error(e?.message || "Failed."); }
   }

@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, PageHeader } from "@/components/ui";
@@ -144,7 +146,7 @@ export default function BackupsPage() {
     e.preventDefault();
     const f = fileRef.current?.files?.[0];
     if (!f) { setMsg({ ok: false, text: "Choose a .sql file first." }); return; }
-    if (!confirm("Restoring OVERWRITES the current database. Continue?")) return;
+    if (!(await confirmAction("Restoring OVERWRITES the current database. Continue?"))) return;
     setRestoring(true);
     setMsg(null);
     try {

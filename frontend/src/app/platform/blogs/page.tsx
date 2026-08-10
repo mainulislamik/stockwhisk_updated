@@ -1,5 +1,7 @@
 "use client";
 
+import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { api, unwrap } from "@/lib/api";
@@ -30,7 +32,7 @@ export default function BlogsAdminPage() {
   }, []);
 
   const deleteBlog = async (slug: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    if (!(await confirmAction(`Are you sure you want to delete "${title}"?`))) return;
     try {
       await api(`/platform/blogs/${slug}/`, { method: "DELETE" });
       fetchBlogs();
