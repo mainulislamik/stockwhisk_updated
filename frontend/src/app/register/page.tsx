@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, setTokens } from "@/lib/api";
@@ -40,6 +40,25 @@ export default function RegisterPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [timeLeft, setTimeLeft] = useState(180); // 3 minutes
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (step === 2 && timeLeft > 0) {
+      timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [step, timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  };
 
   // Form State
   const [shopName, setShopName] = useState("");
@@ -84,6 +103,7 @@ export default function RegisterPage() {
       });
       setSuccess("An OTP has been sent to your email.");
       setStep(2);
+      setTimeLeft(180);
     } catch (err: any) {
       setError(err?.data?.detail || err?.data?.owner_email?.[0] || err?.message || "Registration failed. Please check your details.");
     } finally {
@@ -360,7 +380,7 @@ export default function RegisterPage() {
                   variant="contained"
                   fullWidth
                   size="large"
-                  disabled={busy || otp.length < 6}
+                  disabled={busy || otp.length < 6 || timeLeft === 0}
                   startIcon={busy ? <CircularProgress size={20} color="inherit" /> : null}
                   sx={{ 
                     py: 1.8, 
@@ -377,10 +397,35 @@ export default function RegisterPage() {
                       transform: 'translateY(-2px)',
                       boxShadow: isDark ? '0 12px 24px rgba(0,0,0,0.6)' : '0 12px 24px rgba(16,185,129,0.35)',
                     },
+                    '&:disabled': {
+                      background: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)',
+                      color: isDark ? 'rgba(255,255,255,0.3)' : 'rgba(0,0,0,0.3)',
+                    }
                   }}
                 >
                   {busy ? "Verifying..." : "Verify & Complete Setup"}
                 </Button>
+                
+                <Box sx={{ textAlign: 'center', mt: 2 }}>
+                  <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b', mb: 1 }}>
+                    {timeLeft > 0 ? (
+                      `Code expires in ${formatTime(timeLeft)}`
+                    ) : (
+                      <span style={{ color: '#ef4444' }}>Code expired</span>
+                    )}
+                  </Typography>
+                  
+                  {timeLeft === 0 && (
+                    <Button 
+                      variant="outlined" 
+                      onClick={handleRegister} 
+                      disabled={busy}
+                      sx={{ textTransform: 'none', borderRadius: 2, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' }}
+                    >
+                      Resend Code
+                    </Button>
+                  )}
+                </Box>
 
                 <Box sx={{ textAlign: "center" }}>
                   <Button variant="text" onClick={() => setStep(1)} sx={{ textTransform: 'none', color: '#4f46e5', fontWeight: 600 }}>

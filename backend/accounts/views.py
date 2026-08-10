@@ -46,7 +46,7 @@ class InitiateRegistrationView(APIView):
                 "business_type": data.get("business_type", "general"),
                 "address": data.get("address", ""),
                 "otp": otp,
-                "expires_at": timezone.now() + timedelta(minutes=15)
+                "expires_at": timezone.now() + timedelta(minutes=3)
             }
         )
         
@@ -74,7 +74,7 @@ class InitiateRegistrationView(APIView):
         try:
             send_mail(
                 subject="Your StockWhisk Verification Code",
-                message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 15 minutes.",
+                message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 3 minutes.",
                 from_email=from_email,
                 recipient_list=[email],
                 fail_silently=False,
