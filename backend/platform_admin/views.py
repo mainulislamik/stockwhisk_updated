@@ -1166,13 +1166,13 @@ class MailSSORedirectView(View):
 
         try:
             sess = req.Session()
-            # Step 1: GET login page to acquire session cookie + CSRF token
+            # Step 1: GET login page to acquire pre-auth session cookie + CSRF token
             r = sess.get(f"{self.ROUNDCUBE_INTERNAL}/?_task=login", timeout=10)
             csrf_match = re.search(r'name="_token"\s+value="([^"]+)"', r.text)
             csrf_token = csrf_match.group(1) if csrf_match else ""
 
-            # Step 2: POST credentials server-side
-            sess.post(
+            # Step 2: POST credentials server-side (follow redirects to get final session)
+            login_resp = sess.post(
                 f"{self.ROUNDCUBE_INTERNAL}/?_task=login",
                 data={
                     '_user': master_user,
@@ -1185,28 +1185,31 @@ class MailSSORedirectView(View):
                 timeout=10,
             )
 
-            # Step 3: Extract session cookie
-            cookies = sess.cookies.get_dict()
-            session_id = cookies.get('roundcube_sessid') or cookies.get('PHPSESSID')
-            session_name = 'roundcube_sessid' if 'roundcube_sessid' in cookies else 'PHPSESSID'
+            # Step 3: Extract ALL session cookies Roundcube set after login
+            all_cookies = {c.name: c for c in sess.cookies}
 
-            if not session_id:
+            # Check login was successful (Roundcube redirects to ?_task=mail on success)
+            login_ok = '_task=mail' in login_resp.url or 'roundcube_sessauth' in all_cookies
+            if not login_ok and 'roundcube_sessid' not in all_cookies:
                 return HttpResponse(
-                    "SSO login failed — Dovecot master user may not be active yet. "
-                    "Try restarting the mail server.",
+                    f"SSO login failed. Cookies: {list(all_cookies.keys())}. "
+                    f"Final URL: {login_resp.url}. "
+                    f"Master user auth may not be configured yet — restart mailserver.",
                     status=401,
                     content_type="text/plain"
                 )
 
-            # Step 4: Set cookie for mail.stockwhisk.com and redirect to inbox
+            # Step 4: Set ALL Roundcube cookies on mail.stockwhisk.com and redirect
             response = HttpResponseRedirect("/?_task=mail")
-            response.set_cookie(
-                session_name,
-                session_id,
-                httponly=True,
-                samesite='Lax',
-                secure=True,
-            )
+            for name, cookie in all_cookies.items():
+                response.set_cookie(
+                    name,
+                    cookie.value,
+                    httponly=True,
+                    samesite='Lax',
+                    secure=True,
+                    path='/',
+                )
             return response
 
         except Exception as e:
