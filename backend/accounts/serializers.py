@@ -48,14 +48,15 @@ class UserSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source="shop.name", read_only=True, default=None)
     shop_phone = serializers.CharField(source="shop.phone", read_only=True, default=None)
     shop_logo = serializers.SerializerMethodField()
+    shop_emi_enabled = serializers.BooleanField(source="shop.emi_enabled", read_only=True, default=False)
 
     class Meta:
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "phone",
-            "role", "shop", "shop_name", "shop_phone", "shop_logo", "branch", "is_staff",
+            "role", "shop", "shop_name", "shop_phone", "shop_logo", "shop_emi_enabled", "branch", "is_staff",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_phone", "shop_logo", "branch", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_phone", "shop_logo", "shop_emi_enabled", "branch", "is_staff"]
 
     def get_shop_logo(self, obj):
         if obj.shop and obj.shop.logo:

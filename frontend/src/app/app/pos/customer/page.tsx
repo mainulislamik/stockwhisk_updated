@@ -20,7 +20,7 @@ const PAY_METHODS = [
 
 export default function PosCustomerPage() {
   const router = useRouter();
-  const { billing } = useAuth();
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerMode, setCustomerMode] = useState<"walkin" | "existing">("walkin");
@@ -215,7 +215,7 @@ export default function PosCustomerPage() {
               </div>
             </div>
 
-            {billing?.shop?.emi_enabled && (
+            {user?.shop_emi_enabled && (
               <div className="form-check form-switch fs-5 mt-2 mb-1">
                 <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={isEmi} onChange={(e) => setIsEmi(e.target.checked)} />
                 <label className="form-check-label ms-2 fw-semibold text-primary" htmlFor="emiSwitch">Enable EMI (Installments)</label>

@@ -14,6 +14,7 @@ export type User = {
   shop_name: string | null;
   shop_phone: string | null;
   shop_logo: string | null;
+  shop_emi_enabled: boolean;
   branch: number | null;
   is_staff: boolean;
 };
