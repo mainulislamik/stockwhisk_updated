@@ -117,6 +117,10 @@ class Shop(TimeStampedModel):
         super().save(*args, **kwargs)
 
     @property
+    def shop_code(self) -> str:
+        return f"SW-{1000 + self.id}"
+
+    @property
     def on_trial(self) -> bool:
         return bool(self.trial_ends_at and self.trial_ends_at > timezone.now())
 

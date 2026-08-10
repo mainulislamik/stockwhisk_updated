@@ -57,10 +57,12 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     # To support both, we keep owner_name for writing, and add a read-only field for the UI.
     owner_full_name = serializers.SerializerMethodField()
 
+    shop_code = serializers.CharField(source="shop_code", read_only=True, default=None)
+
     class Meta:
         model = Shop
         fields = [
-            "id", "name", "slug", "business_type", "phone", "email", "address",
+            "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
             "plan", "plan_tier", "is_active", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
             "created_at", "owner_name", "owner_password",
@@ -204,7 +206,24 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
                 user_count=Count("users")
             ).order_by("-created_at")
             if q := self.request.query_params.get("q"):
-                qs = qs.filter(name__icontains=q)
+                q_clean = q.strip().upper()
+                from django.db.models import Q
+                q_filter = Q(name__icontains=q) | Q(slug__icontains=q) | Q(phone__icontains=q) | Q(email__icontains=q)
+                
+                # Check for numeric ID or SW-1001 shop code formats
+                if q_clean.startswith("SW-"):
+                    try:
+                        raw_id = int(q_clean.replace("SW-", "")) - 1000
+                        q_filter |= Q(id=raw_id)
+                    except ValueError:
+                        pass
+                elif q_clean.isdigit():
+                    num = int(q_clean)
+                    q_filter |= Q(id=num)
+                    if num > 1000:
+                        q_filter |= Q(id=num - 1000)
+                        
+                qs = qs.filter(q_filter)
             return qs
 
     def create(self, request, *args, **kwargs):

@@ -47,6 +47,7 @@ class VerifyPasswordResetSerializer(serializers.Serializer):
 class UserSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source="shop.name", read_only=True, default=None)
     shop_phone = serializers.CharField(source="shop.phone", read_only=True, default=None)
+    shop_code = serializers.CharField(source="shop.shop_code", read_only=True, default=None)
     shop_logo = serializers.SerializerMethodField()
     shop_emi_enabled = serializers.BooleanField(source="shop.emi_enabled", read_only=True, default=False)
 
@@ -54,9 +55,9 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "phone",
-            "role", "shop", "shop_name", "shop_phone", "shop_logo", "shop_emi_enabled", "branch", "is_staff",
+            "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "branch", "is_staff",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_phone", "shop_logo", "shop_emi_enabled", "branch", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "branch", "is_staff"]
 
     def get_shop_logo(self, obj):
         if obj.shop and obj.shop.logo:
@@ -68,13 +69,16 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class ShopSettingsSerializer(serializers.ModelSerializer):
+    shop_code = serializers.CharField(source="shop_code", read_only=True, default=None)
+
     class Meta:
         model = Shop
         fields = [
-            "name", "phone", "email", "address", "business_type", 
+            "id", "shop_code", "name", "phone", "email", "address", "business_type", 
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
             "invoice_settings", "logo", "emi_enabled"
         ]
+        read_only_fields = ["id", "shop_code"]
 
 
 class ShopUserSerializer(serializers.ModelSerializer):

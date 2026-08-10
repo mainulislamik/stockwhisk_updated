@@ -9,6 +9,7 @@ import toast from "react-hot-toast";
 
 type Shop = {
   id: number;
+  shop_code?: string;
   name: string;
   business_type: string;
   plan_tier: string | null;
@@ -51,7 +52,12 @@ export default function ShopsPage() {
   const filtered = useMemo(() => {
     if (!shops) return [];
     const s = q.trim().toLowerCase();
-    return s ? shops.filter((x) => x.name.toLowerCase().includes(s)) : shops;
+    if (!s) return shops;
+    return shops.filter((x) => {
+      const code = (x.shop_code || `SW-${1000 + x.id}`).toLowerCase();
+      const idStr = String(x.id);
+      return x.name.toLowerCase().includes(s) || code.includes(s) || idStr.includes(s);
+    });
   }, [shops, q]);
 
   const loginAs = useCallback(async (shop: Shop) => {
@@ -87,8 +93,8 @@ export default function ShopsPage() {
       />
 
       <input
-        className="form-control mb-3"
-        placeholder="Filter shops as you type…"
+        className="form-control mb-3 shadow-sm"
+        placeholder="Filter shops by name or unique ID (e.g. SW-1001 or Fast Electronics)…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
@@ -98,16 +104,21 @@ export default function ShopsPage() {
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-1">
               <tr>
-                <th>Shop</th><th>Type</th><th>Plan</th><th>Users</th>
+                <th>Unique ID</th><th>Shop</th><th>Type</th><th>Plan</th><th>Users</th>
                 <th>Status</th><th>Created</th><th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 && <EmptyRow cols={7} text="No shops match." />}
+              {filtered.length === 0 && <EmptyRow cols={8} text="No shops match your filter." />}
               {filtered.map((s) => (
                 <tr key={s.id}>
+                  <td>
+                    <span className="badge rounded-pill bg-brand-500 bg-opacity-25 text-brand border border-brand border-opacity-25 font-monospace px-2 py-1">
+                      {s.shop_code || `SW-${1000 + s.id}`}
+                    </span>
+                  </td>
                   <td className="fw-semibold">
-                    <Link href={`/platform/shops/${s.id}`} className="text-decoration-none text-white">
+                    <Link href={`/platform/shops/${s.id}`} className="text-decoration-none text-white hover-underline">
                       {s.name}
                     </Link>
                   </td>

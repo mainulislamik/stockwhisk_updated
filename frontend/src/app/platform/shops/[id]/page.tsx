@@ -10,6 +10,7 @@ import toast from "react-hot-toast";
 
 type Shop = {
   id: number;
+  shop_code?: string;
   name: string;
   business_type: string;
   phone: string;
@@ -125,6 +126,9 @@ export default function ShopDetailsPage() {
           </Link>
           <h1 className="h3 fw-bold mb-0 text-white d-flex align-items-center gap-3">
             {shop.name}
+            <span className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 fs-6 font-monospace">
+              {shop.shop_code || `SW-${1000 + shop.id}`}
+            </span>
             {shop.is_active ? (
               <span className="badge bg-success bg-opacity-25 text-success rounded-pill px-3 py-1 fs-6 fw-normal">Active</span>
             ) : (
@@ -148,6 +152,12 @@ export default function ShopDetailsPage() {
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-shop me-2 text-brand"></i>Shop Information</h5>
               
               <div className="row g-4">
+                <div className="col-md-6">
+                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                    <p className="text-secondary small mb-1">Unique Shop ID</p>
+                    <p className="fw-bold text-brand mb-0 font-monospace fs-5">{shop.shop_code || `SW-${1000 + shop.id}`}</p>
+                  </div>
+                </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
                     <p className="text-secondary small mb-1">Business Type</p>

@@ -12,6 +12,7 @@ export type User = {
   role: string; // "owner" | "manager" | "cashier" | ...
   shop: number | null;
   shop_name: string | null;
+  shop_code: string | null;
   shop_phone: string | null;
   shop_logo: string | null;
   shop_emi_enabled: boolean;

@@ -113,7 +113,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               )}
               <div className="text-truncate min-vw-0">
                 <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
-                <div className="small text-truncate mt-1" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
+                <div className="d-flex align-items-center gap-1 mt-1 flex-wrap">
+                  {(user.shop_code || user.shop) && (
+                    <span className="badge rounded-pill bg-brand-500 bg-opacity-25 text-brand border border-brand border-opacity-25" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>
+                      {user.shop_code || `SW-${1000 + (user.shop || 0)}`}
+                    </span>
+                  )}
+                  <span className="small text-truncate" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                    {billing?.plan ? `${billing.plan} plan` : " "}
+                  </span>
+                </div>
               </div>
             </div>
           )}
@@ -165,7 +174,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             )}
             <div className="text-truncate min-vw-0">
               <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
-              <div className="small text-truncate mt-1" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>{billing?.plan ? `${billing.plan} plan` : " "}</div>
+              <div className="d-flex align-items-center gap-1 mt-1 flex-wrap">
+                {(user.shop_code || user.shop) && (
+                  <span className="badge rounded-pill bg-brand-500 bg-opacity-25 text-brand border border-brand border-opacity-25" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>
+                    {user.shop_code || `SW-${1000 + (user.shop || 0)}`}
+                  </span>
+                )}
+                <span className="small text-truncate" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+                  {billing?.plan ? `${billing.plan} plan` : " "}
+                </span>
+              </div>
             </div>
           </div>
         </div>
