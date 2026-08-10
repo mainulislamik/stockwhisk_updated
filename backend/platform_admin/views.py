@@ -1062,12 +1062,10 @@ class PublicBlogViewSet(viewsets.ReadOnlyModelViewSet):
         return BlogPost.objects.filter(is_published=True).order_by('-published_at')
 
 
-from rest_framework.views import APIView
-from rest_framework.response import Response
 from .mail_service import MailServerConfigService
 
 class MailAccountView(APIView):
-    permission_classes = [IsPlatformAdmin]
+    permission_classes = [IsPlatformStaff]
     
     def get(self, request):
         service = MailServerConfigService()
@@ -1109,7 +1107,7 @@ class MailAccountView(APIView):
         return Response({'status': 'success'})
 
 class MailSSOView(APIView):
-    permission_classes = [IsPlatformAdmin]
+    permission_classes = [IsPlatformStaff]
     
     def post(self, request):
         email = request.data.get('email')
