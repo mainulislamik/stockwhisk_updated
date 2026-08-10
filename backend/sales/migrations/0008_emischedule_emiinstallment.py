@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('active', 'Active'), ('completed', 'Completed'), ('defaulted', 'Defaulted')], default='active', max_length=20)),
                 ('customer', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='emi_schedules', to='crm.customer')),
                 ('sale', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='emi_schedule', to='sales.sale')),
-                ('shop', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='core.shop')),
+                ('shop', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='tenants.shop')),
             ],
             options={
                 'abstract': False,
@@ -45,7 +45,7 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('pending', 'Pending'), ('partial', 'Partial'), ('paid', 'Paid'), ('overdue', 'Overdue')], default='pending', max_length=20)),
                 ('paid_at', models.DateTimeField(blank=True, null=True)),
                 ('schedule', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='installments', to='sales.emischedule')),
-                ('shop', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='core.shop')),
+                ('shop', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='+', to='tenants.shop')),
             ],
             options={
                 'ordering': ['due_date', 'installment_number'],
