@@ -1,1 +1,3 @@
 smtpd_tls_auth_only = no
+
+smtpd_sasl_security_options = noanonymous
