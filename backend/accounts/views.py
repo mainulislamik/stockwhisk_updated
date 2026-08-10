@@ -42,6 +42,9 @@ class InitiateRegistrationView(APIView):
                 "password_hash": hashed_password,
                 "shop_name": data["shop_name"],
                 "owner_name": data.get("owner_name", ""),
+                "phone": data.get("phone", ""),
+                "business_type": data.get("business_type", "general"),
+                "address": data.get("address", ""),
                 "otp": otp,
                 "expires_at": timezone.now() + timedelta(minutes=15)
             }
@@ -119,8 +122,9 @@ class VerifyOTPRegistrationView(APIView):
             owner_email=pending.email,
             owner_password="will-be-overwritten-immediately",
             owner_name=pending.owner_name,
-            business_type="general", # Default for now, can expand later
-            phone="",
+            business_type=pending.business_type,
+            phone=pending.phone,
+            address=pending.address,
         )
         
         # Overwrite password with the hashed one from pending (to avoid storing plain text in pending)

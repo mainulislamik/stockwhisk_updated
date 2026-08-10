@@ -17,7 +17,7 @@ TRIAL_DAYS = 14
 @transaction.atomic
 def register_shop(
     *, name, owner_email, owner_password, owner_name="",
-    business_type=Shop.BusinessType.GENERAL, phone="", plan=None,
+    business_type=Shop.BusinessType.GENERAL, phone="", address="", plan=None,
 ):
     """
     Provision a new tenant:
@@ -39,6 +39,7 @@ def register_shop(
         name=name,
         business_type=business_type,
         phone=phone,
+        address=address,
         plan=plan,
         trial_ends_at=now + timedelta(days=TRIAL_DAYS),
     )
@@ -57,6 +58,7 @@ def register_shop(
         role=RoleType.OWNER,
         first_name=first,
         last_name=last,
+        phone=phone,
     )
 
     if plan is not None:

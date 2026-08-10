@@ -3,45 +3,65 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Box, Button, TextField, Typography, Card, CardContent, CircularProgress, Container, Alert } from "@mui/material";
 import { api, setTokens } from "@/lib/api";
-import { useThemeMode } from "@/components/ThemeRegistry";
+import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment, MenuItem } from '@mui/material';
+import LightModeIcon from '@mui/icons-material/LightMode';
+import DarkModeIcon from '@mui/icons-material/DarkMode';
+import EmailIcon from '@mui/icons-material/Email';
+import LockIcon from '@mui/icons-material/Lock';
+import PersonIcon from '@mui/icons-material/Person';
+import StoreIcon from '@mui/icons-material/Store';
+import PhoneIcon from '@mui/icons-material/Phone';
+import CategoryIcon from '@mui/icons-material/Category';
+import LocationOnIcon from '@mui/icons-material/LocationOn';
+import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import { useThemeMode } from '@/components/ThemeRegistry';
 
-const LIGHT_COLORS = {
-  surface: '#f8f9ff',
-  onSurface: '#0b1c30',
-  primary: '#004ac6',
-  outlineVariant: '#c3c6d7',
-};
-
-const DARK_COLORS = {
-  surface: '#0f172a',
-  onSurface: '#f8fafc',
-  primary: '#38bdf8',
-  outlineVariant: '#334155',
-};
+const SHOP_CATEGORIES = [
+  { value: 'general', label: 'General Retail' },
+  { value: 'electronics', label: 'Electronics' },
+  { value: 'computer', label: 'Computer' },
+  { value: 'mobile', label: 'Mobile & Accessories' },
+  { value: 'other', label: 'Other' }
+];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { mode } = useThemeMode();
-  const COLORS = mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
-
-  const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { mode, toggleTheme } = useThemeMode();
   
-  // Form state
+  const [step, setStep] = useState(1);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  // Form State
   const [shopName, setShopName] = useState("");
   const [ownerName, setOwnerName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [businessType, setBusinessType] = useState("general");
+  const [address, setAddress] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
+
+  const isDark = mode === 'dark';
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
+    
+    if (password !== confirmPassword) {
+      setError("Passwords do not match.");
+      return;
+    }
+    
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters long.");
+      return;
+    }
 
+    setBusy(true);
     try {
       await api("/auth/register/", { 
         method: "POST",
@@ -50,22 +70,24 @@ export default function RegisterPage() {
           owner_name: ownerName,
           owner_email: email,
           owner_password: password,
-          business_type: "general"
+          phone: phone,
+          business_type: businessType,
+          address: address
         },
       });
+      setSuccess("An OTP has been sent to your email.");
       setStep(2);
     } catch (err: any) {
-      setError(err?.message || "Registration failed. Please check your details.");
+      setError(err?.data?.detail || err?.data?.owner_email?.[0] || err?.message || "Registration failed. Please check your details.");
     } finally {
-      setLoading(false);
+      setBusy(false);
     }
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
+    setBusy(true);
     try {
       const data = await api("/auth/verify-otp/", {
         method: "POST",
@@ -74,117 +96,306 @@ export default function RegisterPage() {
       setTokens(data.access, data.refresh);
       router.push("/app");
     } catch (err: any) {
-      setError(err?.message || "Invalid or expired OTP code.");
+      setError(err?.data?.detail || err?.data?.otp?.[0] || err?.message || "Invalid or expired OTP code.");
     } finally {
-      setLoading(false);
+      setBusy(false);
+    }
+  };
+
+  const textFieldStyles = {
+    '& .MuiOutlinedInput-root': {
+      borderRadius: 2.5,
+      backgroundColor: isDark ? 'rgba(255,255,255,0.02)' : '#f8fafc',
+      transition: 'all 0.2s',
+      '&:hover': {
+        backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#f1f5f9',
+      }
+    },
+    '& .MuiOutlinedInput-notchedOutline': {
+      borderColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'
     }
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", bgcolor: COLORS.surface, p: 2 }}>
-      <Container maxWidth="sm">
-        <Card elevation={mode === 'dark' ? 0 : 3} sx={{ borderRadius: 4, bgcolor: mode === 'dark' ? '#1e293b' : '#ffffff', border: mode === 'dark' ? `1px solid ${COLORS.outlineVariant}` : 'none' }}>
-          <CardContent sx={{ p: { xs: 3, md: 5 } }}>
-            <Box sx={{ textAlign: "center", mb: 4 }}>
-              <Typography variant="h4" sx={{ fontWeight: 800, color: COLORS.primary, mb: 1, fontFamily: 'Outfit, sans-serif' }}>
-                StockWhisk
-              </Typography>
-              <Typography variant="subtitle1" sx={{ color: "text.secondary", fontFamily: 'Outfit, sans-serif' }}>
-                {step === 1 ? "Create your store account" : "Verify your email"}
-              </Typography>
-            </Box>
+    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+      {/* Left Side: Brand Imagery */}
+      <Box 
+        sx={{ 
+          flex: { xs: '0 0 auto', md: '1 1 50%', lg: '1 1 60%' }, 
+          minHeight: { xs: '30vh', md: '100vh' },
+          backgroundImage: 'url(/login-bg.jpg)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          position: 'relative',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <Box sx={{
+          position: 'absolute',
+          inset: 0,
+          background: 'linear-gradient(to right, rgba(0,0,0,0.6), rgba(0,0,0,0.1))',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          p: 4,
+          textAlign: 'center'
+        }}>
+          <Typography variant="h1" sx={{ fontWeight: 800, color: '#fff', textShadow: '0px 4px 12px rgba(0,0,0,0.6)', mb: 2, letterSpacing: '-1.5px', fontSize: { xs: '3rem', md: '4.5rem' } }}>
+            StockWhisk
+          </Typography>
+          <Typography variant="h6" sx={{ color: 'rgba(255,255,255,0.9)', maxWidth: 500, fontWeight: 400, textShadow: '0px 2px 8px rgba(0,0,0,0.5)', fontSize: { xs: '1rem', md: '1.25rem' }, lineHeight: 1.6 }}>
+            Join today to manage your inventory, analytics, and retail operations in one modern platform.
+          </Typography>
+        </Box>
+      </Box>
 
-            {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {/* Right Side: Register Form */}
+      <Box 
+        sx={{ 
+          flex: { xs: '1 1 auto', md: '1 1 50%', lg: '1 1 40%' }, 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          p: { xs: 3, sm: 6, md: 8 },
+          backgroundColor: isDark ? '#0F172A' : '#ffffff',
+          position: 'relative',
+          borderLeft: isDark ? '1px solid rgba(255,255,255,0.05)' : 'none'
+        }}
+      >
+        <IconButton 
+          onClick={toggleTheme} 
+          sx={{ position: 'absolute', top: 24, right: 24, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }}
+          color="inherit"
+        >
+          {isDark ? <LightModeIcon /> : <DarkModeIcon />}
+        </IconButton>
 
-            {step === 1 ? (
-              <form onSubmit={handleRegister}>
+        <Box sx={{ width: '100%', maxWidth: '440px' }}>
+          <Box sx={{ mb: 4 }}>
+            <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
+              Create an Account
+            </Typography>
+            <Typography variant="body1" sx={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '1.05rem' }}>
+              {step === 1 ? "Fill in your details below to get started." : "Verify your email address."}
+            </Typography>
+          </Box>
+          
+          {error && (
+            <Alert severity="error" sx={{ mb: 3, borderRadius: 2, fontWeight: 500 }}>
+              {error}
+            </Alert>
+          )}
+
+          {success && (
+            <Alert severity="success" sx={{ mb: 3, borderRadius: 2, fontWeight: 500 }}>
+              {success}
+            </Alert>
+          )}
+
+          {step === 1 ? (
+            <form onSubmit={handleRegister}>
+              <Stack spacing={2.5}>
                 <TextField
-                  fullWidth
                   label="Store Name"
                   variant="outlined"
-                  margin="normal"
+                  fullWidth
                   required
                   value={shopName}
                   onChange={(e) => setShopName(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><StoreIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
                 />
+                
                 <TextField
-                  fullWidth
                   label="Your Name"
                   variant="outlined"
-                  margin="normal"
+                  fullWidth
                   required
                   value={ownerName}
                   onChange={(e) => setOwnerName(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><PersonIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
                 />
+                
                 <TextField
-                  fullWidth
                   label="Email Address"
                   type="email"
                   variant="outlined"
-                  margin="normal"
+                  fullWidth
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><EmailIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
                 />
+
                 <TextField
+                  label="Mobile Number"
+                  type="tel"
+                  variant="outlined"
                   fullWidth
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><PhoneIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
+                />
+
+                <TextField
+                  select
+                  label="Shop Category"
+                  fullWidth
+                  required
+                  value={businessType}
+                  onChange={(e) => setBusinessType(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><CategoryIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={{...textFieldStyles, '& .MuiSelect-select': { display: 'flex', alignItems: 'center' }}}
+                >
+                  {SHOP_CATEGORIES.map((option) => (
+                    <MenuItem key={option.value} value={option.value}>
+                      {option.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+
+                <TextField
+                  label="Address"
+                  variant="outlined"
+                  fullWidth
+                  multiline
+                  rows={2}
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{alignSelf: 'flex-start', mt: 1.5}}><LocationOnIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
+                />
+
+                <TextField
                   label="Password"
                   type="password"
                   variant="outlined"
-                  margin="normal"
+                  fullWidth
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><LockIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
                 />
-                <Button
+
+                <TextField
+                  label="Confirm Password"
+                  type="password"
+                  variant="outlined"
                   fullWidth
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  slotProps={{ input: { startAdornment: <InputAdornment position="start"><LockIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
+                />
+
+                <Button
                   type="submit"
                   variant="contained"
-                  disabled={loading}
-                  sx={{ mt: 4, mb: 2, py: 1.5, fontSize: "1.1rem", borderRadius: 2, textTransform: "none", bgcolor: COLORS.primary }}
+                  fullWidth
+                  size="large"
+                  disabled={busy}
+                  startIcon={busy ? <CircularProgress size={20} color="inherit" /> : null}
+                  sx={{ 
+                    mt: 1,
+                    py: 1.8, 
+                    borderRadius: 2.5, 
+                    textTransform: 'none', 
+                    fontSize: '1.1rem', 
+                    fontWeight: 600,
+                    letterSpacing: '0.5px',
+                    boxShadow: isDark ? '0 8px 20px rgba(0,0,0,0.5)' : '0 8px 20px rgba(99,102,241,0.25)',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #4f46e5 0%, #4338ca 100%)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: isDark ? '0 12px 24px rgba(0,0,0,0.6)' : '0 12px 24px rgba(99,102,241,0.35)',
+                    },
+                  }}
                 >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : "Sign Up"}
+                  {busy ? "Creating Account..." : "Sign Up"}
                 </Button>
-                <Box sx={{ textAlign: "center", mt: 2 }}>
-                  <Typography variant="body2" sx={{ color: "text.secondary" }}>
-                    Already have an account? <Link href="/login" style={{ color: COLORS.primary, textDecoration: "none", fontWeight: 600 }}>Log In</Link>
-                  </Typography>
-                </Box>
-              </form>
-            ) : (
-              <form onSubmit={handleVerifyOTP}>
-                <Typography sx={{ mb: 3, textAlign: 'center', color: 'text.secondary' }}>
+              </Stack>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOTP}>
+              <Stack spacing={3.5}>
+                <Typography sx={{ color: isDark ? '#cbd5e1' : '#475569' }}>
                   We sent a 6-digit code to <strong>{email}</strong>. Please enter it below.
                 </Typography>
                 <TextField
-                  fullWidth
                   label="Verification Code (OTP)"
                   variant="outlined"
-                  margin="normal"
+                  fullWidth
                   required
+                  autoFocus
                   value={otp}
                   onChange={(e) => setOtp(e.target.value)}
-                  slotProps={{ htmlInput: { maxLength: 6, style: { textAlign: 'center', letterSpacing: '8px', fontSize: '1.5rem', fontWeight: 700 } } }}
+                  slotProps={{ 
+                    input: { 
+                      startAdornment: <InputAdornment position="start"><VpnKeyIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment>,
+                    },
+                    htmlInput: { maxLength: 6, style: { textAlign: 'center', letterSpacing: '8px', fontSize: '1.25rem', fontWeight: 700 } }
+                  }}
+                  sx={textFieldStyles}
                 />
+                
                 <Button
-                  fullWidth
                   type="submit"
                   variant="contained"
-                  disabled={loading || otp.length < 6}
-                  sx={{ mt: 4, mb: 2, py: 1.5, fontSize: "1.1rem", borderRadius: 2, textTransform: "none", bgcolor: COLORS.primary }}
+                  fullWidth
+                  size="large"
+                  disabled={busy || otp.length < 6}
+                  startIcon={busy ? <CircularProgress size={20} color="inherit" /> : null}
+                  sx={{ 
+                    py: 1.8, 
+                    borderRadius: 2.5, 
+                    textTransform: 'none', 
+                    fontSize: '1.1rem', 
+                    fontWeight: 600,
+                    letterSpacing: '0.5px',
+                    boxShadow: isDark ? '0 8px 20px rgba(0,0,0,0.5)' : '0 8px 20px rgba(99,102,241,0.25)',
+                    background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      background: 'linear-gradient(135deg, #059669 0%, #047857 100%)',
+                      transform: 'translateY(-2px)',
+                      boxShadow: isDark ? '0 12px 24px rgba(0,0,0,0.6)' : '0 12px 24px rgba(16,185,129,0.35)',
+                    },
+                  }}
                 >
-                  {loading ? <CircularProgress size={24} color="inherit" /> : "Verify & Complete Setup"}
+                  {busy ? "Verifying..." : "Verify & Complete Setup"}
                 </Button>
-                <Box sx={{ textAlign: "center", mt: 2 }}>
-                  <Button variant="text" onClick={() => setStep(1)} sx={{ textTransform: 'none', color: COLORS.primary }}>
+
+                <Box sx={{ textAlign: "center" }}>
+                  <Button variant="text" onClick={() => setStep(1)} sx={{ textTransform: 'none', color: '#4f46e5', fontWeight: 600 }}>
                     Change email address
                   </Button>
                 </Box>
-              </form>
-            )}
-          </CardContent>
-        </Card>
-      </Container>
+              </Stack>
+            </form>
+          )}
+
+          {step === 1 && (
+            <Box sx={{ mt: 4, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
+                Already have an account?{' '}
+                <Link href="/login" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>
+                  Sign in
+                </Link>
+              </Typography>
+            </Box>
+          )}
+        </Box>
+      </Box>
     </Box>
   );
 }

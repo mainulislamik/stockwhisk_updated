@@ -168,6 +168,9 @@ class PendingRegistration(TimeStampedModel):
     password_hash = models.CharField(max_length=255)
     shop_name = models.CharField(max_length=150)
     owner_name = models.CharField(max_length=150)
+    phone = models.CharField(max_length=30, blank=True)
+    business_type = models.CharField(max_length=20, default="general")
+    address = models.TextField(blank=True)
     otp = models.CharField(max_length=6)
     expires_at = models.DateTimeField()
     
