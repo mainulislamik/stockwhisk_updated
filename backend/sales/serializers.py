@@ -123,6 +123,11 @@ class SaleCreateSerializer(serializers.Serializer):
     note = serializers.CharField(required=False, allow_blank=True, default="")
     items = SaleItemInputSerializer(many=True)
     payments = PaymentInputSerializer(many=True, required=False, default=list)
+    
+    # EMI Fields
+    is_emi = serializers.BooleanField(default=False)
+    emi_months = serializers.IntegerField(required=False, default=0)
+    down_payment = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
 
     def validate_items(self, value):
         if not value:
@@ -157,4 +162,27 @@ class SaleReturnSerializer(serializers.ModelSerializer):
         fields = [
             "id", "sale", "reason", "total_refund", "refund_method",
             "refund_reference", "exchange_sale", "created_at",
+        ]
+
+
+class EMIInstallmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        from .models import EMIInstallment
+        model = EMIInstallment
+        fields = ["id", "installment_number", "due_date", "amount", "paid_amount", "status", "paid_at"]
+
+
+class EMIScheduleSerializer(serializers.ModelSerializer):
+    installments = EMIInstallmentSerializer(many=True, read_only=True)
+    customer_name = serializers.CharField(source="customer.name", read_only=True)
+    customer_phone = serializers.CharField(source="customer.phone", read_only=True)
+    invoice_no = serializers.CharField(source="sale.invoice_no", read_only=True)
+
+    class Meta:
+        from .models import EMISchedule
+        model = EMISchedule
+        fields = [
+            "id", "sale", "invoice_no", "customer", "customer_name", "customer_phone",
+            "total_emi_amount", "down_payment", "total_months", "monthly_installment",
+            "status", "total_paid", "total_due", "installments"
         ]

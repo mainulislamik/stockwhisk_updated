@@ -67,6 +67,10 @@ class SaleViewSet(
             items=data["items"],
             payments=data.get("payments", []),
             created_by=request.user,
+            is_emi=data.get("is_emi", False),
+            emi_months=data.get("emi_months", 0),
+            down_payment=data.get("down_payment", 0),
+            emi_interest_percent=data.get("emi_interest_percent", 0),
         )
         return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
 
@@ -333,3 +337,69 @@ class SaleViewSet(
                     customer.save(update_fields=["due_balance", "total_purchased"])
 
                 return Response({"detail": "Unit exchanged with price adjustment.", "new_total": total})
+
+
+class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List and view EMI Schedules and process payments for installments.
+    """
+    from .serializers import EMIScheduleSerializer
+    serializer_class = EMIScheduleSerializer
+
+    def get_queryset(self):
+        from .models import EMISchedule
+        qs = EMISchedule.objects.all().select_related("sale", "customer").prefetch_related("installments")
+        status = self.request.query_params.get("status")
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    @action(detail=True, methods=["post"], url_path="pay-installment/(?P<installment_id>[^/.]+)")
+    def pay_installment(self, request, pk=None, installment_id=None):
+        if not request.user.has_perm_code("process_payment"):
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+            
+        schedule = self.get_object()
+        from .models import EMIInstallment
+        try:
+            installment = schedule.installments.get(id=installment_id)
+        except EMIInstallment.DoesNotExist:
+            return Response({"detail": "Installment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if installment.status == EMIInstallment.Status.PAID:
+            return Response({"detail": "Installment is already paid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        amount = Decimal(request.data.get("amount", installment.amount - installment.paid_amount))
+        if amount <= Decimal("0"):
+            return Response({"detail": "Amount must be positive."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with transaction.atomic():
+                installment.paid_amount += amount
+                if installment.paid_amount >= installment.amount:
+                    installment.status = EMIInstallment.Status.PAID
+                else:
+                    installment.status = EMIInstallment.Status.PARTIAL
+                installment.paid_at = timezone.now()
+                installment.save(update_fields=["paid_amount", "status", "paid_at"])
+
+                # Check if schedule is fully paid
+                if schedule.total_due <= Decimal("0"):
+                    from .models import EMISchedule
+                    schedule.status = EMISchedule.Status.COMPLETED
+                    schedule.save(update_fields=["status"])
+
+                # Also record as a payment against the sale
+                from sales.services import add_payment
+                add_payment(
+                    sale=schedule.sale,
+                    amount=amount,
+                    method=request.data.get("method", "cash"),
+                    created_by=request.user,
+                )
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Refresh schedule to return updated data
+        schedule.refresh_from_db()
+        return Response(self.get_serializer(schedule).data)

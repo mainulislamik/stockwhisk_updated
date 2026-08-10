@@ -178,3 +178,61 @@ class SaleReturnItem(TenantScopedModel):
 
     def __str__(self):
         return f"{self.quantity} of item#{self.sale_item_id}"
+
+
+class EMISchedule(TenantScopedModel):
+    """
+    Tracks the overall EMI plan for a specific sale.
+    """
+    class Status(models.TextChoices):
+        ACTIVE = "active", "Active"
+        COMPLETED = "completed", "Completed"
+        DEFAULTED = "defaulted", "Defaulted"
+
+    sale = models.OneToOneField(Sale, on_delete=models.CASCADE, related_name="emi_schedule")
+    customer = models.ForeignKey("crm.Customer", on_delete=models.CASCADE, related_name="emi_schedules")
+    
+    total_emi_amount = models.DecimalField(max_digits=14, decimal_places=2) # Sale total + interest - down payment
+    down_payment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    interest_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    total_months = models.PositiveIntegerField()
+    monthly_installment = models.DecimalField(max_digits=14, decimal_places=2)
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.ACTIVE)
+    
+    def __str__(self):
+        return f"EMI for Sale {self.sale.invoice_no}"
+
+    @property
+    def total_paid(self):
+        return sum(inst.paid_amount for inst in self.installments.all())
+
+    @property
+    def total_due(self):
+        return self.total_emi_amount - self.total_paid
+
+
+class EMIInstallment(TenantScopedModel):
+    """
+    Individual monthly installments for an EMI Schedule.
+    """
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PARTIAL = "partial", "Partial"
+        PAID = "paid", "Paid"
+        OVERDUE = "overdue", "Overdue"
+
+    schedule = models.ForeignKey(EMISchedule, on_delete=models.CASCADE, related_name="installments")
+    installment_number = models.PositiveIntegerField()
+    due_date = models.DateField()
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+    paid_amount = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    paid_at = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"Inst #{self.installment_number} - Schedule {self.schedule_id}"
+
+    class Meta:
+        ordering = ["due_date", "installment_number"]

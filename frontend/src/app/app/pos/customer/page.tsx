@@ -7,7 +7,7 @@ import { Spinner, money } from "@/components/ui";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
-type Customer = { id: number; name: string; phone?: string };
+type Customer = { id: number; name: string; phone?: string; email?: string; };
 
 const PAY_METHODS = [
   { value: "cash", label: "💵 Cash" },
@@ -30,6 +30,9 @@ export default function PosCustomerPage() {
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");
   const [method, setMethod] = useState("cash");
+  const [isEmi, setIsEmi] = useState(false);
+  const [emiMonths, setEmiMonths] = useState(3);
+  const [emiInterestPercent, setEmiInterestPercent] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
@@ -48,6 +51,22 @@ export default function PosCustomerPage() {
   async function complete() {
     if (customerMode === "walkin" && !walkName.trim()) { setError("Customer name is required."); return; }
     if (customerMode === "walkin" && !walkPhone.trim()) { setError("Phone is required."); return; }
+    if (isEmi) {
+      if (customerMode === "walkin") {
+        setError("EMI sales require an existing registered customer.");
+        return;
+      }
+      const selectedCustomer = customers.find(c => c.id === Number(customerId));
+      if (!selectedCustomer?.email || !selectedCustomer?.phone) {
+        setError("EMI sales require the customer to have a registered email and phone number.");
+        return;
+      }
+      if (paidNum >= total) {
+        setError("Down payment cannot cover the full amount for an EMI sale.");
+        return;
+      }
+    }
+    
     setError("");
     setBusy(true);
     try {
@@ -77,7 +96,11 @@ export default function PosCustomerPage() {
             discount: l.discount,
             unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
           })),
-          payments: paidNum > 0 ? [{ amount: paidNum, method }] : [{ amount: total, method }],
+          payments: paidNum > 0 ? [{ amount: paidNum, method }] : (isEmi ? [] : [{ amount: total, method }]),
+          is_emi: isEmi,
+          emi_months: isEmi ? emiMonths : 0,
+          down_payment: isEmi ? paidNum : 0,
+          emi_interest_percent: isEmi ? emiInterestPercent : 0,
         },
       });
 
@@ -185,16 +208,62 @@ export default function PosCustomerPage() {
               <div className="col-4">
                 <div className="form-floating">
                   <input id="paidInput" type="number" min={0} className="form-control fw-bold text-primary shadow-sm" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder={String(total)} />
-                  <label htmlFor="paidInput">Amount paid *</label>
+                  <label htmlFor="paidInput">{isEmi ? "Down payment *" : "Amount paid *"}</label>
                 </div>
               </div>
             </div>
+
+            <div className="form-check form-switch fs-5 mt-2 mb-1">
+              <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={isEmi} onChange={(e) => setIsEmi(e.target.checked)} />
+              <label className="form-check-label ms-2 fw-semibold text-primary" htmlFor="emiSwitch">Enable EMI (Installments)</label>
+            </div>
+
+            {isEmi && (
+              <div className="p-3 bg-primary bg-opacity-10 rounded-3 border border-primary vstack gap-2 shadow-sm">
+                <div className="row g-2 mb-2">
+                  <div className="col-8">
+                    <div className="form-floating">
+                      <select id="emiMonths" className="form-select" value={emiMonths} onChange={(e) => setEmiMonths(Number(e.target.value))}>
+                        <option value={3}>3 Months</option>
+                        <option value={6}>6 Months</option>
+                        <option value={9}>9 Months</option>
+                        <option value={12}>12 Months</option>
+                        <option value={18}>18 Months</option>
+                        <option value={24}>24 Months</option>
+                      </select>
+                      <label htmlFor="emiMonths">EMI Duration</label>
+                    </div>
+                  </div>
+                  <div className="col-4">
+                    <div className="form-floating">
+                      <input id="emiInterest" type="number" min={0} max={100} step="0.1" className="form-control" value={emiInterestPercent} onChange={(e) => setEmiInterestPercent(Number(e.target.value) || 0)} />
+                      <label htmlFor="emiInterest">Interest %</label>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="d-flex justify-content-between fs-6 text-secondary">
+                  <span>EMI Principal:</span>
+                  <span className="fw-bold">{money(Math.max(0, total - paidNum))}</span>
+                </div>
+                {emiInterestPercent > 0 && (
+                  <div className="d-flex justify-content-between fs-6 text-secondary">
+                    <span>Interest ({emiInterestPercent}%):</span>
+                    <span className="fw-bold">{money(Math.max(0, total - paidNum) * (emiInterestPercent / 100))}</span>
+                  </div>
+                )}
+                <div className="d-flex justify-content-between fs-5 text-primary fw-bold">
+                  <span>Per Month EMI:</span>
+                  <span>{money((Math.max(0, total - paidNum) * (1 + (emiInterestPercent / 100))) / emiMonths)} /mo</span>
+                </div>
+              </div>
+            )}
 
             <div className="form-floating">
               <select id="payMethod" className="form-select shadow-sm" value={method} onChange={(e) => setMethod(e.target.value)}>
                 {PAY_METHODS.map((m) => <option key={m.value} value={m.value}>{m.label}</option>)}
               </select>
-              <label htmlFor="payMethod">Payment method</label>
+              <label htmlFor="payMethod">{isEmi ? "Down payment method" : "Payment method"}</label>
             </div>
 
             <div className="border-top border-bottom py-3 my-2 bg-body-tertiary rounded-3 px-3 shadow-sm">

@@ -34,7 +34,7 @@ def create_sale(
     *, shop, items, customer=None, branch=None, discount=ZERO, delivery_charge=ZERO, tax=ZERO,
     payments=None, sale_date=None, note="", created_by=None,
     customer_name="", customer_phone="", customer_address="",
-    idempotency_key="",
+    idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO
 ):
     """
     ``items``: list of dicts with keys ``product`` (instance), optional
@@ -186,6 +186,62 @@ def create_sale(
     sale.paid = paid
     sale.status = _resolve_status(total, paid)
     sale.save(update_fields=["subtotal", "total", "paid", "status", "discount", "delivery_charge", "tax"])
+
+    if is_emi:
+        if not customer:
+            raise ValueError("EMI sales require a saved customer.")
+        if not customer.email or not customer.phone:
+            raise ValueError("EMI sales require a registered customer with a full email and phone number.")
+            
+        if emi_months <= 0:
+            raise ValueError("EMI months must be greater than 0.")
+        
+        emi_principal = total - paid
+        if emi_principal <= ZERO:
+            raise ValueError("Paid amount covers the total, EMI is not needed.")
+            
+        from .models import EMISchedule, EMIInstallment
+        from dateutil.relativedelta import relativedelta
+        
+        # Calculate interest
+        interest_percent = Decimal(emi_interest_percent or 0)
+        interest_amount = (emi_principal * interest_percent / Decimal("100")).quantize(Decimal("0.01"))
+        total_emi_amount = emi_principal + interest_amount
+        
+        monthly_installment = (total_emi_amount / Decimal(emi_months)).quantize(Decimal("0.01"))
+        
+        schedule = EMISchedule.objects.create(
+            shop=shop,
+            sale=sale,
+            customer=customer,
+            total_emi_amount=total_emi_amount,
+            down_payment=paid,
+            interest_percent=interest_percent,
+            total_months=emi_months,
+            monthly_installment=monthly_installment,
+        )
+        
+        # Trigger welcome email asynchronously
+        from .tasks import send_emi_welcome_email
+        send_emi_welcome_email.delay(schedule.id)
+        
+        installments = []
+        for i in range(emi_months):
+            # Calculate due date (1 month apart starting from next month)
+            due_date = (sale_date.date() if sale_date else timezone.localdate()) + relativedelta(months=i+1)
+            # Adjust last installment to cover any rounding differences
+            amt = monthly_installment
+            if i == emi_months - 1:
+                amt = total_emi_amount - (monthly_installment * (emi_months - 1))
+                
+            installments.append(EMIInstallment(
+                shop=shop,
+                schedule=schedule,
+                installment_number=i+1,
+                due_date=due_date,
+                amount=amt,
+            ))
+        EMIInstallment.objects.bulk_create(installments)
 
     if customer is not None:
         _update_customer_after_sale(customer, total=total, due=total - paid, when=sale_date)
