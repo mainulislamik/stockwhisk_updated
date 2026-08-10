@@ -87,6 +87,11 @@ def perform_drive_backup():
         media_filename = f"stockwhisk_media_{time.strftime('%Y%m%d-%H%M%S')}.zip"
         media_tmp_dir = tempfile.mkdtemp()
         media_tmp_path = os.path.join(media_tmp_dir, "media")
+        
+        # Ensure MEDIA_ROOT exists to prevent FileNotFoundError
+        if not os.path.exists(settings.MEDIA_ROOT):
+            os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+            
         shutil.make_archive(media_tmp_path, 'zip', settings.MEDIA_ROOT)
         media_zip_path = media_tmp_path + ".zip"
 

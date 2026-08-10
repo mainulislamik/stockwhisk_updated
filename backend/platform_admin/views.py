@@ -960,6 +960,9 @@ class MediaBackupDownloadView(APIView):
         tmp_dir = tempfile.mkdtemp()
         tmp_path = os.path.join(tmp_dir, "media")
         
+        if not os.path.exists(settings.MEDIA_ROOT):
+            os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+        
         # This will create tmp_path + ".zip"
         shutil.make_archive(tmp_path, 'zip', settings.MEDIA_ROOT)
         zip_file_path = tmp_path + ".zip"
