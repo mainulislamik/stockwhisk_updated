@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import PageWrapper from "@/components/PageWrapper";
 import toast from "react-hot-toast";
-import api from "@/lib/api";
+import { api } from "@/lib/api";
 
 type MailAccount = {
   email: string;
