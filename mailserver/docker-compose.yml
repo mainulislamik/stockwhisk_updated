@@ -20,6 +20,9 @@ services:
     cap_add:
       - NET_ADMIN
       - SYS_PTRACE
+    networks:
+      - mailnet
+      - stockwhisk_updated_default
 
   mail_db:
     image: mariadb:10.5
@@ -33,12 +36,13 @@ services:
       - MYSQL_PASSWORD=roundcube_secret
     volumes:
       - ./mail-db-data/:/var/lib/mysql
+    networks:
+      - mailnet
 
   roundcube:
     image: roundcube/roundcubemail:latest
     container_name: roundcube
     restart: always
-    # No longer exposed directly - accessed via nginx reverse proxy
     expose:
       - "80"
     environment:
@@ -58,28 +62,12 @@ services:
     depends_on:
       - mailserver
       - mail_db
+    networks:
+      - mailnet
+      - stockwhisk_updated_default
 
-  # Nginx reverse proxy with SSL
-  mail_nginx:
-    image: nginx:alpine
-    container_name: mail_nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/mail.conf:/etc/nginx/conf.d/mail.conf:ro
-      - ./certbot/www:/var/www/certbot:ro
-      - ./certbot/conf:/etc/letsencrypt:ro
-    depends_on:
-      - roundcube
-
-  # Certbot for automatic SSL certificate management
-  certbot:
-    image: certbot/certbot:latest
-    container_name: mail_certbot
-    volumes:
-      - ./certbot/www:/var/www/certbot
-      - ./certbot/conf:/etc/letsencrypt
-    # Run once to issue cert, then handled by cron
-    entrypoint: "/bin/sh -c 'trap exit TERM; while :; do certbot renew; sleep 12h & wait $${!}; done;'"
+networks:
+  mailnet:
+    driver: bridge
+  stockwhisk_updated_default:
+    external: true

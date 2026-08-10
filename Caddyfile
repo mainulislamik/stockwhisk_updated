@@ -17,3 +17,8 @@ stockwhisk.com, www.stockwhisk.com {
         reverse_proxy frontend:3000
     }
 }
+
+mail.stockwhisk.com {
+    reverse_proxy roundcube:80
+}
+
