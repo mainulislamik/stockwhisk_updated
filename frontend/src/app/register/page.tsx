@@ -18,10 +18,17 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import { useThemeMode } from '@/components/ThemeRegistry';
 
 const SHOP_CATEGORIES = [
-  { value: 'general', label: 'General Retail' },
-  { value: 'electronics', label: 'Electronics' },
-  { value: 'computer', label: 'Computer' },
+  { value: 'fashion', label: 'Fashion & Apparel' },
+  { value: 'beauty', label: 'Beauty & Cosmetics' },
+  { value: 'jewelry', label: 'Jewelry & Accessories' },
+  { value: 'home_decor', label: 'Home Decor & Furniture' },
+  { value: 'food', label: 'Groceries & Organic Food' },
+  { value: 'footwear', label: 'Footwear & Shoes' },
+  { value: 'handcrafts', label: 'Handcrafts & Boutique' },
+  { value: 'electronics', label: 'Electronics & Gadgets' },
+  { value: 'computer', label: 'Computer & IT' },
   { value: 'mobile', label: 'Mobile & Accessories' },
+  { value: 'general', label: 'General Retail' },
   { value: 'other', label: 'Other' }
 ];
 

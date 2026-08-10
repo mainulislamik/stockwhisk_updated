@@ -50,8 +50,15 @@ class Shop(TimeStampedModel):
     """
 
     class BusinessType(models.TextChoices):
-        ELECTRONICS = "electronics", "Electronics"
-        COMPUTER = "computer", "Computer"
+        FASHION = "fashion", "Fashion & Apparel"
+        BEAUTY = "beauty", "Beauty & Cosmetics"
+        JEWELRY = "jewelry", "Jewelry & Accessories"
+        HOME_DECOR = "home_decor", "Home Decor & Furniture"
+        FOOD = "food", "Groceries & Organic Food"
+        FOOTWEAR = "footwear", "Footwear & Shoes"
+        HANDCRAFTS = "handcrafts", "Handcrafts & Boutique"
+        ELECTRONICS = "electronics", "Electronics & Gadgets"
+        COMPUTER = "computer", "Computer & IT"
         MOBILE = "mobile", "Mobile & Accessories"
         GENERAL = "general", "General Retail"
         OTHER = "other", "Other"
