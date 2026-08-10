@@ -51,7 +51,13 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_units(self, obj):
         if not getattr(obj, "track_inventory", True):
             return []
-        units = obj.units.filter(status=ProductUnit.Status.IN_STOCK)
+        
+        # Use prefetched IN_STOCK units if available to prevent N+1 queries
+        if hasattr(obj, "prefetched_in_stock_units"):
+            units = obj.prefetched_in_stock_units
+        else:
+            units = obj.units.filter(status=ProductUnit.Status.IN_STOCK)
+            
         return ProductUnitSerializer(units, many=True).data
 
 class ProductUnitSerializer(serializers.ModelSerializer):

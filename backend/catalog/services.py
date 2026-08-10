@@ -8,7 +8,14 @@ class ProductService(BaseService[Product]):
     @classmethod
     def get_catalog_queryset(cls, low_stock: bool = False, search: str = None):
         """Returns the tenant-scoped product catalog, optimized with related entities."""
-        qs = cls.get_queryset().select_related("category", "brand", "unit").prefetch_related("variations")
+        from django.db.models import Prefetch
+        from .models import ProductUnit
+        in_stock_prefetch = Prefetch(
+            "units",
+            queryset=ProductUnit.objects.filter(status=ProductUnit.Status.IN_STOCK),
+            to_attr="prefetched_in_stock_units"
+        )
+        qs = cls.get_queryset().select_related("category", "brand", "unit").prefetch_related("variations", in_stock_prefetch)
         
         if low_stock:
             qs = qs.filter(track_inventory=True, current_stock__lte=F("reorder_level"))
