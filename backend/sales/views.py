@@ -174,7 +174,7 @@ class SaleViewSet(
             return Response({"detail": "Invalid or unsold barcode."}, status=status.HTTP_400_BAD_REQUEST)
 
         sale = unit.sale
-        sale_item = sale.items.filter(product=unit.product, variation=unit.variation).first()
+        sale_item = sale.items.filter(product=unit.product).first()
         if not sale_item:
             return Response({"detail": "Sale item not found."}, status=status.HTTP_400_BAD_REQUEST)
 
