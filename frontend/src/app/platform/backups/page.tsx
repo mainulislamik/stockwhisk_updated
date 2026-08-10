@@ -18,9 +18,12 @@ export default function BackupsPage() {
   const [backupInterval, setBackupInterval] = useState(1440);
   const [savingConfig, setSavingConfig] = useState(false);
   const [triggeringDrive, setTriggeringDrive] = useState(false);
+  const [downloadingMedia, setDownloadingMedia] = useState(false);
+  const [restoringMedia, setRestoringMedia] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   
   const fileRef = useRef<HTMLInputElement>(null);
+  const mediaFileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     // Check for OAuth callback code
@@ -162,6 +165,47 @@ export default function BackupsPage() {
     }
   }
 
+  async function downloadMedia() {
+    setDownloadingMedia(true);
+    setMsg(null);
+    try {
+      const res = await api<Response>("/platform/backups/media/download/", { raw: true });
+      if (!res.ok) throw new Error(`Media download failed (${res.status}).`);
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") || "";
+      const name = /filename="?([^"]+)"?/.exec(cd)?.[1] || "stockwhisk_media.zip";
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url; a.download = name; a.click();
+      URL.revokeObjectURL(url);
+      setMsg({ ok: true, text: "Media backup downloaded." });
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.message || "Media download failed." });
+    } finally {
+      setDownloadingMedia(false);
+    }
+  }
+
+  async function restoreMedia(e: React.FormEvent) {
+    e.preventDefault();
+    const f = mediaFileRef.current?.files?.[0];
+    if (!f) { setMsg({ ok: false, text: "Choose a .zip file first." }); return; }
+    if (!(await confirmAction("Restoring will OVERWRITE existing media files. Continue?"))) return;
+    setRestoringMedia(true);
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append("backup_file", f);
+      const res = await api<{ status: string; detail: string }>("/platform/backups/media/restore/", { method: "POST", body: fd });
+      setMsg({ ok: true, text: res.detail || "Media restored successfully." });
+      if (mediaFileRef.current) mediaFileRef.current.value = "";
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.detail || e?.message || "Media restore failed." });
+    } finally {
+      setRestoringMedia(false);
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
       <PageHeader title="System Backups" />
@@ -180,7 +224,7 @@ export default function BackupsPage() {
             <i className="bi bi-google"></i> Automated Google Drive Backups
           </h2>
           <p className="text-slate-400 text-sm mb-6">
-            Configure automatic daily backups directly to Google Drive. This uses no local server storage. You must provide a Google OAuth Client ID and a shared folder ID.
+            Configure automatic daily backups directly to Google Drive. This securely backs up both your Database (.sql) and all Media Images (.zip) without using local server storage.
           </p>
 
           <form onSubmit={saveDriveConfig} className="space-y-4">
@@ -320,6 +364,50 @@ export default function BackupsPage() {
                     <><span className="spinner-border spinner-border-sm me-2"></span>Restoring…</>
                   ) : (
                     <><i className="bi bi-database-fill-up me-2"></i>Restore database</>
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="row g-3" style={{ maxWidth: "52rem" }}>
+        <div className="col-md-6">
+          <div className="card border-0 shadow-sm rounded-4 h-100">
+            <div className="card-body p-4 vstack">
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <i className="bi bi-images text-dark fs-5"></i>
+                <h2 className="h6 fw-bold mb-0">Media Backup (Images)</h2>
+              </div>
+              <p className="text-secondary small mb-4">Generates a .zip file of all uploaded shop media (images, logos) and downloads it to your computer.</p>
+              <div className="mt-auto">
+                <button className="btn btn-dark rounded-pill px-4 shadow-sm w-100" disabled={downloadingMedia} onClick={downloadMedia}>
+                  {downloadingMedia ? (
+                    <><span className="spinner-border spinner-border-sm me-2"></span>Zipping Media…</>
+                  ) : (
+                    <><i className="bi bi-file-zip-fill me-2"></i>Download Media (.zip)</>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-6">
+          <div className="card border-0 shadow-sm rounded-4 h-100 border-top border-warning border-4">
+            <div className="card-body p-4 vstack">
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <i className="bi bi-folder-symlink-fill text-warning fs-5"></i>
+                <h2 className="h6 fw-bold text-warning mb-0">Media Disaster Recovery</h2>
+              </div>
+              <p className="text-secondary small mb-4">Uploads a .zip media backup (from your computer or downloaded from Google Drive) and restores images.</p>
+              <form onSubmit={restoreMedia} className="mt-auto vstack gap-3">
+                <input ref={mediaFileRef} type="file" accept=".zip" className="form-control rounded-3" />
+                <button className="btn btn-outline-warning rounded-pill px-4 w-100 fw-medium" disabled={restoringMedia}>
+                  {restoringMedia ? (
+                    <><span className="spinner-border spinner-border-sm me-2"></span>Restoring Media…</>
+                  ) : (
+                    <><i className="bi bi-cloud-upload-fill me-2"></i>Restore Media (.zip)</>
                   )}
                 </button>
               </form>

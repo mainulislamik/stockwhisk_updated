@@ -3,7 +3,8 @@ import os
 import subprocess
 import tempfile
 import time
-import json
+import shutil
+from django.conf import settings
 from celery import shared_task
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
@@ -74,24 +75,53 @@ def perform_drive_backup():
                 logger.error(msg)
                 return False, msg
 
-        # 3. Upload to Google Drive
+        # 3. Upload DB to Google Drive
         file_metadata = {
             'name': filename,
             'parents': [config.drive_folder_id]
         }
         media = MediaFileUpload(tmp_path, mimetype='application/sql', resumable=True)
         uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+
+        # 3.5 Backup Media Directory
+        media_filename = f"stockwhisk_media_{time.strftime('%Y%m%d-%H%M%S')}.zip"
+        media_tmp_dir = tempfile.mkdtemp()
+        media_tmp_path = os.path.join(media_tmp_dir, "media")
+        shutil.make_archive(media_tmp_path, 'zip', settings.MEDIA_ROOT)
+        media_zip_path = media_tmp_path + ".zip"
+
+        try:
+            media_file_metadata = {
+                'name': media_filename,
+                'parents': [config.drive_folder_id]
+            }
+            media_upload = MediaFileUpload(media_zip_path, mimetype='application/zip', resumable=True)
+            uploaded_media_file = drive_service.files().create(body=media_file_metadata, media_body=media_upload, fields='id').execute()
+        finally:
+            # Clean up local zip
+            if os.path.exists(media_zip_path):
+                os.remove(media_zip_path)
+            shutil.rmtree(media_tmp_dir, ignore_errors=True)
         
         # 4. Delete old backups in the folder to save space
         try:
+            # Delete old SQL backups
             query = f"'{config.drive_folder_id}' in parents and name contains 'stockwhisk_backup_' and trashed=false"
             results = drive_service.files().list(q=query, fields="files(id, name)").execute()
             items = results.get('files', [])
             for item in items:
-                # Do not delete the one we just uploaded
                 if item['id'] != uploaded_file.get('id'):
                     drive_service.files().delete(fileId=item['id']).execute()
                     logger.info(f"Deleted old backup from Drive: {item['name']}")
+                    
+            # Delete old Media backups
+            media_query = f"'{config.drive_folder_id}' in parents and name contains 'stockwhisk_media_' and trashed=false"
+            media_results = drive_service.files().list(q=media_query, fields="files(id, name)").execute()
+            media_items = media_results.get('files', [])
+            for item in media_items:
+                if item['id'] != uploaded_media_file.get('id'):
+                    drive_service.files().delete(fileId=item['id']).execute()
+                    logger.info(f"Deleted old media backup from Drive: {item['name']}")
         except Exception as e:
             logger.warning(f"Failed to delete old backups from Drive: {e}")
 

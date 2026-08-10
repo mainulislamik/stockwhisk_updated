@@ -942,6 +942,68 @@ class BackupRestoreView(APIView):
         return Response({"detail": f"Restore completed with errors: {result.stderr[:300]}"},
                         status=status.HTTP_400_BAD_REQUEST)
 
+class MediaBackupDownloadView(APIView):
+    """Create a zip of the media folder and serve it as a download."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        import shutil
+        import tempfile
+        import os
+        import time
+        from django.conf import settings
+        from django.http import FileResponse
+
+        filename = f"stockwhisk_media_{time.strftime('%Y%m%d-%H%M%S')}.zip"
+        
+        # Create a temporary directory
+        tmp_dir = tempfile.mkdtemp()
+        tmp_path = os.path.join(tmp_dir, "media")
+        
+        # This will create tmp_path + ".zip"
+        shutil.make_archive(tmp_path, 'zip', settings.MEDIA_ROOT)
+        zip_file_path = tmp_path + ".zip"
+
+        try:
+            # We open the file and pass it to FileResponse. 
+            # FileResponse will close it automatically.
+            f = open(zip_file_path, 'rb')
+            response = FileResponse(f, content_type="application/zip")
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
+            return response
+        except Exception as e:
+            return Response({"detail": f"Failed to generate zip: {str(e)}"}, status=500)
+        finally:
+            # We cannot delete the zip file immediately because FileResponse needs to stream it.
+            # Usually we'd want a cleanup task or rely on OS temp file cleanup, but we can delete the tmp_dir.
+            shutil.rmtree(tmp_dir, ignore_errors=True)
+
+
+class MediaBackupRestoreView(APIView):
+    """Restore media files from an uploaded .zip backup."""
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        import zipfile
+        import os
+        from django.conf import settings
+
+        zip_file = request.FILES.get("backup_file")
+        if not zip_file:
+            return Response({"detail": "No file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            with zipfile.ZipFile(zip_file, 'r') as zip_ref:
+                # Ensure the media root exists
+                os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
+                # Extract all files into the media directory
+                zip_ref.extractall(settings.MEDIA_ROOT)
+            return Response({"status": "restored", "detail": "Media files restored successfully."})
+        except zipfile.BadZipFile:
+            return Response({"detail": "Invalid ZIP file uploaded."}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            return Response({"detail": f"Failed to restore media: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 # --- Blog Posts --------------------------------------------------------------
 
 from .models import BlogPost
