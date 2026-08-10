@@ -161,52 +161,57 @@ class SaleViewSet(
 
     @action(detail=False, methods=["post"], url_path="process-scan-return")
     def process_scan_return(self, request):
-        if not request.user.has_perm_code("process_return"):
-            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
-
-        barcode = request.data.get("barcode", "").strip()
-        action_type = request.data.get("action", "restock")
-        refund_method = request.data.get("refund_method", "cash")
-
-        from catalog.models import ProductUnit
-        unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=barcode).first()
-        if not unit or unit.status != ProductUnit.Status.SOLD or not unit.sale_id:
-            return Response({"detail": "Invalid or unsold barcode."}, status=status.HTTP_400_BAD_REQUEST)
-
-        sale = unit.sale
-        sale_item = sale.items.filter(product=unit.product).first()
-        if not sale_item:
-            return Response({"detail": "Sale item not found."}, status=status.HTTP_400_BAD_REQUEST)
-
-        restock = (action_type == "restock")
-
-        # 1. Process the refund via create_return
         try:
-            lines = [{"sale_item": sale_item, "quantity": Decimal("1")}]
-            create_return(
-                sale=sale,
-                lines=lines,
-                reason=f"Barcode scan return: {action_type}",
-                refund_method=refund_method,
-                restock=restock,
-                created_by=request.user
-            )
+            if not request.user.has_perm_code("process_return"):
+                return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+
+            barcode = request.data.get("barcode", "").strip()
+            action_type = request.data.get("action", "restock")
+            refund_method = request.data.get("refund_method", "cash")
+
+            from catalog.models import ProductUnit
+            unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=barcode).first()
+            if not unit or unit.status != ProductUnit.Status.SOLD or not unit.sale_id:
+                return Response({"detail": "Invalid or unsold barcode."}, status=status.HTTP_400_BAD_REQUEST)
+
+            sale = unit.sale
+            sale_item = sale.items.filter(product=unit.product).first()
+            if not sale_item:
+                return Response({"detail": "Sale item not found."}, status=status.HTTP_400_BAD_REQUEST)
+
+            restock = (action_type == "restock")
+
+            # 1. Process the refund via create_return
+            try:
+                from decimal import Decimal
+                lines = [{"sale_item": sale_item, "quantity": Decimal("1")}]
+                create_return(
+                    sale=sale,
+                    lines=lines,
+                    reason=f"Barcode scan return: {action_type}",
+                    refund_method=refund_method,
+                    restock=restock,
+                    created_by=request.user
+                )
+            except Exception as e:
+                return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+            # 2. Update the physical unit status
+            if action_type == "restock":
+                unit.status = ProductUnit.Status.IN_STOCK
+                unit.sale = None
+                unit.sold_at = None
+            elif action_type == "defective":
+                unit.status = ProductUnit.Status.DEFECTIVE
+            elif action_type == "return_supplier":
+                unit.status = ProductUnit.Status.RETURNED_SUPPLIER
+
+            unit.save(update_fields=["status", "sale", "sold_at"])
+
+            return Response({"detail": "Return processed successfully.", "new_status": unit.status})
         except Exception as e:
-            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
-
-        # 2. Update the physical unit status
-        if action_type == "restock":
-            unit.status = ProductUnit.Status.IN_STOCK
-            unit.sale = None
-            unit.sold_at = None
-        elif action_type == "defective":
-            unit.status = ProductUnit.Status.DEFECTIVE
-        elif action_type == "return_supplier":
-            unit.status = ProductUnit.Status.RETURNED_SUPPLIER
-
-        unit.save(update_fields=["status", "sale", "sold_at"])
-
-        return Response({"detail": "Return processed successfully.", "new_status": unit.status})
+            import traceback
+            return Response({"detail": "Traceback: " + traceback.format_exc()}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"], url_path="replace-unit")
     def replace_unit(self, request):
