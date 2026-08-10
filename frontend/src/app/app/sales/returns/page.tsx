@@ -62,11 +62,11 @@ export default function ReturnsPage() {
     try {
       await api<any>("/sales/sales/process-scan-return/", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           barcode: scanResult.unit.barcode,
           action: action,
           refund_method: refundMethod
-        })
+        }
       });
       toast.success("Product returned successfully!");
       setScanResult(null);
@@ -122,10 +122,10 @@ export default function ReturnsPage() {
     try {
       await api<any>("/sales/sales/replace-unit/", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           old_barcode: oldScanResult.unit.barcode,
           new_barcode: newScanResult.barcode
-        })
+        }
       });
       toast.success("Product replaced successfully!");
       setOldScanResult(null);
