@@ -25,6 +25,7 @@ from .views import (
     PublicBlogViewSet,
     MailAccountView,
     MailSSOView,
+    MailSSORedirectView,
     SmtpSettingsView,
     TestSmtpConnectionView,
 )
@@ -59,6 +60,7 @@ urlpatterns = [
     path("impersonate/stop/", StopImpersonationView.as_view(), name="impersonate_stop"),
     path("mail-accounts/", MailAccountView.as_view(), name="mail-accounts"),
     path("mail-accounts/sso/", MailSSOView.as_view(), name="mail-accounts-sso"),
+    path("mail-accounts/sso-redirect/", MailSSORedirectView.as_view(), name="mail-sso-redirect"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]

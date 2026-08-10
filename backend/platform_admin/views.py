@@ -1108,16 +1108,106 @@ class MailAccountView(APIView):
 
 class MailSSOView(APIView):
     permission_classes = [IsPlatformStaff]
-    
+
     def post(self, request):
+        import hmac, hashlib, time
+        from django.conf import settings
         email = request.data.get('email')
         if not email:
             return Response({'error': 'Email required'}, status=400)
-        # We return the master credentials so the frontend can auto-login the user.
-        # The master user allows logging in as any user.
-        return Response({
-            '_user': f'{email}*master_admin',
-            '_pass': 'stockwhisk_master_2026',
-            '_action': 'login'
-        })
+        # Generate a short-lived signed token (60s TTL)
+        ts = str(int(time.time()))
+        sig = hmac.new(
+            settings.SECRET_KEY.encode(),
+            f"{email}:{ts}".encode(),
+            hashlib.sha256
+        ).hexdigest()
+        token = f"{email}:{ts}:{sig}"
+        import urllib.parse
+        return Response({'sso_url': f"/sso?token={urllib.parse.quote(token)}"})
 
+
+from django.views import View
+from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+
+class MailSSORedirectView(View):
+    """
+    Hosted at mail.stockwhisk.com/sso (Caddy routes this to Django).
+    Validates the signed token, logs into Roundcube server-side,
+    sets the session cookie for mail.stockwhisk.com, and redirects.
+    """
+    ROUNDCUBE_INTERNAL = "http://roundcube:80"
+
+    def get(self, request):
+        import hmac, hashlib, time, re, requests as req
+        from django.conf import settings
+
+        token = request.GET.get('token', '')
+        # Validate token
+        try:
+            parts = token.split(':', 2)
+            if len(parts) != 3:
+                raise ValueError
+            email, ts, sig = parts
+            if int(time.time()) - int(ts) > 120:  # 2 min TTL
+                return HttpResponseForbidden("SSO token expired. Please try again.")
+            expected = hmac.new(
+                settings.SECRET_KEY.encode(),
+                f"{email}:{ts}".encode(),
+                hashlib.sha256
+            ).hexdigest()
+            if not hmac.compare_digest(sig, expected):
+                raise ValueError
+        except Exception:
+            return HttpResponseForbidden("Invalid SSO token.")
+
+        master_user = f"{email}*master_admin"
+        master_pass = "stockwhisk_master_2026"
+
+        try:
+            sess = req.Session()
+            # Step 1: GET login page to acquire session cookie + CSRF token
+            r = sess.get(f"{self.ROUNDCUBE_INTERNAL}/?_task=login", timeout=10)
+            csrf_match = re.search(r'name="_token"\s+value="([^"]+)"', r.text)
+            csrf_token = csrf_match.group(1) if csrf_match else ""
+
+            # Step 2: POST credentials server-side
+            sess.post(
+                f"{self.ROUNDCUBE_INTERNAL}/?_task=login",
+                data={
+                    '_user': master_user,
+                    '_pass': master_pass,
+                    '_action': 'login',
+                    '_task': 'login',
+                    '_token': csrf_token,
+                },
+                allow_redirects=True,
+                timeout=10,
+            )
+
+            # Step 3: Extract session cookie
+            cookies = sess.cookies.get_dict()
+            session_id = cookies.get('roundcube_sessid') or cookies.get('PHPSESSID')
+            session_name = 'roundcube_sessid' if 'roundcube_sessid' in cookies else 'PHPSESSID'
+
+            if not session_id:
+                return HttpResponse(
+                    "SSO login failed — Dovecot master user may not be active yet. "
+                    "Try restarting the mail server.",
+                    status=401,
+                    content_type="text/plain"
+                )
+
+            # Step 4: Set cookie for mail.stockwhisk.com and redirect to inbox
+            response = HttpResponseRedirect("/?_task=mail")
+            response.set_cookie(
+                session_name,
+                session_id,
+                httponly=True,
+                samesite='Lax',
+                secure=True,
+            )
+            return response
+
+        except Exception as e:
+            return HttpResponse(f"SSO Error: {e}", status=500, content_type="text/plain")

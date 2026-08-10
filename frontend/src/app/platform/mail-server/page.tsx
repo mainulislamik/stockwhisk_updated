@@ -100,30 +100,13 @@ export default function MailServerPage() {
 
   const handleLoginAs = async (email: string) => {
     try {
-      const data = await api<{ _user: string; _pass: string; _action: string }>(
+      const data = await api<{ sso_url: string }>(
         "/platform/mail-accounts/sso/",
         { method: "POST", body: { email } }
       );
-      const form = document.createElement("form");
-      form.method = "POST";
-      form.action = "https://mail.stockwhisk.com/";
-      form.target = "_blank";
-      const fields: Record<string, string> = {
-        _user: data._user,
-        _pass: data._pass,
-        _action: "login",
-        _task: "login",
-      };
-      Object.entries(fields).forEach(([name, value]) => {
-        const input = document.createElement("input");
-        input.type = "hidden";
-        input.name = name;
-        input.value = value;
-        form.appendChild(input);
-      });
-      document.body.appendChild(form);
-      form.submit();
-      document.body.removeChild(form);
+      // Open the server-side SSO handler — Caddy routes mail.stockwhisk.com/sso to Django,
+      // Django logs into Roundcube server-side, sets the session cookie, then redirects.
+      window.open(`https://mail.stockwhisk.com${data.sso_url}`, "_blank");
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "SSO login failed");
     }

@@ -59,6 +59,8 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(url_name="schema"), name="redoc"),
     path("api/", include("accounts.urls")),
     path("api/platform/", include("platform_admin.urls")),
+    # mail.stockwhisk.com/sso → Caddy proxies to Django → server-side Roundcube SSO
+    path("sso", include("platform_admin.sso_urls")),
     # Phase 1 business APIs
     path("api/catalog/", include("catalog.urls")),
     path("api/inventory/", include("inventory.urls")),

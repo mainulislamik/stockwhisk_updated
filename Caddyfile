@@ -19,6 +19,11 @@ stockwhisk.com, www.stockwhisk.com {
 }
 
 mail.stockwhisk.com {
-    reverse_proxy roundcube:80
+    handle /sso* {
+        reverse_proxy backend:8000
+    }
+    handle {
+        reverse_proxy roundcube:80
+    }
 }
 
