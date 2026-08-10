@@ -105,7 +105,29 @@ export default function RegisterPage() {
       setStep(2);
       setTimeLeft(180);
     } catch (err: any) {
-      setError(err?.data?.detail || err?.data?.owner_email?.[0] || err?.message || "Registration failed. Please check your details.");
+      let errorMsg = "Registration failed. Please check your details.";
+      if (err?.data) {
+        if (typeof err.data === 'string' && err.data.trim() !== '') {
+          errorMsg = err.data.substring(0, 200); // Show start of HTML/string
+        } else if (err.data.detail) {
+          errorMsg = err.data.detail;
+        } else {
+          // Check for field-specific errors
+          const firstKey = Object.keys(err.data)[0];
+          if (firstKey && Array.isArray(err.data[firstKey])) {
+            errorMsg = `${firstKey}: ${err.data[firstKey][0]}`;
+          }
+        }
+      } else if (err?.message && err.message.trim() !== '') {
+        errorMsg = err.message;
+      }
+      
+      // Prevent showing empty HTML string from api client
+      if (errorMsg.trim() === "") {
+         errorMsg = "Registration failed (Server returned empty error).";
+      }
+      
+      setError(errorMsg);
     } finally {
       setBusy(false);
     }
