@@ -41,7 +41,15 @@ export default function ForgotPasswordPage() {
       setSuccess("If an account with that email exists, an OTP has been sent.");
       setStep(1);
     } catch (err: any) {
-      setError(err?.data?.detail || "An error occurred while requesting OTP.");
+      let errorMsg = "An error occurred while requesting OTP.";
+      if (err?.data?.detail) {
+        errorMsg = err.data.detail;
+      } else if (err?.data?.email && Array.isArray(err.data.email)) {
+        errorMsg = err.data.email[0];
+      } else if (err?.data?.non_field_errors && Array.isArray(err.data.non_field_errors)) {
+        errorMsg = err.data.non_field_errors[0];
+      }
+      setError(errorMsg);
     } finally {
       setBusy(false);
     }
@@ -73,7 +81,15 @@ export default function ForgotPasswordPage() {
         router.push("/login");
       }, 3000);
     } catch (err: any) {
-      setError(err?.data?.detail || "An error occurred. Please verify the OTP and try again.");
+      let errorMsg = "An error occurred. Please verify the OTP and try again.";
+      if (err?.data?.detail) {
+        errorMsg = err.data.detail;
+      } else if (err?.data?.otp && Array.isArray(err.data.otp)) {
+        errorMsg = err.data.otp[0];
+      } else if (err?.data?.non_field_errors && Array.isArray(err.data.non_field_errors)) {
+        errorMsg = err.data.non_field_errors[0];
+      }
+      setError(errorMsg);
     } finally {
       setBusy(false);
     }
