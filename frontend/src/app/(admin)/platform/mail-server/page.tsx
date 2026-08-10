@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import PageWrapper from "@/components/PageWrapper";
-import { toast } from "sonner";
+import toast from "react-hot-toast";
 import api from "@/lib/api";
 
 type MailAccount = {
