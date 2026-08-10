@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { api, fetchAll } from "@/lib/api";
+import { api, useApi, Paginated } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
@@ -20,13 +20,20 @@ type ScanMsg = { text: string; ok: boolean } | null;
 
 export default function PosPage() {
   const router = useRouter();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState("");
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedQuery(query), 300);
+    return () => clearTimeout(timer);
+  }, [query]);
+
+  // Server-side fetching for the main POS search
+  const { data: posData } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedQuery, page_size: 20 });
+  const shown = posData?.results || [];
   const [scanning, setScanning] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState<ScanMsg>(null);
@@ -36,18 +43,22 @@ export default function PosPage() {
   const [showAssign, setShowAssign] = useState(false);
   const [assignBarcode, setAssignBarcode] = useState("");
   const [assignSearch, setAssignSearch] = useState("");
+  const [debouncedAssignSearch, setDebouncedAssignSearch] = useState("");
   const [assignSelected, setAssignSelected] = useState<Product | null>(null);
   const [assignSaving, setAssignSaving] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedAssignSearch(assignSearch), 300);
+    return () => clearTimeout(timer);
+  }, [assignSearch]);
+
+  const { data: assignData } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedAssignSearch, page_size: 8 });
+  const assignSuggestions = assignData?.results || [];
 
   // Unit selection modal
   const [unitSelectProduct, setUnitSelectProduct] = useState<Product | null>(null);
 
   useEffect(() => {
-    fetchAll<Product>("/catalog/products/")
-      .then(setProducts)
-      .catch((e: any) => setLoadError(e?.message || "Failed to load products"))
-      .finally(() => setLoading(false));
-
     const saved = sessionStorage.getItem("pos_cart");
     if (saved) { try { setCart(JSON.parse(saved)); } catch {} }
   }, []);
@@ -113,33 +124,15 @@ export default function PosPage() {
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
-  // ── Products with barcode only ──────────────────────────────────────────
-  const barcodeProducts = useMemo(
-    () => products.filter((p) => p.barcode && p.barcode.trim() !== ""),
-    [products]
-  );
-
-  // ── Shown list: filter barcoded products by query ─────────────────────
-  const shown = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return barcodeProducts;
-    return barcodeProducts.filter((p) =>
-      p.barcode!.toLowerCase().includes(q) ||
-      (p.sku && p.sku.toLowerCase().includes(q)) ||
-      p.name.toLowerCase().includes(q)
-    );
-  }, [barcodeProducts, query]);
-
   // ── Process code ────────────────────────────────────────────────────────
   const processCode = useCallback(async (code: string) => {
     if (!code) return;
 
-    // 1. Exact barcode match
-    const byBarcode = products.find((p) => p.barcode && p.barcode === code);
+    // 1. Exact local match from current search results
+    const byBarcode = shown.find((p) => p.barcode && p.barcode === code);
     if (byBarcode) { tryAdd(byBarcode); return; }
 
-    // 2. Exact SKU match
-    const bySku = products.find((p) => p.sku && p.sku.toLowerCase() === code.toLowerCase());
+    const bySku = shown.find((p) => p.sku && p.sku.toLowerCase() === code.toLowerCase());
     if (bySku) { tryAdd(bySku); return; }
 
     // 3. Exactly one filtered result → auto-add
@@ -152,7 +145,6 @@ export default function PosPage() {
     setScanning(true);
     try {
       const product = await api<Product>("/pos/lookup/", { params: { barcode: code } });
-      setProducts((prev) => prev.find((p) => p.id === product.id) ? prev : [...prev, product]);
       tryAdd(product);
     } catch {
       // Not found → offer to assign
@@ -164,7 +156,7 @@ export default function PosPage() {
     } finally {
       setScanning(false);
     }
-  }, [products, shown, query, tryAdd]);
+  }, [shown, query, tryAdd]);
 
   // ── Enter / scan handler ────────────────────────────────────────────────
   const handleEnter = useCallback(async () => {
@@ -172,14 +164,6 @@ export default function PosPage() {
   }, [query, processCode]);
 
   // ── Assign barcode from within POS ─────────────────────────────────────
-  const assignSuggestions = useMemo(() => {
-    const q = assignSearch.trim().toLowerCase();
-    if (!q || assignSelected) return [];
-    return products
-      .filter((p) => `${p.name} ${p.sku}`.toLowerCase().includes(q))
-      .slice(0, 8);
-  }, [assignSearch, assignSelected, products]);
-
   async function doAssign() {
     if (!assignSelected || !assignBarcode) return;
     setAssignSaving(true);
@@ -188,9 +172,7 @@ export default function PosPage() {
         method: "PATCH",
         body: { barcode: assignBarcode },
       });
-      // Update local list
-      const updated = { ...assignSelected, barcode: assignBarcode };
-      setProducts((prev) => prev.map((p) => p.id === assignSelected.id ? updated : p));
+      // Refresh shown list is automatic due to SWR mutate or next search
       setShowAssign(false);
       setQuery("");
       flash(`✓ Barcode assigned to "${assignSelected.name}" — scan again to add`, true);
@@ -209,9 +191,6 @@ export default function PosPage() {
     sessionStorage.setItem("pos_cart", JSON.stringify(cart));
     router.push("/app/pos/customer");
   }
-
-  if (loading) return <Spinner label="Loading POS…" />;
-  if (loadError) return <ErrorState error={loadError} />;
 
   return (
     <>
@@ -265,25 +244,14 @@ export default function PosPage() {
                   ? shown.length > 0
                     ? `${shown.length} product${shown.length > 1 ? "s" : ""} found — click to add, or press Enter${shown.length === 1 ? " to add" : ""}`
                     : "No match — press Enter to search backend or assign this barcode to a product"
-                  : barcodeProducts.length === 0
-                  ? "No barcoded products yet — go to Products → Barcodes to assign barcodes"
-                  : `${barcodeProducts.length} product${barcodeProducts.length !== 1 ? "s" : ""} with barcode · Scan to add instantly`
+                  : "Ready for scan or search..."
                 }
               </div>
             </div>
           </div>
 
           {/* ── Product grid ── */}
-          {barcodeProducts.length === 0 ? (
-            <div className="card shadow-sm">
-              <div className="card-body text-center py-5 text-secondary">
-                <div style={{ fontSize: "2.5rem" }}>▦</div>
-                <div className="fw-semibold mt-2">No barcoded products yet</div>
-                <div className="small mb-3">Assign barcodes to products before scanning at POS</div>
-                <a href="/app/barcodes" className="btn btn-brand btn-sm">Go to Barcodes page →</a>
-              </div>
-            </div>
-          ) : shown.length === 0 && query ? (
+          {shown.length === 0 && query ? (
             <div className="card shadow-sm">
               <div className="card-body text-center py-4 text-secondary small">
                 No barcoded products match "<strong>{query}</strong>"

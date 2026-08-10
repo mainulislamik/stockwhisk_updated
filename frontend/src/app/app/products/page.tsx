@@ -4,9 +4,9 @@ import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
+import { api, fetchAll, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
-import { ErrorState, Pagination, Spinner, usePagination } from "@/components/ui";
+import { ErrorState, Pagination, Spinner } from "@/components/ui";
 import toast from "react-hot-toast";
 
 type Product = {
@@ -27,37 +27,37 @@ type Named = { id: number; name: string };
 export default function ProductsPage() {
   const { can, isOwner } = useAuth();
   const canManage = isOwner || can("manage_products");
-  const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Named[]>([]);
   const [brands, setBrands] = useState<Named[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [debouncedFilter, setDebouncedFilter] = useState("");
+  const [page, setPage] = useState(1);
+
+  // Debounce filter for server-side search
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedFilter(filter), 300);
+    return () => clearTimeout(timer);
+  }, [filter]);
+
+  // Reset page to 1 when search changes
+  useEffect(() => { setPage(1); }, [debouncedFilter]);
+
+  // Server-side fetching via SWR
+  const { data, loading, error, mutate } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedFilter, page, page_size: 20 });
+  const products = data?.results || [];
+  const total = data?.count || 0;
+  const totalPages = Math.ceil(total / 20);
+
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
   const [saving, setSaving] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
 
-  async function load() {
-    setLoading(true);
-    try {
-      const [p, c, b] = await Promise.all([
-        fetchAll<Product>("/catalog/products/"),
-        fetchAll<Named>("/catalog/categories/").catch(() => []),
-        fetchAll<Named>("/catalog/brands/").catch(() => []),
-      ]);
-      setProducts(p);
-      setCategories(c);
-      setBrands(b);
-    } catch (e: any) {
-      setError(e?.message || "Failed to load products");
-    } finally {
-      setLoading(false);
-    }
-  }
+  // Load small dictionaries once
   useEffect(() => {
-    load();
+    fetchAll<Named>("/catalog/categories/").then(setCategories).catch(() => {});
+    fetchAll<Named>("/catalog/brands/").then(setBrands).catch(() => {});
   }, []);
 
   async function saveProduct(e: React.FormEvent) {
@@ -81,7 +81,7 @@ export default function ProductsPage() {
       });
       setForm({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
       setShowAdd(false);
-      await load();
+      mutate();
     } catch (e: any) {
       toast.error(e?.message || "Could not save product");
     } finally {
@@ -92,7 +92,7 @@ export default function ProductsPage() {
   async function toggle(p: Product) {
     try {
       await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { is_active: !p.is_active } });
-      setProducts((ps) => ps.map((x) => (x.id === p.id ? { ...x, is_active: !x.is_active } : x)));
+      mutate();
     } catch (e: any) {
       toast.error(e?.message || "Could not update");
     }
@@ -102,7 +102,7 @@ export default function ProductsPage() {
     if (!(await confirmAction(`Delete "${p.name}" permanently?`))) return;
     try {
       await api(`/catalog/products/${p.id}/`, { method: "DELETE" });
-      setProducts((ps) => ps.filter((x) => x.id !== p.id));
+      mutate();
     } catch (e: any) {
       toast.error(e?.message || "Could not delete");
     }
@@ -120,13 +120,6 @@ export default function ProductsPage() {
       toast.error(e?.message || "Could not add");
     }
   }
-
-  const shown = products.filter((p) => {
-    const q = filter.trim().toLowerCase();
-    if (!q) return true;
-    return `${p.name} ${p.sku} ${p.barcode}`.toLowerCase().includes(q);
-  }).sort((a, b) => Number(b.current_stock) - Number(a.current_stock));
-  const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
 
   if (loading) return <Spinner label="Loading products…" />;
   if (error) return <ErrorState error={error} />;
@@ -237,7 +230,7 @@ export default function ProductsPage() {
               </tr>
             </thead>
             <tbody>
-              {shown.length === 0 ? (
+              {products.length === 0 ? (
                 <tr data-empty="">
                   <td colSpan={6} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
@@ -251,7 +244,7 @@ export default function ProductsPage() {
                   </td>
                 </tr>
               ) : (
-                paged.map((p) => (
+                products.map((p) => (
                   <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
                     <td>
                       <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
