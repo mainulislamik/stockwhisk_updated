@@ -144,7 +144,7 @@ export default function SettingsPage() {
           <div className="card-header fw-semibold d-flex align-items-center justify-content-between">
             <span>Shop Settings & Profile</span>
             {(user?.shop_code || user?.shop) && (
-              <span className="badge rounded-pill bg-brand-500 bg-opacity-25 text-brand border border-brand border-opacity-25 font-monospace px-3 py-1">
+              <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 font-monospace px-3 py-1">
                 Unique Shop ID: {user?.shop_code || `SW-${1000 + (user?.shop || 0)}`}
               </span>
             )}

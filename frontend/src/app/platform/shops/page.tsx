@@ -113,7 +113,7 @@ export default function ShopsPage() {
               {filtered.map((s) => (
                 <tr key={s.id}>
                   <td>
-                    <span className="badge rounded-pill bg-brand-500 bg-opacity-25 text-brand border border-brand border-opacity-25 font-monospace px-2 py-1">
+                    <span className="badge rounded-pill bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 font-monospace px-2 py-1">
                       {s.shop_code || `SW-${1000 + s.id}`}
                     </span>
                   </td>
