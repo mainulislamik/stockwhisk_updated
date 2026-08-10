@@ -176,6 +176,13 @@ export default function LoginPage() {
                   }
                 }}
               />
+
+              <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -2 }}>
+                <Link href="/forgot-password" style={{ color: isDark ? '#94a3b8' : '#64748b', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#4f46e5'} onMouseLeave={(e) => e.currentTarget.style.color = isDark ? '#94a3b8' : '#64748b'}>
+                  Forgot Password?
+                </Link>
+              </Box>
+
               <Button
                 type="submit"
                 variant="contained"

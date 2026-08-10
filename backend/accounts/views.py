@@ -145,6 +145,109 @@ class VerifyOTPRegistrationView(APIView):
         )
 
 
+class RequestPasswordResetOTPView(APIView):
+    """Public endpoint: request an OTP for password reset."""
+
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from .serializers import RequestPasswordResetSerializer
+        ser = RequestPasswordResetSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        
+        email = ser.validated_data["email"]
+        
+        # Generate 6 digit OTP
+        otp = str(random.randint(100000, 999999))
+        
+        from .models import PasswordResetOTP
+        PasswordResetOTP.objects.update_or_create(
+            email=email,
+            defaults={
+                "otp": otp,
+                "expires_at": timezone.now() + timedelta(minutes=15)
+            }
+        )
+        
+        from django.core.mail import get_connection
+        from platform_admin.models import PlatformConfig
+        config = PlatformConfig.get_solo()
+        
+        connection = None
+        from_email = settings.DEFAULT_FROM_EMAIL
+        
+        if config.smtp_host and config.smtp_user:
+            connection = get_connection(
+                backend='django.core.mail.backends.smtp.EmailBackend',
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_user,
+                password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+            )
+            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
+
+        try:
+            send_mail(
+                subject="StockWhisk Password Reset Code",
+                message=f"Your password reset verification code is: {otp}\n\nThis code expires in 15 minutes.\nIf you did not request a password reset, please ignore this email.",
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False,
+                connection=connection,
+            )
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            return Response({
+                "detail": "Failed to send email. Check SMTP configuration.", 
+                "error": str(e),
+                "trace": error_trace
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"detail": "OTP sent to email."}, status=status.HTTP_200_OK)
+
+
+class VerifyPasswordResetOTPView(APIView):
+    """Public endpoint: verify OTP and reset password."""
+    
+    permission_classes = [AllowAny]
+    
+    def post(self, request):
+        from .serializers import VerifyPasswordResetSerializer
+        ser = VerifyPasswordResetSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        
+        email = ser.validated_data["email"]
+        otp = ser.validated_data["otp"]
+        new_password = ser.validated_data["new_password"]
+        
+        from .models import PasswordResetOTP, User
+        try:
+            pending = PasswordResetOTP.objects.get(email=email)
+        except PasswordResetOTP.DoesNotExist:
+            return Response({"detail": "No pending password reset found for this email."}, status=status.HTTP_404_NOT_FOUND)
+            
+        if pending.otp != otp:
+            return Response({"detail": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if pending.expires_at < timezone.now():
+            return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Update user password
+        try:
+            user = User.objects.get(email=email)
+            user.set_password(new_password)
+            user.save(update_fields=["password"])
+        except User.DoesNotExist:
+            return Response({"detail": "User not found."}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Cleanup
+        pending.delete()
+        
+        return Response({"detail": "Password has been successfully reset."}, status=status.HTTP_200_OK)
+
+
 class MeView(APIView):
     """Return and update the authenticated user's profile."""
 

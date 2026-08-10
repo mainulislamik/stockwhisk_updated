@@ -173,3 +173,15 @@ class PendingRegistration(TimeStampedModel):
     
     def __str__(self):
         return f"{self.email} ({self.otp})"
+
+
+class PasswordResetOTP(TimeStampedModel):
+    """
+    Temporarily stores an OTP for password reset.
+    """
+    email = models.EmailField(unique=True)
+    otp = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.email} ({self.otp})"

@@ -28,6 +28,21 @@ class VerifyOTPRegistrationSerializer(serializers.Serializer):
     otp = serializers.CharField(max_length=6)
 
 
+class RequestPasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        if not User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError("No user found with this email.")
+        return value
+
+
+class VerifyPasswordResetSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
+    new_password = serializers.CharField(write_only=True, min_length=8)
+
+
 class UserSerializer(serializers.ModelSerializer):
     shop_name = serializers.CharField(source="shop.name", read_only=True, default=None)
     shop_phone = serializers.CharField(source="shop.phone", read_only=True, default=None)
