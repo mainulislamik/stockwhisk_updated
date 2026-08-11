@@ -1,6 +1,10 @@
 <?php
 // Mounted as /var/www/html/config/config.inc.php so Roundcube actually loads it.
-// First pull in the container's env-generated configuration...
+// Pre-initialise arrays that config.docker.inc.php merges into (it does
+// array_merge($config['plugins'], ...) and expects it to already be an array).
+$config = ['plugins' => []];
+
+// Pull in the container's env-generated configuration (imap_host, smtp_host, db…).
 if (file_exists(__DIR__ . '/config.docker.inc.php')) {
     include __DIR__ . '/config.docker.inc.php';
 }
