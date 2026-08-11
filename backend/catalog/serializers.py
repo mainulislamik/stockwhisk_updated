@@ -66,12 +66,37 @@ class ProductUnitSerializer(serializers.ModelSerializer):
     effective_warranty_months = serializers.IntegerField(read_only=True)
     effective_replacement_guarantee_days = serializers.IntegerField(read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
+    sale_id = serializers.IntegerField(source='sale_id', read_only=True, default=None)
+    sale_invoice_no = serializers.SerializerMethodField()
+    sold_at = serializers.DateTimeField(read_only=True)
+    warranty_status = serializers.SerializerMethodField()
+    repair_status = serializers.SerializerMethodField()
 
     class Meta:
         model = ProductUnit
         fields = [
-            'id', 'product', 'barcode', 'status', 'cost_price', 'selling_price', 
-            'warranty_months', 'replacement_guarantee_days', 'effective_cost_price', 'effective_selling_price', 
-            'effective_warranty_months', 'effective_replacement_guarantee_days', 'product_name', 'created_at'
+            'id', 'product', 'barcode', 'status', 'cost_price', 'selling_price',
+            'warranty_months', 'replacement_guarantee_days', 'effective_cost_price', 'effective_selling_price',
+            'effective_warranty_months', 'effective_replacement_guarantee_days', 'product_name', 'created_at',
+            'sale_id', 'sale_invoice_no', 'sold_at', 'warranty_status', 'repair_status',
         ]
         read_only_fields = ['id', 'effective_cost_price', 'effective_selling_price', 'effective_warranty_months', 'effective_replacement_guarantee_days', 'created_at']
+
+    def get_sale_invoice_no(self, obj):
+        return obj.sale.invoice_no if obj.sale_id and obj.sale else None
+
+    def get_warranty_status(self, obj):
+        from service.models import Warranty
+        w = Warranty.all_objects.filter(product_unit_id=obj.id).order_by("-created_at").first()
+        if not w:
+            return None
+        try:
+            return str(w.compute_status())
+        except Exception:
+            return w.status
+
+    def get_repair_status(self, obj):
+        from service.models import ServiceTicket
+        t = (ServiceTicket.all_objects.filter(warranty__product_unit_id=obj.id)
+             .order_by("-created_at").first())
+        return t.status if t else None

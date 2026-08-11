@@ -47,8 +47,9 @@ class SaleViewSet(
                 Q(customer_name__icontains=search) |
                 Q(customer_phone__icontains=search) |
                 Q(customer__name__icontains=search) |
-                Q(customer__phone__icontains=search)
-            )
+                Q(customer__phone__icontains=search) |
+                Q(units__barcode__icontains=search)  # find the invoice a sold unit is on
+            ).distinct()
         return qs
 
     def get_serializer_class(self):

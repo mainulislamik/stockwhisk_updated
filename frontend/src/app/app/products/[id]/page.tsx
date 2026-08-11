@@ -30,14 +30,42 @@ type ProductUnit = {
   warranty_months: number | null; 
   effective_cost_price: string; 
   effective_selling_price: string; 
-  effective_warranty_months: number; 
-  created_at: string; 
+  effective_warranty_months: number;
+  created_at: string;
+  sale_id?: number | null;
+  sale_invoice_no?: string | null;
+  sold_at?: string | null;
+  warranty_status?: string | null;
+  repair_status?: string | null;
 };
+function warrantyBadge(status?: string | null) {
+  if (!status) return <span className="text-secondary small">—</span>;
+  const map: Record<string, [string, string]> = {
+    active: ["bg-success-subtle text-success", "Active"],
+    expiring_soon: ["bg-warning-subtle text-warning", "Expiring soon"],
+    expired: ["bg-secondary-subtle text-secondary", "Expired"],
+    claimed: ["bg-info-subtle text-info", "Claimed"],
+    void: ["bg-dark-subtle text-dark", "Void"],
+  };
+  const [cls, label] = map[status] || ["bg-secondary-subtle text-secondary", status];
+  return <span className={`badge ${cls} px-2 py-1`}>{label}</span>;
+}
+
+function repairBadge(status?: string | null) {
+  if (!status) return <span className="text-secondary small">—</span>;
+  const label = status.replace(/_/g, " ");
+  const cls = status === "delivered" ? "bg-success-subtle text-success"
+    : status === "ready_for_pickup" ? "bg-info-subtle text-info"
+    : "bg-warning-subtle text-warning";
+  return <span className={`badge ${cls} px-2 py-1 text-capitalize`}>{label}</span>;
+}
+
 export default function ProductProfilePage() {
   const { id } = useParams<{ id: string }>();
   const [p, setP] = useState<Product | null>(null);
   const [moves, setMoves] = useState<Movement[]>([]);
   const [units, setUnits] = useState<ProductUnit[]>([]);
+  const [soldUnits, setSoldUnits] = useState<ProductUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editingUnit, setEditingUnit] = useState<number | null>(null);
@@ -72,14 +100,16 @@ export default function ProductProfilePage() {
   useEffect(() => {
     (async () => {
       try {
-        const [prod, mv, un] = await Promise.all([
+        const [prod, mv, un, sold] = await Promise.all([
           api<Product>(`/catalog/products/${id}/`),
           api(`/inventory/stock-movements/`, { params: { product: id } }).catch(() => []),
           api(`/catalog/product-units/`, { params: { product: id, status: "in_stock" } }).catch(() => []),
+          api(`/catalog/product-units/`, { params: { product: id, status: "sold" } }).catch(() => []),
         ]);
         setP(prod);
         setMoves(unwrap<Movement>(mv));
         setUnits(unwrap<ProductUnit>(un));
+        setSoldUnits(unwrap<ProductUnit>(sold));
       } catch (e: any) {
         setError(e?.message || "Failed to load product");
       } finally {
@@ -223,6 +253,46 @@ export default function ProductProfilePage() {
                       </tr>
                     );
                   })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {soldUnits.length > 0 && (
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <h2 className="h6 fw-bold mb-3" style={{ color: "#b45309" }}>🧾 Sold Units</h2>
+            <div className="table-responsive">
+              <table className="table table-hover table-sm align-middle mb-0">
+                <thead className="thead-6">
+                  <tr>
+                    <th>Sold On</th>
+                    <th>Barcode / Serial</th>
+                    <th>Invoice</th>
+                    <th className="text-center">Warranty</th>
+                    <th className="text-center">Repair</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {soldUnits.map((u) => (
+                    <tr key={u.id}>
+                      <td className="text-secondary small">{u.sold_at ? fmtDate(u.sold_at) : "—"}</td>
+                      <td className="fw-medium font-monospace small">
+                        <i className="bi bi-upc-scan me-2 text-secondary"></i>{u.barcode}
+                      </td>
+                      <td>
+                        {u.sale_id ? (
+                          <a href={`/invoice/${u.sale_id}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none fw-medium">
+                            <i className="bi bi-receipt me-1"></i>{u.sale_invoice_no || `#${u.sale_id}`}
+                          </a>
+                        ) : <span className="text-secondary">—</span>}
+                      </td>
+                      <td className="text-center">{warrantyBadge(u.warranty_status)}</td>
+                      <td className="text-center">{repairBadge(u.repair_status)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
