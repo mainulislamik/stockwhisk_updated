@@ -1135,23 +1135,19 @@ class MailSSORedirectView(View):
     """
     Hosted at mail.stockwhisk.com/sso (Caddy routes this to Django).
 
-    Strategy (server-side session forwarding):
-      1. Django GETs Roundcube login page internally to obtain CSRF token
-      2. Django POSTs master-user credentials to Roundcube (same session)
-      3. Django forwards the authenticated session cookies to the browser
-      4. Browser redirected to /?_task=mail — Roundcube accepts the session
-         because ip_check=false is configured in docker-compose.yml.
+    Strategy (Client-side iframe auto-login):
+      1. Serve an HTML page on mail.stockwhisk.com/sso (same origin as Roundcube).
+      2. The page embeds a hidden iframe pointing to /?_task=login.
+      3. The browser naturally creates the Roundcube session and stores the cookie.
+      4. The parent page accesses the iframe's DOM, fills in master credentials, and submits the form.
+      5. The iframe logs in, and the parent page redirects to /?_task=mail.
 
-    Requires: ROUNDCUBEMAIL_ip_check=false in mailserver docker-compose.yml
     Requires: auth_master_user_separator = * in dovecot.cf
     Requires: master_admin:{PLAIN}... in dovecot-master-users
     """
 
-    ROUNDCUBE_INTERNAL = "http://roundcube:80"
-
     def get(self, request):
-        import hmac, hashlib, time, re
-        import requests as req
+        import hmac, hashlib, time
         from django.conf import settings
 
         token = request.GET.get('token', '')
@@ -1177,72 +1173,70 @@ class MailSSORedirectView(View):
         master_user = f"{email}*master_admin"
         master_pass = "stockwhisk_master_2026"
 
-        try:
-            sess = req.Session()
-            # Use the browser's UA so Roundcube session UA matches
-            browser_ua = request.META.get('HTTP_USER_AGENT', 'Mozilla/5.0')
-            sess.headers.update({
-                'User-Agent': browser_ua,
-                'Accept': 'text/html,application/xhtml+xml',
-            })
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Logging in…</title>
+  <style>
+    body {{ font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #0f172a; color: #94a3b8; margin: 0; }}
+    .spinner {{ border: 4px solid #1e293b; border-top-color: #3b82f6; border-radius: 50%; width: 44px; height: 44px; animation: spin .8s linear infinite; }}
+    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
+  </style>
+</head>
+<body>
+  <div style="text-align: center;">
+    <div class="spinner" style="margin: 0 auto 16px;"></div>
+    <p id="msg">Connecting to mailbox…</p>
+  </div>
+  
+  <iframe id="rc_frame" src="/?_task=login" style="display:none;"></iframe>
+  
+  <script>
+    var rcFrame = document.getElementById('rc_frame');
+    var loadCount = 0;
+    
+    rcFrame.onload = function() {{
+      loadCount++;
+      if (loadCount === 1) {{
+        // First load is the login page. Extract CSRF token and submit form.
+        try {{
+          var doc = rcFrame.contentWindow.document;
+          var tokenInput = doc.querySelector('input[name="_token"]');
+          if (!tokenInput) {{
+            document.getElementById('msg').innerHTML = '<span style="color:#f87171">Failed to obtain security token.</span>';
+            return;
+          }}
+          
+          document.getElementById('msg').textContent = 'Authenticating...';
+          
+          var form = doc.querySelector('form');
+          if (form) {{
+             var userInput = doc.querySelector('input[name="_user"]');
+             var passInput = doc.querySelector('input[name="_pass"]');
+             
+             if (userInput && passInput) {{
+                 userInput.value = {repr(master_user)};
+                 passInput.value = {repr(master_pass)};
+                 form.submit();
+             }} else {{
+                 document.getElementById('msg').innerHTML = '<span style="color:#f87171">Login inputs not found.</span>';
+             }}
+          }} else {{
+             document.getElementById('msg').innerHTML = '<span style="color:#f87171">Login form not found.</span>';
+          }}
+        }} catch (e) {{
+          document.getElementById('msg').innerHTML = '<span style="color:#f87171">Error: ' + e.message + '</span>';
+        }}
+      }} else if (loadCount === 2) {{
+        // Second load means the form submitted. 
+        // Redirect parent window to mail.
+        window.location.href = '/?_task=mail';
+      }}
+    }};
+  </script>
+</body>
+</html>
+"""
+        return HttpResponse(html, content_type="text/html")
 
-            # Step 1: GET login page → pre-auth session cookie + CSRF token
-            r1 = sess.get(
-                f"{self.ROUNDCUBE_INTERNAL}/?_task=login",
-                timeout=10,
-                allow_redirects=True,
-            )
-
-            csrf_match = re.search(
-                r'name=["\']_token["\']\s+value=["\']([^"\']+)["\']', r1.text
-            )
-            if not csrf_match:
-                csrf_match = re.search(
-                    r'value=["\']([^"\']+)["\']\s+name=["\']_token["\']', r1.text
-                )
-            csrf_token = csrf_match.group(1) if csrf_match else ''
-
-            if not csrf_token:
-                return HttpResponse(
-                    "SSO Error: Could not extract CSRF token from Roundcube. Is Roundcube running?",
-                    status=500, content_type="text/plain"
-                )
-
-            # Step 2: POST Dovecot master-user credentials
-            r2 = sess.post(
-                f"{self.ROUNDCUBE_INTERNAL}/?_task=login",
-                data={
-                    '_user':   master_user,
-                    '_pass':   master_pass,
-                    '_action': 'login',
-                    '_task':   'login',
-                    '_token':  csrf_token,
-                },
-                allow_redirects=True,
-                timeout=20,
-            )
-
-            # Detect failure: landed back on login page
-            if '_task=login' in r2.url and '_task=mail' not in r2.url:
-                return HttpResponse(
-                    f"<h3>SSO Login Failed</h3>"
-                    f"<p>Username tried: <code>{master_user}</code></p>"
-                    f"<p>Ensure mailserver was restarted after dovecot.cf changes.</p>"
-                    f"<p>Final URL: {r2.url} | Status: {r2.status_code}</p>",
-                    status=401, content_type="text/html"
-                )
-
-            # Step 3: Forward authenticated cookies to browser, redirect to inbox
-            response = HttpResponseRedirect("/?_task=mail")
-            for cookie in sess.cookies:
-                response.set_cookie(
-                    cookie.name,
-                    cookie.value,
-                    httponly=True,
-                    samesite='Lax',
-                    path='/',
-                )
-            return response
-
-        except Exception as e:
-            return HttpResponse(f"SSO Error: {e}", status=500, content_type="text/plain")
