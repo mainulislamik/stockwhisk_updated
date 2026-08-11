@@ -4,9 +4,6 @@ import React, { createContext, useState, useEffect, useMemo, useContext } from '
 import { ThemeProvider } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import { AppRouterCacheProvider } from '@mui/material-nextjs/v14-appRouter';
-import { Fab, Zoom } from '@mui/material';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
 import { getTheme } from '@/theme';
 
 type ThemeMode = 'light' | 'dark';
@@ -17,20 +14,20 @@ interface ThemeModeContextType {
 }
 
 export const ThemeModeContext = createContext<ThemeModeContextType>({
-  mode: 'dark',
+  mode: 'light',
   toggleTheme: () => {},
 });
 
 export const useThemeMode = () => useContext(ThemeModeContext);
 
 export default function ThemeRegistry({ children }: { children: React.ReactNode }) {
-  const [mode, setMode] = useState<ThemeMode>('dark');
+  const [mode, setMode] = useState<ThemeMode>('light');
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     const savedMode = localStorage.getItem('themeMode') as ThemeMode;
-    const initialMode = (savedMode === 'light' || savedMode === 'dark') ? savedMode : 'dark';
+    const initialMode = (savedMode === 'light' || savedMode === 'dark') ? savedMode : 'light';
     setMode(initialMode);
     
     // Sync Bootstrap theme
@@ -76,25 +73,6 @@ export default function ThemeRegistry({ children }: { children: React.ReactNode 
         <ThemeProvider theme={theme}>
           <CssBaseline />
           {children}
-          
-          <Zoom in={true}>
-            <Fab 
-              color="primary" 
-              aria-label="toggle theme"
-              onClick={toggleTheme}
-              sx={{
-                position: 'fixed',
-                bottom: 24,
-                right: 24,
-                zIndex: 9999,
-                boxShadow: '0 8px 16px rgba(99, 102, 241, 0.4)',
-                '@media print': { display: 'none' }
-              }}
-            >
-              {mode === 'dark' ? <LightModeIcon /> : <DarkModeIcon />}
-            </Fab>
-          </Zoom>
-
         </ThemeProvider>
       </AppRouterCacheProvider>
     </ThemeModeContext.Provider>

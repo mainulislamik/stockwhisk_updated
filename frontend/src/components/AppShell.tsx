@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import Nav from "@/components/Nav";
 import UniversalSearch from "@/components/UniversalSearch";
 import { impersonatingShop, isImpersonating, returnToAdmin } from "@/lib/impersonation";
+import ThemeToggle from "@/components/ThemeToggle";
 import { api } from "@/lib/api";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
@@ -252,6 +253,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 Trial
               </button>
             ) : null}
+
+            <ThemeToggle />
 
             {/* Contact / support */}
             <div className="position-relative">

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import PlatformNav from "@/components/PlatformNav";
+import ThemeToggle from "@/components/ThemeToggle";
 
 export default function PlatformShell({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
@@ -99,6 +100,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
             <i className="bi bi-list"></i>
           </button>
           <span className="fw-semibold text-secondary">Platform Admin</span>
+          <ThemeToggle className="ms-auto" />
         </header>
         <main className="p-3 p-md-4 flex-grow-1">{children}</main>
       </div>
