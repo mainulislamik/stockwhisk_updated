@@ -1,11 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
+import { api } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner, fmtDateTime } from "@/components/ui";
 import toast from "react-hot-toast";
 
 type Note = { id: number; type: string; title: string; message: string; is_read: boolean; created_at: string };
+type Paged = { results: Note[]; next: string | null; count: number };
+
+const PAGE_SIZE = 30;
 
 const TYPE_ICON: Record<string, string> = {
   low_stock: "📦",
@@ -18,11 +21,28 @@ const TYPE_ICON: Record<string, string> = {
 export default function NotificationsPage() {
   const [rows, setRows] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [unreadTotal, setUnreadTotal] = useState(0);
+
+  async function loadPage(p: number, append: boolean) {
+    const d = await api<Paged>("/notifications/notifications/", { params: { page: p, page_size: PAGE_SIZE } });
+    const list = Array.isArray(d) ? (d as Note[]) : (d.results ?? []);
+    setRows((prev) => (append ? [...prev, ...list] : list));
+    setHasMore(!Array.isArray(d) && !!d.next);
+    setPage(p);
+  }
 
   async function load() {
     try {
-      setRows(await fetchAll<Note>("/notifications/notifications/"));
+      // First page + the real unread total (independent of what's loaded).
+      const [, unread] = await Promise.all([
+        loadPage(1, false),
+        api<{ unread: number }>("/notifications/notifications/unread_count/").catch(() => ({ unread: 0 })),
+      ]);
+      setUnreadTotal(unread.unread ?? 0);
     } catch (e: any) {
       setError(e?.message || "Failed to load notifications");
     } finally {
@@ -32,10 +52,22 @@ export default function NotificationsPage() {
 
   useEffect(() => { load(); }, []);
 
+  async function loadMore() {
+    setLoadingMore(true);
+    try {
+      await loadPage(page + 1, true);
+    } catch {
+      toast.error("Could not load more");
+    } finally {
+      setLoadingMore(false);
+    }
+  }
+
   async function markRead(n: Note) {
     try {
       await api(`/notifications/notifications/${n.id}/read/`, { method: "POST" });
       setRows((rs) => rs.map((r) => (r.id === n.id ? { ...r, is_read: true } : r)));
+      setUnreadTotal((c) => Math.max(0, c - 1));
       window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
       toast.error(e?.message || "Could not update");
@@ -46,6 +78,7 @@ export default function NotificationsPage() {
     try {
       await api(`/notifications/notifications/read_all/`, { method: "POST" });
       setRows((rs) => rs.map((r) => ({ ...r, is_read: true })));
+      setUnreadTotal(0);
       window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
       toast.error(e?.message || "Could not update");
@@ -55,15 +88,13 @@ export default function NotificationsPage() {
   if (loading) return <Spinner label="Loading notifications…" />;
   if (error) return <ErrorState error={error} />;
 
-  const unreadCount = rows.filter((r) => !r.is_read).length;
-
   return (
     <div className="vstack gap-3">
       <PageHeader
         title="Notifications"
-        subtitle={unreadCount > 0 ? `${unreadCount} unread` : "All caught up"}
+        subtitle={unreadTotal > 0 ? `${unreadTotal} unread` : "All caught up"}
         actions={
-          unreadCount > 0 ? (
+          unreadTotal > 0 ? (
             <button className="btn btn-outline-brand btn-sm" onClick={markAll}>
               Mark all read
             </button>
@@ -83,7 +114,10 @@ export default function NotificationsPage() {
             rows.map((n) => (
               <div
                 key={n.id}
-                className={`list-group-item d-flex justify-content-between align-items-start gap-3 py-3 ${n.is_read ? "" : "bg-light border-start border-4 border-danger"}`}
+                className={`list-group-item d-flex justify-content-between align-items-start gap-3 py-3 ${
+                  n.is_read ? "" : "border-start border-4 border-danger"
+                }`}
+                style={n.is_read ? undefined : { background: "rgba(220,53,69,0.08)" }}
               >
                 <div className="d-flex gap-3 align-items-start">
                   <span style={{ fontSize: "1.3rem", lineHeight: 1.2 }}>{TYPE_ICON[n.type] || "🔔"}</span>
@@ -106,6 +140,14 @@ export default function NotificationsPage() {
           )}
         </div>
       </div>
+
+      {hasMore && (
+        <div className="text-center">
+          <button className="btn btn-outline-brand btn-sm px-4" onClick={loadMore} disabled={loadingMore}>
+            {loadingMore ? <><span className="spinner-border spinner-border-sm me-2" />Loading…</> : "Load more"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
