@@ -4,9 +4,11 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner, money } from "@/components/ui";
+import toast from "react-hot-toast";
 
 type Entry = {
   id: number;
+  shop_id: number | null;
   shop_name: string;
   shop_code: string;
   plan_tier: string;
@@ -40,6 +42,7 @@ export default function RevenuePage() {
   const [error, setError] = useState("");
   const [month, setMonth] = useState<string>("");
   const [includeTest, setIncludeTest] = useState(false);
+  const [busyId, setBusyId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -55,6 +58,20 @@ export default function RevenuePage() {
   }, [month, includeTest]);
 
   useEffect(() => { load(); }, [load]);
+
+  const toggleTest = useCallback(async (e: Entry) => {
+    if (!e.shop_id) return;
+    setBusyId(e.shop_id);
+    try {
+      const r = await api<{ is_test: boolean }>(`/platform/shops/${e.shop_id}/toggle-test/`, { method: "POST" });
+      toast.success(r.is_test ? `${e.shop_name} marked as test — revenue excluded.` : `${e.shop_name} marked as live.`);
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to update.");
+    } finally {
+      setBusyId(null);
+    }
+  }, [load]);
 
   if (error) return <ErrorState error={error} />;
   if (!data) return <Spinner label="Loading revenue…" />;
@@ -108,12 +125,13 @@ export default function RevenuePage() {
                 <th>Plan</th>
                 <th>Period</th>
                 <th>Date</th>
-                <th className="text-end pe-4">Amount</th>
+                <th className="text-end">Amount</th>
+                <th className="text-end pe-4">Actions</th>
               </tr>
             </thead>
             <tbody>
               {data.entries.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-5 text-secondary">
+                <tr><td colSpan={7} className="text-center py-5 text-secondary">
                   <i className="bi bi-receipt fs-3 d-block mb-2"></i>No revenue recorded for {monthLabel(data.month)}.
                 </td></tr>
               ) : data.entries.map((e) => (
@@ -130,7 +148,23 @@ export default function RevenuePage() {
                     {e.period_start || "—"} → {e.period_end || "—"}
                   </td>
                   <td className="small">{new Date(e.occurred_at).toLocaleDateString()}</td>
-                  <td className="text-end pe-4 fw-semibold font-monospace">{money(e.amount)}</td>
+                  <td className="text-end fw-semibold font-monospace">{money(e.amount)}</td>
+                  <td className="text-end pe-4">
+                    {e.shop_deleted || !e.shop_id ? (
+                      <span className="text-secondary small">—</span>
+                    ) : (
+                      <button
+                        className={`btn btn-sm ${e.is_test ? "btn-outline-secondary" : "btn-outline-info"}`}
+                        onClick={() => toggleTest(e)}
+                        disabled={busyId === e.shop_id}
+                        title="Mark this shop as test (excludes its revenue) or back to live"
+                      >
+                        {busyId === e.shop_id
+                          ? <span className="spinner-border spinner-border-sm" />
+                          : <><i className="bi bi-pencil-square me-1"></i>{e.is_test ? "Set live" : "Set test"}</>}
+                      </button>
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

@@ -122,6 +122,7 @@ class PlatformRevenueView(APIView):
 
         entries = [{
             "id": r.id,
+            "shop_id": r.shop_id,
             "shop_name": r.shop_name,
             "shop_code": r.shop_code,
             "plan_tier": r.plan_tier,
@@ -396,6 +397,10 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         shop = self.get_object()
         shop.is_test = not shop.is_test
         shop.save(update_fields=["is_test"])
+        # Keep this shop's existing revenue rows in sync so past revenue is
+        # excluded/included immediately (deleted shops keep their snapshot).
+        from .models import PlatformRevenue
+        PlatformRevenue.objects.filter(shop=shop).update(is_test=shop.is_test)
         record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
                description=f"Shop marked as {'test' if shop.is_test else 'live'} by platform admin")
         return Response({"status": "ok", "is_test": shop.is_test})
