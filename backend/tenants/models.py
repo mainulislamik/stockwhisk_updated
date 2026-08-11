@@ -90,6 +90,7 @@ class Shop(TimeStampedModel):
     
     # Feature flags
     emi_enabled = models.BooleanField(default=False)
+    delivery_enabled = models.BooleanField(default=True)
 
     # Subscription state (denormalized current plan for fast gating).
     plan = models.ForeignKey(

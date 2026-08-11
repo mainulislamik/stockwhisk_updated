@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false });
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -39,6 +39,7 @@ export default function SettingsPage() {
           vat_enabled: data.vat_enabled || false,
           vat_percent: data.vat_percent || 0,
           emi_enabled: data.emi_enabled || false,
+          delivery_enabled: data.delivery_enabled !== false,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -76,6 +77,7 @@ export default function SettingsPage() {
       formData.append("vat_enabled", shopForm.vat_enabled.toString());
       formData.append("vat_percent", shopForm.vat_percent.toString());
       formData.append("emi_enabled", shopForm.emi_enabled.toString());
+      formData.append("delivery_enabled", shopForm.delivery_enabled.toString());
       
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -236,6 +238,10 @@ export default function SettingsPage() {
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={shopForm.emi_enabled} onChange={e => setShopForm({...shopForm, emi_enabled: e.target.checked})} />
                     <label className="form-check-label small" htmlFor="emiSwitch">Enable EMI (Installments)</label>
+                  </div>
+                  <div className="form-check form-switch mt-2">
+                    <input className="form-check-input" type="checkbox" role="switch" id="deliverySwitch" checked={shopForm.delivery_enabled} onChange={e => setShopForm({...shopForm, delivery_enabled: e.target.checked})} />
+                    <label className="form-check-label small" htmlFor="deliverySwitch">Enable Delivery Charge (in POS)</label>
                   </div>
                 </div>
               </div>

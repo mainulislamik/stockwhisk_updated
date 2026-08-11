@@ -202,19 +202,21 @@ export default function PosCustomerPage() {
             )}
 
             <div className="row g-3">
-              <div className="col-4">
+              <div className={user?.shop_delivery_enabled !== false ? "col-4" : "col-6"}>
                 <div className="form-floating">
                   <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
                   <label htmlFor="discountInput">Discount (৳) *</label>
                 </div>
               </div>
-              <div className="col-4">
-                <div className="form-floating">
-                  <input id="deliveryChargeInput" type="number" min={0} className="form-control fw-bold text-info shadow-sm" value={deliveryCharge} onChange={(e) => setDeliveryCharge(Number(e.target.value) || 0)} />
-                  <label htmlFor="deliveryChargeInput" style={{ fontSize: "0.8rem" }}>Delivery (৳)</label>
+              {user?.shop_delivery_enabled !== false && (
+                <div className="col-4">
+                  <div className="form-floating">
+                    <input id="deliveryChargeInput" type="number" min={0} className="form-control fw-bold text-info shadow-sm" value={deliveryCharge} onChange={(e) => setDeliveryCharge(Number(e.target.value) || 0)} />
+                    <label htmlFor="deliveryChargeInput" style={{ fontSize: "0.8rem" }}>Delivery (৳)</label>
+                  </div>
                 </div>
-              </div>
-              <div className="col-4">
+              )}
+              <div className={user?.shop_delivery_enabled !== false ? "col-4" : "col-6"}>
                 <div className="form-floating">
                   <input id="paidInput" type="number" min={0} className="form-control fw-bold text-primary shadow-sm" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder={String(total)} />
                   <label htmlFor="paidInput">{isEmi ? "Down payment *" : "Amount paid *"}</label>
