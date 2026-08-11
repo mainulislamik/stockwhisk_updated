@@ -208,6 +208,27 @@ def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None):
     if po.status == PurchaseOrder.Status.RECEIVED:
         raise ValueError("Purchase order already received.")
 
+    # Guard the (shop, barcode) unique constraint up front so a clash returns a
+    # clear message instead of a raw IntegrityError / 500.
+    from catalog.models import ProductUnit
+    all_barcodes = [b for it in po.items.all() for b in (it.barcodes or [])]
+    if all_barcodes:
+        counts = {}
+        for b in all_barcodes:
+            counts[b] = counts.get(b, 0) + 1
+        dup_in_batch = {b for b, c in counts.items() if c > 1}
+        existing = set(
+            ProductUnit.all_objects.filter(shop_id=po.shop_id, barcode__in=all_barcodes)
+            .values_list("barcode", flat=True)
+        )
+        clashes = sorted(existing | dup_in_batch)
+        if clashes:
+            raise ValueError(
+                "These barcode(s) are already in stock or repeated in this batch: "
+                + ", ".join(clashes)
+                + ". Please remove or change them and try again."
+            )
+
     for item in po.items.select_related("product", "variation").all():
         apply_movement(
             shop=po.shop, product=item.product, variation=item.variation,

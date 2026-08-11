@@ -84,6 +84,8 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
     @action(detail=True, methods=["post"])
     def receive(self, request, pk=None):
         """Receive the PO into stock. Body: {"paid": <amount>}."""
+        from django.db import IntegrityError
+
         po = self.get_object()
         try:
             po = receive_purchase_order(
@@ -92,4 +94,9 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+        except IntegrityError:
+            return Response(
+                {"detail": "A barcode in this batch already exists in stock. "
+                           "Please use unique barcodes and try again."},
+                status=status.HTTP_400_BAD_REQUEST)
         return Response(PurchaseOrderSerializer(po).data)
