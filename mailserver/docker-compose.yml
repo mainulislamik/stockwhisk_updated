@@ -57,9 +57,6 @@ services:
       - ROUNDCUBEMAIL_SMTP_USER=
       - ROUNDCUBEMAIL_SMTP_PASSWORD=
       - ROUNDCUBEMAIL_DES_KEY=stockwhisk_secret_key_1234567890
-      - ROUNDCUBEMAIL_ip_check=false
-      - ROUNDCUBEMAIL_session_lifetime=10080
-      - ROUNDCUBEMAIL_session_domain=.stockwhisk.com
     volumes:
       - ./roundcube-data/:/var/roundcube/db/
     depends_on:
