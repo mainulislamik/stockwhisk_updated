@@ -1135,13 +1135,13 @@ class MailSSORedirectView(View):
     """
     Hosted at mail.stockwhisk.com/sso (Caddy routes this to Django).
 
-    Strategy: Serve an HTML page that uses a same-origin hidden iframe to load
-    Roundcube's login page, read the CSRF _token via JavaScript (same-origin
-    access is allowed since both pages are on mail.stockwhisk.com), then
-    auto-submit the master user credentials directly to Roundcube.
+    Strategy: Serve an HTML page with JavaScript that:
+      1. fetch()es the Roundcube login page (same-origin, no CORS restriction)
+      2. Parses the CSRF _token from the response HTML
+      3. POSTs the master user credentials + token directly to Roundcube
+      4. Navigates to /?_task=mail once login succeeds
 
-    This avoids all server-side session forwarding complications (IP mismatch,
-    User-Agent mismatch, session regeneration, etc.).
+    No server-side session forwarding = no IP/UA mismatch problems.
     """
 
     def get(self, request):
@@ -1150,7 +1150,7 @@ class MailSSORedirectView(View):
 
         token = request.GET.get('token', '')
 
-        # Validate signed token
+        # Validate signed token (2-min TTL)
         try:
             parts = token.split(':', 2)
             if len(parts) != 3:
@@ -1171,73 +1171,90 @@ class MailSSORedirectView(View):
         master_user = f"{escape(email)}*master_admin"
         master_pass = "stockwhisk_master_2026"
 
-        # Serve an HTML page that auto-submits the login form using the
-        # CSRF token read from the Roundcube login page inside a same-origin iframe.
         html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8">
-  <title>Logging in to mail.stockwhisk.com…</title>
+  <title>Logging in…</title>
   <style>
-    body {{ font-family: sans-serif; display:flex; align-items:center;
-            justify-content:center; min-height:100vh; margin:0;
-            background:#111; color:#ccc; flex-direction:column; gap:12px; }}
-    .spinner {{ width:40px; height:40px; border:4px solid #444;
-                border-top-color:#3b82f6; border-radius:50%;
-                animation:spin 0.8s linear infinite; }}
-    @keyframes spin {{ to{{ transform:rotate(360deg); }} }}
+    *{{box-sizing:border-box;margin:0;padding:0}}
+    body{{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;
+          justify-content:center;min-height:100vh;background:#0f172a;color:#94a3b8;gap:16px}}
+    .spinner{{width:44px;height:44px;border:4px solid #1e293b;border-top-color:#3b82f6;
+               border-radius:50%;animation:spin .8s linear infinite}}
+    @keyframes spin{{to{{transform:rotate(360deg)}}}}
+    #msg{{font-size:15px}}
+    #err{{color:#f87171;display:none;font-size:14px;max-width:480px;text-align:center}}
   </style>
 </head>
 <body>
   <div class="spinner"></div>
-  <p>Logging you into the mailbox, please wait…</p>
+  <p id="msg">Connecting to mailbox…</p>
+  <p id="err"></p>
+<script>
+(async function() {{
+  var user = {repr(master_user)};
+  var pass = {repr(master_pass)};
+  var msgEl = document.getElementById('msg');
+  var errEl = document.getElementById('err');
 
-  <!-- Hidden iframe loads Roundcube login page (same origin) so JS can read the CSRF token -->
-  <iframe id="rc_frame" src="/?_task=login" style="display:none"
-          sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
+  function showErr(txt) {{
+    document.querySelector('.spinner').style.display = 'none';
+    errEl.textContent = txt;
+    errEl.style.display = 'block';
+    msgEl.textContent = 'Login failed.';
+  }}
 
-  <!-- This form will be submitted automatically once we have the token -->
-  <form id="login_form" method="POST" action="/?_task=login" style="display:none">
-    <input type="hidden" name="_user"   value="{master_user}">
-    <input type="hidden" name="_pass"   value="{master_pass}">
-    <input type="hidden" name="_action" value="login">
-    <input type="hidden" name="_task"   value="login">
-    <input type="hidden" name="_token"  id="csrf_token" value="">
-  </form>
+  try {{
+    // Step 1: GET login page (same-origin) to obtain session cookie + CSRF token
+    msgEl.textContent = 'Fetching login page…';
+    var r1 = await fetch('/?_task=login', {{credentials:'include'}});
+    var html = await r1.text();
 
-  <script>
-    var attempts = 0;
-    var maxAttempts = 30; // 15 seconds max
+    // Extract _token from form
+    var dp = new DOMParser();
+    var doc = dp.parseFromString(html, 'text/html');
+    var tokenEl = doc.querySelector('input[name="_token"]');
+    var csrfToken = tokenEl ? tokenEl.value : '';
 
-    function trySubmit(frame) {{
-      attempts++;
-      try {{
-        var doc = frame.contentDocument || frame.contentWindow.document;
-        if (!doc || doc.readyState !== 'complete') {{
-          if (attempts < maxAttempts) setTimeout(function(){{ trySubmit(frame); }}, 500);
-          return;
-        }}
-        var tokenEl = doc.querySelector('input[name="_token"]');
-        if (tokenEl && tokenEl.value) {{
-          document.getElementById('csrf_token').value = tokenEl.value;
-        }}
-        document.getElementById('login_form').submit();
-      }} catch (e) {{
-        // Cross-origin error (should not happen since same domain) — submit anyway
-        document.getElementById('login_form').submit();
-      }}
+    // Also grab any Set-Cookie session cookie that was already set by the GET
+    msgEl.textContent = 'Authenticating…';
+
+    // Step 2: POST credentials + CSRF token
+    var fd = new FormData();
+    fd.append('_user',   user);
+    fd.append('_pass',   pass);
+    fd.append('_action', 'login');
+    fd.append('_task',   'login');
+    fd.append('_token',  csrfToken);
+
+    var r2 = await fetch('/?_task=login', {{
+      method: 'POST',
+      body: fd,
+      credentials: 'include',
+      redirect: 'follow'
+    }});
+
+    // Step 3: Check result
+    var finalHtml = await r2.text();
+    if (finalHtml.includes('_task=mail') || r2.url.includes('_task=mail') ||
+        finalHtml.includes('id="messagelist"') || finalHtml.includes('rcmContent')) {{
+      // Success – navigate to inbox
+      msgEl.textContent = 'Logged in! Redirecting to inbox…';
+      window.location.href = '/?_task=mail';
+    }} else if (finalHtml.includes('_task=login') || finalHtml.includes('loginForm')) {{
+      showErr('Authentication failed. The master user password may be incorrect, ' +
+              'or Dovecot master user auth is not configured yet. ' +
+              'Please restart the mail server container and try again.');
+    }} else {{
+      // Uncertain — navigate anyway
+      window.location.href = '/?_task=mail';
     }}
-
-    var frame = document.getElementById('rc_frame');
-    frame.onload = function() {{ trySubmit(this); }};
-
-    // Fallback: submit after 8 seconds even if iframe didn't fire onload
-    setTimeout(function() {{
-      if (attempts === 0) document.getElementById('login_form').submit();
-    }}, 8000);
-  </script>
+  }} catch(e) {{
+    showErr('Network error: ' + e.message);
+  }}
+}})();
+</script>
 </body>
 </html>"""
         return HttpResponse(html, content_type="text/html")
-
-
