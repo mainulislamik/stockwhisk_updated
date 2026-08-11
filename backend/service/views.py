@@ -28,7 +28,15 @@ class WarrantyViewSet(TenantScopedViewSet):
     required_perm = "manage_service"
 
     def get_queryset(self):
-        return Warranty.objects.select_related("product", "customer")
+        from django.utils import timezone
+        qs = Warranty.objects.select_related("product", "customer")
+        # By default hide warranties whose coverage has ended (auto-removed once
+        # the expiry date passes) and any voided ones. Pass ?include_expired=1
+        # to see the full history.
+        if self.request.query_params.get("include_expired") not in {"1", "true"}:
+            qs = qs.filter(expiry_date__gte=timezone.localdate()).exclude(
+                status=Warranty.Status.VOID)
+        return qs
 
     @action(detail=False, methods=["get"])
     def lookup(self, request):
