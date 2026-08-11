@@ -25,6 +25,8 @@ export type BillingStatus = {
   plan_name?: string | null;
   state?: "trial" | "paid" | "expired" | "none";
   days_left?: number;
+  ends_at?: string | null;
+  current_period_end?: string | null;
   on_trial: boolean;
   trial_ends_at: string | null;
   status: string | null;

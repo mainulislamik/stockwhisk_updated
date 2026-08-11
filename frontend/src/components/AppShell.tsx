@@ -18,6 +18,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
   const [unread, setUnread] = useState(0);
   const [showContact, setShowContact] = useState(false);
+  const [showPlan, setShowPlan] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -230,20 +231,26 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <UniversalSearch />
           <div className="d-flex align-items-center gap-3">
             {billing?.state === "paid" ? (
-              <span
-                className="d-inline-flex align-items-center gap-1 fw-bold"
+              <button
+                type="button"
+                onClick={() => setShowPlan((v) => !v)}
+                className="d-inline-flex align-items-center gap-1 fw-bold border-0"
+                title="View your plan"
                 style={{
                   background: "linear-gradient(135deg,#f59e0b,#f97316)",
                   color: "#fff", padding: "0.3rem 0.7rem", borderRadius: "20px",
                   fontSize: "0.72rem", letterSpacing: "0.5px",
                   boxShadow: "0 2px 8px rgba(249,115,22,.35)",
                 }}
-                title={typeof billing.days_left === "number" ? `${billing.days_left} days left` : "Pro plan"}
               >
                 <i className="bi bi-patch-check-fill"></i> PRO
-              </span>
+              </button>
             ) : billing?.on_trial ? (
-              <span className="badge text-bg-warning">Trial</span>
+              <button type="button" onClick={() => setShowPlan((v) => !v)}
+                className="badge text-bg-warning border-0" title="View your plan"
+                style={{ cursor: "pointer" }}>
+                Trial
+              </button>
             ) : null}
 
             {/* Contact / support */}
@@ -292,6 +299,114 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 document.body
               )}
             </div>
+
+            {showPlan && mounted && billing && createPortal(
+              (() => {
+                const paid = billing.state === "paid";
+                const dleft = billing.days_left ?? 0;
+                const total = paid ? 30 : 45;
+                const pct = Math.max(0, Math.min(100, Math.round((dleft / total) * 100)));
+                const barColor = dleft <= 3 ? "#ef4444" : dleft <= 7 ? "#f59e0b" : "#10b981";
+                const endStr = billing.ends_at
+                  ? new Date(billing.ends_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+                  : "—";
+                return (
+                  <>
+                    <style>{`
+                      @keyframes slideDownFades {
+                        from { opacity: 0; transform: translateY(-10px) scale(0.98); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                      }
+                      .modern-plan-modal {
+                        animation: slideDownFades 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+                        box-shadow: 0 20px 40px -10px rgba(0,0,0,0.6), 0 0 30px 0 var(--modal-glow);
+                        backdrop-filter: blur(20px);
+                        -webkit-backdrop-filter: blur(20px);
+                      }
+                      .modern-plan-btn {
+                        transition: all 0.2s ease;
+                      }
+                      .modern-plan-btn:hover {
+                        transform: translateY(-2px);
+                        box-shadow: 0 8px 16px rgba(0,0,0,0.3);
+                        filter: brightness(1.1);
+                      }
+                    `}</style>
+                    <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 100000, background: "rgba(0,0,0,0.3)", backdropFilter: "blur(3px)" }} onClick={() => setShowPlan(false)} />
+                    <div className="position-fixed p-0 rounded-4 overflow-hidden modern-plan-modal"
+                      style={{ 
+                        zIndex: 100001, top: 70, right: 16, width: 340, 
+                        background: "rgba(15, 23, 42, 0.75)", 
+                        border: "1px solid rgba(255,255,255,0.1)", 
+                        color: "#fff",
+                        '--modal-glow': paid ? 'rgba(249, 115, 22, 0.15)' : 'rgba(59, 130, 246, 0.15)'
+                      } as React.CSSProperties}>
+                      
+                      {/* header */}
+                      <div className="position-relative overflow-hidden" style={{ padding: "24px 24px 16px" }}>
+                        {/* Glow orb */}
+                        <div className="position-absolute rounded-circle" style={{
+                           width: 200, height: 200, top: -80, right: -80,
+                           background: paid ? "rgba(249,115,22,0.25)" : "rgba(59,130,246,0.25)",
+                           filter: "blur(50px)", zIndex: 0, pointerEvents: "none"
+                        }}></div>
+                        
+                        <div className="position-relative z-1 d-flex align-items-start justify-content-between mb-2">
+                           <div className="d-flex align-items-center gap-3">
+                              <div className="d-flex align-items-center justify-content-center rounded-4 shadow-sm" style={{ width: 48, height: 48, background: paid ? "linear-gradient(135deg, #f59e0b, #f97316)" : "linear-gradient(135deg, #3b82f6, #6366f1)" }}>
+                                 <i className={`bi ${paid ? "bi-star-fill" : "bi-lightning-fill"} text-white fs-4`}></i>
+                              </div>
+                              <div>
+                                 <div className="fw-bold fs-5 lh-1 text-white mb-1">{billing.plan_name || (paid ? "Pro Plan" : "Free Trial")}</div>
+                                 <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{paid ? "Premium Access" : "Evaluation Phase"}</div>
+                              </div>
+                           </div>
+                           <span className="badge rounded-pill px-2 py-1 mt-1" style={{ background: paid ? "rgba(249,115,22,0.15)" : "rgba(59,130,246,0.15)", color: paid ? "#fbd38d" : "#93c5fd", border: `1px solid ${paid ? "rgba(249,115,22,0.3)" : "rgba(59,130,246,0.3)"}` }}>
+                             {paid ? "ACTIVE" : "TRIAL"}
+                           </span>
+                        </div>
+                      </div>
+
+                      {/* body */}
+                      <div className="px-4 pb-4 position-relative z-1">
+                        <div className="p-3 rounded-4 mb-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
+                           <div className="d-flex justify-content-between align-items-end mb-3">
+                              <span style={{ color: "#94a3b8", fontSize: "0.85rem", fontWeight: 500 }}>Time Remaining</span>
+                              <div className="d-flex align-items-baseline gap-1">
+                                 <span className="fw-bolder" style={{ fontSize: "2rem", lineHeight: 1, color: barColor, textShadow: `0 0 12px ${barColor}80` }}>{dleft}</span>
+                                 <span style={{ color: "#cbd5e1", fontSize: "0.9rem", fontWeight: 500 }}>day{dleft === 1 ? "" : "s"}</span>
+                              </div>
+                           </div>
+                           <div className="rounded-pill mb-2 overflow-hidden position-relative" style={{ height: 8, background: "rgba(255,255,255,0.1)" }}>
+                             <div className="position-absolute top-0 start-0 h-100 rounded-pill" style={{ width: `${pct}%`, background: barColor, boxShadow: `0 0 10px ${barColor}` }} />
+                           </div>
+                           <div className="d-flex justify-content-between small mt-2">
+                              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>{pct}% remaining</span>
+                              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>Total {total} days</span>
+                           </div>
+                        </div>
+
+                        <div className="d-flex justify-content-between align-items-center mb-3 px-1">
+                          <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}><i className="bi bi-calendar-event me-2 opacity-75"></i>{paid ? "Renews on" : "Ends on"}</span>
+                          <span className="fw-semibold text-white" style={{ fontSize: "0.95rem" }}>{endStr}</span>
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center mb-4 px-1">
+                          <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}><i className="bi bi-info-circle me-2 opacity-75"></i>Status</span>
+                          <span className="fw-semibold text-white text-capitalize" style={{ fontSize: "0.95rem" }}>{billing.status || (paid ? "active" : "trial")}</span>
+                        </div>
+
+                        <button className="btn w-100 rounded-pill fw-bold modern-plan-btn d-flex justify-content-center align-items-center gap-2 border-0"
+                          style={{ background: paid ? "linear-gradient(135deg, #f97316, #ea580c)" : "linear-gradient(135deg, #3b82f6, #2563eb)", color: "#fff", padding: "12px", fontSize: "1rem" }}
+                          onClick={() => { setShowPlan(false); setShowContact(true); }}>
+                          <i className="bi bi-rocket-takeoff"></i> {paid ? "Renew / Upgrade" : "Upgrade to Pro"}
+                        </button>
+                      </div>
+                    </div>
+                  </>
+                );
+              })(),
+              document.body
+            )}
 
             <Link href="/app/notifications" className="position-relative text-decoration-none fs-5" aria-label="Notifications" style={{ color: "var(--topbar-color)" }}>
               🔔
