@@ -18,12 +18,83 @@ type Summary = {
   mom_growth: { current: number; previous: number; growth_pct: number };
 };
 
+type SubStatus = {
+  state: "trial" | "paid" | "expired" | "none";
+  plan_name: string | null;
+  plan: string | null;
+  days_left: number;
+  ends_at: string | null;
+  billing_details?: { bkash?: string; nagad?: string; bank?: string };
+};
+
+function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
+  const [showPay, setShowPay] = useState(false);
+  if (!sub || sub.state === "none") return null;
+
+  const d = sub.days_left;
+  const urgent = sub.state === "expired" || d <= 5;
+  const endStr = sub.ends_at
+    ? new Date(sub.ends_at).toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+    : "";
+
+  const theme =
+    sub.state === "expired" ? { bg: "danger", icon: "bi-x-octagon-fill" } :
+    urgent ? { bg: "warning", icon: "bi-exclamation-triangle-fill" } :
+    sub.state === "paid" ? { bg: "success", icon: "bi-patch-check-fill" } :
+    { bg: "info", icon: "bi-hourglass-split" };
+
+  const title =
+    sub.state === "expired" ? "Your subscription has expired" :
+    sub.state === "trial" ? `Free trial — ${d} day${d === 1 ? "" : "s"} left` :
+    `${sub.plan_name || "Pro"} plan — ${d} day${d === 1 ? "" : "s"} left`;
+
+  const subtitle =
+    sub.state === "expired" ? "Access is suspended. Renew to restore your shop." :
+    `${sub.state === "trial" ? "Trial" : "Plan"} ends on ${endStr}.${urgent ? " Renew soon to avoid interruption." : ""}`;
+
+  const bd = sub.billing_details || {};
+
+  return (
+    <div className={`alert alert-${theme.bg} d-flex flex-column gap-2 rounded-4 border-0 shadow-sm mb-3`}>
+      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+        <div className="d-flex align-items-center gap-2">
+          <i className={`bi ${theme.icon} fs-5`}></i>
+          <div>
+            <div className="fw-bold">{title}</div>
+            <div className="small opacity-75">{subtitle}</div>
+          </div>
+        </div>
+        {(urgent || sub.state === "trial") && (
+          <button className={`btn btn-${sub.state === "expired" ? "light" : theme.bg === "warning" ? "dark" : "light"} btn-sm rounded-pill px-3 fw-semibold`}
+            onClick={() => setShowPay((s) => !s)}>
+            <i className="bi bi-arrow-repeat me-1"></i>{sub.state === "trial" ? "Upgrade / Renew" : "Renew now"}
+          </button>
+        )}
+      </div>
+
+      {showPay && (
+        <div className="bg-white text-dark rounded-3 p-3 small">
+          <div className="fw-semibold mb-1">To renew, pay to any of the below and inform the admin:</div>
+          <ul className="mb-2">
+            {bd.bkash && <li>bKash: <b>{bd.bkash}</b></li>}
+            {bd.nagad && <li>Nagad: <b>{bd.nagad}</b></li>}
+            {bd.bank && <li>Bank: <b>{bd.bank}</b></li>}
+            {!bd.bkash && !bd.nagad && !bd.bank && <li>Contact the platform admin to renew your plan.</li>}
+          </ul>
+          <div className="text-secondary">Once your payment is confirmed, your plan is activated and an invoice is emailed to you.</div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { can, isOwner } = useAuth();
   const canProfit = isOwner || can("view_profit");
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
+  const [sub, setSub] = useState<SubStatus | null>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInst = useRef<any>(null);
 
@@ -38,6 +109,10 @@ export default function DashboardPage() {
         setLoading(false);
       }
     })();
+  }, []);
+
+  useEffect(() => {
+    api<SubStatus>("/billing/status/").then(setSub).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -70,6 +145,7 @@ export default function DashboardPage() {
 
   return (
     <div>
+      <SubscriptionBanner sub={sub} />
       <h1 className="h4 fw-bold text-brand mb-3">Dashboard</h1>
 
       <div className="row g-3 mb-4">

@@ -192,8 +192,25 @@ def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
 
 def subscription_status(shop):
     sub = Subscription.objects.filter(shop=shop, is_current=True).select_related("plan").first()
+    now = timezone.now()
+
+    if shop.on_trial:
+        state, ends_at = "trial", shop.trial_ends_at
+    elif sub and sub.current_period_end and sub.current_period_end > now:
+        state, ends_at = "paid", sub.current_period_end
+    elif sub and sub.current_period_end:
+        state, ends_at = "expired", sub.current_period_end
+    else:
+        state, ends_at = "none", None
+
+    days_left = max(0, (ends_at.date() - now.date()).days) if ends_at else 0
+
     return {
         "plan": shop.plan.tier if shop.plan else None,
+        "plan_name": shop.plan.name if shop.plan else None,
+        "state": state,
+        "days_left": days_left,
+        "ends_at": ends_at,
         "on_trial": shop.on_trial,
         "trial_ends_at": shop.trial_ends_at,
         "status": sub.status if sub else None,
