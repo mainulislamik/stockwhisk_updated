@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, CardMedia, Chip } from '@mui/material';
+import MarketingNav from '@/components/MarketingNav';
 import { getAccess, api, unwrap } from "@/lib/api";
 import { useThemeMode } from "@/components/ThemeRegistry";
 
@@ -66,35 +67,7 @@ export default function BlogListPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
       
       {/* Navigation */}
-      <Box sx={{ bgcolor: COLORS.surface, borderBottom: `1px solid ${COLORS.outlineVariant}`, position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' }}>
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
-            <Link href="/" style={{ textDecoration: 'none' }}>
-              <Typography variant="h6" sx={{ fontWeight: 700, color: COLORS.primary, fontFamily: 'Outfit, sans-serif' }}>
-                StockWhisk
-              </Typography>
-            </Link>
-            
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-              <Button component={Link} href="/pricing" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
-                Pricing
-              </Button>
-              <Button component={Link} href="/blog" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
-                Blog
-              </Button>
-              {mounted && isLoggedIn ? (
-                <Button component={Link} href="/app" sx={{ bgcolor: COLORS.primary, color: COLORS.onPrimary, fontWeight: 600, textTransform: 'none', borderRadius: '8px', px: 3, '&:hover': { bgcolor: COLORS.surfaceTint }}}>
-                  Dashboard
-                </Button>
-              ) : (
-                <Button component={Link} href="/login" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 600, textTransform: 'none', '&:hover': { color: COLORS.primary }}}>
-                  Login
-                </Button>
-              )}
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
+      <MarketingNav />
 
       {/* Main Content */}
       <Box component="main" sx={{ flexGrow: 1, py: { xs: 4, md: 8 }, px: { xs: 2, md: 0 } }}>

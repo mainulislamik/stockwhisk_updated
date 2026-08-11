@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Box, Typography, Button, Container, Stack } from '@mui/material';
 import { getAccess } from "@/lib/api";
 import { useThemeMode } from "@/components/ThemeRegistry";
+import MarketingNav from "@/components/MarketingNav";
 
 const LIGHT_COLORS = {
   surface: '#f8f9ff',
@@ -60,84 +61,7 @@ export default function LandingPage() {
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
       
       {/* Navigation */}
-      <Box sx={{ 
-        bgcolor: COLORS.surface, 
-        borderBottom: `1px solid ${COLORS.outlineVariant}`, 
-        position: 'sticky', 
-        top: 0, 
-        zIndex: 50, 
-        boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)' 
-      }}>
-        <Container maxWidth="xl">
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '64px' }}>
-            <Typography variant="h6" sx={{ fontWeight: 700, color: COLORS.primary, fontFamily: 'Outfit, sans-serif' }}>
-              StockWhisk
-            </Typography>
-            
-            <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
-              <Button component={Link} href="/" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
-                Home
-              </Button>
-              <Button component={Link} href="/pricing" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
-                Pricing
-              </Button>
-              <Button component={Link} href="/blog" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
-                Blog
-              </Button>
-              {mounted && isLoggedIn ? (
-                <Button 
-                  component={Link} 
-                  href="/app" 
-                  sx={{ 
-                    bgcolor: COLORS.primary, 
-                    color: COLORS.onPrimary, 
-                    fontWeight: 600, 
-                    textTransform: 'none',
-                    borderRadius: '8px',
-                    px: 3,
-                    '&:hover': { bgcolor: COLORS.surfaceTint }
-                  }}
-                >
-                  Dashboard
-                </Button>
-              ) : (
-                <>
-                  <Button 
-                    component={Link} 
-                    href="/login" 
-                    sx={{ 
-                      color: COLORS.onSurfaceVariant, 
-                      fontWeight: 600, 
-                      textTransform: 'none',
-                      px: 2,
-                      display: { xs: 'none', md: 'inline-flex' },
-                      '&:hover': { color: COLORS.primary, bgcolor: 'transparent' }
-                    }}
-                  >
-                    Login
-                  </Button>
-                  <Button 
-                    component={Link} 
-                    href="/register" 
-                    sx={{ 
-                      bgcolor: COLORS.primary, 
-                      color: COLORS.onPrimary, 
-                      fontWeight: 600, 
-                      textTransform: 'none',
-                      borderRadius: '8px',
-                      px: 3,
-                      boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.05)',
-                      '&:hover': { bgcolor: COLORS.surfaceTint }
-                    }}
-                  >
-                    Sign Up
-                  </Button>
-                </>
-              )}
-            </Stack>
-          </Box>
-        </Container>
-      </Box>
+      <MarketingNav />
 
       {/* Main Content Canvas */}
       <Box component="main" sx={{ flexGrow: 1 }}>
