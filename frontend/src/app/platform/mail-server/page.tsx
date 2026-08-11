@@ -7,7 +7,16 @@ import { api, ApiError } from "@/lib/api";
 type MailAccount = {
   email: string;
   quota: string | null;
+  used?: number;              // bytes actually used on disk
+  quota_bytes?: number | null; // quota in bytes, null = unlimited
 };
+
+function formatBytes(n: number): string {
+  if (!n || n < 1) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  const i = Math.min(Math.floor(Math.log(n) / Math.log(1024)), units.length - 1);
+  return `${(n / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
 
 type Modal =
   | { type: "create" }
@@ -134,9 +143,14 @@ export default function MailServerPage() {
             Manage mailboxes, quotas &amp; 1-click logins
           </p>
         </div>
-        <button className="btn btn-primary" onClick={() => setModal({ type: "create" })}>
-          <i className="bi-plus-lg me-2"></i>New Account
-        </button>
+        <div className="d-flex gap-2">
+          <button className="btn btn-outline-secondary" onClick={fetchAccounts} disabled={loading} title="Refresh usage">
+            <i className="bi-arrow-clockwise"></i>
+          </button>
+          <button className="btn btn-primary" onClick={() => setModal({ type: "create" })}>
+            <i className="bi-plus-lg me-2"></i>New Account
+          </button>
+        </div>
       </div>
 
       {/* Accounts table */}
@@ -146,7 +160,7 @@ export default function MailServerPage() {
             <thead className="table-dark">
               <tr>
                 <th className="ps-4">Email Account</th>
-                <th>Storage Quota</th>
+                <th style={{ minWidth: 220 }}>Storage Used / Quota</th>
                 <th className="text-end pe-4">Actions</th>
               </tr>
             </thead>
@@ -173,9 +187,7 @@ export default function MailServerPage() {
                       {acc.email}
                     </td>
                     <td>
-                      <span className="badge bg-secondary font-monospace">
-                        {acc.quota || "Unlimited"}
-                      </span>
+                      <UsageCell used={acc.used ?? 0} quotaBytes={acc.quota_bytes ?? null} />
                     </td>
                     <td className="text-end pe-3">
                       <div className="btn-group btn-group-sm">
@@ -280,6 +292,32 @@ export default function MailServerPage() {
         </ModalWrap>
       )}
     </>
+  );
+}
+
+/* ── Storage usage bar ── */
+function UsageCell({ used, quotaBytes }: { used: number; quotaBytes: number | null }) {
+  const unlimited = quotaBytes == null;
+  const pct = unlimited || quotaBytes === 0 ? 0 : Math.min(100, Math.round((used / quotaBytes) * 100));
+  const barColor = pct >= 90 ? "bg-danger" : pct >= 70 ? "bg-warning" : "bg-success";
+  return (
+    <div style={{ maxWidth: 240 }}>
+      <div className="d-flex justify-content-between small mb-1">
+        <span className="font-monospace">{formatBytes(used)}</span>
+        <span className="text-muted font-monospace">
+          {unlimited ? "Unlimited" : `${formatBytes(quotaBytes ?? 0)} · ${pct}%`}
+        </span>
+      </div>
+      {unlimited ? (
+        <div className="progress" style={{ height: 6 }}>
+          <div className="progress-bar bg-secondary" style={{ width: "100%", opacity: 0.25 }} />
+        </div>
+      ) : (
+        <div className="progress" style={{ height: 6 }}>
+          <div className={`progress-bar ${barColor}`} style={{ width: `${pct}%` }} />
+        </div>
+      )}
+    </div>
   );
 }
 

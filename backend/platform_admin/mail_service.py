@@ -7,6 +7,57 @@ class MailServerConfigService:
         self.config_dir = config_dir or os.environ.get('MAILSERVER_CONFIG_DIR', '/app/mailserver-config')
         self.accounts_file = os.path.join(self.config_dir, 'postfix-accounts.cf')
         self.quotas_file = os.path.join(self.config_dir, 'dovecot-quotas.cf')
+        # IMAP endpoint + master credentials, used to ask Dovecot for real usage.
+        self.imap_host = os.environ.get('MAILSERVER_IMAP_HOST', 'mailserver')
+        self.imap_port = int(os.environ.get('MAILSERVER_IMAP_PORT', '143'))
+        self.master_user = os.environ.get('MAIL_MASTER_USER', 'master_admin')
+        self.master_pass = os.environ.get('MAIL_MASTER_PASS', 'stockwhisk_master_2026')
+
+    @staticmethod
+    def quota_to_bytes(quota):
+        """Convert a Dovecot quota string like '512M' / '2G' / '1024' to bytes.
+        Returns None for unlimited (empty / falsy)."""
+        if not quota:
+            return None
+        q = str(quota).strip().upper().replace('B', '').replace(' ', '')
+        units = {'K': 1024, 'M': 1024 ** 2, 'G': 1024 ** 3, 'T': 1024 ** 4}
+        try:
+            if q and q[-1] in units:
+                return int(float(q[:-1]) * units[q[-1]])
+            return int(float(q))
+        except (ValueError, IndexError):
+            return None
+
+    def _mailbox_used_bytes(self, email):
+        """Ask Dovecot (via IMAP QUOTA, as the master user) how much this mailbox
+        actually uses. Returns bytes, or None if it couldn't be determined."""
+        import imaplib
+        import re as _re
+        try:
+            imap = imaplib.IMAP4(self.imap_host, self.imap_port, timeout=5)
+        except Exception:
+            return None
+        try:
+            imap.login(f"{email}*{self.master_user}", self.master_pass)
+            typ, data = imap.getquotaroot("INBOX")
+            if typ != "OK":
+                return None
+            # data = [quotaroot_lines, quota_lines]; quota line: b'"..." (STORAGE used limit)'
+            for chunk in (data[1] if len(data) > 1 else []):
+                if not chunk:
+                    continue
+                raw = chunk if isinstance(chunk, bytes) else str(chunk).encode()
+                m = _re.search(rb'STORAGE\s+(\d+)\s+(\d+)', raw)
+                if m:
+                    return int(m.group(1)) * 1024  # Dovecot reports STORAGE in KiB
+            return 0
+        except Exception:
+            return None
+        finally:
+            try:
+                imap.logout()
+            except Exception:
+                pass
         
     def _ensure_files_exist(self):
         if not os.path.exists(self.config_dir):
@@ -39,7 +90,7 @@ class MailServerConfigService:
                             emails.add(email)
                             accounts.append({
                                 'email': email,
-                                'quota': None
+                                'quota': None,
                             })
                             
         # Read quotas
@@ -56,6 +107,11 @@ class MailServerConfigService:
                                 if acc['email'] == email:
                                     acc['quota'] = quota
                                     break
+
+        # Attach real disk usage + quota-in-bytes for each account.
+        for acc in accounts:
+            acc['used'] = self._mailbox_used_bytes(acc['email'])
+            acc['quota_bytes'] = self.quota_to_bytes(acc['quota'])
         return accounts
 
     def add_account(self, email, password, quota=None):
