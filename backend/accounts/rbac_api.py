@@ -114,3 +114,20 @@ class ShopUserViewSet(_OwnerScoped, viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(shop_id=self.request.user.shop_id)
+
+    def destroy(self, request, *args, **kwargs):
+        from rest_framework import status
+        from .models import RoleType
+        user = self.get_object()
+        if user.id == request.user.id:
+            return Response({"detail": "You can't delete your own account."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if user.role == RoleType.OWNER:
+            return Response({"detail": "The shop owner can't be deleted."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        email = user.email
+        record(action=AuditLog.Action.DELETE, actor=request.user,
+               shop=request.user.shop, target=user,
+               description=f"Staff user '{email}' deleted by owner")
+        user.delete()
+        return Response({"status": "deleted", "email": email}, status=status.HTTP_200_OK)

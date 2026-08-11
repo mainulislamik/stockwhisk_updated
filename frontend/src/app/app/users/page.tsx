@@ -127,6 +127,17 @@ export default function UsersPage() {
     }
   };
 
+  const deleteUser = async (u: ShopUser) => {
+    if (!(await confirmAction(`Permanently delete ${u.email}? This removes their access and cannot be undone.`))) return;
+    try {
+      await api(`/users/${u.id}/`, { method: "DELETE" });
+      toast.success(`${u.email} deleted.`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.data?.detail || e?.message || "Failed to delete user");
+    }
+  };
+
   if (loading) return <Spinner label="Loading Users & Roles…" />;
   if (error) return <ErrorState error={error} />;
 
@@ -233,6 +244,11 @@ export default function UsersPage() {
                       <button className="btn btn-sm btn-link text-decoration-none" onClick={() => toggleUserActive(u)}>
                         {u.is_active ? "Deactivate" : "Activate"}
                       </button>
+                      {u.role !== "owner" && (
+                        <button className="btn btn-sm btn-link text-danger text-decoration-none" onClick={() => deleteUser(u)}>
+                          <i className="bi bi-trash3 me-1"></i>Delete
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
