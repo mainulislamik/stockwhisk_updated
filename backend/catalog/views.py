@@ -30,6 +30,9 @@ class ProductUnitViewSet(TenantScopedViewSet):
         status = self.request.query_params.get("status")
         if status:
             qs = qs.filter(status=status)
+        barcode = self.request.query_params.get("barcode")
+        if barcode:
+            qs = qs.filter(barcode=barcode.strip())
         return qs
 
 

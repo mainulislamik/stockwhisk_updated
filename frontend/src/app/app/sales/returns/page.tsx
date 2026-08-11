@@ -96,8 +96,8 @@ export default function ReturnsPage() {
         setOldBarcode("");
         newBarcodeRef.current?.focus();
       } else {
-        // Fetch new unit from catalog/units/ (response may be paginated).
-        const res = await api<any>(`/catalog/units/?barcode=${encodeURIComponent(val)}`);
+        // Fetch the physical unit by barcode (response may be paginated).
+        const res = await api<any>(`/catalog/product-units/?barcode=${encodeURIComponent(val)}`);
         const list = Array.isArray(res) ? res : (res?.results ?? []);
         const unit = list[0];
         if (!unit) {
