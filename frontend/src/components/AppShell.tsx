@@ -262,7 +262,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 2000 }} onClick={() => setShowContact(false)} />
                   <div
                     className="position-fixed p-3 rounded-4 shadow-lg"
-                    style={{ zIndex: 2001, top: 62, right: 14, width: 264, background: "var(--card, #0f172a)", backgroundColor: "#0f172a", border: "1px solid rgba(148,163,184,.28)", backdropFilter: "blur(6px)" }}
+                    style={{ zIndex: 2001, top: 62, right: 14, width: 264, backgroundColor: "#0f172a", border: "1px solid rgba(148,163,184,.28)" }}
                   >
                     <div className="fw-bold mb-1 d-flex align-items-center gap-2" style={{ color: "var(--topbar-color, #fff)" }}>
                       <i className="bi bi-headset text-primary"></i> Contact us
