@@ -2,6 +2,7 @@
 import os
 
 from celery import Celery
+from celery.schedules import crontab
 
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
 
@@ -36,6 +37,12 @@ app.conf.beat_schedule = {
     "delete-old-notifications-daily": {
         "task": "notifications.tasks.delete_old_notifications",
         "schedule": 86400.0,
+    },
+    # One combined notification summary per shop, every morning at 10:00
+    # (CELERY_TIMEZONE = Asia/Dhaka).
+    "notification-digest-10am": {
+        "task": "notifications.tasks.send_notification_digest",
+        "schedule": crontab(hour=10, minute=0),
     },
 }
 

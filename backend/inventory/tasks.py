@@ -67,7 +67,10 @@ def scan_low_stock():
             title=f"{len(out)} out-of-stock, {len(low)} low-stock item(s)",
             message="\n".join(parts),
             metadata={"low_ids": [p["id"] for p in low], "out_ids": [p["id"] for p in out]},
-            email=cfg.email_enabled, sms=cfg.sms_enabled, whatsapp=cfg.whatsapp_enabled,
+            # No per-scan email — a single combined digest goes out daily at 10am
+            # (see notifications.tasks.send_notification_digest). In-app + SMS/WA
+            # stay real-time.
+            email=False, sms=cfg.sms_enabled, whatsapp=cfg.whatsapp_enabled,
         )
         raised += 1
     return {"shops_notified": raised}
