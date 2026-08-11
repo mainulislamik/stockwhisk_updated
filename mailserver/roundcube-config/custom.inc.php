@@ -1,12 +1,16 @@
 <?php
-// Custom Roundcube config: disable session validation that breaks SSO
-// ip_check must be PHP boolean false, not string 'false'
+// Mounted as /var/www/html/config/config.inc.php so Roundcube actually loads it.
+// First pull in the container's env-generated configuration...
+if (file_exists(__DIR__ . '/config.docker.inc.php')) {
+    include __DIR__ . '/config.docker.inc.php';
+}
+
+// SSO session sharing: don't bind the session to IP / user-agent.
 $config['ip_check'] = false;
-// Also disable user-agent check for SSO compatibility
 $config['ua_check'] = false;
 
-// Mailserver uses a self-signed TLS cert on the internal network — accept it
-// for both IMAP and SMTP connections (traffic never leaves the host).
+// The mailserver uses a self-signed TLS cert on the internal Docker network.
+// Accept it for both IMAP and SMTP (traffic never leaves the host).
 $ssl_no_verify = [
     'ssl' => [
         'verify_peer'       => false,

@@ -69,7 +69,9 @@ services:
       - ROUNDCUBEMAIL_DES_KEY=stockwhisk_secret_key_1234567890
     volumes:
       - ./roundcube-data/:/var/roundcube/db/
-      - ./roundcube-config/custom.inc.php:/var/www/html/config/custom.inc.php:ro
+      # Mount as config.inc.php (which Roundcube loads) — it re-includes the
+      # env-generated config.docker.inc.php, then adds our overrides.
+      - ./roundcube-config/custom.inc.php:/var/www/html/config/config.inc.php:ro
     depends_on:
       - mailserver
       - mail_db
