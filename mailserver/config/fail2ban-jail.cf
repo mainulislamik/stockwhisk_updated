@@ -1,0 +1,4 @@
+[DEFAULT]
+# Whitelist all private/Docker network ranges so roundcube (internal container) 
+# is never banned by fail2ban when it retries failed IMAP connections.
+ignoreip = 127.0.0.1/8 ::1 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16
