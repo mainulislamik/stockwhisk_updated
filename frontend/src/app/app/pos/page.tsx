@@ -156,6 +156,23 @@ export default function PosPage() {
       }
     }
 
+    // 2c. A full numeric code that found a product (matched via its unit index)
+    // but is NOT one of its in-stock units → it's a sold/returned unit. Show a
+    // clear message instead of opening the unit picker.
+    if (query === code && /^\d{6,}$/.test(code)) {
+      const soldHit = shown.find((p) =>
+        !(p.sku && p.sku === code) &&
+        !(p.barcode && p.barcode.split(",").map((s) => s.trim()).includes(code)) &&
+        !p.units?.some((u) => u.barcode === code)
+      );
+      if (soldHit) {
+        flash(`✗ Unit "${code}" is already sold or not in stock.`, false);
+        setQuery("");
+        setTimeout(() => inputRef.current?.focus(), 50);
+        return;
+      }
+    }
+
     // 3. Exactly one filtered result → auto-add
     if (shown.length === 1 && query === code) { tryAdd(shown[0]); return; }
 
