@@ -19,6 +19,7 @@ from .models import PendingRegistration
 class InitiateRegistrationView(APIView):
     """Public endpoint: receive registration details, generate OTP, send email."""
 
+    authentication_classes = []  # public endpoint — no session auth, so no CSRF check
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -95,6 +96,7 @@ class InitiateRegistrationView(APIView):
 class VerifyOTPRegistrationView(APIView):
     """Public endpoint: verify OTP and finalize shop+user creation."""
     
+    authentication_classes = []  # public endpoint — no session auth, so no CSRF check
     permission_classes = [AllowAny]
     
     def post(self, request):
@@ -152,6 +154,7 @@ class VerifyOTPRegistrationView(APIView):
 class RequestPasswordResetOTPView(APIView):
     """Public endpoint: request an OTP for password reset."""
 
+    authentication_classes = []  # public endpoint — no session auth, so no CSRF check
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -215,6 +218,7 @@ class RequestPasswordResetOTPView(APIView):
 class VerifyPasswordResetOTPView(APIView):
     """Public endpoint: verify OTP and reset password."""
     
+    authentication_classes = []  # public endpoint — no session auth, so no CSRF check
     permission_classes = [AllowAny]
     
     def post(self, request):
