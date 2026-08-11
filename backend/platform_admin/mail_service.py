@@ -30,34 +30,59 @@ class MailServerConfigService:
 
     def _mailbox_used_bytes(self, email):
         """Ask Dovecot (via IMAP QUOTA, as the master user) how much this mailbox
-        actually uses. Returns bytes, or None if it couldn't be determined."""
+        actually uses. Returns bytes, or None if it couldn't be determined.
+        Tries plain LOGIN first, then STARTTLS (for when Dovecot refuses
+        plaintext auth on an unencrypted connection)."""
         import imaplib
+        import ssl
         import re as _re
-        try:
-            imap = imaplib.IMAP4(self.imap_host, self.imap_port, timeout=5)
-        except Exception:
-            return None
-        try:
-            imap.login(f"{email}*{self.master_user}", self.master_pass)
+
+        login_user = f"{email}*{self.master_user}"
+
+        def _query(imap):
+            imap.login(login_user, self.master_pass)
             typ, data = imap.getquotaroot("INBOX")
             if typ != "OK":
                 return None
-            # data = [quotaroot_lines, quota_lines]; quota line: b'"..." (STORAGE used limit)'
+            # quota line looks like: b'"User quota" (STORAGE 7 0 MESSAGE 3 0)'
             for chunk in (data[1] if len(data) > 1 else []):
                 if not chunk:
                     continue
                 raw = chunk if isinstance(chunk, bytes) else str(chunk).encode()
-                m = _re.search(rb'STORAGE\s+(\d+)\s+(\d+)', raw)
+                m = _re.search(rb'STORAGE\s+(\d+)\s+(-?\d+)', raw)
                 if m:
                     return int(m.group(1)) * 1024  # Dovecot reports STORAGE in KiB
             return 0
+
+        # 1) Plain connection (works when plaintext auth is allowed).
+        try:
+            imap = imaplib.IMAP4(self.imap_host, self.imap_port, timeout=5)
+            try:
+                return _query(imap)
+            finally:
+                try:
+                    imap.logout()
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # 2) STARTTLS fallback (Dovecot allows plaintext LOGIN once encrypted).
+        try:
+            ctx = ssl.create_default_context()
+            ctx.check_hostname = False
+            ctx.verify_mode = ssl.CERT_NONE
+            imap = imaplib.IMAP4(self.imap_host, self.imap_port, timeout=5)
+            try:
+                imap.starttls(ctx)
+                return _query(imap)
+            finally:
+                try:
+                    imap.logout()
+                except Exception:
+                    pass
         except Exception:
             return None
-        finally:
-            try:
-                imap.logout()
-            except Exception:
-                pass
         
     def _ensure_files_exist(self):
         if not os.path.exists(self.config_dir):
