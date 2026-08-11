@@ -5,6 +5,13 @@ services:
     hostname: mail.stockwhisk.com
     domainname: stockwhisk.com
     env_file: .env
+    environment:
+      # Enable TLS so submission (587) offers STARTTLS + AUTH. Uses a self-signed
+      # cert (fine for internal backend->mailserver; Django does not verify it).
+      # Generate the cert once on the host (see setup notes), then recreate.
+      - SSL_TYPE=manual
+      - SSL_CERT_PATH=/tmp/docker-mailserver/ssl/mail.stockwhisk.com-cert.pem
+      - SSL_KEY_PATH=/tmp/docker-mailserver/ssl/mail.stockwhisk.com-key.pem
     ports:
       - "25:25"
       - "143:143"
