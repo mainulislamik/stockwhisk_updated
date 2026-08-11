@@ -5,8 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, setTokens } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment, MenuItem } from '@mui/material';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
+import HomeIcon from '@mui/icons-material/Home';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
@@ -34,7 +33,7 @@ const SHOP_CATEGORIES = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { mode, toggleTheme } = useThemeMode();
+  const { mode } = useThemeMode();
   
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
@@ -214,13 +213,19 @@ export default function RegisterPage() {
           borderLeft: isDark ? '1px solid rgba(255,255,255,0.05)' : 'none'
         }}
       >
-        <IconButton 
-          onClick={toggleTheme} 
-          sx={{ position: 'absolute', top: 24, right: 24, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }}
-          color="inherit"
+        <Button
+          component={Link}
+          href="/"
+          startIcon={<HomeIcon />}
+          sx={{
+            position: 'absolute', top: 24, right: 24, textTransform: 'none', borderRadius: '999px',
+            color: isDark ? '#cbd5e1' : '#334155',
+            bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
+            '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
+          }}
         >
-          {isDark ? <LightModeIcon /> : <DarkModeIcon />}
-        </IconButton>
+          Home
+        </Button>
 
         <Box sx={{ width: '100%', maxWidth: '440px' }}>
           <Box sx={{ mb: 4 }}>
