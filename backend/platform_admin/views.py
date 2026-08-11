@@ -1128,89 +1128,116 @@ class MailSSOView(APIView):
 
 
 from django.views import View
-from django.http import HttpResponse, HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponse, HttpResponseForbidden
+from django.utils.html import escape
 
 class MailSSORedirectView(View):
     """
     Hosted at mail.stockwhisk.com/sso (Caddy routes this to Django).
-    Validates the signed token, logs into Roundcube server-side,
-    sets the session cookie for mail.stockwhisk.com, and redirects.
+
+    Strategy: Serve an HTML page that uses a same-origin hidden iframe to load
+    Roundcube's login page, read the CSRF _token via JavaScript (same-origin
+    access is allowed since both pages are on mail.stockwhisk.com), then
+    auto-submit the master user credentials directly to Roundcube.
+
+    This avoids all server-side session forwarding complications (IP mismatch,
+    User-Agent mismatch, session regeneration, etc.).
     """
-    ROUNDCUBE_INTERNAL = "http://roundcube:80"
 
     def get(self, request):
-        import hmac, hashlib, time, re, requests as req
+        import hmac, hashlib, time
         from django.conf import settings
 
         token = request.GET.get('token', '')
-        # Validate token
+
+        # Validate signed token
         try:
             parts = token.split(':', 2)
             if len(parts) != 3:
-                raise ValueError
+                raise ValueError("bad format")
             email, ts, sig = parts
-            if int(time.time()) - int(ts) > 120:  # 2 min TTL
-                return HttpResponseForbidden("SSO token expired. Please try again.")
+            if int(time.time()) - int(ts) > 120:
+                return HttpResponseForbidden("SSO token expired. Click 'Login As' again.")
             expected = hmac.new(
                 settings.SECRET_KEY.encode(),
                 f"{email}:{ts}".encode(),
                 hashlib.sha256
             ).hexdigest()
             if not hmac.compare_digest(sig, expected):
-                raise ValueError
-        except Exception:
-            return HttpResponseForbidden("Invalid SSO token.")
+                raise ValueError("bad sig")
+        except Exception as exc:
+            return HttpResponseForbidden(f"Invalid SSO token: {exc}")
 
-        master_user = f"{email}*master_admin"
+        master_user = f"{escape(email)}*master_admin"
         master_pass = "stockwhisk_master_2026"
 
-        try:
-            sess = req.Session()
-            # Step 1: GET login page to acquire pre-auth session cookie + CSRF token
-            r = sess.get(f"{self.ROUNDCUBE_INTERNAL}/?_task=login", timeout=10)
-            csrf_match = re.search(r'name="_token"\s+value="([^"]+)"', r.text)
-            csrf_token = csrf_match.group(1) if csrf_match else ""
+        # Serve an HTML page that auto-submits the login form using the
+        # CSRF token read from the Roundcube login page inside a same-origin iframe.
+        html = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Logging in to mail.stockwhisk.com…</title>
+  <style>
+    body {{ font-family: sans-serif; display:flex; align-items:center;
+            justify-content:center; min-height:100vh; margin:0;
+            background:#111; color:#ccc; flex-direction:column; gap:12px; }}
+    .spinner {{ width:40px; height:40px; border:4px solid #444;
+                border-top-color:#3b82f6; border-radius:50%;
+                animation:spin 0.8s linear infinite; }}
+    @keyframes spin {{ to{{ transform:rotate(360deg); }} }}
+  </style>
+</head>
+<body>
+  <div class="spinner"></div>
+  <p>Logging you into the mailbox, please wait…</p>
 
-            # Step 2: POST credentials server-side (follow redirects to get final session)
-            login_resp = sess.post(
-                f"{self.ROUNDCUBE_INTERNAL}/?_task=login",
-                data={
-                    '_user': master_user,
-                    '_pass': master_pass,
-                    '_action': 'login',
-                    '_task': 'login',
-                    '_token': csrf_token,
-                },
-                allow_redirects=True,
-                timeout=10,
-            )
+  <!-- Hidden iframe loads Roundcube login page (same origin) so JS can read the CSRF token -->
+  <iframe id="rc_frame" src="/?_task=login" style="display:none"
+          sandbox="allow-same-origin allow-scripts allow-forms"></iframe>
 
-            # Step 3: Extract ALL session cookies Roundcube set after login
-            all_cookies = {c.name: c for c in sess.cookies}
+  <!-- This form will be submitted automatically once we have the token -->
+  <form id="login_form" method="POST" action="/?_task=login" style="display:none">
+    <input type="hidden" name="_user"   value="{master_user}">
+    <input type="hidden" name="_pass"   value="{master_pass}">
+    <input type="hidden" name="_action" value="login">
+    <input type="hidden" name="_task"   value="login">
+    <input type="hidden" name="_token"  id="csrf_token" value="">
+  </form>
 
-            # Check login was successful (Roundcube redirects to ?_task=mail on success)
-            login_ok = '_task=mail' in login_resp.url or 'roundcube_sessauth' in all_cookies
-            if not login_ok and 'roundcube_sessid' not in all_cookies:
-                return HttpResponse(
-                    f"SSO login failed. Cookies: {list(all_cookies.keys())}. "
-                    f"Final URL: {login_resp.url}. "
-                    f"Master user auth may not be configured yet — restart mailserver.",
-                    status=401,
-                    content_type="text/plain"
-                )
+  <script>
+    var attempts = 0;
+    var maxAttempts = 30; // 15 seconds max
 
-            # Step 4: Set ALL Roundcube cookies on mail.stockwhisk.com and redirect
-            response = HttpResponseRedirect("/?_task=mail")
-            for name, cookie in all_cookies.items():
-                response.set_cookie(
-                    name,
-                    cookie.value,
-                    httponly=True,
-                    samesite='Lax',
-                    secure=True,
-                    path='/',
-                )
-            return response
+    function trySubmit(frame) {{
+      attempts++;
+      try {{
+        var doc = frame.contentDocument || frame.contentWindow.document;
+        if (!doc || doc.readyState !== 'complete') {{
+          if (attempts < maxAttempts) setTimeout(function(){{ trySubmit(frame); }}, 500);
+          return;
+        }}
+        var tokenEl = doc.querySelector('input[name="_token"]');
+        if (tokenEl && tokenEl.value) {{
+          document.getElementById('csrf_token').value = tokenEl.value;
+        }}
+        document.getElementById('login_form').submit();
+      }} catch (e) {{
+        // Cross-origin error (should not happen since same domain) — submit anyway
+        document.getElementById('login_form').submit();
+      }}
+    }}
 
-        except Exception as e:
-            return HttpResponse(f"SSO Error: {e}", status=500, content_type="text/plain")
+    var frame = document.getElementById('rc_frame');
+    frame.onload = function() {{ trySubmit(this); }};
+
+    // Fallback: submit after 8 seconds even if iframe didn't fire onload
+    setTimeout(function() {{
+      if (attempts === 0) document.getElementById('login_form').submit();
+    }}, 8000);
+  </script>
+</body>
+</html>"""
+        return HttpResponse(html, content_type="text/html")
+
+
