@@ -1207,7 +1207,7 @@ class MailSSORedirectView(View):
 
   try {{
     // Step 1: GET login page (same-origin) to obtain session cookie + CSRF token
-    msgEl.textContent = 'Fetching login page…';
+    msgEl.textContent = 'Acquiring security token…';
     var r1 = await fetch('/?_task=login', {{credentials:'include'}});
     var html = await r1.text();
 
@@ -1217,39 +1217,38 @@ class MailSSORedirectView(View):
     var tokenEl = doc.querySelector('input[name="_token"]');
     var csrfToken = tokenEl ? tokenEl.value : '';
 
-    // Also grab any Set-Cookie session cookie that was already set by the GET
+    if (!csrfToken) {{
+      showErr('Failed to obtain CSRF token from Roundcube.');
+      return;
+    }}
+
     msgEl.textContent = 'Authenticating…';
 
-    // Step 2: POST credentials + CSRF token
-    var fd = new FormData();
-    fd.append('_user',   user);
-    fd.append('_pass',   pass);
-    fd.append('_action', 'login');
-    fd.append('_task',   'login');
-    fd.append('_token',  csrfToken);
+    // Step 2: NATIVE form submission
+    // We create a form in the DOM and submit it so the browser handles 
+    // the POST, cookies, and 302 redirects natively (just like a real user).
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/?_task=login';
+    form.style.display = 'none';
 
-    var r2 = await fetch('/?_task=login', {{
-      method: 'POST',
-      body: fd,
-      credentials: 'include',
-      redirect: 'follow'
-    }});
-
-    // Step 3: Check result
-    var finalHtml = await r2.text();
-    if (finalHtml.includes('_task=mail') || r2.url.includes('_task=mail') ||
-        finalHtml.includes('id="messagelist"') || finalHtml.includes('rcmContent')) {{
-      // Success – navigate to inbox
-      msgEl.textContent = 'Logged in! Redirecting to inbox…';
-      window.location.href = '/?_task=mail';
-    }} else if (finalHtml.includes('_task=login') || finalHtml.includes('loginForm')) {{
-      showErr('Authentication failed. The master user password may be incorrect, ' +
-              'or Dovecot master user auth is not configured yet. ' +
-              'Please restart the mail server container and try again.');
-    }} else {{
-      // Uncertain — navigate anyway
-      window.location.href = '/?_task=mail';
+    function addInput(name, value) {{
+      var inp = document.createElement('input');
+      inp.type = 'hidden';
+      inp.name = name;
+      inp.value = value;
+      form.appendChild(inp);
     }}
+
+    addInput('_user', user);
+    addInput('_pass', pass);
+    addInput('_action', 'login');
+    addInput('_task', 'login');
+    addInput('_token', csrfToken);
+
+    document.body.appendChild(form);
+    form.submit();
+
   }} catch(e) {{
     showErr('Network error: ' + e.message);
   }}
