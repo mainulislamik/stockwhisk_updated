@@ -61,7 +61,7 @@ class InitiateRegistrationView(APIView):
         
         if config.smtp_host and config.smtp_user:
             connection = get_connection(
-                backend='django.core.mail.backends.smtp.EmailBackend',
+                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
                 host=config.smtp_host,
                 port=config.smtp_port,
                 username=config.smtp_user,
@@ -182,7 +182,7 @@ class RequestPasswordResetOTPView(APIView):
         
         if config.smtp_host and config.smtp_user:
             connection = get_connection(
-                backend='django.core.mail.backends.smtp.EmailBackend',
+                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
                 host=config.smtp_host,
                 port=config.smtp_port,
                 username=config.smtp_user,
