@@ -12,6 +12,14 @@ services:
       - SSL_TYPE=manual
       - SSL_CERT_PATH=/tmp/docker-mailserver/ssl/mail.stockwhisk.com-cert.pem
       - SSL_KEY_PATH=/tmp/docker-mailserver/ssl/mail.stockwhisk.com-key.pem
+      # Memory: disable heavy spam/virus scanners — not needed for sending OTPs
+      # and receiving admin mail. Frees several hundred MB of RAM.
+      - ENABLE_AMAVIS=0
+      - ENABLE_CLAMAV=0
+      - ENABLE_RSPAMD=0
+      - ENABLE_SPAMASSASSIN=0
+      - ENABLE_POSTGREY=0
+      - ENABLE_FAIL2BAN=1
     ports:
       - "25:25"
       - "143:143"
@@ -30,12 +38,21 @@ services:
     networks:
       - mailnet
       - stockwhisk_updated_default
+    deploy:
+      resources:
+        limits:
+          memory: 512M
 
   mail_db:
     image: mariadb:10.5
     container_name: mail_db
     restart: always
-    command: --max_allowed_packet=64M
+    # Trim MariaDB's memory footprint (Roundcube's DB is tiny).
+    command: >-
+      --max_allowed_packet=64M
+      --innodb-buffer-pool-size=48M
+      --performance-schema=OFF
+      --key-buffer-size=8M
     environment:
       - MYSQL_ROOT_PASSWORD=roundcube_root_secret
       - MYSQL_DATABASE=roundcube
@@ -45,6 +62,10 @@ services:
       - ./mail-db-data/:/var/lib/mysql
     networks:
       - mailnet
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
   roundcube:
     image: roundcube/roundcubemail:latest
@@ -78,6 +99,10 @@ services:
     networks:
       - mailnet
       - stockwhisk_updated_default
+    deploy:
+      resources:
+        limits:
+          memory: 256M
 
 networks:
   mailnet:
