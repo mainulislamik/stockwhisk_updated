@@ -203,14 +203,11 @@ export default function BlogListPage() {
                         <Typography sx={{ fontSize: '0.85rem', color: COLORS.primary, fontWeight: 700, mb: 1.5, fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '1px' }}>
                           {new Date(blog.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, fontFamily: 'Outfit, sans-serif', lineHeight: 1.3, fontSize: '1.5rem', color: COLORS.onSurface }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, fontFamily: 'Outfit, sans-serif', lineHeight: 1.3, fontSize: '1.5rem', color: COLORS.onSurface, flexGrow: 1 }}>
                           {blog.title}
                         </Typography>
-                        <Typography variant="body1" sx={{ color: COLORS.onSurfaceVariant, fontFamily: 'Outfit, sans-serif', lineHeight: 1.7, flexGrow: 1 }}>
-                          {blog.excerpt || "Read more about this topic inside..."}
-                        </Typography>
                         
-                        <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', color: COLORS.primary, fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Outfit, sans-serif' }}>
+                        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', color: COLORS.primary, fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Outfit, sans-serif' }}>
                           Read Article <Box component="span" sx={{ ml: 1, transition: 'transform 0.2s', '.MuiCard-root:hover &': { transform: 'translateX(4px)' } }}>→</Box>
                         </Box>
                       </CardContent>
