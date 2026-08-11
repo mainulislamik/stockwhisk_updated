@@ -28,6 +28,23 @@ class MailServerConfigService:
         except (ValueError, IndexError):
             return None
 
+    @staticmethod
+    def _imap_mailbox_name(raw):
+        """Extract the mailbox name from an IMAP LIST line and return it quoted
+        for use with STATUS, e.g. b'(\\HasNoChildren) "." "INBOX"' -> '"INBOX"'."""
+        line = raw.decode(errors="replace") if isinstance(raw, bytes) else str(raw)
+        m = re.match(r'\([^)]*\)\s+(?:"[^"]*"|NIL)\s+(.+)$', line.strip())
+        if not m:
+            return None
+        name = m.group(1).strip()
+        if name.startswith('"') and name.endswith('"'):
+            name = name[1:-1]
+        if not name:
+            return None
+        # Escape backslashes/quotes, then wrap in quotes for the STATUS command.
+        name = name.replace('\\', '\\\\').replace('"', '\\"')
+        return f'"{name}"'
+
     def _mailbox_used_bytes(self, email):
         """Ask Dovecot (via IMAP QUOTA, as the master user) how much this mailbox
         actually uses. Returns bytes, or None if it couldn't be determined.
@@ -41,18 +58,31 @@ class MailServerConfigService:
 
         def _query(imap):
             imap.login(login_user, self.master_pass)
-            typ, data = imap.getquotaroot("INBOX")
-            if typ != "OK":
+            # imaplib's getquotaroot is unreliable (returns [None]); instead sum
+            # every folder's STATUS (SIZE), which Dovecot advertises (STATUS=SIZE)
+            # and which imaplib parses cleanly.
+            typ, boxes = imap.list()
+            if typ != "OK" or not boxes:
                 return None
-            # quota line looks like: b'"User quota" (STORAGE 7 0 MESSAGE 3 0)'
-            for chunk in (data[1] if len(data) > 1 else []):
-                if not chunk:
+            total = 0
+            found = False
+            for raw in boxes:
+                if not raw:
                     continue
-                raw = chunk if isinstance(chunk, bytes) else str(chunk).encode()
-                m = _re.search(rb'STORAGE\s+(\d+)\s+(-?\d+)', raw)
-                if m:
-                    return int(m.group(1)) * 1024  # Dovecot reports STORAGE in KiB
-            return 0
+                name = self._imap_mailbox_name(raw)
+                if not name:
+                    continue
+                try:
+                    t, st = imap.status(name, "(SIZE)")
+                except Exception:
+                    continue
+                if t == "OK" and st and st[0]:
+                    data = st[0] if isinstance(st[0], bytes) else str(st[0]).encode()
+                    m = _re.search(rb'SIZE\s+(\d+)', data)
+                    if m:
+                        total += int(m.group(1))
+                        found = True
+            return total if found else 0
 
         # 1) Plain connection (works when plaintext auth is allowed).
         try:
