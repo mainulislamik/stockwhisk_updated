@@ -103,8 +103,8 @@ export default function ReturnsPage() {
         if (!unit) {
           throw new Error("New barcode not found in stock.");
         }
-        if (unit.status !== "IN_STOCK") {
-          throw new Error(`New unit must be IN STOCK. Currently: ${unit.status}`);
+        if (String(unit.status).toLowerCase() !== "in_stock") {
+          throw new Error(`Replacement unit isn't in stock (status: ${unit.status}). Pick an unsold unit.`);
         }
         setNewScanResult(unit);
         toast.success("Replacement unit found");
