@@ -66,7 +66,7 @@ class ProductUnitSerializer(serializers.ModelSerializer):
     effective_warranty_months = serializers.IntegerField(read_only=True)
     effective_replacement_guarantee_days = serializers.IntegerField(read_only=True)
     product_name = serializers.CharField(source='product.name', read_only=True)
-    sale_id = serializers.IntegerField(source='sale_id', read_only=True, default=None)
+    sale_id = serializers.IntegerField(read_only=True, default=None)
     sale_invoice_no = serializers.SerializerMethodField()
     sold_at = serializers.DateTimeField(read_only=True)
     warranty_status = serializers.SerializerMethodField()
