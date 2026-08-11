@@ -63,7 +63,15 @@ class ProductViewSet(TenantScopedViewSet):
         params = self.request.query_params
         low_stock = params.get("low_stock") in {"1", "true"}
         search = params.get("search")
-        return ProductService.get_catalog_queryset(low_stock=low_stock, search=search)
+        qs = ProductService.get_catalog_queryset(low_stock=low_stock, search=search)
+        ordering = params.get("ordering")
+        allowed = {
+            "current_stock", "-current_stock", "name", "-name", "sku", "-sku",
+            "cost_price", "-cost_price", "selling_price", "-selling_price",
+        }
+        if ordering in allowed:
+            qs = qs.order_by(ordering, "name")
+        return qs
 
     def perform_update(self, serializer):
         old_price = self.get_object().selling_price
