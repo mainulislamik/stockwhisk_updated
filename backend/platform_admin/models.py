@@ -1,6 +1,7 @@
 import re
 
 from django.db import models
+from django.utils import timezone
 
 from core.models import TimeStampedModel
 
@@ -98,6 +99,36 @@ class PlatformConfig(TimeStampedModel):
 
     def __str__(self):
         return "Platform Configuration"
+
+class PlatformRevenue(TimeStampedModel):
+    """
+    Immutable platform revenue ledger for subscription payments. Written when a
+    plan is activated/renewed. NOT tenant-scoped and uses SET_NULL on the shop
+    FK plus snapshot fields, so records survive even if the shop is deleted.
+    """
+    shop = models.ForeignKey(
+        "tenants.Shop", on_delete=models.SET_NULL, null=True, blank=True, related_name="+",
+    )
+    shop_name = models.CharField(max_length=150, blank=True)
+    shop_code = models.CharField(max_length=20, blank=True)
+    plan_tier = models.CharField(max_length=30, blank=True)
+    invoice_number = models.CharField(max_length=40, blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    cycle = models.CharField(max_length=10, default="monthly")
+    period_start = models.DateField(null=True, blank=True)
+    period_end = models.DateField(null=True, blank=True)
+    # Snapshot of the shop's test flag at recording time, so toggling it later
+    # can't rewrite history. Test revenue is excluded from platform totals.
+    is_test = models.BooleanField(default=False)
+    occurred_at = models.DateTimeField(default=timezone.now)
+
+    class Meta:
+        ordering = ["-occurred_at"]
+        indexes = [models.Index(fields=["occurred_at"]), models.Index(fields=["is_test"])]
+
+    def __str__(self):
+        return f"{self.shop_name} · {self.amount} · {self.occurred_at:%Y-%m-%d}"
+
 
 class BlogPost(TimeStampedModel):
     """

@@ -18,6 +18,7 @@ type Shop = {
   address: string;
   plan_tier: string | null;
   is_active: boolean;
+  is_test?: boolean;
   user_count: number;
   owner_email: string | null;
   owner_full_name: string | null;
@@ -119,6 +120,20 @@ export default function ShopDetailsPage() {
       await api(`/platform/shops/${shop.id}/${shop.is_active ? "suspend" : "activate"}/`, { method: "POST" });
       await load();
       toast.success(shop.is_active ? "Shop suspended." : "Shop activated.");
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop, load]);
+
+  const toggleTest = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const r = await api<{ is_test: boolean }>(`/platform/shops/${shop.id}/toggle-test/`, { method: "POST" });
+      await load();
+      toast.success(r.is_test ? "Marked as test shop — excluded from revenue." : "Marked as live shop.");
     } catch (e: any) {
       toast.error(e?.message || "Action failed.");
     } finally {
@@ -363,9 +378,22 @@ export default function ShopDetailsPage() {
                   </span>
                 </button>
 
-                <button 
-                  className="btn btn-outline-danger text-start p-3 rounded-3 d-flex align-items-center justify-content-between" 
-                  onClick={deleteShop} 
+                <button
+                  className={`btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between ${shop.is_test ? "btn-outline-secondary" : "btn-outline-info"}`}
+                  onClick={toggleTest}
+                  disabled={busy}
+                  title="Test shops are excluded from platform revenue totals"
+                >
+                  <span>
+                    <i className="bi bi-cone-striped me-2"></i>
+                    {shop.is_test ? "Unmark Test Shop (count revenue)" : "Mark as Test Shop (exclude revenue)"}
+                  </span>
+                  {shop.is_test && <span className="badge bg-secondary">TEST</span>}
+                </button>
+
+                <button
+                  className="btn btn-outline-danger text-start p-3 rounded-3 d-flex align-items-center justify-content-between"
+                  onClick={deleteShop}
                   disabled={busy || !shop.can_delete}
                   title={!shop.can_delete ? "Shop must be suspended for cool-off period before deletion." : ""}
                 >

@@ -177,6 +177,19 @@ def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
         status=SubscriptionInvoice.Status.PAID,
     )
 
+    # Immutable revenue ledger entry (survives shop deletion, excludes test shops).
+    try:
+        from platform_admin.models import PlatformRevenue
+        PlatformRevenue.objects.create(
+            shop=shop, shop_name=shop.name, shop_code=shop.shop_code,
+            plan_tier=plan.tier, invoice_number=invoice.number,
+            amount=Decimal(amount or 0), cycle=cycle,
+            period_start=invoice.period_start, period_end=invoice.period_end,
+            is_test=getattr(shop, "is_test", False),
+        )
+    except Exception:
+        pass
+
     # In-app notification (no plain email — a rich HTML invoice goes out below).
     notify(
         shop=shop, type=NotificationType.SUBSCRIPTION,

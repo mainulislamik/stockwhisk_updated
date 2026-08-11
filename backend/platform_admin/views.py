@@ -64,7 +64,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
         model = Shop
         fields = [
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
-            "plan", "plan_tier", "is_active", "trial_ends_at", "suspended_at",
+            "plan", "plan_tier", "is_active", "is_test", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
             "created_at", "owner_name", "owner_password", "subscription_info"
         ]
@@ -93,6 +93,62 @@ class ShopAdminSerializer(serializers.ModelSerializer):
 
     def get_can_delete(self, obj):
         return (not obj.is_active) and self._days_suspended(obj) >= SHOP_DELETE_COOLOFF.days
+
+
+class PlatformRevenueView(APIView):
+    """Monthly subscription revenue + invoice list (test shops excluded by default)."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        from datetime import date
+        from .models import PlatformRevenue
+
+        include_test = request.query_params.get("include_test") == "1"
+        qs = PlatformRevenue.objects.all()
+        if not include_test:
+            qs = qs.filter(is_test=False)
+
+        # Available months (YYYY-MM), newest first.
+        months = sorted({r.occurred_at.strftime("%Y-%m") for r in qs.only("occurred_at")}, reverse=True)
+
+        month = request.query_params.get("month")
+        if not month or month not in months:
+            month = months[0] if months else timezone.localdate().strftime("%Y-%m")
+
+        y, m = int(month[:4]), int(month[5:7])
+        start = date(y, m, 1)
+        end = date(y + (m // 12), (m % 12) + 1, 1)
+        month_qs = qs.filter(occurred_at__date__gte=start, occurred_at__date__lt=end).order_by("-occurred_at")
+
+        entries = [{
+            "id": r.id,
+            "shop_name": r.shop_name,
+            "shop_code": r.shop_code,
+            "plan_tier": r.plan_tier,
+            "invoice_number": r.invoice_number,
+            "amount": r.amount,
+            "cycle": r.cycle,
+            "period_start": r.period_start,
+            "period_end": r.period_end,
+            "is_test": r.is_test,
+            "occurred_at": r.occurred_at,
+            "shop_deleted": r.shop_id is None,
+        } for r in month_qs]
+
+        month_total = month_qs.aggregate(
+            v=Coalesce(Sum("amount", output_field=_DEC), Decimal("0"), output_field=_DEC))["v"]
+        all_time = qs.aggregate(
+            v=Coalesce(Sum("amount", output_field=_DEC), Decimal("0"), output_field=_DEC))["v"]
+
+        return Response({
+            "month": month,
+            "months": months,
+            "month_total": month_total,
+            "all_time_total": all_time,
+            "count": len(entries),
+            "entries": entries,
+            "include_test": include_test,
+        })
 
 
 def shop_subscription_info(shop):
@@ -199,10 +255,10 @@ class PlatformDashboardView(APIView):
             pending_payments = ManualPayment.objects.filter(
                 status=ManualPayment.Status.PENDING
             ).count()
-            approved_revenue = ManualPayment.objects.filter(
-                status=ManualPayment.Status.APPROVED
-            ).aggregate(v=Coalesce(Sum("amount", output_field=_DEC),
-                                   Decimal("0"), output_field=_DEC))["v"]
+            from .models import PlatformRevenue
+            approved_revenue = PlatformRevenue.objects.filter(is_test=False).aggregate(
+                v=Coalesce(Sum("amount", output_field=_DEC), Decimal("0"), output_field=_DEC)
+            )["v"]
             recent = list(shops.select_related("plan").order_by("-created_at")[:8])
             recent_shops = ShopAdminSerializer(recent, many=True).data
 
@@ -333,6 +389,16 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         data["subscription"] = shop_subscription_info(shop)
         data["invoice_number"] = invoice.number
         return Response(data)
+
+    @action(detail=True, methods=["post"], url_path="toggle-test")
+    def toggle_test(self, request, pk=None):
+        """Mark/unmark a shop as a test shop (excluded from revenue totals)."""
+        shop = self.get_object()
+        shop.is_test = not shop.is_test
+        shop.save(update_fields=["is_test"])
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
+               description=f"Shop marked as {'test' if shop.is_test else 'live'} by platform admin")
+        return Response({"status": "ok", "is_test": shop.is_test})
 
     @action(detail=True, methods=["post"])
     def suspend(self, request, pk=None):

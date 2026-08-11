@@ -83,10 +83,18 @@ export default function OverviewPage() {
           </Card>
         </div>
         <div className="col-6 col-lg-3">
-          <Card>
-            <div className="text-secondary small">Approved revenue (all time)</div>
-            <div className="fs-3 fw-bold">{money(data.approved_revenue)}</div>
-          </Card>
+          <Link href="/platform/revenue" className="text-decoration-none">
+            <Card>
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="text-secondary small">Approved revenue (all time)</div>
+                  <div className="fs-3 fw-bold">{money(data.approved_revenue)}</div>
+                </div>
+                <i className="bi bi-graph-up-arrow text-success fs-5"></i>
+              </div>
+              <div className="small text-brand mt-1">View monthly revenue →</div>
+            </Card>
+          </Link>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
