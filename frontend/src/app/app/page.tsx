@@ -30,6 +30,9 @@ type SubStatus = {
 function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
   const [showPay, setShowPay] = useState(false);
   if (!sub || sub.state === "none") return null;
+  // Only surface the banner near expiry (≤3 days) or once expired. While a plan
+  // (trial or paid) is comfortably active, the sidebar "plan" label is enough.
+  if (sub.state !== "expired" && sub.days_left > 3) return null;
 
   const d = sub.days_left;
   const urgent = sub.state === "expired" || d <= 5;
