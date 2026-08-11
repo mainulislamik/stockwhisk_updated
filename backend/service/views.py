@@ -28,11 +28,14 @@ class WarrantyViewSet(TenantScopedViewSet):
     required_perm = "manage_service"
 
     def get_queryset(self):
+        from django.db.models import Q
         from django.utils import timezone
         qs = Warranty.objects.select_related("product", "customer")
-        # By default hide warranties whose coverage has ended (auto-removed once
-        # the expiry date passes) and any voided ones. Pass ?include_expired=1
-        # to see the full history.
+        # Coverage only counts once the item is SOLD — hide warranties for units
+        # still in stock (their clock hasn't started).
+        qs = qs.filter(Q(sale_item__isnull=False) | Q(product_unit__status="sold"))
+        # By default also hide ended (expired) and voided coverage — it drops off
+        # automatically once the expiry date passes. ?include_expired=1 = full history.
         if self.request.query_params.get("include_expired") not in {"1", "true"}:
             qs = qs.filter(expiry_date__gte=timezone.localdate()).exclude(
                 status=Warranty.Status.VOID)
