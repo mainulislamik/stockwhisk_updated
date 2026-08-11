@@ -40,18 +40,29 @@ def apply_movement(
     
     # Process scanned barcodes for serial-tracked items
     if barcodes:
+        from decimal import Decimal
+
         from catalog.models import ProductUnit
+        clean = [b.strip() for b in barcodes if b and b.strip()]
         if movement_type in ["adjust_in", "opening", "purchase_in", "return_in"]:
-            for b in barcodes:
-                ProductUnit.objects.create(
+            # Skip any barcode already in stock so a repeat/clash doesn't 500.
+            existing = set(
+                ProductUnit.all_objects.filter(shop_id=shop.id, barcode__in=clean)
+                .values_list("barcode", flat=True)
+            )
+            for b in clean:
+                if b in existing:
+                    continue
+                ProductUnit.all_objects.create(
+                    shop_id=shop.id,
                     product=product,
                     barcode=b,
                     status=ProductUnit.Status.IN_STOCK,
-                    effective_cost_price=unit_cost or 0,
-                    effective_selling_price=product.selling_price
+                    cost_price=Decimal(unit_cost or 0),
+                    selling_price=product.selling_price,
                 )
         elif movement_type in ["adjust_out", "damage_out", "sale_out"]:
-            ProductUnit.objects.filter(product=product, barcode__in=barcodes).delete()
+            ProductUnit.all_objects.filter(shop_id=shop.id, product=product, barcode__in=clean).delete()
 
     return movement
 
