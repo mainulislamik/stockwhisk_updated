@@ -23,6 +23,7 @@ from .views import (
     ServerMetricsView,
     BlogPostAdminViewSet,
     PublicBlogViewSet,
+    PublicPricingPlanViewSet,
     MailAccountView,
     MailSSOView,
     MailSSORedirectView,
@@ -40,6 +41,7 @@ router.register("messages", ContactMessageViewSet, basename="admin-messages")
 router.register("tutorials", TutorialVideoViewSet, basename="admin-tutorials")
 router.register("blogs", BlogPostAdminViewSet, basename="admin-blogs")
 router.register("public/blogs", PublicBlogViewSet, basename="public-blogs")
+router.register("public/pricing", PublicPricingPlanViewSet, basename="public-pricing")
 
 urlpatterns = [
     path("dashboard/", PlatformDashboardView.as_view(), name="dashboard"),

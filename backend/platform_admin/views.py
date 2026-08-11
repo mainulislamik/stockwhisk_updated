@@ -1141,6 +1141,19 @@ class PublicBlogViewSet(viewsets.ReadOnlyModelViewSet):
     def get_queryset(self):
         return BlogPost.objects.filter(is_published=True).order_by('-published_at')
 
+class PublicPricingPlanSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SubscriptionPlan
+        fields = [
+            "id", "name", "tier", "price_monthly", "price_yearly", 
+            "features", "max_users", "max_branches", "max_products"
+        ]
+
+class PublicPricingPlanViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only view for public pricing page."""
+    permission_classes = [] # AllowAny
+    serializer_class = PublicPricingPlanSerializer
+    queryset = SubscriptionPlan.objects.filter(is_active=True).order_by('price_monthly')
 
 from .mail_service import MailServerConfigService
 

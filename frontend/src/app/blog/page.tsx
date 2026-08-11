@@ -76,6 +76,9 @@ export default function BlogListPage() {
             </Link>
             
             <Stack direction="row" spacing={2} sx={{ alignItems: 'center' }}>
+              <Button component={Link} href="/pricing" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
+                Pricing
+              </Button>
               <Button component={Link} href="/blog" sx={{ color: COLORS.onSurface, fontWeight: 600, textTransform: 'none' }}>
                 Blog
               </Button>
