@@ -12,6 +12,15 @@ set -e
 AUTH_CONF="/etc/dovecot/conf.d/10-auth.conf"
 MASTER_FILE="/tmp/docker-mailserver/dovecot-master-users"
 
+# Once TLS is enabled, docker-mailserver sets disable_plaintext_auth = yes, which
+# breaks the plain-IMAP master login that Roundcube (SSO) and the backend use on
+# the internal network. Force it back off — this runs after all config gen.
+if grep -qE '^\s*#?\s*disable_plaintext_auth' "${AUTH_CONF}"; then
+  sed -i -E 's/^\s*#?\s*disable_plaintext_auth\s*=.*/disable_plaintext_auth = no/' "${AUTH_CONF}"
+else
+  echo 'disable_plaintext_auth = no' >> "${AUTH_CONF}"
+fi
+
 if [[ -f "${MASTER_FILE}" ]] && ! grep -q 'SSO master passdb' "${AUTH_CONF}"; then
   cat >> "${AUTH_CONF}" <<EOF
 
@@ -26,6 +35,7 @@ passdb {
   # the target mailbox — no need for the target user's own password.
 }
 EOF
-  # Reload so the change takes effect without a full restart.
-  dovecot reload 2>/dev/null || supervisorctl restart dovecot 2>/dev/null || true
 fi
+
+# Reload so all of the above takes effect without a full restart.
+dovecot reload 2>/dev/null || supervisorctl restart dovecot 2>/dev/null || true
