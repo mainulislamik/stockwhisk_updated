@@ -35,6 +35,7 @@ export default function ReportsPage() {
   const [reports, setReports] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [invPage, setInvPage] = useState(1);
   
   const trendChartRef = useRef<HTMLCanvasElement>(null);
   const trendChartInst = useRef<any>(null);
@@ -443,30 +444,55 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody>
-                {data.out_of_stock.map(item => (
-                  <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td>{item.sku}</td>
-                    <td className="text-end fw-bold text-danger">{item.current_stock}</td>
-                    <td className="text-end">{item.reorder_level}</td>
-                    <td className="text-end"><span className="badge bg-danger">Out of Stock</span></td>
-                  </tr>
-                ))}
-                {data.low_stock.map(item => (
-                  <tr key={item.id}>
-                    <td>{item.name}</td>
-                    <td>{item.sku}</td>
-                    <td className="text-end fw-bold text-warning">{item.current_stock}</td>
-                    <td className="text-end">{item.reorder_level}</td>
-                    <td className="text-end"><span className="badge bg-warning text-dark">Low Stock</span></td>
-                  </tr>
-                ))}
-                {data.out_of_stock.length === 0 && data.low_stock.length === 0 && (
-                  <tr><td colSpan={5} className="text-secondary text-center">All inventory levels are healthy.</td></tr>
-                )}
+                {(() => {
+                  const combined = [
+                    ...data.out_of_stock.map(i => ({ ...i, _out: true })),
+                    ...data.low_stock.map(i => ({ ...i, _out: false })),
+                  ];
+                  if (combined.length === 0) {
+                    return <tr><td colSpan={5} className="text-secondary text-center">All inventory levels are healthy.</td></tr>;
+                  }
+                  const PER = 20;
+                  const pages = Math.ceil(combined.length / PER);
+                  const page = Math.min(invPage, pages);
+                  const slice = combined.slice((page - 1) * PER, page * PER);
+                  return slice.map(item => (
+                    <tr key={item.id}>
+                      <td>{item.name}</td>
+                      <td>{item.sku}</td>
+                      <td className={`text-end fw-bold ${item._out ? "text-danger" : "text-warning"}`}>{item.current_stock}</td>
+                      <td className="text-end">{item.reorder_level}</td>
+                      <td className="text-end">
+                        {item._out
+                          ? <span className="badge bg-danger">Out of Stock</span>
+                          : <span className="badge bg-warning text-dark">Low Stock</span>}
+                      </td>
+                    </tr>
+                  ));
+                })()}
               </tbody>
             </table>
           </div>
+
+          {(() => {
+            const total = data.out_of_stock.length + data.low_stock.length;
+            const PER = 20;
+            const pages = Math.ceil(total / PER);
+            if (pages <= 1) return null;
+            const page = Math.min(invPage, pages);
+            return (
+              <div className="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
+                <span className="text-secondary small">
+                  Showing {(page - 1) * PER + 1}–{Math.min(page * PER, total)} of {total}
+                </span>
+                <div className="btn-group btn-group-sm">
+                  <button className="btn btn-outline-secondary" disabled={page <= 1} onClick={() => setInvPage(page - 1)}>← Prev</button>
+                  <button className="btn btn-outline-secondary disabled">Page {page} / {pages}</button>
+                  <button className="btn btn-outline-secondary" disabled={page >= pages} onClick={() => setInvPage(page + 1)}>Next →</button>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </div>
 
