@@ -25,7 +25,26 @@ type Shop = {
   days_suspended: number;
   created_at: string;
   trial_ends_at: string | null;
+  subscription?: SubInfo;
+  plans?: Plan[];
 };
+
+type SubInfo = {
+  state: "trial" | "paid" | "expired" | "none";
+  plan_tier: string | null;
+  ends_at: string | null;
+  days_left: number;
+  status: string | null;
+};
+
+type Plan = { id: number; name: string; tier: string; price_monthly: string };
+
+const DURATIONS = [
+  { label: "1 month", days: 30 },
+  { label: "3 months", days: 90 },
+  { label: "6 months", days: 180 },
+  { label: "1 year", days: 365 },
+];
 
 const TYPE_LABELS: Record<string, string> = {
   electronics: "Electronics",
@@ -42,14 +61,43 @@ export default function ShopDetailsPage() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // Manage-plan form
+  const [planId, setPlanId] = useState<string>("");
+  const [days, setDays] = useState<string>("30");
+  const [amount, setAmount] = useState<string>("");
+
   const load = useCallback(async () => {
     try {
       const data = await api<Shop>(`/platform/shops/${id}/`);
       setShop(data);
+      if (data.plans && data.plans.length) {
+        const preferred =
+          data.plans.find((p) => p.tier === data.subscription?.plan_tier) ||
+          data.plans.find((p) => p.tier === "professional") ||
+          data.plans[0];
+        setPlanId(String(preferred.id));
+      }
     } catch (e: any) {
       setError(e?.message || "Failed to load shop details.");
     }
   }, [id]);
+
+  const grantPlan = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const res = await api<{ invoice_number: string }>(
+        `/platform/shops/${shop.id}/grant-plan/`,
+        { method: "POST", body: { plan: planId || undefined, days: parseInt(days) || 30, amount: amount || 0, cycle: "monthly" } }
+      );
+      toast.success(`Plan activated — invoice ${res.invoice_number} emailed to the owner.`);
+      await load();
+    } catch (e: any) {
+      toast.error(e?.data?.detail || e?.message || "Failed to activate plan.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop, planId, days, amount, load]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -216,25 +264,81 @@ export default function ShopDetailsPage() {
           <div className="card border-0 shadow-sm rounded-4 mb-4" style={{ background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(10px)" }}>
             <div className="card-body p-4">
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-activity me-2 text-warning"></i>Subscription</h5>
-              
-              <div className="mb-3">
-                <p className="text-secondary small mb-1">Current Plan</p>
-                <div className="d-flex align-items-center gap-2">
-                  <span className="badge bg-secondary px-3 py-2 fs-6 rounded-3 text-uppercase">{shop.plan_tier || "Free"}</span>
-                </div>
+
+              {(() => {
+                const sub = shop.subscription;
+                const state = sub?.state ?? (shop.trial_ends_at ? "trial" : "none");
+                const badge =
+                  state === "paid" ? { c: "success", t: "PRO ACTIVE" } :
+                  state === "trial" ? { c: "info", t: "ON TRIAL" } :
+                  state === "expired" ? { c: "danger", t: "EXPIRED" } :
+                  { c: "secondary", t: "NO PLAN" };
+                const daysLeft = sub?.days_left ?? 0;
+                return (
+                  <>
+                    <div className="mb-3 d-flex align-items-center gap-2">
+                      <span className={`badge bg-${badge.c} bg-opacity-25 text-${badge.c} border border-${badge.c} border-opacity-25 px-3 py-2 rounded-3`}>{badge.t}</span>
+                      <span className="badge bg-secondary px-3 py-2 rounded-3 text-uppercase">{(sub?.plan_tier || shop.plan_tier) || "Free"}</span>
+                    </div>
+                    {(state === "trial" || state === "paid" || state === "expired") && (
+                      <div className="mb-3">
+                        <p className="text-secondary small mb-1">{state === "expired" ? "Expired on" : (state === "trial" ? "Trial ends" : "Renews / expires")}</p>
+                        <p className="fw-medium text-white mb-0">
+                          {fmtDate(sub?.ends_at || shop.trial_ends_at)}
+                          {state !== "expired" && (
+                            <span className={`ms-2 badge bg-${daysLeft <= 5 ? "danger" : "success"} bg-opacity-25 text-${daysLeft <= 5 ? "danger" : "success"}`}>
+                              {daysLeft} day{daysLeft === 1 ? "" : "s"} left
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                    )}
+                    <div className="mb-2">
+                      <p className="text-secondary small mb-1">Registered On</p>
+                      <p className="fw-medium text-white mb-0">{fmtDate(shop.created_at)}</p>
+                    </div>
+                  </>
+                );
+              })()}
+
+              <hr className="border-secondary my-3 opacity-25" />
+
+              {/* Manage plan */}
+              <p className="text-secondary small mb-2 fw-semibold"><i className="bi bi-gear me-1"></i>Activate / Renew Plan</p>
+              <p className="text-secondary small mb-2" style={{ fontSize: "0.72rem" }}>
+                Renewing before expiry <b>adds</b> the days on top of the remaining time. An invoice is emailed to the owner.
+              </p>
+
+              <label className="form-label small text-secondary mb-1">Plan</label>
+              <select className="form-select form-select-sm mb-2" value={planId} onChange={(e) => setPlanId(e.target.value)}>
+                {(shop.plans || []).map((p) => (
+                  <option key={p.id} value={p.id}>{p.name} ({p.tier})</option>
+                ))}
+              </select>
+
+              <label className="form-label small text-secondary mb-1">Duration</label>
+              <div className="d-flex flex-wrap gap-1 mb-2">
+                {DURATIONS.map((d) => (
+                  <button key={d.days} type="button"
+                    className={`btn btn-sm ${String(d.days) === days ? "btn-primary" : "btn-outline-secondary"}`}
+                    onClick={() => setDays(String(d.days))}>{d.label}</button>
+                ))}
               </div>
-              
-              <div className="mb-3">
-                <p className="text-secondary small mb-1">Registered On</p>
-                <p className="fw-medium text-white mb-0">{fmtDate(shop.created_at)}</p>
+              <div className="input-group input-group-sm mb-2">
+                <input type="number" min={1} className="form-control" value={days} onChange={(e) => setDays(e.target.value)} />
+                <span className="input-group-text">days</span>
               </div>
 
-              {shop.trial_ends_at && (
-                <div>
-                  <p className="text-secondary small mb-1">Trial Expires</p>
-                  <p className="fw-medium text-white mb-0">{fmtDate(shop.trial_ends_at)}</p>
-                </div>
-              )}
+              <label className="form-label small text-secondary mb-1">Amount received (optional)</label>
+              <div className="input-group input-group-sm mb-3">
+                <span className="input-group-text">৳</span>
+                <input type="number" min={0} className="form-control" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              </div>
+
+              <button className="btn btn-success w-100 rounded-3" onClick={grantPlan} disabled={busy || !planId}>
+                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-check2-circle me-2" />}
+                {shop.subscription?.state === "paid" ? "Renew / Extend" : "Activate Plan"}
+              </button>
             </div>
           </div>
 

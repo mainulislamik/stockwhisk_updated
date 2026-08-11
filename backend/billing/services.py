@@ -130,6 +130,65 @@ def reject_payment(*, payment, reviewer, reason):
     return payment
 
 
+@transaction.atomic
+def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
+                         cycle=Subscription.Cycle.MONTHLY, reviewer=None):
+    """
+    Super Admin directly activates (or renews) a paid plan for a shop — no owner
+    payment submission. Renewing before expiry STACKS: new time is added on top
+    of the remaining period. Marks a PAID invoice and emails the owner.
+
+    Pass either ``days`` (added to the remaining period) or an explicit
+    ``end_date`` (a timezone-aware datetime).
+    """
+    now = timezone.now()
+    sub = Subscription.objects.filter(shop=shop, is_current=True).first()
+    if sub is None:
+        sub = Subscription.objects.create(
+            shop=shop, plan=plan, cycle=cycle,
+            status=Subscription.Status.ACTIVE,
+            current_period_start=now, current_period_end=now, is_current=True,
+        )
+
+    # Stack on any remaining time (renew before expiry adds extra days).
+    base = sub.current_period_end if (sub.current_period_end and sub.current_period_end > now) else now
+    new_end = end_date if end_date is not None else base + timedelta(days=int(days or 0))
+
+    sub.plan = plan
+    sub.cycle = cycle
+    sub.status = Subscription.Status.ACTIVE
+    sub.current_period_start = now
+    sub.current_period_end = new_end
+    sub.save()
+
+    shop.plan = plan
+    shop.is_active = True
+    shop.suspended_at = None
+    shop.trial_ends_at = None  # paid now — trial no longer applies
+    shop.save(update_fields=["plan", "is_active", "suspended_at", "trial_ends_at"])
+
+    count = SubscriptionInvoice.all_objects.filter(shop_id=shop.id).count() + 1
+    invoice = SubscriptionInvoice.objects.create(
+        shop=shop, subscription=sub, plan=plan,
+        number=f"SUB-{shop.id:04d}-{count:04d}",
+        amount=Decimal(amount or 0), cycle=cycle,
+        period_start=now.date(), period_end=new_end.date(),
+        status=SubscriptionInvoice.Status.PAID,
+    )
+
+    notify(
+        shop=shop, type=NotificationType.SUBSCRIPTION,
+        title=f"{plan.name} plan activated",
+        message=(
+            f"Your {plan.name} plan is now active until {new_end:%d %b %Y}.\n"
+            f"Invoice {invoice.number} — amount {amount}.\n\n"
+            f"Thank you for staying with StockWhisk."
+        ),
+        email=True,
+    )
+    return sub, invoice
+
+
 def subscription_status(shop):
     sub = Subscription.objects.filter(shop=shop, is_current=True).select_related("plan").first()
     return {

@@ -91,6 +91,32 @@ class ShopAdminSerializer(serializers.ModelSerializer):
         return (not obj.is_active) and self._days_suspended(obj) >= SHOP_DELETE_COOLOFF.days
 
 
+def shop_subscription_info(shop):
+    """Current subscription snapshot for the shop-detail panel."""
+    from tenants.models import Subscription
+    now = timezone.now()
+    sub = Subscription.objects.filter(shop_id=shop.id, is_current=True).select_related("plan").first()
+    if shop.on_trial:
+        return {
+            "state": "trial",
+            "plan_tier": shop.plan.tier if shop.plan else None,
+            "ends_at": shop.trial_ends_at,
+            "days_left": max(0, (shop.trial_ends_at - now).days),
+            "status": "trial",
+        }
+    if sub and sub.current_period_end:
+        expired = sub.current_period_end <= now
+        return {
+            "state": "expired" if expired else "paid",
+            "plan_tier": (sub.plan.tier if sub.plan else (shop.plan.tier if shop.plan else None)),
+            "ends_at": sub.current_period_end,
+            "days_left": max(0, (sub.current_period_end - now).days),
+            "status": sub.status,
+        }
+    return {"state": "none", "plan_tier": shop.plan.tier if shop.plan else None,
+            "ends_at": None, "days_left": 0, "status": sub.status if sub else None}
+
+
 class TenantDashboardView(APIView):
     permission_classes = [IsPlatformStaff]
 
@@ -257,6 +283,52 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
                description=f"Shop '{shop.name}' created by platform admin")
         out = self.get_serializer(shop).data
         return Response(out, status=status.HTTP_201_CREATED)
+
+    def retrieve(self, request, *args, **kwargs):
+        response = super().retrieve(request, *args, **kwargs)
+        shop = self.get_object()
+        response.data["subscription"] = shop_subscription_info(shop)
+        response.data["plans"] = [
+            {"id": p.id, "name": p.name, "tier": p.tier,
+             "price_monthly": str(p.price_monthly)}
+            for p in SubscriptionPlan.objects.filter(is_active=True).order_by("price_monthly")
+        ]
+        return response
+
+    @action(detail=True, methods=["post"], url_path="grant-plan")
+    def grant_plan(self, request, pk=None):
+        """Directly activate/renew a paid plan for this shop (stacks on renew)."""
+        from datetime import datetime, time as dt_time
+        from django.utils.dateparse import parse_date
+        from billing.services import grant_or_extend_plan
+
+        shop = self.get_object()
+        plan = SubscriptionPlan.objects.filter(pk=request.data.get("plan")).first() or shop.plan
+        if plan is None:
+            return Response({"detail": "Select a plan to activate."}, status=400)
+
+        cycle = request.data.get("cycle") or "monthly"
+        amount = request.data.get("amount") or 0
+        days = request.data.get("days")
+        end_date = None
+        if request.data.get("end_date"):
+            d = parse_date(request.data["end_date"])
+            if d:
+                end_date = timezone.make_aware(datetime.combine(d, dt_time(23, 59, 59)))
+        if not end_date and not days:
+            days = 365 if cycle == "yearly" else 30
+
+        sub, invoice = grant_or_extend_plan(
+            shop=shop, plan=plan, days=days, end_date=end_date,
+            amount=amount, cycle=cycle, reviewer=request.user,
+        )
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
+               description=f"Activated {plan.name} plan until {sub.current_period_end:%Y-%m-%d} "
+                           f"(invoice {invoice.number})")
+        data = self.get_serializer(shop).data
+        data["subscription"] = shop_subscription_info(shop)
+        data["invoice_number"] = invoice.number
+        return Response(data)
 
     @action(detail=True, methods=["post"])
     def suspend(self, request, pk=None):
