@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, setTokens } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment, MenuItem } from '@mui/material';
-import HomeIcon from '@mui/icons-material/Home';
 import EmailIcon from '@mui/icons-material/Email';
+import MarketingNav from '@/components/MarketingNav';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
 import StoreIcon from '@mui/icons-material/Store';
@@ -165,12 +165,14 @@ export default function RegisterPage() {
   };
 
   return (
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
+    <>
+    <MarketingNav />
+    <Box sx={{ minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
       {/* Left Side: Brand Imagery */}
       <Box 
         sx={{ 
           flex: { xs: '0 0 auto', md: '1 1 50%', lg: '1 1 60%' }, 
-          minHeight: { xs: '30vh', md: '100vh' },
+          minHeight: { xs: '30vh', md: 'calc(100vh - 64px)' },
           backgroundImage: 'url(/login-bg.jpg)',
           backgroundSize: 'cover',
           backgroundPosition: 'center',
@@ -213,19 +215,6 @@ export default function RegisterPage() {
           borderLeft: isDark ? '1px solid rgba(255,255,255,0.05)' : 'none'
         }}
       >
-        <Button
-          component={Link}
-          href="/"
-          startIcon={<HomeIcon />}
-          sx={{
-            position: 'absolute', top: 24, right: 24, textTransform: 'none', borderRadius: '999px',
-            color: isDark ? '#cbd5e1' : '#334155',
-            bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)',
-            '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' },
-          }}
-        >
-          Home
-        </Button>
 
         <Box sx={{ width: '100%', maxWidth: '440px' }}>
           <Box sx={{ mb: 4 }}>
@@ -476,5 +465,6 @@ export default function RegisterPage() {
         </Box>
       </Box>
     </Box>
+    </>
   );
 }
