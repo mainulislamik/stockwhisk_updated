@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Nav from "@/components/Nav";
@@ -257,37 +258,38 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <i className="bi bi-headset"></i>
               </button>
-              {showContact && (
+              {showContact && mounted && createPortal(
                 <>
-                  <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 2000 }} onClick={() => setShowContact(false)} />
+                  <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 100000 }} onClick={() => setShowContact(false)} />
                   <div
                     className="position-fixed p-3 rounded-4 shadow-lg"
-                    style={{ zIndex: 2001, top: 62, right: 14, width: 264, backgroundColor: "#0f172a", border: "1px solid rgba(148,163,184,.28)" }}
+                    style={{ zIndex: 100001, top: 62, right: 14, width: 264, background: "#0f172a", border: "1px solid rgba(148,163,184,.28)", color: "#fff" }}
                   >
-                    <div className="fw-bold mb-1 d-flex align-items-center gap-2" style={{ color: "var(--topbar-color, #fff)" }}>
+                    <div className="fw-bold mb-1 d-flex align-items-center gap-2">
                       <i className="bi bi-headset text-primary"></i> Contact us
                     </div>
-                    <div className="small text-secondary mb-3">We're here to help with billing & renewals.</div>
+                    <div className="small mb-3" style={{ color: "#94a3b8" }}>We're here to help with billing &amp; renewals.</div>
                     <a href="https://wa.me/8801613511887" target="_blank" rel="noopener noreferrer"
                        className="d-flex align-items-center gap-2 text-decoration-none mb-2 p-2 rounded-3"
-                       style={{ background: "rgba(34,197,94,.12)" }}>
+                       style={{ background: "rgba(34,197,94,.15)", color: "#fff" }}>
                       <i className="bi bi-whatsapp text-success fs-5"></i>
                       <div>
-                        <div className="small text-secondary" style={{ fontSize: "0.7rem" }}>Phone / WhatsApp</div>
-                        <div className="fw-semibold" style={{ color: "var(--topbar-color, #fff)" }}>+8801613511887</div>
+                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>Phone / WhatsApp</div>
+                        <div className="fw-semibold">+8801613511887</div>
                       </div>
                     </a>
                     <a href="mailto:admin@stockwhisk.com"
                        className="d-flex align-items-center gap-2 text-decoration-none p-2 rounded-3"
-                       style={{ background: "rgba(59,130,246,.12)" }}>
+                       style={{ background: "rgba(59,130,246,.15)", color: "#fff" }}>
                       <i className="bi bi-envelope-fill text-primary fs-5"></i>
                       <div>
-                        <div className="small text-secondary" style={{ fontSize: "0.7rem" }}>Email</div>
-                        <div className="fw-semibold" style={{ color: "var(--topbar-color, #fff)" }}>admin@stockwhisk.com</div>
+                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>Email</div>
+                        <div className="fw-semibold">admin@stockwhisk.com</div>
                       </div>
                     </a>
                   </div>
-                </>
+                </>,
+                document.body
               )}
             </div>
 
