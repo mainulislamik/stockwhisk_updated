@@ -45,14 +45,27 @@ def scan_low_stock():
         if not low and not out:
             continue
 
-        lines = [f"OUT: {p['name']}" for p in out] + [
-            f"LOW: {p['name']} ({p['current_stock']}/{p['reorder_level']})" for p in low
+        lines = [f"• {p['name']} — out of stock" for p in out] + [
+            f"• {p['name']} — low ({p['current_stock']}/{p['reorder_level']})" for p in low
         ]
+        # Keep the message short: a summary + a few examples, not every item.
+        PREVIEW = 8
+        parts = []
+        if out and low:
+            parts.append(f"{len(out)} item(s) out of stock and {len(low)} running low.")
+        elif out:
+            parts.append(f"{len(out)} item(s) out of stock.")
+        else:
+            parts.append(f"{len(low)} item(s) running low.")
+        parts.append("")
+        parts.extend(lines[:PREVIEW])
+        if len(lines) > PREVIEW:
+            parts.append(f"…and {len(lines) - PREVIEW} more. Open Inventory & stock to review and reorder.")
         notify(
             shop=shop,
             type=NotificationType.OUT_OF_STOCK if out else NotificationType.LOW_STOCK,
             title=f"{len(out)} out-of-stock, {len(low)} low-stock item(s)",
-            message="\n".join(lines),
+            message="\n".join(parts),
             metadata={"low_ids": [p["id"] for p in low], "out_ids": [p["id"] for p in out]},
             email=cfg.email_enabled, sms=cfg.sms_enabled, whatsapp=cfg.whatsapp_enabled,
         )

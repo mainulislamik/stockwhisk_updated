@@ -126,7 +126,14 @@ export default function NotificationsPage() {
                       {!n.is_read && <span className="badge text-bg-danger me-2">New</span>}
                       {n.title}
                     </div>
-                    {n.message && <div className="small text-secondary mt-1">{n.message}</div>}
+                    {n.message && (
+                      <div
+                        className="small text-secondary mt-1"
+                        style={{ whiteSpace: "pre-line", maxHeight: 160, overflowY: "auto" }}
+                      >
+                        {n.message}
+                      </div>
+                    )}
                     <div className="small text-secondary mt-1">{fmtDateTime(n.created_at)}</div>
                   </div>
                 </div>
