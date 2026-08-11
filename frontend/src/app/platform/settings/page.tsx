@@ -77,25 +77,25 @@ export default function PlatformSettingsPage() {
       <PageHeader title="Platform Settings" />
 
       {msg && (
-        <div className={`p-4 rounded-lg font-medium text-sm flex flex-col gap-2 ${msg.ok ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
-          <div className="flex items-center gap-2">
+        <div className={`alert ${msg.ok ? 'alert-success' : 'alert-danger'} d-flex flex-column gap-2`}>
+          <div className="d-flex align-items-center gap-2">
             <i className={`bi ${msg.ok ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
             {msg.text}
           </div>
           {msg.trace && (
-            <pre className="mt-2 p-2 bg-black/10 rounded overflow-x-auto text-xs whitespace-pre-wrap">
+            <pre className="mt-2 p-2 bg-dark bg-opacity-25 rounded overflow-auto small mb-0" style={{ whiteSpace: "pre-wrap" }}>
               {msg.trace}
             </pre>
           )}
         </div>
       )}
 
-      <Card className="border-t-4 border-t-purple-500 bg-white">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-purple-600">
+      <Card className="border-top border-4 border-primary">
+        <div className="p-2">
+          <h2 className="h5 fw-bold mb-2 d-flex align-items-center gap-2 text-primary">
             <i className="bi bi-envelope-at"></i> SMTP Email Configuration
           </h2>
-          <p className="text-secondary text-sm mb-6">
+          <p className="text-secondary small mb-4">
             Configure the platform's email server used for sending Registration OTPs, password resets, and notifications. 
             Leave host/user blank to fallback to environment variables.
           </p>
@@ -149,7 +149,7 @@ export default function PlatformSettingsPage() {
               />
               <label>SMTP Password / App Password</label>
             </div>
-            <div className="form-text text-secondary text-sm">If using Gmail, generate a 16-character App Password.</div>
+            <div className="form-text text-secondary small">If using Gmail, generate a 16-character App Password.</div>
 
             <div className="form-floating">
               <input
@@ -176,7 +176,7 @@ export default function PlatformSettingsPage() {
               </label>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+            <div className="d-flex align-items-center justify-content-end gap-3 pt-4 mt-3 border-top border-secondary border-opacity-25">
               <button 
                 type="button" 
                 onClick={testConnection} 
@@ -193,12 +193,12 @@ export default function PlatformSettingsPage() {
         </div>
       </Card>
 
-      <Card className="border-t-4 border-t-blue-500 bg-white">
-        <div className="p-6">
-          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-blue-600">
+      <Card className="border-top border-4 border-info">
+        <div className="p-2">
+          <h2 className="h5 fw-bold mb-2 d-flex align-items-center gap-2 text-info">
             <i className="bi bi-hourglass-split"></i> Subscription Defaults
           </h2>
-          <p className="text-secondary text-sm mb-6">
+          <p className="text-secondary small mb-4">
             How many days of free trial every newly registered shop gets. Existing shops are not affected.
           </p>
           <form onSubmit={saveSettings} className="row g-3 align-items-end">
