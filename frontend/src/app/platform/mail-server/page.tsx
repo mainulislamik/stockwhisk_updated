@@ -29,9 +29,9 @@ export default function MailServerPage() {
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Modal>(null);
 
-  const [createForm, setCreateForm] = useState({ email: "", password: "", quota: "1024M" });
+  const [createForm, setCreateForm] = useState({ email: "", password: "", quota: "1G" });
   const [passwordForm, setPasswordForm] = useState({ password: "", confirm: "" });
-  const [quotaForm, setQuotaForm] = useState({ quota: "1024M" });
+  const [quotaForm, setQuotaForm] = useState({ quota: "1G" });
 
   const fetchAccounts = async () => {
     setLoading(true);
@@ -53,7 +53,7 @@ export default function MailServerPage() {
       await api("/platform/mail-accounts/", { method: "POST", body: createForm });
       toast.success("Account created");
       setModal(null);
-      setCreateForm({ email: "", password: "", quota: "1024M" });
+      setCreateForm({ email: "", password: "", quota: "1G" });
       fetchAccounts();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to create account");
@@ -120,15 +120,6 @@ export default function MailServerPage() {
       toast.error(err instanceof ApiError ? err.message : "SSO login failed");
     }
   };
-
-  const QUOTA_OPTIONS = [
-    { label: "512 MB", value: "512M" },
-    { label: "1 GB", value: "1024M" },
-    { label: "2 GB", value: "2048M" },
-    { label: "5 GB", value: "5120M" },
-    { label: "10 GB", value: "10240M" },
-    { label: "Unlimited", value: "" },
-  ];
 
   const closeModal = () => setModal(null);
 
@@ -208,7 +199,7 @@ export default function MailServerPage() {
                         <button
                           className="btn btn-outline-secondary"
                           title="Change quota"
-                          onClick={() => { setQuotaForm({ quota: acc.quota || "1024M" }); setModal({ type: "quota", email: acc.email, current: acc.quota }); }}
+                          onClick={() => { setQuotaForm({ quota: acc.quota || "" }); setModal({ type: "quota", email: acc.email, current: acc.quota }); }}
                         >
                           <i className="bi-hdd"></i>
                         </button>
@@ -245,10 +236,8 @@ export default function MailServerPage() {
             </div>
             <div className="mb-4">
               <label className="form-label small fw-semibold">Storage Quota</label>
-              <select className="form-select" value={createForm.quota}
-                onChange={e => setCreateForm({ ...createForm, quota: e.target.value })}>
-                {QUOTA_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <QuotaField value={createForm.quota}
+                onChange={q => setCreateForm({ ...createForm, quota: q })} />
             </div>
             <ModalFooter onClose={closeModal} label="Create Account" />
           </form>
@@ -282,16 +271,93 @@ export default function MailServerPage() {
               <label className="form-label small fw-semibold">
                 Quota <span className="text-muted">(current: {modal.current || "Unlimited"})</span>
               </label>
-              <select className="form-select" value={quotaForm.quota}
-                onChange={e => setQuotaForm({ quota: e.target.value })}>
-                {QUOTA_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <QuotaField value={quotaForm.quota}
+                onChange={q => setQuotaForm({ quota: q })} />
             </div>
             <ModalFooter onClose={closeModal} label="Save Quota" btnClass="btn-secondary" />
           </form>
         </ModalWrap>
       )}
     </>
+  );
+}
+
+/* ── Custom quota allocator ── */
+const QUOTA_PRESETS: { label: string; value: string }[] = [
+  { label: "512 MB", value: "512M" },
+  { label: "1 GB", value: "1G" },
+  { label: "2 GB", value: "2G" },
+  { label: "5 GB", value: "5G" },
+  { label: "10 GB", value: "10G" },
+  { label: "25 GB", value: "25G" },
+];
+
+const UNIT_LABEL: Record<string, string> = { M: "MB", G: "GB", T: "TB" };
+
+function parseQuota(v: string): { amount: string; unit: string } {
+  const m = /^(\d+(?:\.\d+)?)\s*([MGT])$/i.exec((v || "").trim());
+  return m ? { amount: m[1], unit: m[2].toUpperCase() } : { amount: "1", unit: "G" };
+}
+
+function QuotaField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const init = parseQuota(value);
+  const [unlimited, setUnlimited] = useState(!value);
+  const [amount, setAmount] = useState(init.amount);
+  const [unit, setUnit] = useState(init.unit);
+
+  useEffect(() => {
+    if (unlimited) { onChange(""); return; }
+    const n = parseFloat(amount);
+    onChange(n > 0 ? `${amount}${unit}` : "");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unlimited, amount, unit]);
+
+  const current = unlimited ? "" : `${amount}${unit}`.toUpperCase();
+
+  return (
+    <div>
+      <div className="form-check form-switch mb-3">
+        <input className="form-check-input" type="checkbox" id="qUnlimited" role="switch"
+          checked={unlimited} onChange={e => setUnlimited(e.target.checked)} />
+        <label className="form-check-label small fw-semibold" htmlFor="qUnlimited">
+          Unlimited storage
+        </label>
+      </div>
+
+      {!unlimited && (
+        <>
+          <div className="d-flex flex-wrap gap-2 mb-3">
+            {QUOTA_PRESETS.map(p => {
+              const active = current === p.value.toUpperCase();
+              return (
+                <button type="button" key={p.value}
+                  className={`btn btn-sm ${active ? "btn-primary" : "btn-outline-secondary"}`}
+                  onClick={() => { const q = parseQuota(p.value); setAmount(q.amount); setUnit(q.unit); }}>
+                  {p.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="input-group">
+            <span className="input-group-text">Custom</span>
+            <input type="number" min={1} step={1} className="form-control"
+              value={amount} onChange={e => setAmount(e.target.value)} placeholder="Amount" />
+            <select className="form-select" style={{ maxWidth: 90 }}
+              value={unit} onChange={e => setUnit(e.target.value)}>
+              <option value="M">MB</option>
+              <option value="G">GB</option>
+              <option value="T">TB</option>
+            </select>
+          </div>
+          <div className="form-text">
+            {parseFloat(amount) > 0
+              ? `Mailbox limited to ${amount} ${UNIT_LABEL[unit]}.`
+              : "Enter an amount above 0."}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
