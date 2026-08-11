@@ -19,6 +19,13 @@ type Shop = {
   can_delete: boolean;
   days_suspended: number;
   created_at: string;
+  subscription_info?: {
+    state: "trial" | "paid" | "expired" | "none";
+    plan_tier: string | null;
+    ends_at: string | null;
+    days_left: number;
+    status: string | null;
+  };
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -123,7 +130,36 @@ export default function ShopsPage() {
                     </Link>
                   </td>
                   <td>{TYPE_LABELS[s.business_type] || s.business_type}</td>
-                  <td>{s.plan_tier || "—"}</td>
+                  <td>
+                    {s.subscription_info ? (
+                      <div className="d-flex flex-column gap-1">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="fw-semibold text-capitalize text-white">
+                            {s.subscription_info.plan_tier || "—"}
+                          </span>
+                          {s.subscription_info.state === "trial" && (
+                            <span className="badge bg-warning text-dark" style={{ fontSize: '0.7rem' }}>Trial</span>
+                          )}
+                          {s.subscription_info.state === "expired" && (
+                            <span className="badge bg-danger" style={{ fontSize: '0.7rem' }}>Expired</span>
+                          )}
+                        </div>
+                        {s.subscription_info.ends_at && (
+                          <div className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem' }}>
+                            <span className={s.subscription_info.days_left < 7 ? "text-danger fw-medium" : "text-secondary"}>
+                              {s.subscription_info.days_left} days left
+                            </span>
+                            <span className="text-secondary opacity-50">•</span>
+                            <span className="text-secondary opacity-75">
+                              {fmtDate(s.subscription_info.ends_at)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <span>{s.plan_tier || "—"}</span>
+                    )}
+                  </td>
                   <td>{s.user_count}</td>
                   <td>
                     {s.is_active

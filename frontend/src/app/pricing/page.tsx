@@ -145,7 +145,7 @@ export default function PricingPage() {
           </Box>
 
           {/* Pricing Grid */}
-          <Grid container spacing={4} justifyContent="center" alignItems="stretch">
+          <Grid container spacing={4} sx={{ justifyContent: "center", alignItems: "stretch" }}>
             {loading ? (
               <Box sx={{ py: 10, textAlign: 'center', width: '100%' }}>
                 <Typography>Loading plans...</Typography>

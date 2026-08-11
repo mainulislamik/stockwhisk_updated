@@ -56,6 +56,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     # We redefine owner_name as a SerializerMethodField for reading, but it's used as write-only in create().
     # To support both, we keep owner_name for writing, and add a read-only field for the UI.
     owner_full_name = serializers.SerializerMethodField()
+    subscription_info = serializers.SerializerMethodField()
 
     shop_code = serializers.CharField(read_only=True, default=None)
 
@@ -65,7 +66,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
             "plan", "plan_tier", "is_active", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
-            "created_at", "owner_name", "owner_password",
+            "created_at", "owner_name", "owner_password", "subscription_info"
         ]
         read_only_fields = ["id", "slug", "created_at", "suspended_at"]
 
@@ -78,6 +79,9 @@ class ShopAdminSerializer(serializers.ModelSerializer):
         if owner:
             return f"{owner.first_name} {owner.last_name}".strip()
         return None
+
+    def get_subscription_info(self, obj):
+        return shop_subscription_info(obj)
 
     def _days_suspended(self, obj):
         if obj.is_active or not obj.suspended_at:
