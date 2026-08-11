@@ -50,17 +50,17 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
           {!collapsed && (
             <div className="text-truncate">
               <div className="fs-5 fw-bold brand-title">StockWhisk</div>
-              <div className="small text-white-50">Platform Admin</div>
+              <div className="small text-secondary">Platform Admin</div>
             </div>
           )}
-          <button onClick={toggle} className="btn btn-sm text-white-50 flex-shrink-0" title={collapsed ? "Expand" : "Collapse"}>
+          <button onClick={toggle} className="btn btn-sm text-secondary flex-shrink-0" title={collapsed ? "Expand" : "Collapse"}>
             {collapsed ? "»" : "«"}
           </button>
         </div>
         <nav className="nav flex-column flex-grow-1 p-2 gap-1 overflow-auto">
           {mounted && <PlatformNav collapsed={collapsed} />}
         </nav>
-        <div className="p-3 border-top border-secondary border-opacity-25 small text-white-50">
+        <div className="p-3 border-top border-secondary border-opacity-25 small text-secondary">
           {!collapsed && <div className="text-truncate">{user.email}</div>}
           <a onClick={logout} role="button" className="d-inline-block mt-2 text-danger text-decoration-none" title="Log out">
             {collapsed ? "⎋" : "Log out →"}
@@ -73,13 +73,13 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
         <div className="offcanvas-header border-bottom border-secondary border-opacity-25">
           <div>
             <div className="fs-5 fw-bold brand-title">StockWhisk</div>
-            <div className="small text-white-50">Platform Admin</div>
+            <div className="small text-secondary">Platform Admin</div>
           </div>
           <button type="button" className="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
         <div className="offcanvas-body p-2">
           <nav className="nav flex-column gap-1">{mounted && <PlatformNav />}</nav>
-          <div className="border-top border-secondary border-opacity-25 mt-2 pt-2 small text-white-50">
+          <div className="border-top border-secondary border-opacity-25 mt-2 pt-2 small text-secondary">
             <div className="text-truncate">{user.email}</div>
             <a onClick={logout} role="button" className="text-danger text-decoration-none">Log out →</a>
           </div>
