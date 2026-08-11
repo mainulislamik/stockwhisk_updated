@@ -156,7 +156,7 @@ export default function PricingPage() {
                 const price = isYearly ? parseFloat(plan.price_yearly) / 12 : parseFloat(plan.price_monthly);
 
                 return (
-                  <Grid xs={12} md={4} key={plan.id} sx={{ display: 'flex' }}>
+                  <Grid size={{ xs: 12, md: 4 }} key={plan.id} sx={{ display: 'flex' }}>
                     <Card sx={{ 
                       flexGrow: 1,
                       display: 'flex',
