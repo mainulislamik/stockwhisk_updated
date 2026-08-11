@@ -21,14 +21,6 @@ else
   echo 'disable_plaintext_auth = no' >> "${AUTH_CONF}"
 fi
 
-# Enabling TLS also makes docker-mailserver set "ssl = required", which forces
-# every IMAP TCP connection to use TLS and thus blocks Roundcube's plain-IMAP
-# master login. Downgrade to "ssl = yes" (TLS offered, not mandatory). SMTP
-# submission still requires TLS — that is Postfix's own setting, unaffected here.
-for f in $(grep -rlE '^\s*ssl\s*=\s*required' /etc/dovecot/conf.d/ 2>/dev/null); do
-  sed -i -E 's/^\s*ssl\s*=\s*required/ssl = yes/' "${f}"
-done
-
 if [[ -f "${MASTER_FILE}" ]] && ! grep -q 'SSO master passdb' "${AUTH_CONF}"; then
   cat >> "${AUTH_CONF}" <<EOF
 

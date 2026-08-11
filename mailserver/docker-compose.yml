@@ -58,8 +58,11 @@ services:
       - ROUNDCUBEMAIL_DB_USER=roundcube
       - ROUNDCUBEMAIL_DB_PASSWORD=roundcube_secret
       - ROUNDCUBEMAIL_DB_NAME=roundcube
-      - ROUNDCUBEMAIL_DEFAULT_HOST=mailserver
-      - ROUNDCUBEMAIL_SMTP_SERVER=mailserver
+      # Dovecot enforces TLS (ssl = required) once SSL_TYPE is set, so connect
+      # over TLS. Self-signed cert is trusted via imap_conn_options in custom.inc.php.
+      - ROUNDCUBEMAIL_DEFAULT_HOST=ssl://mailserver
+      - ROUNDCUBEMAIL_DEFAULT_PORT=993
+      - ROUNDCUBEMAIL_SMTP_SERVER=tls://mailserver
       - ROUNDCUBEMAIL_SMTP_PORT=587
       - ROUNDCUBEMAIL_SMTP_USER=
       - ROUNDCUBEMAIL_SMTP_PASSWORD=
