@@ -6,7 +6,7 @@ nothing is sent until credentials are configured.
 import logging
 
 from django.conf import settings
-from django.core.mail import get_connection, send_mail
+from django.core.mail import EmailMultiAlternatives, get_connection, send_mail
 
 logger = logging.getLogger("notifications")
 
@@ -41,6 +41,21 @@ def send_email(to, subject, body):
         return True
     except Exception:
         logger.exception("send_email failed for %s", to)
+        return False
+
+
+def send_html_email(to, subject, text_body, html_body):
+    """Send a multipart (text + HTML) email through the platform SMTP server."""
+    if not to:
+        return False
+    connection, from_email = _platform_email()
+    try:
+        msg = EmailMultiAlternatives(subject, text_body, from_email, [to], connection=connection)
+        msg.attach_alternative(html_body, "text/html")
+        msg.send(fail_silently=True)
+        return True
+    except Exception:
+        logger.exception("send_html_email failed for %s", to)
         return False
 
 

@@ -177,16 +177,29 @@ def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
         status=SubscriptionInvoice.Status.PAID,
     )
 
+    # In-app notification (no plain email — a rich HTML invoice goes out below).
     notify(
         shop=shop, type=NotificationType.SUBSCRIPTION,
         title=f"{plan.name} plan activated",
-        message=(
-            f"Your {plan.name} plan is now active until {new_end:%d %b %Y}.\n"
-            f"Invoice {invoice.number} — amount {amount}.\n\n"
-            f"Thank you for staying with StockWhisk."
-        ),
-        email=True,
+        message=f"Your {plan.name} plan is now active until {new_end:%d %b %Y}. Invoice {invoice.number}.",
+        email=False,
     )
+
+    # Professional HTML invoice to every active owner.
+    from accounts.models import RoleType, User
+    from notifications.channels import send_html_email
+    from .emails import build_invoice_email
+
+    owners = User.objects.filter(shop_id=shop.id, role=RoleType.OWNER, is_active=True)
+    for owner in owners:
+        subject, text_body, html_body = build_invoice_email(
+            shop=shop, invoice=invoice, plan=plan,
+            period_start=invoice.period_start, period_end=invoice.period_end,
+            amount=Decimal(amount or 0),
+            owner_name=(owner.first_name or "").strip(),
+        )
+        send_html_email(owner.email, subject, text_body, html_body)
+
     return sub, invoice
 
 
