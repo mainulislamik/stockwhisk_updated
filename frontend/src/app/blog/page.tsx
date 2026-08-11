@@ -94,24 +94,60 @@ export default function BlogListPage() {
       </Box>
 
       {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, py: { xs: 6, md: 10 } }}>
+      <Box component="main" sx={{ flexGrow: 1, py: { xs: 4, md: 8 }, px: { xs: 2, md: 0 } }}>
         <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', mb: 8 }}>
-            <Typography variant="h2" sx={{ fontWeight: 700, mb: 2, fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.02em', fontSize: { xs: '2.5rem', md: '3.5rem' } }}>
-              StockWhisk Journal
-            </Typography>
-            <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 400, maxWidth: '600px', mx: 'auto', fontFamily: 'Outfit, sans-serif' }}>
-              Insights, updates, and modern retail strategies to help you run your shop smarter.
-            </Typography>
+          {/* Hero Section */}
+          <Box sx={{ 
+            position: 'relative',
+            textAlign: 'center', 
+            mb: 8,
+            py: { xs: 6, md: 10 },
+            px: { xs: 3, md: 6 },
+            borderRadius: '32px',
+            background: mounted && mode === 'dark' 
+              ? 'linear-gradient(145deg, rgba(30,41,59,0.6) 0%, rgba(15,23,42,0.9) 100%)' 
+              : 'linear-gradient(145deg, #f0f5ff 0%, #ffffff 100%)',
+            border: `1px solid ${COLORS.outlineVariant}`,
+            boxShadow: mounted && mode === 'dark' ? '0 10px 40px -10px rgba(0,0,0,0.5)' : '0 10px 40px -10px rgba(0,0,0,0.05)',
+            overflow: 'hidden'
+          }}>
+            {/* Decorative blobs */}
+            <Box sx={{
+              position: 'absolute', top: '-50%', left: '-10%', width: { xs: '300px', md: '500px' }, height: { xs: '300px', md: '500px' },
+              background: mounted && mode === 'dark' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 74, 198, 0.08)', 
+              filter: 'blur(80px)', borderRadius: '50%', zIndex: 0
+            }} />
+            <Box sx={{
+              position: 'absolute', bottom: '-50%', right: '-10%', width: { xs: '250px', md: '400px' }, height: { xs: '250px', md: '400px' },
+              background: mounted && mode === 'dark' ? 'rgba(129, 140, 248, 0.15)' : 'rgba(67, 56, 202, 0.08)', 
+              filter: 'blur(80px)', borderRadius: '50%', zIndex: 0
+            }} />
+
+            <Box sx={{ position: 'relative', zIndex: 1 }}>
+              <Chip 
+                label="The Official Blog" 
+                sx={{ mb: 3, fontWeight: 700, bgcolor: COLORS.surfaceContainer, color: COLORS.primary, fontFamily: 'Outfit, sans-serif' }} 
+              />
+              <Typography variant="h2" sx={{ 
+                fontWeight: 800, mb: 3, fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em', fontSize: { xs: '2.75rem', md: '4.5rem' },
+                background: mounted && mode === 'dark' ? 'linear-gradient(to right, #38bdf8, #818cf8)' : 'linear-gradient(to right, #004ac6, #4338ca)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+              }}>
+                StockWhisk Journal
+              </Typography>
+              <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, maxWidth: '650px', mx: 'auto', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', md: '1.25rem' }, lineHeight: 1.6 }}>
+                Insights, updates, and modern retail strategies to help you run your shop smarter and scale faster.
+              </Typography>
+            </Box>
           </Box>
 
           {loading ? (
             <Box sx={{ textAlign: 'center', py: 10 }}>
-              <Typography sx={{ color: COLORS.onSurfaceVariant }}>Loading articles...</Typography>
+              <Typography sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, fontSize: '1.1rem' }}>Loading the latest articles...</Typography>
             </Box>
           ) : blogs.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 10, bgcolor: COLORS.surfaceContainerLowest, borderRadius: 4, border: `1px solid ${COLORS.outlineVariant}` }}>
-              <Typography sx={{ color: COLORS.onSurfaceVariant }}>Check back soon for our first post!</Typography>
+              <Typography sx={{ color: COLORS.onSurfaceVariant, fontSize: '1.1rem' }}>Check back soon for our first post!</Typography>
             </Box>
           ) : (
             <Grid container spacing={4}>
@@ -123,34 +159,60 @@ export default function BlogListPage() {
                       height: '100%', 
                       display: 'flex', 
                       flexDirection: 'column',
-                      bgcolor: COLORS.surfaceContainerLowest,
+                      bgcolor: mounted && mode === 'dark' ? 'rgba(30,41,59,0.4)' : '#ffffff',
+                      backdropFilter: 'blur(12px)',
                       border: `1px solid ${COLORS.outlineVariant}`,
-                      borderRadius: '16px',
-                      transition: 'transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out',
+                      borderRadius: '24px',
+                      overflow: 'hidden',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                       '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 12px 24px -10px rgba(0,0,0,0.1)'
+                        transform: 'translateY(-8px)',
+                        boxShadow: mounted && mode === 'dark' 
+                          ? '0 20px 40px -10px rgba(0,0,0,0.5), 0 0 20px 0 rgba(56,189,248,0.1)'
+                          : '0 20px 40px -10px rgba(0,0,0,0.1), 0 0 20px 0 rgba(0,74,198,0.05)',
+                        borderColor: COLORS.primary,
+                        '& .blog-image': {
+                          transform: 'scale(1.05)'
+                        }
                       }
                     }}
                   >
                     <Link href={`/blog/${blog.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <CardMedia
-                        component="img"
-                        height="200"
-                        image={blog.cover_image_url || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
-                        alt={blog.title}
-                        sx={{ borderBottom: `1px solid ${COLORS.outlineVariant}` }}
-                      />
-                      <CardContent sx={{ flexGrow: 1, p: 3 }}>
-                        <Typography sx={{ fontSize: '0.85rem', color: COLORS.primary, fontWeight: 600, mb: 1, fontFamily: 'Outfit, sans-serif' }}>
-                          {new Date(blog.published_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+                      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
+                        <CardMedia
+                          className="blog-image"
+                          component="img"
+                          height="240"
+                          image={blog.cover_image_url || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
+                          alt={blog.title}
+                          sx={{ 
+                            borderBottom: `1px solid ${COLORS.outlineVariant}`,
+                            transition: 'transform 0.5s ease',
+                          }}
+                        />
+                        <Chip 
+                          label="Article" 
+                          size="small" 
+                          sx={{ 
+                            position: 'absolute', top: 16, right: 16, 
+                            bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)', fontWeight: 600, fontFamily: 'Outfit, sans-serif'
+                          }} 
+                        />
+                      </Box>
+                      <CardContent sx={{ flexGrow: 1, p: { xs: 3, md: 4 }, display: 'flex', flexDirection: 'column' }}>
+                        <Typography sx={{ fontSize: '0.85rem', color: COLORS.primary, fontWeight: 700, mb: 1.5, fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                          {new Date(blog.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 700, mb: 2, fontFamily: 'Outfit, sans-serif', lineHeight: 1.3 }}>
+                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, fontFamily: 'Outfit, sans-serif', lineHeight: 1.3, fontSize: '1.5rem', color: COLORS.onSurface }}>
                           {blog.title}
                         </Typography>
-                        <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontFamily: 'Outfit, sans-serif', lineHeight: 1.6 }}>
+                        <Typography variant="body1" sx={{ color: COLORS.onSurfaceVariant, fontFamily: 'Outfit, sans-serif', lineHeight: 1.7, flexGrow: 1 }}>
                           {blog.excerpt || "Read more about this topic inside..."}
                         </Typography>
+                        
+                        <Box sx={{ mt: 3, display: 'flex', alignItems: 'center', color: COLORS.primary, fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Outfit, sans-serif' }}>
+                          Read Article <Box component="span" sx={{ ml: 1, transition: 'transform 0.2s', '.MuiCard-root:hover &': { transform: 'translateX(4px)' } }}>→</Box>
+                        </Box>
                       </CardContent>
                     </Link>
                   </Card>
