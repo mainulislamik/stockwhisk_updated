@@ -685,6 +685,7 @@ class SmtpSettingsView(APIView):
             "smtp_password": config.smtp_password,
             "smtp_use_tls": config.smtp_use_tls,
             "smtp_default_from": config.smtp_default_from,
+            "default_trial_days": config.default_trial_days,
         })
 
     def put(self, request):
@@ -698,7 +699,14 @@ class SmtpSettingsView(APIView):
         config.smtp_user = request.data.get("smtp_user", "").strip()
         config.smtp_password = request.data.get("smtp_password", "").strip()
         config.smtp_default_from = request.data.get("smtp_default_from", "").strip()
-        
+
+        trial_days = request.data.get("default_trial_days")
+        if trial_days is not None:
+            try:
+                config.default_trial_days = max(0, int(trial_days))
+            except (ValueError, TypeError):
+                pass
+
         # Boolean handling
         tls_val = request.data.get("smtp_use_tls")
         if tls_val is not None:

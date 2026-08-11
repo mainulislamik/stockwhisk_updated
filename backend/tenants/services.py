@@ -35,13 +35,19 @@ def register_shop(
         )
 
     now = timezone.now()
+    # Trial length is configurable in Platform Settings (falls back to TRIAL_DAYS).
+    try:
+        from platform_admin.models import PlatformConfig
+        trial_days = PlatformConfig.get_solo().default_trial_days or TRIAL_DAYS
+    except Exception:
+        trial_days = TRIAL_DAYS
     shop = Shop.objects.create(
         name=name,
         business_type=business_type,
         phone=phone,
         address=address,
         plan=plan,
-        trial_ends_at=now + timedelta(days=TRIAL_DAYS),
+        trial_ends_at=now + timedelta(days=trial_days),
     )
 
     Branch.objects.create(shop=shop, name="Main", is_main=True)

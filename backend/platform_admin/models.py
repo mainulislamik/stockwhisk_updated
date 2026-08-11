@@ -85,6 +85,9 @@ class PlatformConfig(TimeStampedModel):
     smtp_use_tls = models.BooleanField(default=True)
     smtp_default_from = models.CharField(max_length=255, blank=True, default="noreply@stockwhisk.com")
 
+    # Subscription: default trial length (days) granted to every new signup.
+    default_trial_days = models.PositiveIntegerField(default=45)
+
     class Meta:
         verbose_name_plural = "Platform Config"
 

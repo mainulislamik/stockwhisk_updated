@@ -15,6 +15,7 @@ export default function PlatformSettingsPage() {
   const [smtpPassword, setSmtpPassword] = useState("");
   const [smtpDefaultFrom, setSmtpDefaultFrom] = useState("");
   const [smtpUseTls, setSmtpUseTls] = useState(true);
+  const [trialDays, setTrialDays] = useState("45");
 
   useEffect(() => {
     api<any>("/platform/smtp-settings/").then((data) => {
@@ -24,6 +25,7 @@ export default function PlatformSettingsPage() {
       setSmtpPassword(data.smtp_password || "");
       setSmtpDefaultFrom(data.smtp_default_from || "");
       setSmtpUseTls(data.smtp_use_tls !== false); // default true if undefined
+      setTrialDays((data.default_trial_days ?? 45).toString());
     }).catch(console.error);
   }, []);
 
@@ -42,9 +44,10 @@ export default function PlatformSettingsPage() {
           smtp_password: smtpPassword,
           smtp_default_from: smtpDefaultFrom,
           smtp_use_tls: smtpUseTls,
+          default_trial_days: parseInt(trialDays) || 45,
         }
       });
-      setMsg({ ok: true, text: "SMTP settings saved successfully." });
+      setMsg({ ok: true, text: "Settings saved successfully." });
     } catch (e: any) {
       setMsg({ ok: false, text: e?.data?.detail || "Failed to save SMTP settings." });
     } finally {
@@ -184,6 +187,37 @@ export default function PlatformSettingsPage() {
               </button>
               <button type="submit" disabled={saving || testing} className="btn btn-primary rounded-pill px-5 shadow-sm">
                 {saving ? "Saving..." : "Save Configuration"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </Card>
+
+      <Card className="border-t-4 border-t-blue-500 bg-white">
+        <div className="p-6">
+          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-blue-600">
+            <i className="bi bi-hourglass-split"></i> Subscription Defaults
+          </h2>
+          <p className="text-secondary text-sm mb-6">
+            How many days of free trial every newly registered shop gets. Existing shops are not affected.
+          </p>
+          <form onSubmit={saveSettings} className="row g-3 align-items-end">
+            <div className="col-md-4">
+              <div className="form-floating">
+                <input
+                  type="number"
+                  min={0}
+                  className="form-control"
+                  placeholder="45"
+                  value={trialDays}
+                  onChange={(e) => setTrialDays(e.target.value)}
+                />
+                <label>Default trial length (days)</label>
+              </div>
+            </div>
+            <div className="col-md-4">
+              <button type="submit" disabled={saving} className="btn btn-primary rounded-pill px-5 shadow-sm">
+                {saving ? "Saving..." : "Save"}
               </button>
             </div>
           </form>
