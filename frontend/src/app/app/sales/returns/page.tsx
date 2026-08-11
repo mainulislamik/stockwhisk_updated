@@ -96,12 +96,13 @@ export default function ReturnsPage() {
         setOldBarcode("");
         newBarcodeRef.current?.focus();
       } else {
-        // Fetch new unit from catalog/units/
+        // Fetch new unit from catalog/units/ (response may be paginated).
         const res = await api<any>(`/catalog/units/?barcode=${encodeURIComponent(val)}`);
-        if (res.length === 0) {
-          throw new Error("New barcode not found");
+        const list = Array.isArray(res) ? res : (res?.results ?? []);
+        const unit = list[0];
+        if (!unit) {
+          throw new Error("New barcode not found in stock.");
         }
-        const unit = res[0];
         if (unit.status !== "IN_STOCK") {
           throw new Error(`New unit must be IN STOCK. Currently: ${unit.status}`);
         }
