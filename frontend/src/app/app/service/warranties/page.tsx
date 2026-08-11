@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchAll } from "@/lib/api";
+import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, fmtDate, usePagination } from "@/components/ui";
 
 type Warranty = {
@@ -20,8 +20,9 @@ type Product = {
   name: string;
   sku: string;
   warranty_months: number;
-  current_stock: string;
+  count: number;
 };
+type WarrantyGroup = { product_id: number; product_name: string; sku: string; warranty_months: number; count: number };
 
 const statusBadge: Record<string, string> = {
   active: "text-bg-success",
@@ -42,12 +43,15 @@ export default function WarrantiesPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [wList, pList] = await Promise.all([
+        const [wList, groups] = await Promise.all([
           fetchAll<Warranty>("/service/warranties/"),
-          fetchAll<Product>("/catalog/products/")
+          api<WarrantyGroup[]>("/catalog/product-units/warranty-groups/").catch(() => []),
         ]);
         setWarranties(wList);
-        setProducts(pList.filter(p => p.warranty_months && p.warranty_months > 0));
+        setProducts((groups || []).map((g) => ({
+          id: g.product_id, name: g.product_name, sku: g.sku,
+          warranty_months: g.warranty_months, count: g.count,
+        })));
       } catch (e: any) {
         setError(e?.message || "Failed to load data");
       } finally {
@@ -108,7 +112,7 @@ export default function WarrantiesPage() {
                   <th className="ps-4 py-3">Product Name</th>
                   <th className="py-3">SKU</th>
                   <th className="py-3 text-center">Warranty Period</th>
-                  <th className="pe-4 py-3 text-end">Current Stock</th>
+                  <th className="pe-4 py-3 text-end">In-Stock Units</th>
                 </tr>
               ) : (
                 <tr>
@@ -133,7 +137,7 @@ export default function WarrantiesPage() {
                   </tr>
                 ) : (
                   pagedProducts.map((p) => (
-                    <tr key={p.id} className="border-bottom">
+                    <tr key={`${p.id}-${p.warranty_months}`} className="border-bottom">
                       <td className="ps-4 fw-medium">{p.name}</td>
                       <td className="text-secondary">{p.sku || "—"}</td>
                       <td className="text-center">
@@ -141,7 +145,7 @@ export default function WarrantiesPage() {
                           {p.warranty_months} {p.warranty_months === 1 ? 'Month' : 'Months'}
                         </span>
                       </td>
-                      <td className="pe-4 text-end fw-semibold">{p.current_stock}</td>
+                      <td className="pe-4 text-end fw-semibold">{p.count} unit{p.count === 1 ? "" : "s"}</td>
                     </tr>
                   ))
                 )

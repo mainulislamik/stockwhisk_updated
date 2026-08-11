@@ -1,3 +1,6 @@
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
 from core.api import TenantScopedViewSet
 
 from .models import Brand, Category, Product, ProductVariation, Unit, ProductUnit
@@ -34,6 +37,29 @@ class ProductUnitViewSet(TenantScopedViewSet):
         if barcode:
             qs = qs.filter(barcode=barcode.strip())
         return qs
+
+    @action(detail=False, methods=["get"], url_path="warranty-groups")
+    def warranty_groups(self, request):
+        """In-stock units grouped by product + effective warranty duration, so a
+        product whose units carry different warranties shows one row per duration."""
+        from django.db.models import Count
+        from django.db.models.functions import Coalesce
+        rows = (
+            self.get_queryset()
+            .filter(status=ProductUnit.Status.IN_STOCK)
+            .annotate(eff_warranty=Coalesce("warranty_months", "product__warranty_months"))
+            .filter(eff_warranty__gt=0)
+            .values("product_id", "product__name", "product__sku", "eff_warranty")
+            .annotate(count=Count("id"))
+            .order_by("product__name", "-eff_warranty")
+        )
+        return Response([{
+            "product_id": r["product_id"],
+            "product_name": r["product__name"],
+            "sku": r["product__sku"],
+            "warranty_months": r["eff_warranty"],
+            "count": r["count"],
+        } for r in rows])
 
 
 
