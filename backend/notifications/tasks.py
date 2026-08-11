@@ -8,36 +8,50 @@ from .models import Notification
 @shared_task
 def send_notification_digest():
     """
-    Daily 10am (Asia/Dhaka) combined summary: one email per shop with the latest
-    notification of each type from the last 24h — instead of emailing every alert.
+    Daily 10am (Asia/Dhaka) combined summary: one email per shop with a product
+    table of current out/low stock plus any other operational alerts from the
+    last 24h. Subscription/billing notifications are excluded (they have their
+    own transactional emails).
     """
     from accounts.models import RoleType, User
+    from analytics.services import low_stock_list, out_of_stock_list
     from tenants.models import Shop
 
     from .channels import send_html_email
     from .emails import build_digest_email
+    from .models import NotificationType
     from .services import get_alert_config
 
     since = timezone.now() - timedelta(hours=24)
+    STOCK_OR_BILLING = [
+        NotificationType.LOW_STOCK, NotificationType.OUT_OF_STOCK,
+        NotificationType.SUBSCRIPTION, NotificationType.PAYMENT_DUE,
+    ]
     sent = 0
     for shop in Shop.objects.filter(is_active=True):
         cfg = get_alert_config(shop)
         if not cfg.email_enabled:
             continue
-        notes = list(
+
+        out = out_of_stock_list(shop) or []
+        low = low_stock_list(shop) or []
+
+        # Other operational alerts (e.g. warranty), newest-per-type, no stock/billing.
+        others_qs = (
             Notification.all_objects.filter(shop_id=shop.id, created_at__gte=since)
-            .order_by("-created_at")
+            .exclude(type__in=STOCK_OR_BILLING).order_by("-created_at")
         )
-        if not notes:
+        seen, others = set(), []
+        for n in others_qs:
+            if n.type not in seen:
+                seen.add(n.type)
+                others.append(n)
+
+        if not out and not low and not others:
             continue
-        # Keep only the newest notification per type (dedupe hourly repeats).
-        latest_by_type = {}
-        for n in notes:
-            latest_by_type.setdefault(n.type, n)
-        items = list(latest_by_type.values())
 
         owners = User.objects.filter(shop_id=shop.id, role=RoleType.OWNER, is_active=True)
-        subject, text, html = build_digest_email(shop=shop, items=items, total=len(notes))
+        subject, text, html = build_digest_email(shop=shop, out=out, low=low, others=others)
         for owner in owners:
             send_html_email(owner.email, subject, text, html)
         sent += 1
