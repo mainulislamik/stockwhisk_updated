@@ -22,6 +22,7 @@ type Modal =
   | { type: "create" }
   | { type: "password"; email: string }
   | { type: "quota"; email: string; current: string | null }
+  | { type: "delete"; email: string }
   | null;
 
 export default function MailServerPage() {
@@ -96,14 +97,19 @@ export default function MailServerPage() {
     }
   };
 
+  const [deleting, setDeleting] = useState(false);
+
   const handleDelete = async (email: string) => {
-    if (!window.confirm(`Delete ${email}? This is permanent.`)) return;
+    setDeleting(true);
     try {
       await api("/platform/mail-accounts/", { method: "DELETE", body: { email } });
       toast.success("Account deleted");
+      setModal(null);
       fetchAccounts();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : "Failed to delete account");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -206,7 +212,7 @@ export default function MailServerPage() {
                         <button
                           className="btn btn-outline-danger"
                           title="Delete account"
-                          onClick={() => handleDelete(acc.email)}
+                          onClick={() => setModal({ type: "delete", email: acc.email })}
                         >
                           <i className="bi-trash"></i>
                         </button>
@@ -276,6 +282,37 @@ export default function MailServerPage() {
             </div>
             <ModalFooter onClose={closeModal} label="Save Quota" btnClass="btn-secondary" />
           </form>
+        </ModalWrap>
+      )}
+
+      {/* ── Delete Account Modal ── */}
+      {modal?.type === "delete" && (
+        <ModalWrap title="Delete Email Account" icon="bi-exclamation-triangle" onClose={closeModal}>
+          <div className="text-center mb-4">
+            <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
+              style={{ width: 64, height: 64, background: "rgba(220,53,69,0.15)" }}>
+              <i className="bi-trash3 text-danger fs-3"></i>
+            </div>
+            <p className="mb-1">You are about to permanently delete</p>
+            <p className="fw-bold fs-5 mb-3">
+              <i className="bi-envelope-fill text-primary me-2"></i>{modal.email}
+            </p>
+            <div className="alert alert-danger py-2 small mb-0 text-start">
+              <i className="bi-exclamation-octagon-fill me-1"></i>
+              This removes the mailbox and <strong>all its stored email</strong>. This action
+              cannot be undone.
+            </div>
+          </div>
+          <div className="d-flex justify-content-end gap-2">
+            <button type="button" className="btn btn-secondary" onClick={closeModal} disabled={deleting}>
+              Cancel
+            </button>
+            <button type="button" className="btn btn-danger" onClick={() => handleDelete(modal.email)} disabled={deleting}>
+              {deleting
+                ? <><span className="spinner-border spinner-border-sm me-2"></span>Deleting…</>
+                : <><i className="bi-trash me-1"></i>Delete Permanently</>}
+            </button>
+          </div>
         </ModalWrap>
       )}
     </>
