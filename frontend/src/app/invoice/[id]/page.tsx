@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { Spinner } from "@/components/ui";
 
 // Standalone route — outside /app/ layout, so no AppShell, no sidebar, no banner.
+
+// Module-level guard (survives the component re-mount that ThemeRegistry's
+// hydration gate triggers) so the print dialog auto-opens exactly once per
+// invoice, not twice.
+let lastAutoPrint = { id: "", at: 0 };
 
 type SaleItem = {
   id: number;
@@ -66,20 +71,25 @@ export default function InvoicePage() {
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const printed = useRef(false);
 
   useEffect(() => {
     if (!id) return;
+    let cancelled = false;
     api<Sale>(`/sales/sales/${id}/`)
       .then((s) => {
+        if (cancelled) return;
         setSale(s);
-        if (!printed.current) {
-          printed.current = true;
-          setTimeout(() => window.print(), 700);
+        // Fire the print dialog once — skip if this invoice was auto-printed in
+        // the last few seconds (guards against the double-mount re-fire).
+        const now = Date.now();
+        if (!(lastAutoPrint.id === String(id) && now - lastAutoPrint.at < 4000)) {
+          lastAutoPrint = { id: String(id), at: now };
+          setTimeout(() => window.print(), 600);
         }
       })
-      .catch((e) => setError(e?.message || "Could not load invoice"))
-      .finally(() => setLoading(false));
+      .catch((e) => !cancelled && setError(e?.message || "Could not load invoice"))
+      .finally(() => !cancelled && setLoading(false));
+    return () => { cancelled = true; };
   }, [id]);
 
   if (loading) return (

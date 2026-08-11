@@ -61,7 +61,7 @@ export default function SaleDetailPage() {
           <button className="btn btn-outline-brand btn-sm" onClick={() => window.open(`/invoice/${sale.id}`, "_blank")}>
             🖨️ Print
           </button>
-          <Link href="/app/sales" className="btn btn-light btn-sm">
+          <Link href="/app/sales" className="btn btn-outline-secondary btn-sm">
             Back
           </Link>
         </div>
