@@ -1077,12 +1077,17 @@ class MailAccountView(APIView):
         password = request.data.get('password')
         quota = request.data.get('quota')
         if not email or not password:
-            return Response({'error': 'Email and password required'}, status=400)
+            return Response({'detail': 'Email and password required'}, status=400)
         try:
             service.add_account(email, password, quota)
             return Response({'status': 'success'})
+        except PermissionError:
+            return Response(
+                {'detail': "Can't write the mail config file — the backend has no write "
+                           "permission on the mounted mailserver-config directory."},
+                status=500)
         except Exception as e:
-            return Response({'error': str(e)}, status=400)
+            return Response({'detail': str(e)}, status=400)
 
     def patch(self, request):
         service = MailServerConfigService()
@@ -1090,8 +1095,8 @@ class MailAccountView(APIView):
         password = request.data.get('password')
         quota = request.data.get('quota')
         if not email:
-            return Response({'error': 'Email required'}, status=400)
-        
+            return Response({'detail': 'Email required'}, status=400)
+
         if password:
             service.update_password(email, password)
         if quota is not None:
@@ -1102,7 +1107,7 @@ class MailAccountView(APIView):
         service = MailServerConfigService()
         email = request.data.get('email')
         if not email:
-            return Response({'error': 'Email required'}, status=400)
+            return Response({'detail': 'Email required'}, status=400)
         service.delete_account(email)
         return Response({'status': 'success'})
 
