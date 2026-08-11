@@ -159,6 +159,7 @@ def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
     sub.status = Subscription.Status.ACTIVE
     sub.current_period_start = now
     sub.current_period_end = new_end
+    sub.reminded_days = []  # fresh period → reminders can fire again
     sub.save()
 
     shop.plan = plan

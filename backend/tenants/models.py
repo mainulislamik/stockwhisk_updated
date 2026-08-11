@@ -189,6 +189,9 @@ class Subscription(TimeStampedModel):
     # Informational only — nothing charges automatically.
     auto_renew = models.BooleanField(default=False)
     is_current = models.BooleanField(default=True)
+    # Expiry-reminder milestones (days-left) already emailed for the current
+    # period, so the daily task never sends the same reminder twice. Reset on renew.
+    reminded_days = models.JSONField(default=list, blank=True)
 
     class Meta:
         ordering = ["-started_at"]
