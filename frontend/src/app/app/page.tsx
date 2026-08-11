@@ -75,12 +75,29 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
       {showPay && (
         <div className="bg-white text-dark rounded-3 p-3 small">
           <div className="fw-semibold mb-1">To renew, pay to any of the below and inform the admin:</div>
-          <ul className="mb-2">
-            {bd.bkash && <li>bKash: <b>{bd.bkash}</b></li>}
-            {bd.nagad && <li>Nagad: <b>{bd.nagad}</b></li>}
-            {bd.bank && <li>Bank: <b>{bd.bank}</b></li>}
-            {!bd.bkash && !bd.nagad && !bd.bank && <li>Contact the platform admin to renew your plan.</li>}
-          </ul>
+          {(bd.bkash || bd.nagad || bd.bank) && (
+            <ul className="mb-2">
+              {bd.bkash && <li>bKash: <b>{bd.bkash}</b></li>}
+              {bd.nagad && <li>Nagad: <b>{bd.nagad}</b></li>}
+              {bd.bank && <li>Bank: <b>{bd.bank}</b></li>}
+            </ul>
+          )}
+          <div className="d-flex flex-column gap-1 mb-2">
+            <div>
+              <i className="bi bi-whatsapp text-success me-1"></i>
+              Phone / WhatsApp:{" "}
+              <a href="https://wa.me/8801613511887" target="_blank" rel="noopener noreferrer" className="fw-semibold text-decoration-none">
+                +8801613511887
+              </a>
+            </div>
+            <div>
+              <i className="bi bi-envelope-fill text-primary me-1"></i>
+              Email:{" "}
+              <a href="mailto:admin@stockwhisk.com" className="fw-semibold text-decoration-none">
+                admin@stockwhisk.com
+              </a>
+            </div>
+          </div>
           <div className="text-secondary">Once your payment is confirmed, your plan is activated and an invoice is emailed to you.</div>
         </div>
       )}
