@@ -57,9 +57,9 @@ services:
       - ROUNDCUBEMAIL_SMTP_USER=
       - ROUNDCUBEMAIL_SMTP_PASSWORD=
       - ROUNDCUBEMAIL_DES_KEY=stockwhisk_secret_key_1234567890
-      - ROUNDCUBEMAIL_ip_check=false
     volumes:
       - ./roundcube-data/:/var/roundcube/db/
+      - ./roundcube-config/custom.inc.php:/var/www/html/config/custom.inc.php:ro
     depends_on:
       - mailserver
       - mail_db
