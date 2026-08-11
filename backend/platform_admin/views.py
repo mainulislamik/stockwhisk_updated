@@ -1238,5 +1238,8 @@ class MailSSORedirectView(View):
 </body>
 </html>
 """
-        return HttpResponse(html, content_type="text/html")
+        response = HttpResponse(html, content_type="text/html")
+        # Override CSP to allow iframe to same origin, bypassing the strict default middleware CSP
+        response["Content-Security-Policy"] = "default-src 'self' 'unsafe-inline'; frame-src 'self';"
+        return response
 
