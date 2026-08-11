@@ -1173,73 +1173,80 @@ class MailSSORedirectView(View):
         master_user = f"{email}*master_admin"
         master_pass = "stockwhisk_master_2026"
 
-        html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>Logging in…</title>
-  <style>
-    body {{ font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; background: #0f172a; color: #94a3b8; margin: 0; }}
-    .spinner {{ border: 4px solid #1e293b; border-top-color: #3b82f6; border-radius: 50%; width: 44px; height: 44px; animation: spin .8s linear infinite; }}
-    @keyframes spin {{ to {{ transform: rotate(360deg); }} }}
-  </style>
-</head>
-<body>
-  <div style="text-align: center;">
-    <div class="spinner" style="margin: 0 auto 16px;"></div>
-    <p id="msg">Connecting to mailbox…</p>
-  </div>
-  
-  <iframe id="rc_frame" src="/?_task=login" style="display:none;"></iframe>
-  
-  <script>
-    var rcFrame = document.getElementById('rc_frame');
-    var loadCount = 0;
-    
-    rcFrame.onload = function() {{
-      loadCount++;
-      if (loadCount === 1) {{
-        // First load is the login page. Extract CSRF token and submit form.
-        try {{
-          var doc = rcFrame.contentWindow.document;
-          var tokenInput = doc.querySelector('input[name="_token"]');
-          if (!tokenInput) {{
-            document.getElementById('msg').innerHTML = '<span style="color:#f87171">Failed to obtain security token.</span>';
-            return;
-          }}
-          
-          document.getElementById('msg').textContent = 'Authenticating...';
-          
-          var form = doc.querySelector('form');
-          if (form) {{
-             var userInput = doc.querySelector('input[name="_user"]');
-             var passInput = doc.querySelector('input[name="_pass"]');
-             
-             if (userInput && passInput) {{
-                 userInput.value = {repr(master_user)};
-                 passInput.value = {repr(master_pass)};
-                 form.submit();
-             }} else {{
-                 document.getElementById('msg').innerHTML = '<span style="color:#f87171">Login inputs not found.</span>';
-             }}
-          }} else {{
-             document.getElementById('msg').innerHTML = '<span style="color:#f87171">Login form not found.</span>';
-          }}
-        }} catch (e) {{
-          document.getElementById('msg').innerHTML = '<span style="color:#f87171">Error: ' + e.message + '</span>';
-        }}
-      }} else if (loadCount === 2) {{
-        // Second load means the form submitted. 
-        // Redirect parent window to mail.
-        window.location.href = '/?_task=mail';
-      }}
-    }};
-  </script>
-</body>
-</html>
-"""
-        response = HttpResponse(html, content_type="text/html")
-        # Override CSP to allow iframe to same origin, bypassing the strict default middleware CSP
-        response["Content-Security-Policy"] = "default-src 'self' 'unsafe-inline'; frame-src 'self';"
-        return response
+        # --- Server-side login into Roundcube, then forward the session cookie ---
+        # Django talks to Roundcube over the internal Docker network, logs in as the
+        # Dovecot master user, and hands the resulting session cookies to the browser.
+        # This works only because ip_check / ua_check are disabled in Roundcube's
+        # custom.inc.php (the browser's IP/UA differ from Django's).
+        import os
+        import re
+        import requests
+        from django.http import HttpResponseRedirect
+
+        internal = os.environ.get("ROUNDCUBE_INTERNAL_URL", "http://roundcube").rstrip("/")
+        public = os.environ.get("ROUNDCUBE_PUBLIC_URL", "https://mail.stockwhisk.com").rstrip("/")
+
+        def _fail(detail):
+            body = (
+                "<!DOCTYPE html><meta charset='utf-8'>"
+                "<div style='font-family:sans-serif;max-width:640px;margin:80px auto;"
+                "color:#e2e8f0;background:#0f172a;padding:32px;border-radius:12px'>"
+                "<h2 style='color:#f87171;margin-top:0'>Webmail login failed</h2>"
+                f"<p>{escape(detail)}</p>"
+                "<p style='color:#94a3b8;font-size:14px'>Go back and click "
+                "&ldquo;Login As&rdquo; again. If this keeps happening, verify master-user "
+                "auth on the server:<br><code>docker exec mailserver doveadm auth test "
+                f"'{escape(master_user)}' '&lt;master-pass&gt;'</code></p></div>"
+            )
+            return HttpResponse(body, status=502, content_type="text/html")
+
+        try:
+            rc = requests.Session()
+            # 1) Fetch the login page to obtain a session + request token.
+            r1 = rc.get(f"{internal}/?_task=login", timeout=10)
+            # Match the _token hidden input regardless of attribute order.
+            m = (re.search(r'name="_token"\s+value="([^"]+)"', r1.text)
+                 or re.search(r'value="([^"]+)"\s+name="_token"', r1.text))
+            if not m:
+                return _fail("Could not obtain a security token from Roundcube.")
+            rc_token = m.group(1)
+
+            # 2) Submit the master-user credentials.
+            r2 = rc.post(
+                f"{internal}/?_task=login&_action=login",
+                data={
+                    "_token": rc_token,
+                    "_task": "login",
+                    "_action": "login",
+                    "_timezone": "UTC",
+                    "_url": "",
+                    "_user": master_user,
+                    "_pass": master_pass,
+                },
+                timeout=10,
+                allow_redirects=True,
+            )
+
+            # 3) Success is signalled by a real (non-deleted) auth cookie.
+            sessauth = rc.cookies.get("roundcube_sessauth")
+            if not sessauth or sessauth == "-del-":
+                return _fail(
+                    "Roundcube rejected the master login. This almost always means the "
+                    "Dovecot master account is not authenticating — run the doveadm auth "
+                    "test shown below."
+                )
+
+            # 4) Forward Roundcube's session cookies to the browser (on the public host).
+            response = HttpResponseRedirect(f"{public}/?_task=mail")
+            for name, value in rc.cookies.get_dict().items():
+                response.set_cookie(
+                    name, value,
+                    path="/",
+                    secure=True,
+                    httponly=True,
+                    samesite="Lax",
+                )
+            return response
+        except requests.RequestException as exc:
+            return _fail(f"Could not reach Roundcube internally ({internal}): {exc}")
 
