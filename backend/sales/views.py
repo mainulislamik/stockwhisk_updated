@@ -238,7 +238,8 @@ class SaleViewSet(
             return Response({"detail": f"New unit must be IN STOCK. Current status: {new_unit.get_status_display()}"}, status=status.HTTP_400_BAD_REQUEST)
 
         sale = old_unit.sale
-        old_sale_item = sale.items.filter(product=old_unit.product, variation=old_unit.variation).first()
+        # ProductUnit is product-level (no variation), so match the sale line by product.
+        old_sale_item = sale.items.filter(product=old_unit.product).first()
         
         if not old_sale_item:
             return Response({"detail": "Sale item for old unit not found on the invoice."}, status=status.HTTP_400_BAD_REQUEST)
@@ -247,8 +248,8 @@ class SaleViewSet(
         from django.utils import timezone
         
         with transaction.atomic():
-            # If same product & variation, it's a 1:1 unit swap.
-            if old_unit.product_id == new_unit.product_id and old_unit.variation_id == new_unit.variation_id:
+            # Same product → a 1:1 unit swap.
+            if old_unit.product_id == new_unit.product_id:
                 old_unit.status = ProductUnit.Status.TESTING_PENDING
                 old_unit.sale = None
                 old_unit.sold_at = None
@@ -281,7 +282,7 @@ class SaleViewSet(
 
                 if old_unit.product.track_inventory:
                     apply_movement(
-                        shop=sale.shop, product=old_unit.product, variation=old_unit.variation,
+                        shop=sale.shop, product=old_unit.product, variation=None,
                         movement_type=MovementType.SALE_RETURN_IN, quantity=Decimal("1"),
                         unit_cost=old_sale_item.unit_cost, reference_type="Sale",
                         reference_id=sale.id, note="Exchange: return old unit", created_by=request.user
@@ -292,21 +293,21 @@ class SaleViewSet(
                 old_unit.sold_at = None
                 old_unit.save(update_fields=["status", "sale", "sold_at"])
                 
-                new_sale_item = sale.items.filter(product=new_unit.product, variation=new_unit.variation).first()
+                new_sale_item = sale.items.filter(product=new_unit.product).first()
                 if new_sale_item:
                     new_sale_item.quantity += Decimal("1")
                     new_sale_item.save()
                 else:
-                    unit_cost = new_unit.variation.effective_cost if new_unit.variation else new_unit.product.cost_price
+                    unit_cost = new_unit.product.cost_price
                     new_sale_item = SaleItem.objects.create(
-                        shop=sale.shop, sale=sale, product=new_unit.product, variation=new_unit.variation,
+                        shop=sale.shop, sale=sale, product=new_unit.product, variation=None,
                         quantity=Decimal("1"), unit_price=new_unit.product.selling_price, unit_cost=unit_cost,
                         discount=Decimal("0")
                     )
-                
+
                 if new_unit.product.track_inventory:
                     apply_movement(
-                        shop=sale.shop, product=new_unit.product, variation=new_unit.variation,
+                        shop=sale.shop, product=new_unit.product, variation=None,
                         movement_type=MovementType.SALE_OUT, quantity=Decimal("1"),
                         unit_cost=new_sale_item.unit_cost, reference_type="Sale",
                         reference_id=sale.id, note="Exchange: sell new unit", created_by=request.user
