@@ -16,6 +16,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [openGroup, setOpenGroup] = useState("products");
   const [mounted, setMounted] = useState(false);
   const [unread, setUnread] = useState(0);
+  const [showContact, setShowContact] = useState(false);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -227,7 +228,69 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <UniversalSearch />
           <div className="d-flex align-items-center gap-3">
-            {billing?.on_trial && <span className="badge text-bg-warning">Trial</span>}
+            {billing?.state === "paid" ? (
+              <span
+                className="d-inline-flex align-items-center gap-1 fw-bold"
+                style={{
+                  background: "linear-gradient(135deg,#f59e0b,#f97316)",
+                  color: "#fff", padding: "0.3rem 0.7rem", borderRadius: "20px",
+                  fontSize: "0.72rem", letterSpacing: "0.5px",
+                  boxShadow: "0 2px 8px rgba(249,115,22,.35)",
+                }}
+                title={typeof billing.days_left === "number" ? `${billing.days_left} days left` : "Pro plan"}
+              >
+                <i className="bi bi-patch-check-fill"></i> PRO
+              </span>
+            ) : billing?.on_trial ? (
+              <span className="badge text-bg-warning">Trial</span>
+            ) : null}
+
+            {/* Contact / support */}
+            <div className="position-relative">
+              <button
+                type="button"
+                className="btn border-0 p-0 fs-5 d-flex align-items-center"
+                onClick={() => setShowContact((v) => !v)}
+                aria-label="Contact support"
+                title="Contact support"
+                style={{ color: "var(--topbar-color)" }}
+              >
+                <i className="bi bi-headset"></i>
+              </button>
+              {showContact && (
+                <>
+                  <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 1040 }} onClick={() => setShowContact(false)} />
+                  <div
+                    className="position-absolute end-0 mt-2 p-3 rounded-4 shadow-lg"
+                    style={{ zIndex: 1050, width: 260, background: "var(--card, #1e293b)", border: "1px solid var(--line, rgba(148,163,184,.25))" }}
+                  >
+                    <div className="fw-bold mb-1 d-flex align-items-center gap-2" style={{ color: "var(--topbar-color, #fff)" }}>
+                      <i className="bi bi-headset text-primary"></i> Contact us
+                    </div>
+                    <div className="small text-secondary mb-3">We're here to help with billing & renewals.</div>
+                    <a href="https://wa.me/8801613511887" target="_blank" rel="noopener noreferrer"
+                       className="d-flex align-items-center gap-2 text-decoration-none mb-2 p-2 rounded-3"
+                       style={{ background: "rgba(34,197,94,.12)" }}>
+                      <i className="bi bi-whatsapp text-success fs-5"></i>
+                      <div>
+                        <div className="small text-secondary" style={{ fontSize: "0.7rem" }}>Phone / WhatsApp</div>
+                        <div className="fw-semibold" style={{ color: "var(--topbar-color, #fff)" }}>+8801613511887</div>
+                      </div>
+                    </a>
+                    <a href="mailto:admin@stockwhisk.com"
+                       className="d-flex align-items-center gap-2 text-decoration-none p-2 rounded-3"
+                       style={{ background: "rgba(59,130,246,.12)" }}>
+                      <i className="bi bi-envelope-fill text-primary fs-5"></i>
+                      <div>
+                        <div className="small text-secondary" style={{ fontSize: "0.7rem" }}>Email</div>
+                        <div className="fw-semibold" style={{ color: "var(--topbar-color, #fff)" }}>admin@stockwhisk.com</div>
+                      </div>
+                    </a>
+                  </div>
+                </>
+              )}
+            </div>
+
             <Link href="/app/notifications" className="position-relative text-decoration-none fs-5" aria-label="Notifications" style={{ color: "var(--topbar-color)" }}>
               🔔
               {unread > 0 && (
