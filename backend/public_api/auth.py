@@ -33,11 +33,17 @@ class APIKeyAuthentication(authentication.BaseAuthentication):
     keyword = "Api-Key"
 
     def authenticate(self, request):
+        # Preferred: X-Api-Key header, or "Authorization: Api-Key <key>".
         raw = request.META.get("HTTP_X_API_KEY")
         if not raw:
             header = authentication.get_authorization_header(request).decode()
             if header.startswith(self.keyword + " "):
                 raw = header[len(self.keyword) + 1:].strip()
+        # Convenience: ?api_key=<key> so the endpoints can be opened directly in a
+        # browser. Less secure (keys can land in access logs) — prefer the header
+        # for production integrations.
+        if not raw:
+            raw = request.GET.get("api_key") or request.GET.get("key")
         if not raw:
             return None  # let other authenticators / permission run
 
