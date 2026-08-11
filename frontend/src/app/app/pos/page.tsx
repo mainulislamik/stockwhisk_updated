@@ -32,7 +32,7 @@ export default function PosPage() {
   }, [query]);
 
   // Server-side fetching for the main POS search
-  const { data: posData } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedQuery, page_size: 20 });
+  const { data: posData } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedQuery, page_size: 20, in_stock: "1" });
   const shown = posData?.results || [];
   const [scanning, setScanning] = useState(false);
   const [showScanner, setShowScanner] = useState(false);

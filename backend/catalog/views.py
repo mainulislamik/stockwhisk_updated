@@ -64,6 +64,9 @@ class ProductViewSet(TenantScopedViewSet):
         low_stock = params.get("low_stock") in {"1", "true"}
         search = params.get("search")
         qs = ProductService.get_catalog_queryset(low_stock=low_stock, search=search)
+        if params.get("in_stock") in {"1", "true"}:
+            from django.db.models import Q
+            qs = qs.filter(Q(track_inventory=False) | Q(current_stock__gt=0))
         ordering = params.get("ordering")
         allowed = {
             "current_stock", "-current_stock", "name", "-name", "sku", "-sku",
