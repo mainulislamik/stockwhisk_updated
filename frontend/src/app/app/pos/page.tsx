@@ -135,6 +135,27 @@ export default function PosPage() {
     const bySku = shown.find((p) => p.sku && p.sku.toLowerCase() === code.toLowerCase());
     if (bySku) { tryAdd(bySku); return; }
 
+    // 2b. Exact match on a specific UNIT barcode → add that exact unit directly
+    // (skip the unit-picker modal). Unit barcodes are unique, so never add twice.
+    for (const p of shown) {
+      const unit = p.units?.find((u) => u.barcode === code);
+      if (unit) {
+        if (p.track_inventory !== false && Number(p.current_stock) <= 0) {
+          flash(`✗ Out of stock: ${p.name}`, false); return;
+        }
+        const already = cart.some((l) => l.product.id === p.id && l.selectedUnits.some((u) => u.id === unit.id));
+        if (already) {
+          flash(`Already in cart: ${unit.barcode}`, false);
+        } else {
+          addToCart(p, unit);
+          flash(`✓ Added unit: ${unit.barcode}`, true);
+        }
+        setQuery("");
+        setTimeout(() => inputRef.current?.focus(), 50);
+        return;
+      }
+    }
+
     // 3. Exactly one filtered result → auto-add
     if (shown.length === 1 && query === code) { tryAdd(shown[0]); return; }
 
@@ -156,7 +177,7 @@ export default function PosPage() {
     } finally {
       setScanning(false);
     }
-  }, [shown, query, tryAdd]);
+  }, [shown, query, tryAdd, cart]);
 
   // ── Enter / scan handler ────────────────────────────────────────────────
   const handleEnter = useCallback(async () => {
