@@ -38,6 +38,7 @@ export default function PosCustomerPage() {
   const [emiMonths, setEmiMonths] = useState(3);
   const [emiInterestPercent, setEmiInterestPercent] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [saleResult, setSaleResult] = useState<{ id: number; invoice_no: string; phone: string; name: string; total: number } | null>(null);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("pos_cart");
@@ -113,7 +114,13 @@ export default function PosCustomerPage() {
       });
 
       sessionStorage.removeItem("pos_cart");
-      router.push(`/invoice/${sale.id}`);
+      const custPhone = customerMode === "walkin"
+        ? walkPhone.trim()
+        : (customers.find(c => c.id === Number(customerId))?.phone || "");
+      const custName = customerMode === "walkin"
+        ? walkName.trim()
+        : (customers.find(c => c.id === Number(customerId))?.name || "Customer");
+      setSaleResult({ id: sale.id, invoice_no: sale.invoice_no, phone: custPhone, name: custName, total });
     } catch (e: any) {
       const msg = e?.data?.detail || e?.message || "Checkout failed. Please try again.";
       await showError("Transaction Failed", msg);
@@ -289,13 +296,64 @@ export default function PosCustomerPage() {
 
             <div className="d-grid mt-4">
               <button className="btn btn-primary btn-lg fw-semibold rounded-3 shadow" disabled={busy} onClick={complete} style={{ padding: "1rem" }}>
-                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-receipt me-2"></i>}
-                Complete sale &amp; print invoice
+                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-check2-circle me-2"></i>}
+                Complete Sale
               </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── After-sale: choose Print or WhatsApp ── */}
+      {saleResult && (() => {
+        const digits = (saleResult.phone || "").replace(/\D/g, "");
+        const intl = digits.startsWith("880") ? digits
+          : digits.startsWith("0") ? "880" + digits.slice(1)
+          : digits.length === 10 ? "880" + digits : digits;
+        const shop = user?.shop_name || "our shop";
+        const msg = `Hello ${saleResult.name || ""}, thank you for shopping at ${shop}!\n\n`
+          + `🧾 Invoice: ${saleResult.invoice_no}\n`
+          + `💰 Total: ৳${saleResult.total.toFixed(2)}\n\n`
+          + `We appreciate your business. 🙏`;
+        const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
+        const hasPhone = digits.length >= 10;
+        return (
+          <div className="modal d-block" style={{ background: "rgba(15,23,42,.55)" }} onClick={() => router.push("/app/pos")}>
+            <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
+              <div className="modal-content border-0 rounded-4 shadow-lg overflow-hidden">
+                <div className="p-4 text-center text-white" style={{ background: "linear-gradient(135deg,#1d4ed8,#2563eb)" }}>
+                  <div className="fs-1 mb-1">✅</div>
+                  <h5 className="fw-bold mb-1">Sale completed</h5>
+                  <div className="opacity-75 small">Invoice {saleResult.invoice_no} · {money(saleResult.total)}</div>
+                </div>
+                <div className="p-4">
+                  <p className="text-secondary small text-center mb-3">How would you like to share the invoice?</p>
+                  <div className="d-grid gap-2">
+                    <button className="btn btn-primary btn-lg rounded-3 fw-semibold" onClick={() => router.push(`/invoice/${saleResult.id}`)}>
+                      <i className="bi bi-printer me-2"></i> Print invoice
+                    </button>
+                    <a
+                      className={`btn btn-lg rounded-3 fw-semibold text-white ${hasPhone ? "" : "disabled"}`}
+                      style={{ background: "#25D366" }}
+                      href={hasPhone ? waUrl : undefined}
+                      target="_blank" rel="noreferrer"
+                      aria-disabled={!hasPhone}
+                    >
+                      <i className="bi bi-whatsapp me-2"></i> Send on WhatsApp
+                    </a>
+                    {!hasPhone && <div className="form-text small text-center">No valid phone number for this customer.</div>}
+                  </div>
+                </div>
+                <div className="px-4 pb-4 d-flex gap-2">
+                  <button className="btn btn-outline-secondary flex-grow-1 rounded-3" onClick={() => router.push("/app/pos")}>
+                    ✕ Close · New sale
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
