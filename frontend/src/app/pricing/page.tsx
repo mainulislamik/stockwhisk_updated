@@ -49,6 +49,7 @@ type PricingPlan = {
   show_users?: boolean;
   show_branches?: boolean;
   show_products?: boolean;
+  yearly_discount_percent?: number;
 };
 
 type PricingContent = {
@@ -95,13 +96,8 @@ export default function PricingPage() {
 
   const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
-  // Highest yearly discount across shown plans (computed, not fixed).
-  const maxSave = plans.reduce((mx, p) => {
-    const m = parseFloat(p.price_monthly) || 0;
-    const y = parseFloat(p.price_yearly) || 0;
-    const pct = (m > 0 && y > 0 && y < m * 12) ? Math.round((1 - (y / 12) / m) * 100) : 0;
-    return Math.max(mx, pct);
-  }, 0);
+  // Highest yearly discount across shown plans (per-package, not fixed).
+  const maxSave = plans.reduce((mx, p) => Math.max(mx, Number(p.yearly_discount_percent) || 0), 0);
 
   useEffect(() => {
     setMounted(true);
@@ -207,14 +203,11 @@ export default function PricingPage() {
               plans.map((plan) => {
                 const isPopular = plan.tier === 'professional';
                 const monthly = parseFloat(plan.price_monthly) || 0;
-                const yearlyTotal = parseFloat(plan.price_yearly) || 0;
-                // The admin sets the yearly price per package. Discount is computed
-                // from it — no fixed/auto percentage.
-                const hasDiscount = yearlyTotal > 0 && yearlyTotal < monthly * 12;
-                const yearlyPerMonth = hasDiscount ? yearlyTotal / 12 : monthly;
+                // Per-package yearly discount set by the admin (0 = no discount).
+                const savePct = Number(plan.yearly_discount_percent) || 0;
+                const yearlyPerMonth = savePct > 0 ? monthly * (1 - savePct / 100) : monthly;
                 const price = isYearly ? yearlyPerMonth : monthly;
-                const yearlyBilled = hasDiscount ? Math.round(yearlyTotal) : Math.round(monthly * 12);
-                const savePct = hasDiscount ? Math.round((1 - yearlyPerMonth / monthly) * 100) : 0;
+                const yearlyBilled = Math.round(yearlyPerMonth * 12);
 
                 return (
                   <Grid size={{ xs: 12, md: 4 }} key={plan.id} sx={{ display: 'flex' }}>
@@ -275,7 +268,7 @@ export default function PricingPage() {
                           </Box>
                           <Typography sx={{ fontSize: '0.85rem', color: COLORS.onSurfaceVariant, mt: 0.5, minHeight: '1.2rem' }}>
                             {isYearly
-                              ? <>Billed ৳{yearlyBilled.toLocaleString()}/year{savePct > 0 && <> · <span style={{ color: '#059669', fontWeight: 700 }}>save {savePct}%</span></>}</>
+                              ? <>Billed ৳{yearlyBilled.toLocaleString()}/year{savePct > 0 && <> · <span style={{ color: '#059669', fontWeight: 700 }}>save {savePct}%</span></>} · {trialDays}-day free trial</>
                               : <>Billed monthly · {trialDays}-day free trial</>}
                           </Typography>
                         </Box>

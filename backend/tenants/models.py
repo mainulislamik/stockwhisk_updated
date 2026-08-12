@@ -66,6 +66,9 @@ class SubscriptionPlan(TimeStampedModel):
     show_branches = models.BooleanField(default=True)
     show_products = models.BooleanField(default=True)
 
+    # Yearly discount shown on the pricing page (0 = no discount / hide yearly saving).
+    yearly_discount_percent = models.PositiveIntegerField(default=0)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:

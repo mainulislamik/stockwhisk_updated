@@ -19,6 +19,7 @@ type Plan = {
   show_users: boolean;
   show_branches: boolean;
   show_products: boolean;
+  yearly_discount_percent: number;
   is_active: boolean;
 };
 
@@ -97,6 +98,7 @@ export default function PlansPage() {
           price_monthly: plan.price_monthly, price_yearly: plan.price_yearly,
           max_users: plan.max_users, max_branches: plan.max_branches, max_products: plan.max_products,
           show_users: plan.show_users, show_branches: plan.show_branches, show_products: plan.show_products,
+          yearly_discount_percent: Number(plan.yearly_discount_percent) || 0,
           features: plan.features, highlights: plan.highlights || [], is_active: plan.is_active,
         },
       });
@@ -118,7 +120,7 @@ export default function PlansPage() {
           name: TIER_LABEL[freeTier]?.split(" ")[0] || "New Package", tier: freeTier,
           price_monthly: 0, price_yearly: 0, max_users: 2, max_branches: 1, max_products: 100,
           features: keys.reduce((a, k) => ({ ...a, [k]: false }), {}), highlights: [],
-          show_users: true, show_branches: true, show_products: true, is_active: false,
+          show_users: true, show_branches: true, show_products: true, yearly_discount_percent: 0, is_active: false,
         },
       });
       setPlans((ps) => [...ps, created]);
@@ -281,7 +283,8 @@ export default function PlansPage() {
                     </select>
                   </div>
                   <Num c="col-6" label="৳ / month" v={plan.price_monthly} on={(v) => upd(plan.id, { price_monthly: v })} />
-                  <YearField c="col-6" monthly={plan.price_monthly} yearly={plan.price_yearly} on={(v) => upd(plan.id, { price_yearly: v })} />
+                  <DiscountField c="col-6" monthly={plan.price_monthly} pct={plan.yearly_discount_percent}
+                    on={(v) => upd(plan.id, { yearly_discount_percent: Math.max(0, Math.min(99, Number(v) || 0)) })} />
                   <LimitNum c="col-6" label="Max users" v={plan.max_users} show={plan.show_users}
                     on={(v) => upd(plan.id, { max_users: Number(v) })} onShow={(b) => upd(plan.id, { show_users: b })} id={`u-${plan.id}`} />
                   <LimitNum c="col-6" label="Max branches" v={plan.max_branches} show={plan.show_branches}
@@ -342,21 +345,22 @@ function Num({ c, label, v, on }: { c: string; label: string; v: string | number
   );
 }
 
-function YearField({ c, monthly, yearly, on }: {
-  c: string; monthly: string | number; yearly: string | number; on: (v: string) => void;
+function DiscountField({ c, monthly, pct, on }: {
+  c: string; monthly: string | number; pct: number; on: (v: string) => void;
 }) {
   const m = parseFloat(String(monthly)) || 0;
-  const y = parseFloat(String(yearly)) || 0;
-  const pct = m > 0 && y > 0 && y < m * 12 ? Math.round((1 - (y / 12) / m) * 100) : 0;
+  const p = Number(pct) || 0;
+  const yearly = p > 0 ? Math.round(m * 12 * (1 - p / 100)) : Math.round(m * 12);
   return (
     <div className={c}>
-      <div className="d-flex align-items-center justify-content-between">
-        <label className="form-label small fw-medium mb-0">৳ / year</label>
-        {pct > 0
-          ? <span className="badge text-bg-success">{pct}% off</span>
-          : y > 0 ? <span className="badge text-bg-secondary">no discount</span> : null}
+      <label className="form-label small fw-medium">Yearly discount %</label>
+      <div className="input-group">
+        <input className="form-control" type="number" min={0} max={99} value={pct} onChange={(e) => on(e.target.value)} />
+        <span className="input-group-text">%</span>
       </div>
-      <input className="form-control" type="number" step="0.01" value={yearly} onChange={(e) => on(e.target.value)} />
+      <div className="form-text small">
+        {p > 0 ? <>= ৳{yearly.toLocaleString()}/year · <span className="text-success fw-semibold">{p}% off</span></> : "0 = no yearly discount"}
+      </div>
     </div>
   );
 }
