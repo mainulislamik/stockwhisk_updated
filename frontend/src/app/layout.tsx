@@ -5,14 +5,81 @@ import ThemeRegistry from '@/components/ThemeRegistry';
 import { AuthProvider } from "@/components/AuthProvider";
 import { Toaster } from "react-hot-toast";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://stockwhisk.com";
+const SITE_NAME = "StockWhisk";
+const SITE_DESC =
+  "StockWhisk is cloud inventory management and POS software for retail shops — barcode billing, stock control, warranty tracking, sales reports and multi-branch support.";
+
 export const metadata: Metadata = {
-  title: "StockWhisk",
-  description: "StockWhisk — inventory management",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "StockWhisk — Inventory Management & POS Software for Retail",
+    template: "%s · StockWhisk",
+  },
+  description: SITE_DESC,
+  keywords: [
+    "inventory management software",
+    "POS software",
+    "point of sale",
+    "barcode billing software",
+    "retail software Bangladesh",
+    "stock management",
+    "warranty tracking",
+    "shop management software",
+  ],
+  applicationName: SITE_NAME,
   manifest: "/manifest.json",
+  alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true, "max-image-preview": "large" },
+  },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    url: SITE_URL,
+    title: "StockWhisk — Inventory Management & POS Software for Retail",
+    description: SITE_DESC,
+    // og:image is supplied automatically by app/opengraph-image.tsx
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "StockWhisk — Inventory Management & POS Software",
+    description: SITE_DESC,
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#0B1120",
+};
+
+const orgJsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": `${SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: SITE_URL,
+      logo: `${SITE_URL}/opengraph-image`,
+    },
+    {
+      "@type": "WebSite",
+      "@id": `${SITE_URL}/#website`,
+      url: SITE_URL,
+      name: SITE_NAME,
+      publisher: { "@id": `${SITE_URL}/#organization` },
+    },
+    {
+      "@type": "SoftwareApplication",
+      name: SITE_NAME,
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      offers: { "@type": "Offer", price: "0", priceCurrency: "BDT" },
+      description: SITE_DESC,
+    },
+  ],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -36,6 +103,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body className="h-100">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
+        />
         <ThemeRegistry>
           <AuthProvider>{children}</AuthProvider>
         </ThemeRegistry>
