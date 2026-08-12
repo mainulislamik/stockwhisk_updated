@@ -38,7 +38,7 @@ export default function PosCustomerPage() {
   const [emiMonths, setEmiMonths] = useState(3);
   const [emiInterestPercent, setEmiInterestPercent] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [saleResult, setSaleResult] = useState<{ id: number; invoice_no: string; phone: string; name: string; total: number } | null>(null);
+  const [saleResult, setSaleResult] = useState<{ id: number; invoice_no: string; phone: string; name: string; total: number; pdfUrl: string } | null>(null);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("pos_cart");
@@ -90,7 +90,7 @@ export default function PosCustomerPage() {
         if (c) customerId2 = c.id;
       }
 
-      const sale = await api<{ id: number; invoice_no: string }>("/pos/checkout/", {
+      const sale = await api<{ id: number; invoice_no: string; public_invoice_url?: string }>("/pos/checkout/", {
         method: "POST",
         body: {
           customer: customerId2,
@@ -120,7 +120,10 @@ export default function PosCustomerPage() {
       const custName = customerMode === "walkin"
         ? walkName.trim()
         : (customers.find(c => c.id === Number(customerId))?.name || "Customer");
-      setSaleResult({ id: sale.id, invoice_no: sale.invoice_no, phone: custPhone, name: custName, total });
+      const pdfUrl = sale.public_invoice_url
+        ? (sale.public_invoice_url.startsWith("http") ? sale.public_invoice_url : window.location.origin + sale.public_invoice_url)
+        : "";
+      setSaleResult({ id: sale.id, invoice_no: sale.invoice_no, phone: custPhone, name: custName, total, pdfUrl });
     } catch (e: any) {
       const msg = e?.data?.detail || e?.message || "Checkout failed. Please try again.";
       await showError("Transaction Failed", msg);
@@ -314,9 +317,11 @@ export default function PosCustomerPage() {
         const msg = `Hello ${saleResult.name || ""}, thank you for shopping at ${shop}!\n\n`
           + `🧾 Invoice: ${saleResult.invoice_no}\n`
           + `💰 Total: ৳${saleResult.total.toFixed(2)}\n\n`
+          + (saleResult.pdfUrl ? `📄 Download your invoice PDF:\n${saleResult.pdfUrl}\n\n` : "")
           + `We appreciate your business. 🙏`;
         const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
         const hasPhone = digits.length >= 10;
+        const waEnabled = user?.shop_whatsapp_enabled !== false;
         return (
           <div className="modal d-block" style={{ background: "rgba(15,23,42,.55)" }} onClick={() => router.push("/app/pos")}>
             <div className="modal-dialog modal-dialog-centered" onClick={(e) => e.stopPropagation()}>
@@ -327,21 +332,27 @@ export default function PosCustomerPage() {
                   <div className="opacity-75 small">Invoice {saleResult.invoice_no} · {money(saleResult.total)}</div>
                 </div>
                 <div className="p-4">
-                  <p className="text-secondary small text-center mb-3">How would you like to share the invoice?</p>
+                  <p className="text-secondary small text-center mb-3">
+                    {waEnabled ? "How would you like to share the invoice?" : "Print the invoice for the customer."}
+                  </p>
                   <div className="d-grid gap-2">
                     <button className="btn btn-primary btn-lg rounded-3 fw-semibold" onClick={() => router.push(`/invoice/${saleResult.id}`)}>
                       <i className="bi bi-printer me-2"></i> Print invoice
                     </button>
-                    <a
-                      className={`btn btn-lg rounded-3 fw-semibold text-white ${hasPhone ? "" : "disabled"}`}
-                      style={{ background: "#25D366" }}
-                      href={hasPhone ? waUrl : undefined}
-                      target="_blank" rel="noreferrer"
-                      aria-disabled={!hasPhone}
-                    >
-                      <i className="bi bi-whatsapp me-2"></i> Send on WhatsApp
-                    </a>
-                    {!hasPhone && <div className="form-text small text-center">No valid phone number for this customer.</div>}
+                    {waEnabled && (
+                      <>
+                        <a
+                          className={`btn btn-lg rounded-3 fw-semibold text-white ${hasPhone ? "" : "disabled"}`}
+                          style={{ background: "#25D366" }}
+                          href={hasPhone ? waUrl : undefined}
+                          target="_blank" rel="noreferrer"
+                          aria-disabled={!hasPhone}
+                        >
+                          <i className="bi bi-whatsapp me-2"></i> Send invoice on WhatsApp
+                        </a>
+                        {!hasPhone && <div className="form-text small text-center">No valid phone number for this customer.</div>}
+                      </>
+                    )}
                   </div>
                 </div>
                 <div className="px-4 pb-4 d-flex gap-2">

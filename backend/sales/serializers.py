@@ -73,6 +73,7 @@ class SaleSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)
     bill_name = serializers.SerializerMethodField()
     bill_phone = serializers.SerializerMethodField()
+    public_invoice_url = serializers.SerializerMethodField()
 
     def get_bill_name(self, obj):
         return obj.bill_name
@@ -80,13 +81,19 @@ class SaleSerializer(serializers.ModelSerializer):
     def get_bill_phone(self, obj):
         return obj.bill_phone
 
+    def get_public_invoice_url(self, obj):
+        from .views import invoice_token
+        path = f"/api/sales/public-invoice/{invoice_token(obj.id)}/"
+        request = self.context.get("request")
+        return request.build_absolute_uri(path) if request else path
+
     class Meta:
         model = Sale
         fields = [
             "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone",
             "branch", "sale_date",
             "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
-            "note", "items", "payments", "created_at",
+            "note", "items", "payments", "created_at", "public_invoice_url",
         ]
         read_only_fields = fields
 

@@ -17,6 +17,7 @@ export type User = {
   shop_logo: string | null;
   shop_emi_enabled: boolean;
   shop_delivery_enabled?: boolean;
+  shop_whatsapp_enabled?: boolean;
   shop_barcode_prefix?: string;
   branch: number | null;
   is_staff: boolean;

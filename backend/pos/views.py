@@ -94,4 +94,4 @@ class CheckoutView(_POSBase):
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
+        return Response(SaleSerializer(sale, context={"request": request}).data, status=status.HTTP_201_CREATED)

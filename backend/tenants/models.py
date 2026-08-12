@@ -130,6 +130,8 @@ class Shop(TimeStampedModel):
     # Feature flags
     emi_enabled = models.BooleanField(default=False)
     delivery_enabled = models.BooleanField(default=True)
+    # Offer to send the invoice PDF over WhatsApp from the POS after-sale popup.
+    whatsapp_invoice_enabled = models.BooleanField(default=True)
 
     # Short 2–5 char code prefixed to generated barcodes so labels are unique
     # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name

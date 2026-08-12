@@ -1,11 +1,20 @@
 from decimal import Decimal
 
+from django.core import signing
+from django.http import Http404, HttpResponse
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
+
+INVOICE_TOKEN_SALT = "invoice-pdf"
+
+
+def invoice_token(sale_id) -> str:
+    return signing.dumps(int(sale_id), salt=INVOICE_TOKEN_SALT)
 
 from .models import Sale
 from .returns import create_return
@@ -413,3 +422,24 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
         # Refresh schedule to return updated data
         schedule.refresh_from_db()
         return Response(self.get_serializer(schedule).data)
+
+
+class PublicInvoicePDFView(APIView):
+    """Public, tokenized invoice PDF — safe to share via WhatsApp/link. No auth;
+    the signed token is unguessable and scoped to a single sale."""
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request, token):
+        try:
+            sale_id = signing.loads(token, salt=INVOICE_TOKEN_SALT)
+        except signing.BadSignature:
+            raise Http404
+        sale = Sale.all_objects.filter(id=sale_id).select_related("shop", "customer").first()
+        if sale is None:
+            raise Http404
+        from .invoice_pdf import build_invoice_pdf
+        pdf = build_invoice_pdf(sale)
+        resp = HttpResponse(pdf, content_type="application/pdf")
+        resp["Content-Disposition"] = f'inline; filename="invoice-{sale.invoice_no}.pdf"'
+        return resp

@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, barcode_prefix: "" });
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, whatsapp_invoice_enabled: true, barcode_prefix: "" });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +40,7 @@ export default function SettingsPage() {
           vat_percent: data.vat_percent || 0,
           emi_enabled: data.emi_enabled || false,
           delivery_enabled: data.delivery_enabled !== false,
+          whatsapp_invoice_enabled: data.whatsapp_invoice_enabled !== false,
           barcode_prefix: data.barcode_prefix || "",
         });
         if (data.logo) {
@@ -79,6 +80,7 @@ export default function SettingsPage() {
       formData.append("vat_percent", shopForm.vat_percent.toString());
       formData.append("emi_enabled", shopForm.emi_enabled.toString());
       formData.append("delivery_enabled", shopForm.delivery_enabled.toString());
+      formData.append("whatsapp_invoice_enabled", shopForm.whatsapp_invoice_enabled.toString());
       formData.append("barcode_prefix", shopForm.barcode_prefix);
 
       if (logoFile) {
@@ -260,6 +262,10 @@ export default function SettingsPage() {
                   <div className="form-check form-switch mt-2">
                     <input className="form-check-input" type="checkbox" role="switch" id="deliverySwitch" checked={shopForm.delivery_enabled} onChange={e => setShopForm({...shopForm, delivery_enabled: e.target.checked})} />
                     <label className="form-check-label small" htmlFor="deliverySwitch">Enable Delivery Charge (in POS)</label>
+                  </div>
+                  <div className="form-check form-switch mt-2">
+                    <input className="form-check-input" type="checkbox" role="switch" id="whatsappSwitch" checked={shopForm.whatsapp_invoice_enabled} onChange={e => setShopForm({...shopForm, whatsapp_invoice_enabled: e.target.checked})} />
+                    <label className="form-check-label small" htmlFor="whatsappSwitch">Send invoice on WhatsApp (POS after-sale)</label>
                   </div>
                 </div>
               </div>
