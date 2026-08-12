@@ -97,14 +97,38 @@ class Command(BaseCommand):
             help="Delete the existing demo shop (and its data) first, then reseed fresh.",
         )
 
+    def _purge_shop(self, shop):
+        """Delete every row scoped to this shop, then the shop itself.
+
+        Product.shop (and others) are PROTECT, so we can't just delete the shop.
+        Instead we sweep all models that have a ``shop`` FK, retrying across a few
+        passes so PROTECT chains (children before parents) resolve automatically.
+        """
+        from django.apps import apps
+        shop_models = [M for M in apps.get_models() if "shop" in [f.name for f in M._meta.fields]]
+        for _ in range(10):
+            progressed = False
+            for Model in shop_models:
+                mgr = getattr(Model, "all_objects", Model.objects)
+                qs = mgr.filter(shop_id=shop.id)
+                try:
+                    if qs.exists():
+                        qs.delete()
+                        progressed = True
+                except Exception:
+                    pass  # blocked by protected children — retry next pass
+            if not progressed:
+                break
+        Shop.objects.filter(pk=shop.pk).delete()
+
     @transaction.atomic
     def handle(self, *args, **options):
         from tenants.services import register_shop
 
         if options.get("reset"):
-            # Shop → users + all tenant data cascade-delete; safe (demo only).
-            deleted, _ = Shop.objects.filter(is_demo=True).delete()
-            self.stdout.write(self.style.WARNING(f"Reset: removed existing demo shop ({deleted} rows)."))
+            for demo in Shop.objects.filter(is_demo=True):
+                self._purge_shop(demo)
+            self.stdout.write(self.style.WARNING("Reset: removed existing demo shop(s)."))
 
         owner = User.objects.filter(email=DEMO_EMAIL).select_related("shop").first()
         if owner:
