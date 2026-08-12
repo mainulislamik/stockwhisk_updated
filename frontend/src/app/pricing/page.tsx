@@ -63,6 +63,7 @@ export default function PricingPage() {
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [loading, setLoading] = useState(true);
   const [isYearly, setIsYearly] = useState(false);
+  const [trialDays, setTrialDays] = useState(45);
 
   const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
@@ -75,6 +76,9 @@ export default function PricingPage() {
       })
       .catch((e) => console.error("Failed to load pricing plans", e))
       .finally(() => setLoading(false));
+    api<{ trial_days: number }>("/platform/public/site-config/")
+      .then((d) => { if (d?.trial_days != null) setTrialDays(d.trial_days); })
+      .catch(() => {});
   }, []);
 
   return (
@@ -100,9 +104,13 @@ export default function PricingPage() {
             }}>
               Simple, transparent pricing
             </Typography>
-            <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, maxWidth: '600px', mx: 'auto', mb: 6, fontFamily: 'Outfit, sans-serif' }}>
+            <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, maxWidth: '600px', mx: 'auto', mb: 3, fontFamily: 'Outfit, sans-serif' }}>
               Choose the perfect plan for your retail business. No hidden fees.
             </Typography>
+
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 5, px: 2.5, py: 1, borderRadius: 999, bgcolor: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700 }}>
+              🎉 Start with a {trialDays}-day free trial — no card required
+            </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
               <Typography sx={{ fontWeight: 600, color: !isYearly ? COLORS.onSurface : COLORS.onSurfaceVariant }}>Monthly</Typography>
@@ -126,7 +134,14 @@ export default function PricingPage() {
             ) : (
               plans.map((plan) => {
                 const isPopular = plan.tier === 'professional';
-                const price = isYearly ? parseFloat(plan.price_yearly) / 12 : parseFloat(plan.price_monthly);
+                const monthly = parseFloat(plan.price_monthly) || 0;
+                const yearlyTotal = parseFloat(plan.price_yearly) || 0;
+                // Use the admin's yearly price if it's an actual discount; otherwise
+                // fall back to 20% off monthly so the toggle always shows a saving.
+                const hasRealYearly = yearlyTotal > 0 && yearlyTotal < monthly * 12;
+                const yearlyPerMonth = hasRealYearly ? yearlyTotal / 12 : monthly * 0.8;
+                const price = isYearly ? yearlyPerMonth : monthly;
+                const yearlyBilled = Math.round(yearlyPerMonth * 12);
 
                 return (
                   <Grid size={{ xs: 12, md: 4 }} key={plan.id} sx={{ display: 'flex' }}>
@@ -176,12 +191,19 @@ export default function PricingPage() {
                         <Typography variant="h5" sx={{ fontWeight: 800, mb: 1, fontFamily: 'Outfit, sans-serif', color: COLORS.onSurface }}>
                           {plan.name}
                         </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'baseline', mb: 4 }}>
-                          <Typography variant="h3" sx={{ fontWeight: 800, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
-                            ৳{price.toFixed(0)}
-                          </Typography>
-                          <Typography variant="body1" sx={{ color: COLORS.onSurfaceVariant, ml: 1, fontWeight: 500 }}>
-                            /mo
+                        <Box sx={{ mb: 4 }}>
+                          <Box sx={{ display: 'flex', alignItems: 'baseline' }}>
+                            <Typography variant="h3" sx={{ fontWeight: 800, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
+                              ৳{price.toFixed(0)}
+                            </Typography>
+                            <Typography variant="body1" sx={{ color: COLORS.onSurfaceVariant, ml: 1, fontWeight: 500 }}>
+                              /mo
+                            </Typography>
+                          </Box>
+                          <Typography sx={{ fontSize: '0.85rem', color: COLORS.onSurfaceVariant, mt: 0.5, minHeight: '1.2rem' }}>
+                            {isYearly
+                              ? <>Billed ৳{yearlyBilled.toLocaleString()}/year · <span style={{ color: '#059669', fontWeight: 700 }}>save 20%</span></>
+                              : <>Billed monthly · {trialDays}-day free trial</>}
                           </Typography>
                         </Box>
 

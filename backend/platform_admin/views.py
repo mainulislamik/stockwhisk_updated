@@ -1408,6 +1408,16 @@ class PublicPricingPlanViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = PublicPricingPlanSerializer
     queryset = SubscriptionPlan.objects.filter(is_active=True).order_by('price_monthly')
 
+
+class PublicSiteConfigView(APIView):
+    """Public marketing config (no auth) — currently the free-trial length, so
+    the homepage / pricing page reflect the Platform Settings value."""
+    permission_classes = []
+    authentication_classes = []
+
+    def get(self, request):
+        return Response({"trial_days": PlatformConfig.get_solo().default_trial_days})
+
 from .mail_service import MailServerConfigService
 
 class MailAccountView(APIView):

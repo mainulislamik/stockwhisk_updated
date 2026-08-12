@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { Box, Typography, Button, Container, Stack, Grid } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
+import { api } from "@/lib/api";
 import { M } from "@/lib/marketing";
 
 const FEATURES = [
@@ -13,13 +15,6 @@ const FEATURES = [
   { icon: "bi-graph-up-arrow", title: "Sales & Reports", desc: "Daily sales, profit margins, top products and exportable reports — clarity at a glance." },
   { icon: "bi-people", title: "Customers & Suppliers", desc: "Customer dues, supplier balances, EMI installments and full purchase history in one place." },
   { icon: "bi-diagram-3", title: "Multi-branch & Staff", desc: "Run multiple outlets, add staff with roles and permissions, keep every branch in sync." },
-];
-
-const STATS = [
-  { value: "45-day", label: "Free trial" },
-  { value: "< 30s", label: "Per checkout" },
-  { value: "24/7", label: "Cloud access" },
-  { value: "100%", label: "Data ownership" },
 ];
 
 const btnPrimary = {
@@ -47,6 +42,20 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
 }
 
 export default function LandingPage() {
+  const [trialDays, setTrialDays] = useState(45);
+  useEffect(() => {
+    api<{ trial_days: number }>("/platform/public/site-config/")
+      .then((d) => { if (d?.trial_days != null) setTrialDays(d.trial_days); })
+      .catch(() => {});
+  }, []);
+
+  const STATS = [
+    { value: `${trialDays}-day`, label: "Free trial" },
+    { value: "< 30s", label: "Per checkout" },
+    { value: "24/7", label: "Cloud access" },
+    { value: "100%", label: "Data ownership" },
+  ];
+
   return (
     <PublicThemeProvider>
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: M.surface, color: M.text, fontFamily: "Outfit, sans-serif" }}>

@@ -32,6 +32,7 @@ from .views import (
     SmtpSettingsView,
     TestSmtpConnectionView,
     TestContactSmtpView,
+    PublicSiteConfigView,
 )
 
 app_name = "platform_admin"
@@ -69,6 +70,7 @@ urlpatterns = [
     path("mail-accounts/sso/", MailSSOView.as_view(), name="mail-accounts-sso"),
     path("mail-accounts/sso-redirect/", MailSSORedirectView.as_view(), name="mail-sso-redirect"),
     path("public/contact/", PublicContactView.as_view(), name="public-contact"),
+    path("public/site-config/", PublicSiteConfigView.as_view(), name="public-site-config"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]
