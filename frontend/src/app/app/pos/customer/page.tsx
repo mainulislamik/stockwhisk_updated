@@ -339,19 +339,15 @@ export default function PosCustomerPage() {
                     <button className="btn btn-primary btn-lg rounded-3 fw-semibold" onClick={() => router.push(`/invoice/${saleResult.id}`)}>
                       <i className="bi bi-printer me-2"></i> Print invoice
                     </button>
-                    {waEnabled && (
-                      <>
-                        <a
-                          className={`btn btn-lg rounded-3 fw-semibold text-white ${hasPhone ? "" : "disabled"}`}
-                          style={{ background: "#25D366" }}
-                          href={hasPhone ? waUrl : undefined}
-                          target="_blank" rel="noreferrer"
-                          aria-disabled={!hasPhone}
-                        >
-                          <i className="bi bi-whatsapp me-2"></i> Send invoice on WhatsApp
-                        </a>
-                        {!hasPhone && <div className="form-text small text-center">No valid phone number for this customer.</div>}
-                      </>
+                    {waEnabled && hasPhone && (
+                      <a
+                        className="btn btn-lg rounded-3 fw-semibold text-white"
+                        style={{ background: "#25D366" }}
+                        href={waUrl}
+                        target="_blank" rel="noreferrer"
+                      >
+                        <i className="bi bi-whatsapp me-2"></i> Send invoice on WhatsApp
+                      </a>
                     )}
                   </div>
                 </div>

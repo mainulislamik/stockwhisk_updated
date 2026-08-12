@@ -78,13 +78,14 @@ export default function SaleDetailPage() {
               + (pdf ? `📄 Download your invoice PDF:\n${pdf}\n\n` : "")
               + `We appreciate your business. 🙏`;
             const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
+            if (!hasPhone) return null;
             return (
               <a
-                className={`btn btn-sm text-white ${hasPhone ? "" : "disabled"}`}
+                className="btn btn-sm text-white"
                 style={{ background: "#25D366" }}
-                href={hasPhone ? waUrl : undefined}
+                href={waUrl}
                 target="_blank" rel="noreferrer"
-                title={hasPhone ? "Send invoice on WhatsApp" : "No phone number on this invoice"}
+                title="Send invoice on WhatsApp"
               >
                 <i className="bi bi-whatsapp me-1"></i> WhatsApp
               </a>
