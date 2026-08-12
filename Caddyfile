@@ -1,29 +1,49 @@
+{
+	# Position the rate-limit handler in the directive order.
+	order rate_limit before basicauth
+}
+
 stockwhisk.com, www.stockwhisk.com {
-    handle_path /media/* {
-        root * /app/media
-        file_server
-    }
-    handle_path /static/* {
-        root * /app/staticfiles
-        file_server
-    }
-    handle /api/* {
-        reverse_proxy backend:8000
-    }
-    handle /admin/* {
-        reverse_proxy backend:8000
-    }
-    handle {
-        reverse_proxy frontend:3000
-    }
+	# Reject oversized request bodies early (cheap DoS via huge uploads).
+	request_body {
+		max_size 20MB
+	}
+
+	# Per-IP flood guard for the whole site. A normal visitor never approaches
+	# this; a load test / scripted flood from one IP is capped and gets HTTP 429
+	# before it ever reaches Django + Postgres.
+	rate_limit {
+		zone sw_perip {
+			key    {remote_host}
+			events 300
+			window 10s
+		}
+	}
+
+	handle_path /media/* {
+		root * /app/media
+		file_server
+	}
+	handle_path /static/* {
+		root * /app/staticfiles
+		file_server
+	}
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle /admin/* {
+		reverse_proxy backend:8000
+	}
+	handle {
+		reverse_proxy frontend:3000
+	}
 }
 
 mail.stockwhisk.com {
-    handle /sso* {
-        reverse_proxy backend:8000
-    }
-    handle {
-        reverse_proxy roundcube:80
-    }
+	handle /sso* {
+		reverse_proxy backend:8000
+	}
+	handle {
+		reverse_proxy roundcube:80
+	}
 }
-

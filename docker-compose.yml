@@ -174,7 +174,7 @@ services:
           memory: 384M
 
   caddy:
-    image: caddy:2-alpine
+    build: ./caddy
     restart: unless-stopped
     ports:
       - "80:80"

@@ -205,10 +205,16 @@ REST_FRAMEWORK = {
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.UserRateThrottle",
         "rest_framework.throttling.AnonRateThrottle",
+        # Short-window burst caps (reject sudden floods / load tests fast).
+        "core.throttling.BurstUserThrottle",
+        "core.throttling.BurstAnonThrottle",
     ],
     "DEFAULT_THROTTLE_RATES": {
         "user": env("API_USER_THROTTLE", "2000/hour"),
         "anon": env("API_ANON_THROTTLE", "120/hour"),
+        # Per-minute burst guards on top of the sustained hourly limits.
+        "burst_user": env("API_USER_BURST", "180/min"),
+        "burst_anon": env("API_ANON_BURST", "40/min"),
         "public_api": "600/hour",
         "public_api_enterprise": "5000/hour",
         # Brute-force guard for the JWT token endpoints (per client IP).
