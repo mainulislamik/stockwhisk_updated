@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, Switch } from '@mui/material';
 import MarketingNav from '@/components/MarketingNav';
+import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
 const LIGHT_COLORS = {
   surface: '#f8fafc',
@@ -77,6 +78,7 @@ export default function PricingPage() {
   }, []);
 
   return (
+    <PublicThemeProvider>
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
       
       {/* Navigation */}
@@ -262,5 +264,6 @@ export default function PricingPage() {
         </Container>
       </Box>
     </Box>
+    </PublicThemeProvider>
   );
 }

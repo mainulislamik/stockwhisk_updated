@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Box, Typography, Button, Container, Grid, Card, CardContent, TextField, Stack } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
+import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { api } from "@/lib/api";
 import { M } from "@/lib/marketing";
 
@@ -56,6 +57,7 @@ export default function ContactPage() {
   ];
 
   return (
+    <PublicThemeProvider>
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: "Outfit, sans-serif" }}>
       <MarketingNav />
 
@@ -163,5 +165,6 @@ export default function ContactPage() {
         </Container>
       </Box>
     </Box>
+    </PublicThemeProvider>
   );
 }

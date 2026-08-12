@@ -7,6 +7,7 @@ import { api, setTokens } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment, MenuItem } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import MarketingNav from '@/components/MarketingNav';
+import PublicThemeProvider from '@/components/PublicThemeProvider';
 import LockIcon from '@mui/icons-material/Lock';
 import PersonIcon from '@mui/icons-material/Person';
 import StoreIcon from '@mui/icons-material/Store';
@@ -163,7 +164,7 @@ export default function RegisterPage() {
   };
 
   return (
-    <>
+    <PublicThemeProvider>
     <MarketingNav />
     <Box sx={{ minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
       {/* Left Side: Brand Imagery */}
@@ -463,6 +464,6 @@ export default function RegisterPage() {
         </Box>
       </Box>
     </Box>
-    </>
+    </PublicThemeProvider>
   );
 }

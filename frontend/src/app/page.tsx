@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Grid } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
+import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { M } from "@/lib/marketing";
 
 const FEATURES = [
@@ -47,6 +48,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
 
 export default function LandingPage() {
   return (
+    <PublicThemeProvider>
     <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: M.surface, color: M.text, fontFamily: "Outfit, sans-serif" }}>
       <MarketingNav />
 
@@ -237,5 +239,6 @@ export default function LandingPage() {
         </Container>
       </Box>
     </Box>
+    </PublicThemeProvider>
   );
 }

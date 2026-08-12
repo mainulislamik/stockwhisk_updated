@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Avatar } from '@mui/material';
 import MarketingNav from '@/components/MarketingNav';
+import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api } from "@/lib/api";
 const LIGHT_COLORS = {
   surface: '#f8fafc',
@@ -66,6 +67,7 @@ export default function BlogDetailPage() {
   if (!mounted) return null;
 
   return (
+    <PublicThemeProvider>
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
       
       {/* Navigation */}
@@ -147,5 +149,6 @@ export default function BlogDetailPage() {
         </Container>
       </Box>
     </Box>
+    </PublicThemeProvider>
   );
 }

@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import MarketingNav from '@/components/MarketingNav';
+import PublicThemeProvider from '@/components/PublicThemeProvider';
 import LockIcon from '@mui/icons-material/Lock';
 
 export default function LoginPage() {
@@ -36,7 +37,7 @@ export default function LoginPage() {
   const isDark = false;
 
   return (
-    <>
+    <PublicThemeProvider>
     <MarketingNav />
     <Box sx={{ minHeight: 'calc(100vh - 64px)', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
       {/* Left Side: Brand Imagery */}
@@ -224,6 +225,6 @@ export default function LoginPage() {
         </Box>
       </Box>
     </Box>
-    </>
+    </PublicThemeProvider>
   );
 }

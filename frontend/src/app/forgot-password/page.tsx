@@ -8,6 +8,7 @@ import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, Ico
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
+import PublicThemeProvider from '@/components/PublicThemeProvider';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
@@ -112,6 +113,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
+    <PublicThemeProvider>
     <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: { xs: 'column', md: 'row' } }}>
       {/* Left Side: Brand Imagery */}
       <Box 
@@ -411,5 +413,6 @@ export default function ForgotPasswordPage() {
         </Box>
       </Box>
     </Box>
+    </PublicThemeProvider>
   );
 }
