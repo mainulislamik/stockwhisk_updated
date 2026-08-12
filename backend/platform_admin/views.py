@@ -614,6 +614,64 @@ class ContactMessageViewSet(viewsets.ReadOnlyModelViewSet):
         return Response({"status": "deleted"})
 
 
+class PublicContactCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = ContactMessage
+        fields = ["name", "email", "phone", "subject", "message"]
+
+
+class PublicContactView(APIView):
+    """Public contact-form endpoint. Anyone can POST a message; it is stored for
+    the Super Admin inbox and emailed to the contact address. No auth (and no
+    session auth, so no CSRF) — it is an unauthenticated public form."""
+
+    permission_classes = []
+    authentication_classes = []
+
+    CONTACT_TO = "contact@stockwhisk.com"
+
+    def post(self, request):
+        # Honeypot: real users never fill a hidden "website" field; bots do.
+        if (request.data.get("website") or "").strip():
+            return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
+
+        ser = PublicContactCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        msg = ser.save()
+
+        try:
+            from notifications.channels import send_html_email
+            subject = f"New contact message from {msg.name}"
+            if msg.subject:
+                subject += f" — {msg.subject}"
+            text = (
+                f"Name: {msg.name}\n"
+                f"Email: {msg.email}\n"
+                f"Phone: {msg.phone or '—'}\n"
+                f"Subject: {msg.subject or '—'}\n\n"
+                f"{msg.message}\n"
+            )
+            html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
+              <h2 style="color:#1B3C53">📨 New Contact Message</h2>
+              <table style="width:100%;border-collapse:collapse;font-size:14px">
+                <tr><td style="padding:6px 0;color:#666">Name</td><td style="padding:6px 0"><b>{msg.name}</b></td></tr>
+                <tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0"><a href="mailto:{msg.email}">{msg.email}</a></td></tr>
+                <tr><td style="padding:6px 0;color:#666">Phone</td><td style="padding:6px 0">{msg.phone or '—'}</td></tr>
+                <tr><td style="padding:6px 0;color:#666">Subject</td><td style="padding:6px 0">{msg.subject or '—'}</td></tr>
+              </table>
+              <p style="margin-top:16px;padding:14px;background:#f6f8fa;border-radius:8px;white-space:pre-wrap">{msg.message}</p>
+              <p style="color:#999;font-size:12px">Sent from the StockWhisk contact page.</p>
+            </div>
+            """
+            send_html_email(self.CONTACT_TO, subject, text, html)
+        except Exception:
+            # Message is already stored; never fail the user's submission on email.
+            pass
+
+        return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
+
+
 # --- Tutorial videos ---------------------------------------------------------
 
 class TutorialVideoSerializer(serializers.ModelSerializer):

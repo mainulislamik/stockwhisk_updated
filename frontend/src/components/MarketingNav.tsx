@@ -41,6 +41,7 @@ export default function MarketingNav() {
             <Button component={Link} href="/" sx={link}>Home</Button>
             <Button component={Link} href="/pricing" sx={link}>Pricing</Button>
             <Button component={Link} href="/blog" sx={link}>Blog</Button>
+            <Button component={Link} href="/contact" sx={link}>Contact</Button>
             {mounted && isLoggedIn ? (
               <Button component={Link} href="/app" sx={cta}>Dashboard</Button>
             ) : (

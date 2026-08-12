@@ -13,6 +13,7 @@ from .views import (
     DriveAuthCallbackView,
     TriggerDriveBackupView,
     ContactMessageViewSet,
+    PublicContactView,
     ManualPaymentAdminViewSet,
     PlanView,
     PlatformDashboardView,
@@ -65,6 +66,7 @@ urlpatterns = [
     path("mail-accounts/", MailAccountView.as_view(), name="mail-accounts"),
     path("mail-accounts/sso/", MailSSOView.as_view(), name="mail-accounts-sso"),
     path("mail-accounts/sso-redirect/", MailSSORedirectView.as_view(), name="mail-sso-redirect"),
+    path("public/contact/", PublicContactView.as_view(), name="public-contact"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]
