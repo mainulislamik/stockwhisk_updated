@@ -219,13 +219,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <header className="topbar px-3 py-3 d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center gap-2">
             <button
-              className="btn btn-sm btn-outline-light d-md-none border-0"
+              className="btn btn-sm d-md-none border-0 p-1"
               type="button"
               data-bs-toggle="offcanvas"
               data-bs-target="#mobileNav"
               aria-label="Open navigation menu"
+              style={{ color: "var(--topbar-color)" }}
             >
-              <i className="bi bi-list fs-4"></i>
+              <i className="bi bi-list fs-3"></i>
             </button>
             <div className="fw-semibold text-truncate" id="page-heading"></div>
           </div>
