@@ -34,6 +34,7 @@ export default function MarketingNav() {
   const navLinks = [
     { href: "/", label: "Home" },
     { href: "/pricing", label: "Pricing" },
+    { href: "/demo", label: "Live Demo" },
     { href: "/blog", label: "Blog" },
     { href: "/contact", label: "Contact" },
   ];

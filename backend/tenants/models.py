@@ -147,6 +147,9 @@ class Shop(TimeStampedModel):
     is_active = models.BooleanField(default=True)
     # Test/demo shop: its subscription revenue is excluded from platform totals.
     is_test = models.BooleanField(default=False)
+    # Public read-only demo shop. Users of a demo shop can browse everything but
+    # every write (POST/PUT/PATCH/DELETE) is blocked by DemoReadOnlyMiddleware.
+    is_demo = models.BooleanField(default=False)
     # When the shop was last suspended (is_active flipped to False). Used to
     # enforce a cool-off before a shop can be permanently deleted.
     suspended_at = models.DateTimeField(null=True, blank=True)

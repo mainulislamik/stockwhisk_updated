@@ -94,6 +94,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    # Block writes from read-only demo-shop users (resolves JWT itself).
+    "accounts.middleware.DemoReadOnlyMiddleware",
     # Both run AFTER auth so request.user is available.
     "accounts.middleware.LastSeenMiddleware",
     "core.middleware.TenantMiddleware",

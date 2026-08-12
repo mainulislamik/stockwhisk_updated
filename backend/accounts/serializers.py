@@ -52,6 +52,7 @@ class UserSerializer(serializers.ModelSerializer):
     shop_emi_enabled = serializers.BooleanField(source="shop.emi_enabled", read_only=True, default=False)
     shop_delivery_enabled = serializers.BooleanField(source="shop.delivery_enabled", read_only=True, default=True)
     shop_whatsapp_enabled = serializers.BooleanField(source="shop.whatsapp_invoice_enabled", read_only=True, default=True)
+    shop_is_demo = serializers.BooleanField(source="shop.is_demo", read_only=True, default=False)
     shop_barcode_prefix = serializers.CharField(source="shop.effective_barcode_prefix", read_only=True, default="")
 
     class Meta:
@@ -59,9 +60,9 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
-            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_barcode_prefix", "branch", "is_staff",
+            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_barcode_prefix", "branch", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff"]
 
     def get_shop_logo(self, obj):
         if obj.shop and obj.shop.logo:

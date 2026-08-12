@@ -216,6 +216,16 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </button>
           </div>
         )}
+        {mounted && user?.shop_is_demo && (
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "#059669" }}>
+            <span className="small">
+              🔴 <strong>Demo mode</strong> — you can browse everything, but changes are disabled (read-only).
+            </span>
+            <button className="btn btn-light btn-sm py-0" onClick={logout}>
+              ← Exit demo
+            </button>
+          </div>
+        )}
         <header className="topbar px-3 py-3 d-flex align-items-center justify-content-between">
           <div className="d-flex align-items-center gap-2">
             <button
