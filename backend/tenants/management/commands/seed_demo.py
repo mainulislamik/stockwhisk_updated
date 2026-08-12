@@ -18,15 +18,16 @@ DEMO_EMAIL = "admin@demo.stockwhisk.com"
 DEMO_PASSWORD = "admin"
 
 PRODUCTS = [
-    # name, category, barcode, cost, price, warranty_months, stock
-    ("A4TECH KRS-82 Wired Keyboard", "Accessories", "DEMO100001", 700, 1100, 12, 40),
-    ("Logitech M170 Wireless Mouse", "Accessories", "DEMO100002", 550, 850, 12, 60),
-    ("HP 65W Laptop Adapter", "Accessories", "DEMO100003", 400, 700, 6, 35),
-    ("Samsung 24\" LED Monitor", "Electronics", "DEMO100004", 9500, 12500, 24, 12),
-    ("TP-Link Archer C6 Router", "Electronics", "DEMO100005", 2200, 3200, 12, 20),
-    ("Sandisk 64GB Pendrive", "Accessories", "DEMO100006", 450, 750, 60, 100),
-    ("Xiaomi 10000mAh Power Bank", "Electronics", "DEMO100007", 1300, 1900, 6, 25),
-    ("HDMI 1.5m Cable", "Accessories", "DEMO100008", 120, 300, 0, 150),
+    # name, category, barcode, cost, price, warranty_months, stock (generous so
+    # the seeded sales never run a product out of stock)
+    ("A4TECH KRS-82 Wired Keyboard", "Accessories", "DEMO100001", 700, 1100, 12, 200),
+    ("Logitech M170 Wireless Mouse", "Accessories", "DEMO100002", 550, 850, 12, 200),
+    ("HP 65W Laptop Adapter", "Accessories", "DEMO100003", 400, 700, 6, 200),
+    ("Samsung 24\" LED Monitor", "Electronics", "DEMO100004", 9500, 12500, 24, 150),
+    ("TP-Link Archer C6 Router", "Electronics", "DEMO100005", 2200, 3200, 12, 150),
+    ("Sandisk 64GB Pendrive", "Accessories", "DEMO100006", 450, 750, 60, 300),
+    ("Xiaomi 10000mAh Power Bank", "Electronics", "DEMO100007", 1300, 1900, 6, 150),
+    ("HDMI 1.5m Cable", "Accessories", "DEMO100008", 120, 300, 0, 300),
 ]
 
 CUSTOMERS = [
@@ -104,22 +105,75 @@ class Command(BaseCommand):
         # Customers
         custs = [Customer.all_objects.create(shop_id=shop.id, name=n, phone=ph, address=a) for n, ph, a in CUSTOMERS]
 
-        # A handful of sales (some fully paid, one partial → shows a due)
-        def sell(items, customer, pay_ratio=1.0):
+        # Sales spread over the last ~25 days so dashboards/charts show a trend.
+        import random
+        from datetime import timedelta as _td
+        from django.utils import timezone as _tz
+        random.seed(42)  # deterministic demo
+
+        def sell(items, customer, pay_ratio, days_ago, method="cash"):
             total = sum(Decimal(q) * Decimal(pr) for _, q, pr in items)
+            amount = (total * Decimal(str(pay_ratio))).quantize(Decimal("1"))
             create_sale(
                 shop=shop,
                 items=[{"product": p, "quantity": Decimal(q), "unit_price": Decimal(pr)} for p, q, pr in items],
                 customer=customer,
-                payments=[{"amount": (total * Decimal(str(pay_ratio))).quantize(Decimal("1")), "method": "cash"}],
+                payments=[{"amount": amount, "method": method}] if amount > 0 else [],
                 created_by=owner,
+                sale_date=_tz.now() - _td(days=days_ago),
             )
 
-        sell([(prods[0], 1, 1100), (prods[1], 2, 850)], custs[0], 1.0)
-        sell([(prods[3], 1, 12500)], custs[1], 0.5)      # partial → due
-        sell([(prods[5], 3, 750), (prods[7], 2, 300)], custs[2], 1.0)
-        sell([(prods[4], 1, 3200)], None, 1.0)            # walk-in
+        methods = ["cash", "bkash", "card", "nagad"]
+        n_sales = 0
+        for d in range(25, -1, -1):
+            # 0–3 sales per day
+            for _ in range(random.randint(0, 3)):
+                picks = random.sample(prods, random.randint(1, 3))
+                items = [(p, random.randint(1, 2), int(p.selling_price)) for p in picks]
+                cust = random.choice(custs + [None, None])  # some walk-ins
+                ratio = random.choice([1.0, 1.0, 1.0, 0.5, 0.0])  # some dues
+                sell(items, cust, ratio, d, random.choice(methods))
+                n_sales += 1
+
+        # ── Warranties (mix of active / expiring / expired) ──
+        from service.models import ServiceTicket, Warranty
+        warr_specs = [
+            (prods[3], custs[0], 24, 20),   # active
+            (prods[4], custs[1], 12, 40),   # active
+            (prods[6], custs[2], 6, 160),   # expired
+            (prods[0], custs[0], 12, 350),  # expired
+            (prods[3], custs[1], 24, 5),    # fresh
+            (prods[6], custs[2], 6, 155),   # expiring soon
+        ]
+        warranties = []
+        for prod, cust, months, days_ago in warr_specs:
+            w = Warranty.all_objects.create(
+                shop_id=shop.id, product=prod, customer=cust,
+                serial_no=f"SN-{prod.id}{days_ago:04d}", period_months=months,
+                start_date=(_tz.now() - _td(days=days_ago)).date(),
+            )
+            warranties.append(w)
+
+        # ── Service / repair tickets ──
+        ticket_specs = [
+            ("HP Laptop 15s", "laptop", "screen", "in_repair", 1500, custs[0], 3),
+            ("Dell Optiplex Desktop", "desktop", "power", "diagnosing", 800, custs[1], 1),
+            ("Samsung Galaxy A54", "phone", "battery", "ready_for_pickup", 1200, custs[2], 5),
+            ("Asus TUF Gaming", "laptop", "software", "delivered", 900, custs[0], 12),
+            ("iPad Air", "tablet", "liquid", "awaiting_parts", 2500, custs[1], 2),
+            ("PS5 Console", "console", "power", "received", 0, None, 0),
+        ]
+        for i, (device, dtype, itype, status, charge, cust, days_ago) in enumerate(ticket_specs, start=1):
+            ServiceTicket.all_objects.create(
+                shop_id=shop.id, ticket_no=f"SVC-{i:06d}",
+                customer=cust, customer_name="" if cust else "Walk-in",
+                device_description=device, device_type=dtype, issue_type=itype,
+                complaint=f"Reported issue: {itype} on {device}.",
+                status=status, service_charge=Decimal(charge),
+                received_at=_tz.now() - _td(days=days_ago),
+            )
 
         self.stdout.write(self.style.SUCCESS(
-            f"Demo ready: shop #{shop.id}, {len(prods)} products, {len(custs)} customers, 4 sales."
+            f"Demo ready: shop #{shop.id}, {len(prods)} products, {len(custs)} customers, "
+            f"{n_sales} sales, {len(warranties)} warranties, {len(ticket_specs)} service tickets."
         ))

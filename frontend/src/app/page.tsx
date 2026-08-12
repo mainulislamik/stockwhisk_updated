@@ -93,6 +93,11 @@ export default function LandingPage() {
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
                 <Button component={Link} href="/register" sx={btnPrimary}>Start free trial</Button>
+                <Button component={Link} href="/demo" sx={{
+                  bgcolor: "#059669", color: "#fff", fontWeight: 700, textTransform: "none",
+                  borderRadius: "12px", px: 4, py: 1.5, fontSize: "1rem",
+                  boxShadow: "0 10px 24px -8px rgba(5,150,105,.6)", "&:hover": { bgcolor: "#047857" },
+                }}>▶ Try Live Demo</Button>
                 <Button component={Link} href="/pricing" sx={btnGhost}>See pricing</Button>
               </Stack>
             </Box>
