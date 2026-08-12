@@ -16,6 +16,9 @@ type Plan = {
   max_products: number;
   features: Record<string, boolean>;
   highlights: string[];
+  show_users: boolean;
+  show_branches: boolean;
+  show_products: boolean;
   is_active: boolean;
 };
 
@@ -94,6 +97,7 @@ export default function PlansPage() {
           name: plan.name, tier: plan.tier,
           price_monthly: plan.price_monthly, price_yearly: plan.price_yearly,
           max_users: plan.max_users, max_branches: plan.max_branches, max_products: plan.max_products,
+          show_users: plan.show_users, show_branches: plan.show_branches, show_products: plan.show_products,
           features: plan.features, highlights: plan.highlights || [], is_active: plan.is_active,
         },
       });
@@ -114,7 +118,8 @@ export default function PlansPage() {
         body: {
           name: TIER_LABEL[freeTier]?.split(" ")[0] || "New Package", tier: freeTier,
           price_monthly: 0, price_yearly: 0, max_users: 2, max_branches: 1, max_products: 100,
-          features: keys.reduce((a, k) => ({ ...a, [k]: false }), {}), highlights: [], is_active: false,
+          features: keys.reduce((a, k) => ({ ...a, [k]: false }), {}), highlights: [],
+          show_users: true, show_branches: true, show_products: true, is_active: false,
         },
       });
       setPlans((ps) => [...ps, created]);
@@ -278,9 +283,12 @@ export default function PlansPage() {
                   </div>
                   <Num c="col-6" label="৳ / month" v={plan.price_monthly} on={(v) => upd(plan.id, { price_monthly: v })} />
                   <Num c="col-6" label="৳ / year" v={plan.price_yearly} on={(v) => upd(plan.id, { price_yearly: v })} />
-                  <Num c="col-6" label="Max users" v={plan.max_users} on={(v) => upd(plan.id, { max_users: Number(v) })} />
-                  <Num c="col-6" label="Max branches" v={plan.max_branches} on={(v) => upd(plan.id, { max_branches: Number(v) })} />
-                  <Num c="col-6" label="Max products" v={plan.max_products} on={(v) => upd(plan.id, { max_products: Number(v) })} />
+                  <LimitNum c="col-6" label="Max users" v={plan.max_users} show={plan.show_users}
+                    on={(v) => upd(plan.id, { max_users: Number(v) })} onShow={(b) => upd(plan.id, { show_users: b })} id={`u-${plan.id}`} />
+                  <LimitNum c="col-6" label="Max branches" v={plan.max_branches} show={plan.show_branches}
+                    on={(v) => upd(plan.id, { max_branches: Number(v) })} onShow={(b) => upd(plan.id, { show_branches: b })} id={`b-${plan.id}`} />
+                  <LimitNum c="col-6" label="Max products" v={plan.max_products} show={plan.show_products}
+                    on={(v) => upd(plan.id, { max_products: Number(v) })} onShow={(b) => upd(plan.id, { show_products: b })} id={`p-${plan.id}`} />
                 </div>
 
                 <label className="form-label small fw-bold">Features</label>
@@ -331,6 +339,23 @@ function Num({ c, label, v, on }: { c: string; label: string; v: string | number
     <div className={c}>
       <label className="form-label small fw-medium">{label}</label>
       <input className="form-control" type="number" step="0.01" value={v} onChange={(e) => on(e.target.value)} />
+    </div>
+  );
+}
+
+function LimitNum({ c, label, v, show, on, onShow, id }: {
+  c: string; label: string; v: number; show: boolean; on: (v: string) => void; onShow: (b: boolean) => void; id: string;
+}) {
+  return (
+    <div className={c}>
+      <div className="d-flex align-items-center justify-content-between">
+        <label className="form-label small fw-medium mb-0">{label}</label>
+        <div className="form-check form-switch mb-0" title="Show this line on the pricing page">
+          <input className="form-check-input" type="checkbox" role="switch" id={`show-${id}`} checked={show} onChange={(e) => onShow(e.target.checked)} />
+          <label className="form-check-label small text-secondary" htmlFor={`show-${id}`}>Show</label>
+        </div>
+      </div>
+      <input className={`form-control ${show ? "" : "opacity-50"}`} type="number" value={v} onChange={(e) => on(e.target.value)} />
     </div>
   );
 }

@@ -45,6 +45,9 @@ type PricingPlan = {
   max_branches: number;
   max_products: number;
   highlights?: string[];
+  show_users?: boolean;
+  show_branches?: boolean;
+  show_products?: boolean;
 };
 
 type PricingContent = {
@@ -297,9 +300,9 @@ export default function PricingPage() {
                           {(plan.highlights && plan.highlights.length > 0
                             ? plan.highlights
                             : [
-                                `Up to ${plan.max_users} Users`,
-                                `${plan.max_branches} ${plan.max_branches > 1 ? 'Branches' : 'Branch'}`,
-                                `${plan.max_products} Products Limit`,
+                                ...(plan.show_users !== false ? [`Up to ${plan.max_users} Users`] : []),
+                                ...(plan.show_branches !== false ? [`${plan.max_branches} ${plan.max_branches > 1 ? 'Branches' : 'Branch'}`] : []),
+                                ...(plan.show_products !== false ? [`${plan.max_products} Products Limit`] : []),
                                 ...Object.entries(plan.features).filter(([, v]) => v).map(([k]) => FEATURE_LABELS[k] || k),
                               ]
                           ).map((line, i) => (

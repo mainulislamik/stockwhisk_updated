@@ -588,7 +588,9 @@ class PlanAdminSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubscriptionPlan
         fields = ["id", "name", "tier", "price_monthly", "price_yearly",
-                  "max_users", "max_branches", "max_products", "features", "highlights", "is_active"]
+                  "max_users", "max_branches", "max_products",
+                  "show_users", "show_branches", "show_products",
+                  "features", "highlights", "is_active"]
 
     def validate_highlights(self, value):
         if isinstance(value, list):
@@ -1483,7 +1485,8 @@ class PublicPricingPlanSerializer(serializers.ModelSerializer):
         model = SubscriptionPlan
         fields = [
             "id", "name", "tier", "price_monthly", "price_yearly",
-            "features", "max_users", "max_branches", "max_products", "highlights"
+            "features", "max_users", "max_branches", "max_products", "highlights",
+            "show_users", "show_branches", "show_products"
         ]
 
 class PublicPricingPlanViewSet(viewsets.ReadOnlyModelViewSet):

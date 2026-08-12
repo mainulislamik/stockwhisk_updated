@@ -61,6 +61,11 @@ class SubscriptionPlan(TimeStampedModel):
     # entry). When empty, the card falls back to the auto limits + feature flags.
     highlights = models.JSONField(default=list, blank=True)
 
+    # Whether each limit line appears in the auto feature list on the pricing card.
+    show_users = models.BooleanField(default=True)
+    show_branches = models.BooleanField(default=True)
+    show_products = models.BooleanField(default=True)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:
