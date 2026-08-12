@@ -165,6 +165,10 @@ a:hover { color: var(--brand-400); }
   border-bottom: var(--topbar-border) !important;
   color: var(--topbar-color) !important;
   transition: all 0.3s ease;
+  /* backdrop-filter makes this a stacking context; lift it above the page so the
+     search dropdown (rendered inside) isn't painted over by the content below. */
+  position: relative;
+  z-index: 1040;
 }
 
 /* Sidebar */
