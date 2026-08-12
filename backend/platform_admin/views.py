@@ -579,6 +579,84 @@ class PlanView(APIView):
         return Response({"plan": self._serialize(plan), "feature_keys": FEATURE_KEYS})
 
 
+class PlanAdminSerializer(serializers.ModelSerializer):
+    """Full CRUD for subscription plans/packages. ``features`` accepts either a
+    list of enabled keys or a {key: bool} map and is normalized to a full map."""
+    features = serializers.JSONField(required=False)
+
+    class Meta:
+        model = SubscriptionPlan
+        fields = ["id", "name", "tier", "price_monthly", "price_yearly",
+                  "max_users", "max_branches", "max_products", "features", "is_active"]
+
+    def validate_features(self, value):
+        if isinstance(value, list):
+            return {k: (k in value) for k in FEATURE_KEYS}
+        if isinstance(value, dict):
+            return {k: bool(value.get(k)) for k in FEATURE_KEYS}
+        return {k: False for k in FEATURE_KEYS}
+
+
+class PlanAdminViewSet(viewsets.ModelViewSet):
+    """Manage multiple packages: create/edit/delete and toggle each plan's
+    ``is_active`` (whether it shows on the public pricing page)."""
+    permission_classes = [IsPlatformStaff]
+    serializer_class = PlanAdminSerializer
+    queryset = SubscriptionPlan.objects.all().order_by("price_monthly")
+
+    def list(self, request, *args, **kwargs):
+        data = self.get_serializer(self.get_queryset(), many=True).data
+        return Response({"plans": data, "feature_keys": FEATURE_KEYS,
+                         "tiers": [t[0] for t in SubscriptionPlan.Tier.choices]})
+
+    def destroy(self, request, *args, **kwargs):
+        plan = self.get_object()
+        if plan.shops.exists():
+            return Response(
+                {"detail": "This package is assigned to one or more shops and cannot be deleted. Deactivate it instead."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        return super().destroy(request, *args, **kwargs)
+
+
+class PromoOfferView(APIView):
+    """Upload / toggle / remove the promotional offer popup shown on the public
+    pricing page. Accepts an image or PDF (multipart)."""
+    permission_classes = [IsPlatformStaff]
+
+    @staticmethod
+    def _state(config, request):
+        url = None
+        if config.offer_file:
+            url = config.offer_file.url
+            if request is not None:
+                url = request.build_absolute_uri(url)
+        is_pdf = bool(config.offer_file and str(config.offer_file.name).lower().endswith(".pdf"))
+        return {"enabled": config.offer_enabled, "url": url, "is_pdf": is_pdf}
+
+    def get(self, request):
+        return Response(self._state(PlatformConfig.get_solo(), request))
+
+    def post(self, request):
+        config = PlatformConfig.get_solo()
+        if "offer_file" in request.FILES:
+            config.offer_file = request.FILES["offer_file"]
+        if "offer_enabled" in request.data:
+            val = request.data.get("offer_enabled")
+            config.offer_enabled = str(val).lower() == "true" or val is True
+        config.save()
+        return Response(self._state(config, request))
+
+    def delete(self, request):
+        config = PlatformConfig.get_solo()
+        if config.offer_file:
+            config.offer_file.delete(save=False)
+        config.offer_file = None
+        config.offer_enabled = False
+        config.save()
+        return Response(self._state(config, request))
+
+
 # --- Contact messages --------------------------------------------------------
 
 class ContactMessageSerializer(serializers.ModelSerializer):
@@ -1416,7 +1494,12 @@ class PublicSiteConfigView(APIView):
     authentication_classes = []
 
     def get(self, request):
-        return Response({"trial_days": PlatformConfig.get_solo().default_trial_days})
+        config = PlatformConfig.get_solo()
+        offer = None
+        if config.offer_enabled and config.offer_file:
+            url = request.build_absolute_uri(config.offer_file.url)
+            offer = {"url": url, "is_pdf": str(config.offer_file.name).lower().endswith(".pdf")}
+        return Response({"trial_days": config.default_trial_days, "offer": offer})
 
 from .mail_service import MailServerConfigService
 

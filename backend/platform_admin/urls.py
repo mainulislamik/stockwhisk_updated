@@ -33,6 +33,8 @@ from .views import (
     TestSmtpConnectionView,
     TestContactSmtpView,
     PublicSiteConfigView,
+    PlanAdminViewSet,
+    PromoOfferView,
 )
 
 app_name = "platform_admin"
@@ -46,6 +48,7 @@ router.register("tutorials", TutorialVideoViewSet, basename="admin-tutorials")
 router.register("blogs", BlogPostAdminViewSet, basename="admin-blogs")
 router.register("public/blogs", PublicBlogViewSet, basename="public-blogs")
 router.register("public/pricing", PublicPricingPlanViewSet, basename="public-pricing")
+router.register("plans-manage", PlanAdminViewSet, basename="admin-plans-manage")
 
 urlpatterns = [
     path("dashboard/", PlatformDashboardView.as_view(), name="dashboard"),
@@ -71,6 +74,7 @@ urlpatterns = [
     path("mail-accounts/sso-redirect/", MailSSORedirectView.as_view(), name="mail-sso-redirect"),
     path("public/contact/", PublicContactView.as_view(), name="public-contact"),
     path("public/site-config/", PublicSiteConfigView.as_view(), name="public-site-config"),
+    path("promo-offer/", PromoOfferView.as_view(), name="promo-offer"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]

@@ -95,6 +95,10 @@ class PlatformConfig(TimeStampedModel):
     contact_smtp_user = models.CharField(max_length=255, blank=True, default="")
     contact_smtp_password = models.CharField(max_length=255, blank=True, default="")
 
+    # Promotional offer shown as a popup on the public pricing page. Image or PDF.
+    offer_file = models.FileField(upload_to="offers/", blank=True, null=True)
+    offer_enabled = models.BooleanField(default=False)
+
     # Subscription: default trial length (days) granted to every new signup.
     default_trial_days = models.PositiveIntegerField(default=45)
 

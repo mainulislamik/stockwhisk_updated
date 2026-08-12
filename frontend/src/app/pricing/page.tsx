@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, Switch } from '@mui/material';
+import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, Switch, IconButton } from '@mui/material';
 import MarketingNav from '@/components/MarketingNav';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
@@ -64,6 +64,8 @@ export default function PricingPage() {
   const [loading, setLoading] = useState(true);
   const [isYearly, setIsYearly] = useState(false);
   const [trialDays, setTrialDays] = useState(45);
+  const [offer, setOffer] = useState<{ url: string; is_pdf: boolean } | null>(null);
+  const [showOffer, setShowOffer] = useState(false);
 
   const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
@@ -76,8 +78,11 @@ export default function PricingPage() {
       })
       .catch((e) => console.error("Failed to load pricing plans", e))
       .finally(() => setLoading(false));
-    api<{ trial_days: number }>("/platform/public/site-config/")
-      .then((d) => { if (d?.trial_days != null) setTrialDays(d.trial_days); })
+    api<{ trial_days: number; offer: { url: string; is_pdf: boolean } | null }>("/platform/public/site-config/")
+      .then((d) => {
+        if (d?.trial_days != null) setTrialDays(d.trial_days);
+        if (d?.offer?.url) { setOffer(d.offer); setShowOffer(true); }
+      })
       .catch(() => {});
   }, []);
 
@@ -87,6 +92,34 @@ export default function PricingPage() {
       
       {/* Navigation */}
       <MarketingNav />
+
+      {/* Promotional offer popup */}
+      {showOffer && offer && (
+        <Box
+          onClick={() => setShowOffer(false)}
+          sx={{ position: "fixed", inset: 0, zIndex: 1400, bgcolor: "rgba(15,23,42,0.7)",
+                display: "flex", alignItems: "center", justifyContent: "center", p: 2, backdropFilter: "blur(3px)" }}
+        >
+          <Box onClick={(e) => e.stopPropagation()} sx={{ position: "relative", maxWidth: 560, width: "100%",
+                bgcolor: "#fff", borderRadius: 4, overflow: "hidden", boxShadow: "0 40px 80px -30px rgba(0,0,0,.6)" }}>
+            <IconButton onClick={() => setShowOffer(false)} aria-label="Close"
+              sx={{ position: "absolute", top: 8, right: 8, zIndex: 2, bgcolor: "rgba(255,255,255,.9)",
+                    "&:hover": { bgcolor: "#fff" } }}>
+              <span style={{ fontSize: 20, lineHeight: 1, fontWeight: 700 }}>×</span>
+            </IconButton>
+            {offer.is_pdf ? (
+              <Box sx={{ p: 0 }}>
+                <iframe src={offer.url} title="Offer" style={{ width: "100%", height: "70vh", border: 0 }} />
+              </Box>
+            ) : (
+              <Box component="a" href={offer.url} target="_blank" rel="noreferrer" sx={{ display: "block" }}>
+                <Box component="img" src={offer.url} alt="Special offer"
+                  sx={{ width: "100%", height: "auto", display: "block" }} />
+              </Box>
+            )}
+          </Box>
+        </Box>
+      )}
 
       {/* Main Content */}
       <Box component="main" sx={{ flexGrow: 1, py: { xs: 6, md: 10 }, px: { xs: 2, md: 0 } }}>
