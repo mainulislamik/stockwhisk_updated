@@ -677,7 +677,7 @@ class PublicContactView(APIView):
             email.attach_alternative(html, "text/html")
             # fail_silently=False so a real SMTP error is logged below (not hidden).
             sent = email.send(fail_silently=False)
-            log.info("Contact email to %s sent=%s (from=%s)", self.CONTACT_TO, sent, from_email)
+            log.warning("Contact email to %s sent=%s (from=%s)", self.CONTACT_TO, sent, from_email)
         except Exception:
             log.exception("Contact email delivery failed (message #%s stored)", msg.id)
 

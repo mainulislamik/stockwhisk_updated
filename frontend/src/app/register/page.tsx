@@ -14,7 +14,6 @@ import PhoneIcon from '@mui/icons-material/Phone';
 import CategoryIcon from '@mui/icons-material/Category';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import { useThemeMode } from '@/components/ThemeRegistry';
 
 const SHOP_CATEGORIES = [
   { value: 'fashion', label: 'Fashion & Apparel' },
@@ -33,8 +32,7 @@ const SHOP_CATEGORIES = [
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { mode } = useThemeMode();
-  
+
   const [step, setStep] = useState(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -70,7 +68,7 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
 
-  const isDark = mode === 'dark';
+  const isDark = false;
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();

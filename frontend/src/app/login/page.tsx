@@ -9,12 +9,10 @@ import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, Ico
 import EmailIcon from '@mui/icons-material/Email';
 import MarketingNav from '@/components/MarketingNav';
 import LockIcon from '@mui/icons-material/Lock';
-import { useThemeMode } from '@/components/ThemeRegistry';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const router = useRouter();
-  const { mode } = useThemeMode();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -35,7 +33,7 @@ export default function LoginPage() {
     }
   }
 
-  const isDark = mode === 'dark';
+  const isDark = false;
 
   return (
     <>

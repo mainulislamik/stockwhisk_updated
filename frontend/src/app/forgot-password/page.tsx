@@ -5,16 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment, Stepper, Step, StepLabel } from '@mui/material';
-import LightModeIcon from '@mui/icons-material/LightMode';
-import DarkModeIcon from '@mui/icons-material/DarkMode';
 import EmailIcon from '@mui/icons-material/Email';
 import LockIcon from '@mui/icons-material/Lock';
 import VpnKeyIcon from '@mui/icons-material/VpnKey';
-import { useThemeMode } from '@/components/ThemeRegistry';
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const { mode, toggleTheme } = useThemeMode();
   const [step, setStep] = useState(0); // 0: Request OTP, 1: Verify OTP & Reset
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
 
@@ -45,7 +41,7 @@ export default function ForgotPasswordPage() {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
 
-  const isDark = mode === 'dark';
+  const isDark = false;
 
   async function handleRequestOTP(e?: React.FormEvent) {
     if (e) e.preventDefault();
@@ -164,14 +160,6 @@ export default function ForgotPasswordPage() {
           borderLeft: isDark ? '1px solid rgba(255,255,255,0.05)' : 'none'
         }}
       >
-        <IconButton 
-          onClick={toggleTheme} 
-          sx={{ position: 'absolute', top: 24, right: 24, bgcolor: isDark ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)', '&:hover': { bgcolor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)' } }}
-          color="inherit"
-        >
-          {isDark ? <LightModeIcon /> : <DarkModeIcon />}
-        </IconButton>
-
         <Box sx={{ width: '100%', maxWidth: '440px' }}>
           <Box sx={{ mb: 5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
