@@ -97,27 +97,31 @@ export default function PricingPage() {
       {showOffer && offer && (
         <Box
           onClick={() => setShowOffer(false)}
-          sx={{ position: "fixed", inset: 0, zIndex: 1400, bgcolor: "rgba(15,23,42,0.7)",
+          sx={{ position: "fixed", inset: 0, zIndex: 1400, bgcolor: "rgba(15,23,42,0.75)",
                 display: "flex", alignItems: "center", justifyContent: "center", p: 2, backdropFilter: "blur(3px)" }}
         >
-          <Box onClick={(e) => e.stopPropagation()} sx={{ position: "relative",
-                width: "min(92vw, 92vh, 860px)", height: "min(92vw, 92vh, 860px)",
-                bgcolor: "#fff", borderRadius: 5, overflow: "hidden", boxShadow: "0 40px 90px -30px rgba(0,0,0,.65)" }}>
-            <IconButton onClick={() => setShowOffer(false)} aria-label="Close"
-              sx={{ position: "absolute", top: 10, right: 10, zIndex: 2, bgcolor: "rgba(255,255,255,.92)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,.2)", "&:hover": { bgcolor: "#fff" } }}>
-              <span style={{ fontSize: 22, lineHeight: 1, fontWeight: 700 }}>×</span>
-            </IconButton>
-            {offer.is_pdf ? (
+          {/* Close button lives on the overlay — outside the popup, so it uses no popup space */}
+          <IconButton onClick={() => setShowOffer(false)} aria-label="Close"
+            sx={{ position: "absolute", top: 16, right: 16, zIndex: 2, width: 44, height: 44,
+                  bgcolor: "rgba(255,255,255,.95)", boxShadow: "0 2px 10px rgba(0,0,0,.35)", "&:hover": { bgcolor: "#fff" } }}>
+            <span style={{ fontSize: 24, lineHeight: 1, fontWeight: 700 }}>×</span>
+          </IconButton>
+
+          {offer.is_pdf ? (
+            <Box onClick={(e) => e.stopPropagation()}
+              sx={{ width: "min(92vw, 800px)", height: "90vh", bgcolor: "#fff", borderRadius: 3, overflow: "hidden",
+                    boxShadow: "0 40px 90px -30px rgba(0,0,0,.65)" }}>
               <iframe src={offer.url} title="Offer" style={{ width: "100%", height: "100%", border: 0 }} />
-            ) : (
-              <Box component="a" href={offer.url} target="_blank" rel="noreferrer"
-                sx={{ display: "block", width: "100%", height: "100%" }}>
-                <Box component="img" src={offer.url} alt="Special offer"
-                  sx={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
-              </Box>
-            )}
-          </Box>
+            </Box>
+          ) : (
+            // Popup wraps the image tightly (its natural shape) — no extra white space.
+            <Box component="a" href={offer.url} target="_blank" rel="noreferrer"
+              onClick={(e) => e.stopPropagation()} sx={{ display: "inline-block", lineHeight: 0 }}>
+              <Box component="img" src={offer.url} alt="Special offer"
+                sx={{ maxWidth: "94vw", maxHeight: "90vh", width: "auto", height: "auto", display: "block",
+                      borderRadius: 3, boxShadow: "0 40px 90px -30px rgba(0,0,0,.65)" }} />
+            </Box>
+          )}
         </Box>
       )}
 
