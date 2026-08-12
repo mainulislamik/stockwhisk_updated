@@ -680,6 +680,54 @@ class PublicContactView(APIView):
         except Exception:
             log.exception("Contact email delivery failed (message #%s stored)", msg.id)
 
+        # Auto-acknowledgement to the sender (best-effort, independent of above).
+        try:
+            connection, from_email = _platform_email()
+            ack_subject = "We've Received Your Message – StockWhisk"
+            ack_text = (
+                f"Dear {msg.name or 'Customer'},\n\n"
+                "Thank you for contacting StockWhisk.\n\n"
+                "We have successfully received your message and our team will review it "
+                "shortly. We will get back to you as soon as possible.\n\n"
+                "We appreciate your interest in StockWhisk and look forward to assisting you.\n\n"
+                "Best regards,\n"
+                "StockWhisk Team\n"
+                "Your trusted shopping partner"
+            )
+            ack_html = f"""
+            <div style="margin:0;padding:24px;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif">
+              <div style="max-width:560px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden">
+                <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:28px 32px;color:#ffffff">
+                  <div style="font-size:20px;font-weight:800;letter-spacing:-.3px">📦 StockWhisk</div>
+                  <div style="font-size:15px;opacity:.9;margin-top:4px">We've received your message</div>
+                </div>
+                <div style="padding:32px;color:#0f172a;font-size:15px;line-height:1.7">
+                  <p style="margin:0 0 16px">Dear {msg.name or 'Customer'},</p>
+                  <p style="margin:0 0 16px">Thank you for contacting <strong>StockWhisk</strong>.</p>
+                  <p style="margin:0 0 16px">We have <strong>successfully received your message</strong> and our team
+                     will review it shortly. We will get back to you as soon as possible.</p>
+                  <p style="margin:0 0 16px">We appreciate your interest in StockWhisk and look forward to assisting you.</p>
+                  <div style="margin:24px 0;padding:14px 18px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:8px;color:#1e3a8a;font-size:14px">
+                    Need something urgent? Call or WhatsApp us at <strong>01613511887</strong>.
+                  </div>
+                  <p style="margin:24px 0 0">Best regards,<br><strong>StockWhisk Team</strong><br>
+                     <span style="color:#64748b">Your trusted shopping partner</span></p>
+                </div>
+                <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;text-align:center">
+                  This is an automated confirmation — please do not reply to this email.
+                </div>
+              </div>
+            </div>
+            """
+            ack = EmailMultiAlternatives(
+                ack_subject, ack_text, from_email, [msg.email], connection=connection,
+            )
+            ack.attach_alternative(ack_html, "text/html")
+            ack_sent = ack.send(fail_silently=False)
+            log.warning("Contact auto-reply to %s sent=%s", msg.email, ack_sent)
+        except Exception:
+            log.exception("Contact auto-reply failed (message #%s)", msg.id)
+
         return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
 
 
