@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, Switch, IconButton } from '@mui/material';
 import MarketingNav from '@/components/MarketingNav';
+import MarketingFooter from '@/components/MarketingFooter';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
 const LIGHT_COLORS = {
@@ -322,14 +323,7 @@ export default function PricingPage() {
         </Container>
       </Box>
 
-      {/* Footer */}
-      <Box sx={{ bgcolor: mode === 'dark' ? '#020617' : '#0b1c30', color: '#94a3b8', py: 4, mt: 'auto' }}>
-        <Container maxWidth="xl">
-          <Typography variant="body2" align="center" sx={{ fontFamily: 'Outfit, sans-serif' }}>
-            © {new Date().getFullYear()} StockWhisk. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
+      <MarketingFooter />
     </Box>
     </PublicThemeProvider>
   );

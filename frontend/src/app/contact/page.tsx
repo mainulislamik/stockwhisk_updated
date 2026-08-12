@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Box, Typography, Button, Container, Grid, Card, CardContent, TextField, Stack } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
+import MarketingFooter from "@/components/MarketingFooter";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { api } from "@/lib/api";
 import { M } from "@/lib/marketing";
@@ -156,14 +157,7 @@ export default function ContactPage() {
         </Container>
       </Box>
 
-      {/* Footer */}
-      <Box sx={{ bgcolor: M.dark, color: M.darkText, py: 4, mt: "auto" }}>
-        <Container maxWidth="xl">
-          <Typography variant="body2" align="center" sx={{ fontFamily: "Outfit, sans-serif" }}>
-            © {new Date().getFullYear()} StockWhisk. All rights reserved.
-          </Typography>
-        </Container>
-      </Box>
+      <MarketingFooter />
     </Box>
     </PublicThemeProvider>
   );
