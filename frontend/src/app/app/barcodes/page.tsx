@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Barcode from "react-barcode";
+import { useAuth } from "@/components/AuthProvider";
 
 export default function BarcodesGeneratorPage() {
+  const { user } = useAuth();
+  const shopPrefix = (user?.shop_barcode_prefix || "").toUpperCase();
   const [quantity, setQuantity] = useState<number>(10);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
   const [isPrintingAll, setIsPrintingAll] = useState(false);
@@ -14,7 +17,7 @@ export default function BarcodesGeneratorPage() {
     const base = Date.now().toString().slice(-6);
     for (let i = 0; i < quantity; i++) {
       const randomStr = Math.floor(Math.random() * 10000).toString().padStart(4, "0");
-      codes.push(`${base}${randomStr}${i}`);
+      codes.push(`${shopPrefix}${base}${randomStr}${i}`);
     }
     setGeneratedCodes(codes);
   }
@@ -87,6 +90,9 @@ export default function BarcodesGeneratorPage() {
             <h4 className="fw-semibold mb-1">Barcode Generator</h4>
             <div className="text-secondary small">
               Generate unique barcodes for printing on 38x25mm labels.
+              {shopPrefix && (
+                <> Each code is prefixed with your shop code <span className="badge text-bg-primary">{shopPrefix}</span> for uniqueness.</>
+              )}
             </div>
           </div>
           {generatedCodes.length > 0 && (

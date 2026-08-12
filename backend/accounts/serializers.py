@@ -51,15 +51,16 @@ class UserSerializer(serializers.ModelSerializer):
     shop_logo = serializers.SerializerMethodField()
     shop_emi_enabled = serializers.BooleanField(source="shop.emi_enabled", read_only=True, default=False)
     shop_delivery_enabled = serializers.BooleanField(source="shop.delivery_enabled", read_only=True, default=True)
+    shop_barcode_prefix = serializers.CharField(source="shop.effective_barcode_prefix", read_only=True, default="")
 
     class Meta:
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
-            "shop_emi_enabled", "shop_delivery_enabled", "branch", "is_staff",
+            "shop_emi_enabled", "shop_delivery_enabled", "shop_barcode_prefix", "branch", "is_staff",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "branch", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_barcode_prefix", "branch", "is_staff"]
 
     def get_shop_logo(self, obj):
         if obj.shop and obj.shop.logo:
@@ -76,11 +77,17 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Shop
         fields = [
-            "id", "shop_code", "name", "phone", "email", "address", "business_type", 
+            "id", "shop_code", "name", "phone", "email", "address", "business_type",
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
-            "invoice_settings", "logo", "emi_enabled", "delivery_enabled"
+            "invoice_settings", "logo", "emi_enabled", "delivery_enabled", "barcode_prefix"
         ]
         read_only_fields = ["id", "shop_code"]
+
+    def validate_barcode_prefix(self, value):
+        cleaned = "".join(c for c in (value or "").upper() if c.isalnum())[:5]
+        if cleaned and len(cleaned) < 2:
+            raise serializers.ValidationError("Prefix must be at least 2 letters/digits.")
+        return cleaned
 
 
 class ShopUserSerializer(serializers.ModelSerializer):

@@ -1,9 +1,36 @@
 """Tenant root models: subscription plans, shops (tenants), branches."""
+import re
+
 from django.db import models
 from django.utils import timezone
 from django.utils.text import slugify
 
 from core.models import TimeStampedModel
+
+
+def derive_barcode_prefix(name: str) -> str:
+    """Build a short, memorable 3-letter-ish barcode prefix from a shop name.
+
+    Uses word initials when there are multiple words (VISION ELECTRONICS -> VE,
+    padded to VSE from the first word's consonants), otherwise the leading
+    letters of a single word. Always uppercase A-Z0-9, 3-5 chars.
+    """
+    words = re.findall(r"[A-Za-z0-9]+", (name or "").upper())
+    if not words:
+        return "SHP"
+    if len(words) >= 2:
+        w1 = words[0]
+        # first consonant after the leading letter (VISION -> S)
+        inner = next((c for c in w1[1:] if c not in "AEIOU"), "")
+        code = w1[0] + inner + words[1][0]  # Vision Electronics -> VSE
+        for w in words[2:]:  # extend up to 4 chars with more word initials
+            if len(code) >= 4:
+                break
+            code += w[0]
+    else:
+        code = words[0][:4]
+    code = re.sub(r"[^A-Z0-9]", "", code)[:4]
+    return code.ljust(3, "X")[:4] if code else "SHP"
 
 
 class SubscriptionPlan(TimeStampedModel):
@@ -92,6 +119,11 @@ class Shop(TimeStampedModel):
     emi_enabled = models.BooleanField(default=False)
     delivery_enabled = models.BooleanField(default=True)
 
+    # Short 2–5 char code prefixed to generated barcodes so labels are unique
+    # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name
+    # on first save; owner can override it in Settings.
+    barcode_prefix = models.CharField(max_length=5, blank=True)
+
     # Subscription state (denormalized current plan for fast gating).
     plan = models.ForeignKey(
         SubscriptionPlan, on_delete=models.PROTECT,
@@ -117,7 +149,18 @@ class Shop(TimeStampedModel):
                 i += 1
                 slug = f"{base}-{i}"
             self.slug = slug
+        if self.barcode_prefix:
+            self.barcode_prefix = "".join(
+                c for c in self.barcode_prefix.upper() if c.isalnum()
+            )[:5]
+        if not self.barcode_prefix:
+            self.barcode_prefix = derive_barcode_prefix(self.name)
         super().save(*args, **kwargs)
+
+    @property
+    def effective_barcode_prefix(self) -> str:
+        """Stored prefix if set, else derived on the fly from the shop name."""
+        return self.barcode_prefix or derive_barcode_prefix(self.name)
 
     @property
     def shop_code(self) -> str:

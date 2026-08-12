@@ -14,7 +14,7 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true });
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, barcode_prefix: "" });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -40,6 +40,7 @@ export default function SettingsPage() {
           vat_percent: data.vat_percent || 0,
           emi_enabled: data.emi_enabled || false,
           delivery_enabled: data.delivery_enabled !== false,
+          barcode_prefix: data.barcode_prefix || "",
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -78,7 +79,8 @@ export default function SettingsPage() {
       formData.append("vat_percent", shopForm.vat_percent.toString());
       formData.append("emi_enabled", shopForm.emi_enabled.toString());
       formData.append("delivery_enabled", shopForm.delivery_enabled.toString());
-      
+      formData.append("barcode_prefix", shopForm.barcode_prefix);
+
       if (logoFile) {
         formData.append("logo", logoFile);
       }
@@ -86,6 +88,9 @@ export default function SettingsPage() {
       const res = await api<any>("/auth/shop-settings/", { method: "PATCH", body: formData });
       if (res.logo) {
         setCurrentLogo(res.logo);
+      }
+      if (res.barcode_prefix !== undefined) {
+        setShopForm((f) => ({ ...f, barcode_prefix: res.barcode_prefix || "" }));
       }
       setShopSuccess(true);
       await reload(); // reload user to get updated shop name
@@ -233,6 +238,19 @@ export default function SettingsPage() {
                   </div>
                 )}
                 
+                <div className="col-md-6">
+                  <label className="form-label small fw-medium">Barcode Prefix</label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm text-uppercase font-monospace"
+                    maxLength={5}
+                    placeholder="e.g. VSE"
+                    value={shopForm.barcode_prefix}
+                    onChange={e => setShopForm({...shopForm, barcode_prefix: e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 5)})}
+                  />
+                  <div className="form-text small">2–5 letters/digits prefixed to generated barcodes (uniqueness across shops). Leave blank to auto-generate from your shop name.</div>
+                </div>
+
                 <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">Feature Flags</div>
                 <div className="col-md-12">
                   <div className="form-check form-switch">
