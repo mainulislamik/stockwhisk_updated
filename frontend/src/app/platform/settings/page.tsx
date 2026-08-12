@@ -17,6 +17,8 @@ export default function PlatformSettingsPage() {
   const [smtpUseTls, setSmtpUseTls] = useState(true);
   const [trialDays, setTrialDays] = useState("45");
   const [contactEmail, setContactEmail] = useState("");
+  const [contactSmtpUser, setContactSmtpUser] = useState("");
+  const [contactSmtpPassword, setContactSmtpPassword] = useState("");
   const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
@@ -29,6 +31,8 @@ export default function PlatformSettingsPage() {
       setSmtpUseTls(data.smtp_use_tls !== false); // default true if undefined
       setTrialDays((data.default_trial_days ?? 45).toString());
       setContactEmail(data.contact_email || "");
+      setContactSmtpUser(data.contact_smtp_user || "");
+      setContactSmtpPassword(data.contact_smtp_password || "");
     }).catch(console.error);
   }, []);
 
@@ -37,8 +41,12 @@ export default function PlatformSettingsPage() {
     setSavingContact(true);
     setMsg(null);
     try {
-      await api("/platform/smtp-settings/", { method: "PUT", body: { contact_email: contactEmail } });
-      setMsg({ ok: true, text: "Contact email saved." });
+      await api("/platform/smtp-settings/", { method: "PUT", body: {
+        contact_email: contactEmail,
+        contact_smtp_user: contactSmtpUser,
+        contact_smtp_password: contactSmtpPassword,
+      } });
+      setMsg({ ok: true, text: "Contact settings saved." });
     } catch (e: any) {
       setMsg({ ok: false, text: e?.data?.detail || "Failed to save contact email." });
     } finally {
@@ -217,10 +225,12 @@ export default function PlatformSettingsPage() {
           </h2>
           <p className="text-secondary small mb-4">
             Messages sent from the public <strong>Contact Us</strong> page are emailed to this address
-            (and always saved under <strong>Messages</strong>). Change it any time.
+            (and always saved under <strong>Messages</strong>). Optionally set this mailbox's own SMTP
+            login below so the notification &amp; auto-reply are sent <strong>from</strong> this address
+            (reuses the host/port/TLS above). Leave the login blank to send from the noreply address.
           </p>
-          <form onSubmit={saveContactEmail} className="row g-3 align-items-end">
-            <div className="col-md-8">
+          <form onSubmit={saveContactEmail} className="row g-3">
+            <div className="col-12">
               <div className="form-floating">
                 <input
                   type="email"
@@ -229,12 +239,38 @@ export default function PlatformSettingsPage() {
                   value={contactEmail}
                   onChange={e => setContactEmail(e.target.value)}
                 />
-                <label>Contact inbox email (e.g., contact@stockwhisk.com)</label>
+                <label>Contact inbox / From email (e.g., contact@stockwhisk.com)</label>
               </div>
             </div>
-            <div className="col-md-4 d-grid">
+            <div className="col-md-6">
+              <div className="form-floating">
+                <input
+                  type="text"
+                  autoComplete="off"
+                  className="form-control"
+                  placeholder="contact@stockwhisk.com"
+                  value={contactSmtpUser}
+                  onChange={e => setContactSmtpUser(e.target.value)}
+                />
+                <label>Contact SMTP Username (optional)</label>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-floating">
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  className="form-control"
+                  placeholder="Contact mailbox password"
+                  value={contactSmtpPassword}
+                  onChange={e => setContactSmtpPassword(e.target.value)}
+                />
+                <label>Contact SMTP Password (optional)</label>
+              </div>
+            </div>
+            <div className="col-12 d-flex justify-content-end">
               <button type="submit" disabled={savingContact} className="btn btn-success rounded-pill px-4 shadow-sm">
-                {savingContact ? "Saving..." : "Save Contact Email"}
+                {savingContact ? "Saving..." : "Save Contact Settings"}
               </button>
             </div>
           </form>

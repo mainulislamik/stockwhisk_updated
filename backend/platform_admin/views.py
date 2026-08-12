@@ -642,10 +642,10 @@ class PublicContactView(APIView):
         # Admin → Messages), so email is a convenience — never fail the request.
         import logging
         from django.core.mail import EmailMultiAlternatives
-        from notifications.channels import _platform_email
+        from notifications.channels import _contact_email
         log = logging.getLogger(__name__)
         try:
-            connection, from_email = _platform_email()
+            connection, from_email = _contact_email()
             subject = f"New contact message from {msg.name}"
             if msg.subject:
                 subject += f" — {msg.subject}"
@@ -682,7 +682,7 @@ class PublicContactView(APIView):
 
         # Auto-acknowledgement to the sender (best-effort, independent of above).
         try:
-            connection, from_email = _platform_email()
+            connection, from_email = _contact_email()
             ack_subject = "We've Received Your Message – StockWhisk"
             ack_text = (
                 f"Dear {msg.name or 'Customer'},\n\n"
@@ -950,6 +950,8 @@ class SmtpSettingsView(APIView):
             "smtp_use_tls": config.smtp_use_tls,
             "smtp_default_from": config.smtp_default_from,
             "contact_email": config.contact_email,
+            "contact_smtp_user": config.contact_smtp_user,
+            "contact_smtp_password": config.contact_smtp_password,
             "default_trial_days": config.default_trial_days,
         })
 
@@ -974,6 +976,10 @@ class SmtpSettingsView(APIView):
 
         if "contact_email" in request.data:
             config.contact_email = (request.data.get("contact_email") or "").strip()
+        if "contact_smtp_user" in request.data:
+            config.contact_smtp_user = (request.data.get("contact_smtp_user") or "").strip()
+        if "contact_smtp_password" in request.data:
+            config.contact_smtp_password = (request.data.get("contact_smtp_password") or "").strip()
 
         trial_days = request.data.get("default_trial_days")
         if trial_days is not None:

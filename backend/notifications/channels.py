@@ -32,6 +32,27 @@ def _platform_email():
     return None, from_email
 
 
+def _contact_email():
+    """Connection + From for contact-form emails. If a dedicated contact SMTP
+    login is configured, send FROM the contact mailbox (reusing the platform
+    SMTP host/port/TLS); otherwise fall back to the noreply SMTP."""
+    try:
+        from platform_admin.models import PlatformConfig
+        cfg = PlatformConfig.get_solo()
+        if cfg.smtp_host and cfg.contact_smtp_user:
+            connection = get_connection(
+                backend="platform_admin.email_backend.UnverifiedSTARTTLSBackend",
+                host=cfg.smtp_host, port=cfg.smtp_port,
+                username=cfg.contact_smtp_user, password=cfg.contact_smtp_password,
+                use_tls=cfg.smtp_use_tls,
+            )
+            from_email = (cfg.contact_email or cfg.contact_smtp_user).strip()
+            return connection, from_email
+    except Exception:
+        logger.exception("Failed to build contact SMTP connection; using platform SMTP")
+    return _platform_email()
+
+
 def send_email(to, subject, body):
     if not to:
         return False
