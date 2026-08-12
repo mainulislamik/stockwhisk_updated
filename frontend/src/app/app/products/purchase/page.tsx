@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
+import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
 
 type Product = {
@@ -35,6 +36,7 @@ export default function PurchaseProductPage() {
   // Bulk barcode scan
   const [barcodeText, setBarcodeText] = useState("");
   const [digitsPerCode, setDigitsPerCode] = useState(13);
+  const [showScanner, setShowScanner] = useState(false);
 
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);
@@ -499,6 +501,9 @@ export default function PurchaseProductPage() {
                     <span className="small">Digits/code</span>
                     <input type="number" className="form-control form-control-sm" style={{ width: "5rem" }} value={digitsPerCode} min={8} max={20} onChange={(e) => setDigitsPerCode(Number(e.target.value) || 13)} />
                   </div>
+                  <button className="btn btn-outline-primary btn-sm w-100 mt-1 d-md-none" onClick={() => setShowScanner(true)}>
+                    📷 Scan with Camera
+                  </button>
                   <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => setBarcodeText("")}>Clear List</button>
                 </div>
               </div>
@@ -628,6 +633,19 @@ export default function PurchaseProductPage() {
           </div>
         </div>
       </div>
+
+      {showScanner && (
+        <ScannerModal
+          onScan={(code) => {
+            setShowScanner(false);
+            const clean = code.trim();
+            if (clean) {
+              setBarcodeText((prev) => (prev.trimEnd() ? prev.trimEnd() + "\n" : "") + clean + "\n");
+            }
+          }}
+          onClose={() => setShowScanner(false)}
+        />
+      )}
     </div>
   );
 }
