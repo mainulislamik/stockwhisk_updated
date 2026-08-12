@@ -91,9 +91,20 @@ TICKETS = [
 class Command(BaseCommand):
     help = "Create or refresh the public read-only demo shop with rich sample data."
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            "--reset", action="store_true",
+            help="Delete the existing demo shop (and its data) first, then reseed fresh.",
+        )
+
     @transaction.atomic
     def handle(self, *args, **options):
         from tenants.services import register_shop
+
+        if options.get("reset"):
+            # Shop → users + all tenant data cascade-delete; safe (demo only).
+            deleted, _ = Shop.objects.filter(is_demo=True).delete()
+            self.stdout.write(self.style.WARNING(f"Reset: removed existing demo shop ({deleted} rows)."))
 
         owner = User.objects.filter(email=DEMO_EMAIL).select_related("shop").first()
         if owner:
