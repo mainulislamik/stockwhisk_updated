@@ -32,23 +32,31 @@ class BarcodeLookupView(_POSBase):
         if not code:
             return Response({"detail": "Provide ?barcode="}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Product might have a comma-separated list of barcodes
+        # Product might have a comma-separated list of barcodes. A barcode can be
+        # shared by several products, so collect ALL exact matches.
         products = (
             Product.objects.filter(is_active=True)
             .filter(Q(barcode__contains=code) | Q(sku=code))
             .select_related("category", "brand", "unit")
         )
-        
-        product = None
+
+        matches = [
+            p for p in products
+            if code == p.sku or code in [x.strip() for x in (p.barcode or "").split(",")]
+        ]
+
+        # More than one product carries this barcode → let the client pick.
+        if len(matches) > 1:
+            return Response({
+                "multiple": True,
+                "products": ProductSerializer(matches, many=True).data,
+            })
+
+        product = matches[0] if matches else None
         scanned_unit = None
 
-        for p in products:
-            if code == p.sku or code in [x.strip() for x in p.barcode.split(",")]:
-                product = p
-                break
-                
         if product is None:
-            # Check if it matches a ProductUnit
+            # Check if it matches a ProductUnit (per-unit serial)
             unit = ProductUnit.all_objects.filter(barcode=code, status=ProductUnit.Status.IN_STOCK).select_related("product").first()
             if unit and unit.product.is_active and getattr(unit.product, "shop_id", None) == request.tenant.id:
                 product = unit.product
@@ -56,11 +64,11 @@ class BarcodeLookupView(_POSBase):
 
         if product is None:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
-        
+
         data = ProductSerializer(product).data
         if scanned_unit:
             data["scanned_unit"] = ProductUnitSerializer(scanned_unit).data
-            
+
         return Response(data)
 
 

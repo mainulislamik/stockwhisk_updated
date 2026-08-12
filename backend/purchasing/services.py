@@ -208,26 +208,32 @@ def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None):
     if po.status == PurchaseOrder.Status.RECEIVED:
         raise ValueError("Purchase order already received.")
 
-    # Guard the (shop, barcode) unique constraint up front so a clash returns a
-    # clear message instead of a raw IntegrityError / 500.
+    # Guard the (shop, product, barcode) unique constraint up front so a clash
+    # returns a clear message instead of a raw IntegrityError / 500. Uniqueness
+    # is PER PRODUCT: the same barcode on a different product is allowed (common
+    # in retail), so a clash is only a duplicate within the *same* product.
     from catalog.models import ProductUnit
-    all_barcodes = [b for it in po.items.all() for b in (it.barcodes or [])]
-    if all_barcodes:
+    clashes = set()
+    for it in po.items.all():
+        bcs = [b for b in (it.barcodes or []) if b]
+        if not bcs:
+            continue
         counts = {}
-        for b in all_barcodes:
+        for b in bcs:
             counts[b] = counts.get(b, 0) + 1
         dup_in_batch = {b for b, c in counts.items() if c > 1}
         existing = set(
-            ProductUnit.all_objects.filter(shop_id=po.shop_id, barcode__in=all_barcodes)
-            .values_list("barcode", flat=True)
+            ProductUnit.all_objects.filter(
+                shop_id=po.shop_id, product_id=it.product_id, barcode__in=bcs
+            ).values_list("barcode", flat=True)
         )
-        clashes = sorted(existing | dup_in_batch)
-        if clashes:
-            raise ValueError(
-                "These barcode(s) are already in stock or repeated in this batch: "
-                + ", ".join(clashes)
-                + ". Please remove or change them and try again."
-            )
+        clashes |= existing | dup_in_batch
+    if clashes:
+        raise ValueError(
+            "These barcode(s) already exist for the same product or are repeated "
+            "in this batch: " + ", ".join(sorted(clashes))
+            + ". Please remove or change them and try again."
+        )
 
     for item in po.items.select_related("product", "variation").all():
         apply_movement(

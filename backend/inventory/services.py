@@ -45,14 +45,16 @@ def apply_movement(
         from catalog.models import ProductUnit
         clean = [b.strip() for b in barcodes if b and b.strip()]
         if movement_type in ["adjust_in", "opening", "purchase_in", "return_in"]:
-            # Skip any barcode already in stock so a repeat/clash doesn't 500.
+            # Skip a barcode only if it already exists FOR THIS PRODUCT (barcodes
+            # are unique per product, not per shop), so a repeat/clash doesn't 500.
             existing = set(
-                ProductUnit.all_objects.filter(shop_id=shop.id, barcode__in=clean)
+                ProductUnit.all_objects.filter(shop_id=shop.id, product=product, barcode__in=clean)
                 .values_list("barcode", flat=True)
             )
             for b in clean:
                 if b in existing:
                     continue
+                existing.add(b)  # guard against duplicates within this same batch
                 ProductUnit.all_objects.create(
                     shop_id=shop.id,
                     product=product,

@@ -58,6 +58,10 @@ export default function PosPage() {
   // Unit selection modal
   const [unitSelectProduct, setUnitSelectProduct] = useState<Product | null>(null);
 
+  // Product picker modal — shown when one scanned barcode matches several products
+  const [pickProducts, setPickProducts] = useState<Product[] | null>(null);
+  const [pickCode, setPickCode] = useState("");
+
   useEffect(() => {
     const saved = sessionStorage.getItem("pos_cart");
     if (saved) { try { setCart(JSON.parse(saved)); } catch {} }
@@ -128,9 +132,13 @@ export default function PosPage() {
   const processCode = useCallback(async (code: string) => {
     if (!code) return;
 
-    // 1. Exact local match from current search results
-    const byBarcode = shown.find((p) => p.barcode && p.barcode === code);
-    if (byBarcode) { tryAdd(byBarcode); return; }
+    // 1. Exact barcode match from current search results. A barcode may be
+    // shared by several products → let the user pick which one.
+    const barcodeMatches = shown.filter(
+      (p) => !!p.barcode && p.barcode.split(",").map((s) => s.trim()).includes(code)
+    );
+    if (barcodeMatches.length > 1) { setPickCode(code); setPickProducts(barcodeMatches); return; }
+    if (barcodeMatches.length === 1) { tryAdd(barcodeMatches[0]); return; }
 
     const bySku = shown.find((p) => p.sku && p.sku.toLowerCase() === code.toLowerCase());
     if (bySku) { tryAdd(bySku); return; }
@@ -182,8 +190,13 @@ export default function PosPage() {
     // 5. No local match → backend lookup
     setScanning(true);
     try {
-      const product = await api<Product>("/pos/lookup/", { params: { barcode: code } });
-      tryAdd(product);
+      const res = await api<any>("/pos/lookup/", { params: { barcode: code } });
+      if (res?.multiple && Array.isArray(res.products)) {
+        setPickCode(code);
+        setPickProducts(res.products as Product[]);
+      } else {
+        tryAdd(res as Product);
+      }
     } catch {
       // Not found → offer to assign
       setScanMsg(null);
@@ -571,6 +584,56 @@ export default function PosPage() {
                 <button className="btn btn-brand btn-sm" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }}>
                   Done
                 </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Product picker (one barcode → several products) ── */}
+      {pickProducts && pickProducts.length > 0 && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,.45)" }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content">
+              <div className="modal-header">
+                <div>
+                  <h5 className="modal-title">Choose a product</h5>
+                  <div className="small text-secondary">
+                    Barcode <span className="font-monospace fw-semibold">{pickCode}</span> matches {pickProducts.length} products.
+                  </div>
+                </div>
+                <button className="btn-close" onClick={() => { setPickProducts(null); setTimeout(() => inputRef.current?.focus(), 50); }} />
+              </div>
+              <div className="modal-body">
+                <div className="d-flex flex-column gap-2">
+                  {pickProducts.map((p) => {
+                    const oos = p.track_inventory !== false && Number(p.current_stock) <= 0;
+                    return (
+                      <button
+                        key={p.id}
+                        className="d-flex justify-content-between align-items-center p-2 border rounded text-start btn btn-light"
+                        disabled={oos}
+                        onClick={() => {
+                          setPickProducts(null);
+                          tryAdd(p);
+                        }}
+                      >
+                        <div>
+                          <div className="fw-semibold">{p.name}</div>
+                          <div className="small text-secondary">
+                            {p.sku ? <>SKU: {p.sku}</> : <>Barcode: {pickCode}</>}
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          <div className="fw-semibold">{money(p.selling_price || 0)}</div>
+                          <div className={`small ${oos ? "text-danger" : "text-secondary"}`}>
+                            {oos ? "Out of stock" : `Stock ${p.current_stock}`}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </div>
           </div>

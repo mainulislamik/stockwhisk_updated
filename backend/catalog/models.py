@@ -110,10 +110,9 @@ class Product(TenantScopedModel):
                 fields=["shop", "sku"], condition=~models.Q(sku=""),
                 name="uniq_sku_per_shop_when_set",
             ),
-            models.UniqueConstraint(
-                fields=["shop", "barcode"], condition=~models.Q(barcode=""),
-                name="uniq_barcode_per_shop_when_set",
-            ),
+            # NB: product barcodes are intentionally NOT unique. Different
+            # products can legitimately share a barcode (common in retail); POS
+            # resolves such a scan with a product picker.
         ]
 
     def __str__(self):
@@ -162,7 +161,9 @@ class ProductUnit(TenantScopedModel):
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["shop", "barcode"]), models.Index(fields=["shop", "status"])]
         constraints = [
-            models.UniqueConstraint(fields=["shop", "barcode"], name="uniq_unit_barcode_per_shop"),
+            # Unique per product (not per shop): the same barcode may appear on
+            # units of different products, but never twice within one product.
+            models.UniqueConstraint(fields=["shop", "product", "barcode"], name="uniq_unit_barcode_per_product"),
         ]
 
     def __str__(self):
