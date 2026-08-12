@@ -51,6 +51,7 @@ services:
     build: ./backend
     command: ["gunicorn", "-c", "deploy/gunicorn.conf.py", "config.wsgi:application"]
     environment:
+      TZ: "Asia/Dhaka"
       GUNICORN_BIND: "0.0.0.0:8000"
       DB_ENGINE: postgres
       DB_HOST: db
@@ -98,6 +99,7 @@ services:
     build: ./backend
     command: ["celery", "-A", "config", "worker", "--loglevel=info", "--concurrency=1", "--max-tasks-per-child=50"]
     environment:
+      TZ: "Asia/Dhaka"
       DB_ENGINE: postgres
       DB_HOST: db
       DB_NAME: stockwhisk
@@ -130,6 +132,7 @@ services:
     build: ./backend
     command: ["celery", "-A", "config", "beat", "--loglevel=info", "--scheduler", "django_celery_beat.schedulers:DatabaseScheduler"]
     environment:
+      TZ: "Asia/Dhaka"
       DB_ENGINE: postgres
       DB_HOST: db
       DB_NAME: stockwhisk

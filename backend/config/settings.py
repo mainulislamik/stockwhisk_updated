@@ -176,6 +176,9 @@ LANGUAGE_CODE = "en-us"
 TIME_ZONE = env("TIME_ZONE", "Asia/Dhaka")
 USE_I18N = True
 USE_TZ = True
+# Stamp outgoing email Date headers in local time (Asia/Dhaka) instead of UTC,
+# so mail clients show the real send time. Needs the container TZ set to match.
+EMAIL_USE_LOCALTIME = True
 
 STATIC_URL = "/static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
