@@ -79,14 +79,10 @@ export default function LandingPage() {
               <Typography sx={{ color: M.textMuted, fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.6, maxWidth: 680, mx: "auto", mb: 4 }}>
                 The all-in-one retail platform for barcode billing, live inventory, warranty tracking and sales insight — fast, clear, and built for the way real shops work.
               </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center", mb: 2 }}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
                 <Button component={Link} href="/register" sx={btnPrimary}>Start free trial</Button>
                 <Button component={Link} href="/pricing" sx={btnGhost}>See pricing</Button>
               </Stack>
-              <Typography sx={{ color: M.textFaint, fontSize: ".9rem" }}>
-                <i className="bi bi-check-circle-fill" style={{ color: M.primary, marginRight: 6 }} />
-                No credit card required · 45-day free trial
-              </Typography>
             </Box>
 
             {/* Self-contained dashboard preview (no external image) */}
@@ -194,7 +190,7 @@ export default function LandingPage() {
                 Ready to take control of your shop?
               </Typography>
               <Typography sx={{ opacity: 0.9, fontSize: { xs: "1rem", md: "1.15rem" }, mb: 4, maxWidth: 560, mx: "auto" }}>
-                Set up in minutes. Start your 45-day free trial today — no credit card, no risk.
+                Set up in minutes and start your free trial today.
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
                 <Button component={Link} href="/register" sx={{ bgcolor: "#fff", color: M.primaryDark, fontWeight: 800, textTransform: "none", borderRadius: "12px", px: 4, py: 1.5, "&:hover": { bgcolor: "#eef2ff" } }}>

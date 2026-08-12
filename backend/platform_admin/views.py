@@ -639,8 +639,14 @@ class PublicContactView(APIView):
         ser.is_valid(raise_exception=True)
         msg = ser.save()
 
+        # Best-effort email notification. The message is already stored (Super
+        # Admin → Messages), so email is a convenience — never fail the request.
+        import logging
+        from django.core.mail import EmailMultiAlternatives
+        from notifications.channels import _platform_email
+        log = logging.getLogger(__name__)
         try:
-            from notifications.channels import send_html_email
+            connection, from_email = _platform_email()
             subject = f"New contact message from {msg.name}"
             if msg.subject:
                 subject += f" — {msg.subject}"
@@ -664,10 +670,16 @@ class PublicContactView(APIView):
               <p style="color:#999;font-size:12px">Sent from the StockWhisk contact page.</p>
             </div>
             """
-            send_html_email(self.CONTACT_TO, subject, text, html)
+            email = EmailMultiAlternatives(
+                subject, text, from_email, [self.CONTACT_TO],
+                connection=connection, reply_to=[msg.email],
+            )
+            email.attach_alternative(html, "text/html")
+            # fail_silently=False so a real SMTP error is logged below (not hidden).
+            sent = email.send(fail_silently=False)
+            log.info("Contact email to %s sent=%s (from=%s)", self.CONTACT_TO, sent, from_email)
         except Exception:
-            # Message is already stored; never fail the user's submission on email.
-            pass
+            log.exception("Contact email delivery failed (message #%s stored)", msg.id)
 
         return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
 
