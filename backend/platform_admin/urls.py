@@ -31,6 +31,7 @@ from .views import (
     MailSSORedirectView,
     SmtpSettingsView,
     TestSmtpConnectionView,
+    TestContactSmtpView,
 )
 
 app_name = "platform_admin"
@@ -54,6 +55,7 @@ urlpatterns = [
     path("plan/", PlanView.as_view(), name="plan"),
     path("smtp-settings/", SmtpSettingsView.as_view(), name="smtp-settings"),
     path("smtp-test/", TestSmtpConnectionView.as_view(), name="smtp-test"),
+    path("contact-smtp-test/", TestContactSmtpView.as_view(), name="contact-smtp-test"),
     path("backups/download/", BackupDownloadView.as_view(), name="backup-download"),
     path("backups/restore/", BackupRestoreView.as_view(), name="backup-restore"),
     path("backups/media/download/", MediaBackupDownloadView.as_view(), name="media-backup-download"),

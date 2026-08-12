@@ -1035,6 +1035,50 @@ class TestSmtpConnectionView(APIView):
                 "trace": error_trace
             }, status=500)
 
+
+class TestContactSmtpView(APIView):
+    """Send a test email using the CONTACT mailbox SMTP login, so the admin can
+    confirm contact emails will actually send from contact@."""
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request):
+        config = PlatformConfig.get_solo()
+        from_addr = (config.contact_email or "").strip()
+        if not from_addr:
+            return Response({"detail": "Set the contact email address first."}, status=400)
+        if not config.contact_smtp_user:
+            return Response({
+                "detail": "No contact SMTP login is set, so contact emails send from the "
+                          "noreply address. Add the contact SMTP username & password to send "
+                          "from the contact mailbox."
+            }, status=400)
+        if not config.smtp_host:
+            return Response({"detail": "Set the SMTP host in the section above first."}, status=400)
+
+        from django.core.mail import get_connection, EmailMessage
+        import traceback
+        try:
+            connection = get_connection(
+                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.contact_smtp_user,
+                password=config.contact_smtp_password,
+                use_tls=config.smtp_use_tls,
+                fail_silently=False,
+            )
+            EmailMessage(
+                subject='StockWhisk contact SMTP test',
+                body='If you received this, contact emails send from this mailbox correctly.',
+                from_email=from_addr,
+                to=[from_addr],
+                connection=connection,
+            ).send(fail_silently=False)
+            return Response({"status": "success", "detail": f"Test email sent from {from_addr}!"})
+        except Exception as e:
+            return Response({"status": "error", "detail": str(e), "trace": traceback.format_exc()}, status=500)
+
+
 from .models import PlatformConfig
 
 class PlatformConfigView(APIView):

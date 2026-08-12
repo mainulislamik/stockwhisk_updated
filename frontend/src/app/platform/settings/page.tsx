@@ -20,6 +20,7 @@ export default function PlatformSettingsPage() {
   const [contactSmtpUser, setContactSmtpUser] = useState("");
   const [contactSmtpPassword, setContactSmtpPassword] = useState("");
   const [savingContact, setSavingContact] = useState(false);
+  const [testingContact, setTestingContact] = useState(false);
 
   useEffect(() => {
     api<any>("/platform/smtp-settings/").then((data) => {
@@ -51,6 +52,19 @@ export default function PlatformSettingsPage() {
       setMsg({ ok: false, text: e?.data?.detail || "Failed to save contact email." });
     } finally {
       setSavingContact(false);
+    }
+  }
+
+  async function testContactSmtp() {
+    setTestingContact(true);
+    setMsg(null);
+    try {
+      const res = await api<any>("/platform/contact-smtp-test/", { method: "POST" });
+      setMsg({ ok: true, text: res?.detail || "Contact test email sent!" });
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.detail || "Contact SMTP test failed.", trace: e?.data?.trace });
+    } finally {
+      setTestingContact(false);
     }
   }
 
@@ -268,10 +282,25 @@ export default function PlatformSettingsPage() {
                 <label>Contact SMTP Password (optional)</label>
               </div>
             </div>
-            <div className="col-12 d-flex justify-content-end">
+            <div className="col-12 d-flex align-items-center justify-content-end gap-3">
+              <button
+                type="button"
+                onClick={testContactSmtp}
+                disabled={testingContact || savingContact || !contactSmtpUser}
+                className="btn btn-outline-success rounded-pill px-4 shadow-sm"
+                title="Sends a test email using the saved contact SMTP login"
+              >
+                {testingContact ? "Testing..." : "Test Contact Email"}
+              </button>
               <button type="submit" disabled={savingContact} className="btn btn-success rounded-pill px-4 shadow-sm">
                 {savingContact ? "Saving..." : "Save Contact Settings"}
               </button>
+            </div>
+            <div className="col-12">
+              <p className="text-secondary small mb-0">
+                Tip: <strong>Save</strong> first, then <strong>Test Contact Email</strong> — a test message
+                is sent to the contact address using the saved login.
+              </p>
             </div>
           </form>
         </div>
