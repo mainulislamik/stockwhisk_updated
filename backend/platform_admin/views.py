@@ -628,7 +628,7 @@ class PublicContactView(APIView):
     permission_classes = []
     authentication_classes = []
 
-    CONTACT_TO = "contact@stockwhisk.com"
+    DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
 
     def post(self, request):
         # Honeypot: real users never fill a hidden "website" field; bots do.
@@ -638,6 +638,9 @@ class PublicContactView(APIView):
         ser = PublicContactCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         msg = ser.save()
+
+        # Destination inbox is managed from Platform Admin → Settings.
+        contact_to = (PlatformConfig.get_solo().contact_email or "").strip() or self.DEFAULT_CONTACT_TO
 
         # Best-effort email notification. The message is already stored (Super
         # Admin → Messages), so email is a convenience — never fail the request.
@@ -671,13 +674,13 @@ class PublicContactView(APIView):
             </div>
             """
             email = EmailMultiAlternatives(
-                subject, text, from_email, [self.CONTACT_TO],
+                subject, text, from_email, [contact_to],
                 connection=connection, reply_to=[msg.email],
             )
             email.attach_alternative(html, "text/html")
             # fail_silently=False so a real SMTP error is logged below (not hidden).
             sent = email.send(fail_silently=False)
-            log.warning("Contact email to %s sent=%s (from=%s)", self.CONTACT_TO, sent, from_email)
+            log.warning("Contact email to %s sent=%s (from=%s)", contact_to, sent, from_email)
         except Exception:
             log.exception("Contact email delivery failed (message #%s stored)", msg.id)
 
@@ -902,20 +905,31 @@ class SmtpSettingsView(APIView):
             "smtp_password": config.smtp_password,
             "smtp_use_tls": config.smtp_use_tls,
             "smtp_default_from": config.smtp_default_from,
+            "contact_email": config.contact_email,
             "default_trial_days": config.default_trial_days,
         })
 
     def put(self, request):
         config = PlatformConfig.get_solo()
-        
-        config.smtp_host = request.data.get("smtp_host", "").strip()
-        try:
-            config.smtp_port = int(request.data.get("smtp_port", 587))
-        except ValueError:
-            pass
-        config.smtp_user = request.data.get("smtp_user", "").strip()
-        config.smtp_password = request.data.get("smtp_password", "").strip()
-        config.smtp_default_from = request.data.get("smtp_default_from", "").strip()
+
+        # Partial update: only touch fields actually present in the payload, so
+        # saving one section (e.g. just the contact email) never wipes another.
+        if "smtp_host" in request.data:
+            config.smtp_host = (request.data.get("smtp_host") or "").strip()
+        if "smtp_port" in request.data:
+            try:
+                config.smtp_port = int(request.data.get("smtp_port", 587))
+            except (ValueError, TypeError):
+                pass
+        if "smtp_user" in request.data:
+            config.smtp_user = (request.data.get("smtp_user") or "").strip()
+        if "smtp_password" in request.data:
+            config.smtp_password = (request.data.get("smtp_password") or "").strip()
+        if "smtp_default_from" in request.data:
+            config.smtp_default_from = (request.data.get("smtp_default_from") or "").strip()
+
+        if "contact_email" in request.data:
+            config.contact_email = (request.data.get("contact_email") or "").strip()
 
         trial_days = request.data.get("default_trial_days")
         if trial_days is not None:

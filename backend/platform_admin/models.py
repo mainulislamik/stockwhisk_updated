@@ -86,6 +86,10 @@ class PlatformConfig(TimeStampedModel):
     smtp_use_tls = models.BooleanField(default=True)
     smtp_default_from = models.CharField(max_length=255, blank=True, default="noreply@stockwhisk.com")
 
+    # Destination inbox for public contact-form submissions. Managed from the
+    # Platform Admin settings page; falls back to a sensible default when blank.
+    contact_email = models.EmailField(max_length=255, blank=True, default="contact@stockwhisk.com")
+
     # Subscription: default trial length (days) granted to every new signup.
     default_trial_days = models.PositiveIntegerField(default=45)
 

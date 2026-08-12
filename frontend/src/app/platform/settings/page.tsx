@@ -16,6 +16,8 @@ export default function PlatformSettingsPage() {
   const [smtpDefaultFrom, setSmtpDefaultFrom] = useState("");
   const [smtpUseTls, setSmtpUseTls] = useState(true);
   const [trialDays, setTrialDays] = useState("45");
+  const [contactEmail, setContactEmail] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
 
   useEffect(() => {
     api<any>("/platform/smtp-settings/").then((data) => {
@@ -26,8 +28,23 @@ export default function PlatformSettingsPage() {
       setSmtpDefaultFrom(data.smtp_default_from || "");
       setSmtpUseTls(data.smtp_use_tls !== false); // default true if undefined
       setTrialDays((data.default_trial_days ?? 45).toString());
+      setContactEmail(data.contact_email || "");
     }).catch(console.error);
   }, []);
+
+  async function saveContactEmail(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingContact(true);
+    setMsg(null);
+    try {
+      await api("/platform/smtp-settings/", { method: "PUT", body: { contact_email: contactEmail } });
+      setMsg({ ok: true, text: "Contact email saved." });
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.detail || "Failed to save contact email." });
+    } finally {
+      setSavingContact(false);
+    }
+  }
 
   async function saveSettings(e: React.FormEvent) {
     e.preventDefault();
@@ -187,6 +204,37 @@ export default function PlatformSettingsPage() {
               </button>
               <button type="submit" disabled={saving || testing} className="btn btn-primary rounded-pill px-5 shadow-sm">
                 {saving ? "Saving..." : "Save Configuration"}
+              </button>
+            </div>
+          </form>
+        </div>
+      </Card>
+
+      <Card className="border-top border-4 border-success">
+        <div className="p-2">
+          <h2 className="h5 fw-bold mb-2 d-flex align-items-center gap-2 text-success">
+            <i className="bi bi-inbox"></i> Contact Form Recipient
+          </h2>
+          <p className="text-secondary small mb-4">
+            Messages sent from the public <strong>Contact Us</strong> page are emailed to this address
+            (and always saved under <strong>Messages</strong>). Change it any time.
+          </p>
+          <form onSubmit={saveContactEmail} className="row g-3 align-items-end">
+            <div className="col-md-8">
+              <div className="form-floating">
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="contact@stockwhisk.com"
+                  value={contactEmail}
+                  onChange={e => setContactEmail(e.target.value)}
+                />
+                <label>Contact inbox email (e.g., contact@stockwhisk.com)</label>
+              </div>
+            </div>
+            <div className="col-md-4 d-grid">
+              <button type="submit" disabled={savingContact} className="btn btn-success rounded-pill px-4 shadow-sm">
+                {savingContact ? "Saving..." : "Save Contact Email"}
               </button>
             </div>
           </form>
