@@ -10,7 +10,7 @@ import { useAuth } from "@/components/AuthProvider";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
-type Customer = { id: number; name: string; phone?: string; email?: string; };
+type Customer = { id: number; name: string; phone?: string; email?: string; address?: string; };
 
 const PAY_METHODS = [
   { value: "cash", label: "💵 Cash" },
@@ -30,6 +30,24 @@ export default function PosCustomerPage() {
   const [walkName, setWalkName] = useState("");
   const [walkPhone, setWalkPhone] = useState("");
   const [walkAddress, setWalkAddress] = useState("");
+  const [matchedId, setMatchedId] = useState<number | null>(null);
+
+  // Typing a phone that matches an existing customer auto-fills their details
+  // (and links the sale to that customer instead of creating a duplicate).
+  function onWalkPhoneChange(value: string) {
+    setWalkPhone(value);
+    const norm = (p?: string | null) => (p || "").replace(/\D/g, "");
+    const key = norm(value);
+    const found = key.length >= 6 ? customers.find((c) => norm(c.phone) === key) : undefined;
+    if (found) {
+      setMatchedId(found.id);
+      setWalkName(found.name || "");
+      setWalkAddress((found as any).address || "");
+    } else if (matchedId) {
+      // They edited away from a matched number — unlink.
+      setMatchedId(null);
+    }
+  }
   const [discount, setDiscount] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");
@@ -81,13 +99,17 @@ export default function PosCustomerPage() {
     try {
       let customerId2: number | null = customerMode === "existing" && customerId ? Number(customerId) : null;
 
-      // Create walk-in customer if needed
+      // Walk-in: reuse the matched existing customer, else create a new one.
       if (customerMode === "walkin") {
-        const c = await api<{ id: number }>("/crm/customers/", {
-          method: "POST",
-          body: { name: walkName.trim(), phone: walkPhone.trim(), address: walkAddress.trim() },
-        }).catch(() => null);
-        if (c) customerId2 = c.id;
+        if (matchedId) {
+          customerId2 = matchedId;
+        } else {
+          const c = await api<{ id: number }>("/crm/customers/", {
+            method: "POST",
+            body: { name: walkName.trim(), phone: walkPhone.trim(), address: walkAddress.trim() },
+          }).catch(() => null);
+          if (c) customerId2 = c.id;
+        }
       }
 
       const sale = await api<{ id: number; invoice_no: string; public_invoice_url?: string }>("/pos/checkout/", {
@@ -197,12 +219,17 @@ export default function PosCustomerPage() {
             {customerMode === "walkin" && (
               <div className="p-3 bg-light rounded-3 border vstack gap-3">
                 <div className="form-floating">
+                  <input id="walkPhone" className="form-control shadow-sm" value={walkPhone} onChange={(e) => onWalkPhoneChange(e.target.value)} placeholder="01XXXXXXXXX" autoFocus />
+                  <label htmlFor="walkPhone">Phone *</label>
+                </div>
+                {matchedId && (
+                  <div className="text-success small fw-semibold mt-n1">
+                    <i className="bi bi-check-circle-fill me-1"></i> Existing customer — details auto-filled.
+                  </div>
+                )}
+                <div className="form-floating">
                   <input id="walkName" className="form-control shadow-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder="Enter name…" />
                   <label htmlFor="walkName">Customer name *</label>
-                </div>
-                <div className="form-floating">
-                  <input id="walkPhone" className="form-control shadow-sm" value={walkPhone} onChange={(e) => setWalkPhone(e.target.value)} placeholder="01XXXXXXXXX" />
-                  <label htmlFor="walkPhone">Phone *</label>
                 </div>
                 <div className="form-floating">
                   <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
