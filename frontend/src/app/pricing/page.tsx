@@ -273,22 +273,23 @@ export default function PricingPage() {
                           </Typography>
                         </Box>
 
-                        <Button 
-                          component={Link} 
-                          href="/signup" 
+                        <Button
+                          component={Link}
+                          href="/register"
                           fullWidth
-                          sx={{ 
-                            py: 1.5, 
+                          sx={{
+                            py: 1.5,
                             mb: 4,
                             borderRadius: '12px',
                             fontWeight: 700,
                             textTransform: 'none',
                             fontSize: '1rem',
-                            bgcolor: isPopular ? COLORS.primary : 'transparent',
-                            color: isPopular ? COLORS.onPrimary : COLORS.primary,
+                            bgcolor: COLORS.primary,
+                            color: COLORS.onPrimary,
                             border: `2px solid ${COLORS.primary}`,
+                            boxShadow: '0 8px 20px -8px rgba(37,99,235,.6)',
                             '&:hover': {
-                              bgcolor: isPopular ? COLORS.surfaceTint : 'rgba(0, 74, 198, 0.05)',
+                              bgcolor: COLORS.surfaceTint,
                             }
                           }}
                         >
