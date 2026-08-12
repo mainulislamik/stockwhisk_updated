@@ -1,26 +1,18 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Box, Typography, Button, Container, Grid, Card, CardContent, TextField, Stack } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
 import { api } from "@/lib/api";
-import { useThemeMode } from "@/components/ThemeRegistry";
+import { M } from "@/lib/marketing";
 
-const LIGHT_COLORS = {
-  surface: "#f8f9ff",
-  onSurface: "#0b1c30",
-  onSurfaceVariant: "#434655",
-  primary: "#004ac6",
-  surfaceContainerLowest: "#ffffff",
-  outlineVariant: "#c3c6d7",
-};
-const DARK_COLORS = {
-  surface: "#0f172a",
-  onSurface: "#f8fafc",
-  onSurfaceVariant: "#cbd5e1",
-  primary: "#38bdf8",
-  surfaceContainerLowest: "#0b1220",
-  outlineVariant: "#334155",
+const COLORS = {
+  surface: M.surface,
+  onSurface: M.text,
+  onSurfaceVariant: M.textMuted,
+  primary: M.primary,
+  surfaceContainerLowest: M.card,
+  outlineVariant: M.border,
 };
 
 // Phone / WhatsApp for the business (Bangladesh).
@@ -30,16 +22,10 @@ const WHATSAPP = "8801613511887"; // wa.me international format
 const EMAIL = "contact@stockwhisk.com";
 
 export default function ContactPage() {
-  const { mode } = useThemeMode();
-  const [mounted, setMounted] = useState(false);
-  const COLORS = mounted && mode === "dark" ? DARK_COLORS : LIGHT_COLORS;
-
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "", website: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => { setMounted(true); }, []);
 
   const set = (k: string) => (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm((f) => ({ ...f, [k]: e.target.value }));
@@ -178,7 +164,7 @@ export default function ContactPage() {
       </Box>
 
       {/* Footer */}
-      <Box sx={{ bgcolor: mode === "dark" ? "#020617" : "#0b1c30", color: "#94a3b8", py: 4, mt: "auto" }}>
+      <Box sx={{ bgcolor: M.dark, color: M.darkText, py: 4, mt: "auto" }}>
         <Container maxWidth="xl">
           <Typography variant="body2" align="center" sx={{ fontFamily: "Outfit, sans-serif" }}>
             © {new Date().getFullYear()} StockWhisk. All rights reserved.

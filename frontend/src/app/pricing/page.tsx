@@ -5,15 +5,13 @@ import Link from "next/link";
 import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, Switch } from '@mui/material';
 import MarketingNav from '@/components/MarketingNav';
 import { getAccess, api, unwrap } from "@/lib/api";
-import { useThemeMode } from "@/components/ThemeRegistry";
-
 const LIGHT_COLORS = {
-  surface: '#f8f9ff',
-  onSurface: '#0b1c30',
-  onSurfaceVariant: '#434655',
-  primary: '#004ac6',
+  surface: '#f8fafc',
+  onSurface: '#0f172a',
+  onSurfaceVariant: '#475569',
+  primary: '#2563eb',
   onPrimary: '#ffffff',
-  surfaceTint: '#0053db',
+  surfaceTint: '#1d4ed8',
   surfaceContainerLowest: '#ffffff',
   surfaceContainer: '#e5eeff',
   surfaceContainerLow: '#eff4ff',
@@ -58,7 +56,7 @@ const FEATURE_LABELS: Record<string, string> = {
 };
 
 export default function PricingPage() {
-  const { mode } = useThemeMode();
+  const mode: string = "light";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [plans, setPlans] = useState<PricingPlan[]>([]);

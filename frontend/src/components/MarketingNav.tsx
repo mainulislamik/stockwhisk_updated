@@ -4,17 +4,9 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Box, Container, Stack, Button, Typography } from "@mui/material";
 import { getAccess } from "@/lib/api";
+import { M } from "@/lib/marketing";
 
-const C = {
-  surface: "#0F172A",
-  primary: "#38BDF8",
-  onPrimary: "#0F172A",
-  text: "#E2E8F0",
-  textMuted: "#94A3B8",
-  border: "rgba(255,255,255,0.08)",
-};
-
-/** Shared top navigation for the public pages (home, pricing, blog, login, register). */
+/** Shared top navigation for the public pages (home, pricing, blog, contact, login, register). */
 export default function MarketingNav() {
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -23,32 +15,50 @@ export default function MarketingNav() {
     setIsLoggedIn(!!getAccess());
   }, []);
 
-  const link = { color: C.text, fontWeight: 600, textTransform: "none" as const };
+  const link = {
+    color: M.textMuted, fontWeight: 600, textTransform: "none" as const,
+    borderRadius: "8px", px: { xs: 1, sm: 1.5 },
+    "&:hover": { color: M.primary, bgcolor: M.surfaceTint },
+  };
   const cta = {
-    bgcolor: C.primary, color: C.onPrimary, fontWeight: 700, textTransform: "none" as const,
-    borderRadius: "8px", px: 3, "&:hover": { bgcolor: "#0ea5e9" },
+    bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, textTransform: "none" as const,
+    borderRadius: "10px", px: 3, boxShadow: "0 6px 16px -6px rgba(37,99,235,.6)",
+    "&:hover": { bgcolor: M.primaryDark },
   };
 
   return (
-    <Box sx={{ bgcolor: C.surface, borderBottom: `1px solid ${C.border}`, position: "sticky", top: 0, zIndex: 1200 }}>
+    <Box
+      sx={{
+        bgcolor: "rgba(248,250,252,0.8)",
+        backdropFilter: "blur(12px)",
+        borderBottom: `1px solid ${M.border}`,
+        position: "sticky", top: 0, zIndex: 1200,
+      }}
+    >
       <Container maxWidth="xl">
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 64 }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", height: 66 }}>
           <Typography component={Link} href="/" variant="h6"
-            sx={{ fontWeight: 700, color: C.primary, textDecoration: "none", fontFamily: "Outfit, sans-serif" }}>
+            sx={{ fontWeight: 800, color: M.text, textDecoration: "none", fontFamily: "Outfit, sans-serif",
+                  display: "flex", alignItems: "center", gap: 1, letterSpacing: "-0.02em" }}>
+            <Box component="span" sx={{
+              width: 30, height: 30, borderRadius: "8px", display: "inline-flex",
+              alignItems: "center", justifyContent: "center", fontSize: 16,
+              background: `linear-gradient(135deg, ${M.accent}, ${M.primaryDark})`,
+            }}>📦</Box>
             StockWhisk
           </Typography>
-          <Stack direction="row" spacing={{ xs: 0.5, sm: 1.5 }} sx={{ alignItems: "center" }}>
-            <Button component={Link} href="/" sx={link}>Home</Button>
+          <Stack direction="row" spacing={{ xs: 0.25, sm: 1 }} sx={{ alignItems: "center" }}>
+            <Button component={Link} href="/" sx={{ ...link, display: { xs: "none", sm: "inline-flex" } }}>Home</Button>
             <Button component={Link} href="/pricing" sx={link}>Pricing</Button>
-            <Button component={Link} href="/blog" sx={link}>Blog</Button>
+            <Button component={Link} href="/blog" sx={{ ...link, display: { xs: "none", sm: "inline-flex" } }}>Blog</Button>
             <Button component={Link} href="/contact" sx={link}>Contact</Button>
             {mounted && isLoggedIn ? (
               <Button component={Link} href="/app" sx={cta}>Dashboard</Button>
             ) : (
               <>
                 <Button component={Link} href="/login"
-                  sx={{ color: C.textMuted, fontWeight: 600, textTransform: "none",
-                    display: { xs: "none", md: "inline-flex" }, "&:hover": { color: C.primary, bgcolor: "transparent" } }}>
+                  sx={{ color: M.textMuted, fontWeight: 600, textTransform: "none",
+                    display: { xs: "none", md: "inline-flex" }, "&:hover": { color: M.primary, bgcolor: "transparent" } }}>
                   Login
                 </Button>
                 <Button component={Link} href="/register" sx={cta}>Sign Up</Button>
