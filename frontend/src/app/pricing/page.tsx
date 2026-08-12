@@ -100,21 +100,21 @@ export default function PricingPage() {
           sx={{ position: "fixed", inset: 0, zIndex: 1400, bgcolor: "rgba(15,23,42,0.7)",
                 display: "flex", alignItems: "center", justifyContent: "center", p: 2, backdropFilter: "blur(3px)" }}
         >
-          <Box onClick={(e) => e.stopPropagation()} sx={{ position: "relative", maxWidth: 560, width: "100%",
-                bgcolor: "#fff", borderRadius: 4, overflow: "hidden", boxShadow: "0 40px 80px -30px rgba(0,0,0,.6)" }}>
+          <Box onClick={(e) => e.stopPropagation()} sx={{ position: "relative",
+                width: "min(92vw, 92vh, 860px)", height: "min(92vw, 92vh, 860px)",
+                bgcolor: "#fff", borderRadius: 5, overflow: "hidden", boxShadow: "0 40px 90px -30px rgba(0,0,0,.65)" }}>
             <IconButton onClick={() => setShowOffer(false)} aria-label="Close"
-              sx={{ position: "absolute", top: 8, right: 8, zIndex: 2, bgcolor: "rgba(255,255,255,.9)",
-                    "&:hover": { bgcolor: "#fff" } }}>
-              <span style={{ fontSize: 20, lineHeight: 1, fontWeight: 700 }}>×</span>
+              sx={{ position: "absolute", top: 10, right: 10, zIndex: 2, bgcolor: "rgba(255,255,255,.92)",
+                    boxShadow: "0 2px 8px rgba(0,0,0,.2)", "&:hover": { bgcolor: "#fff" } }}>
+              <span style={{ fontSize: 22, lineHeight: 1, fontWeight: 700 }}>×</span>
             </IconButton>
             {offer.is_pdf ? (
-              <Box sx={{ p: 0 }}>
-                <iframe src={offer.url} title="Offer" style={{ width: "100%", height: "70vh", border: 0 }} />
-              </Box>
+              <iframe src={offer.url} title="Offer" style={{ width: "100%", height: "100%", border: 0 }} />
             ) : (
-              <Box component="a" href={offer.url} target="_blank" rel="noreferrer" sx={{ display: "block" }}>
+              <Box component="a" href={offer.url} target="_blank" rel="noreferrer"
+                sx={{ display: "block", width: "100%", height: "100%" }}>
                 <Box component="img" src={offer.url} alt="Special offer"
-                  sx={{ width: "100%", height: "auto", display: "block" }} />
+                  sx={{ width: "100%", height: "100%", objectFit: "contain", display: "block" }} />
               </Box>
             )}
           </Box>
