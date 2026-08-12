@@ -631,10 +631,6 @@ class PublicContactView(APIView):
     DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
 
     def post(self, request):
-        # Honeypot: real users never fill a hidden "website" field; bots do.
-        if (request.data.get("website") or "").strip():
-            return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
-
         ser = PublicContactCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         msg = ser.save()

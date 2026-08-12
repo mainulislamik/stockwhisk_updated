@@ -22,7 +22,7 @@ const WHATSAPP = "8801613511887"; // wa.me international format
 const EMAIL = "contact@stockwhisk.com";
 
 export default function ContactPage() {
-  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "", website: "" });
+  const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState("");
@@ -41,7 +41,7 @@ export default function ContactPage() {
     try {
       await api("/platform/public/contact/", { method: "POST", body: form });
       setSent(true);
-      setForm({ name: "", email: "", phone: "", subject: "", message: "", website: "" });
+      setForm({ name: "", email: "", phone: "", subject: "", message: "" });
     } catch (err: any) {
       setError(err?.message || "Could not send your message. Please try again.");
     } finally {
@@ -139,15 +139,6 @@ export default function ContactPage() {
                           </Grid>
                         </Grid>
                         <TextField label="Message" fullWidth required multiline minRows={5} value={form.message} onChange={set("message")} />
-
-                        {/* Honeypot — hidden from real users, catches bots */}
-                        <input
-                          type="text" name="website" tabIndex={-1} autoComplete="off"
-                          value={form.website} onChange={set("website")}
-                          style={{ position: "absolute", left: "-9999px", width: 1, height: 1, opacity: 0 }}
-                          aria-hidden="true"
-                        />
-
                         {error && <Typography sx={{ color: "#dc2626", fontSize: ".9rem" }}>{error}</Typography>}
 
                         <Button type="submit" variant="contained" size="large" disabled={sending} sx={{ alignSelf: "flex-start", px: 4, borderRadius: 2, textTransform: "none", fontWeight: 600 }}>
