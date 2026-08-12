@@ -29,7 +29,6 @@ const CONTENT_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "hero_title", label: "Hero title" },
   { key: "hero_subtitle", label: "Hero subtitle" },
   { key: "trial_badge", label: "Trial badge", hint: "Use {days} for the trial length" },
-  { key: "yearly_save_label", label: "Yearly toggle label" },
   { key: "features_heading", label: "Features heading" },
   { key: "cta_label", label: "Button text" },
   { key: "popular_badge", label: "'Most Popular' badge text" },
@@ -282,7 +281,7 @@ export default function PlansPage() {
                     </select>
                   </div>
                   <Num c="col-6" label="৳ / month" v={plan.price_monthly} on={(v) => upd(plan.id, { price_monthly: v })} />
-                  <Num c="col-6" label="৳ / year" v={plan.price_yearly} on={(v) => upd(plan.id, { price_yearly: v })} />
+                  <YearField c="col-6" monthly={plan.price_monthly} yearly={plan.price_yearly} on={(v) => upd(plan.id, { price_yearly: v })} />
                   <LimitNum c="col-6" label="Max users" v={plan.max_users} show={plan.show_users}
                     on={(v) => upd(plan.id, { max_users: Number(v) })} onShow={(b) => upd(plan.id, { show_users: b })} id={`u-${plan.id}`} />
                   <LimitNum c="col-6" label="Max branches" v={plan.max_branches} show={plan.show_branches}
@@ -339,6 +338,25 @@ function Num({ c, label, v, on }: { c: string; label: string; v: string | number
     <div className={c}>
       <label className="form-label small fw-medium">{label}</label>
       <input className="form-control" type="number" step="0.01" value={v} onChange={(e) => on(e.target.value)} />
+    </div>
+  );
+}
+
+function YearField({ c, monthly, yearly, on }: {
+  c: string; monthly: string | number; yearly: string | number; on: (v: string) => void;
+}) {
+  const m = parseFloat(String(monthly)) || 0;
+  const y = parseFloat(String(yearly)) || 0;
+  const pct = m > 0 && y > 0 && y < m * 12 ? Math.round((1 - (y / 12) / m) * 100) : 0;
+  return (
+    <div className={c}>
+      <div className="d-flex align-items-center justify-content-between">
+        <label className="form-label small fw-medium mb-0">৳ / year</label>
+        {pct > 0
+          ? <span className="badge text-bg-success">{pct}% off</span>
+          : y > 0 ? <span className="badge text-bg-secondary">no discount</span> : null}
+      </div>
+      <input className="form-control" type="number" step="0.01" value={yearly} onChange={(e) => on(e.target.value)} />
     </div>
   );
 }
