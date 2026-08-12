@@ -583,11 +583,17 @@ class PlanAdminSerializer(serializers.ModelSerializer):
     """Full CRUD for subscription plans/packages. ``features`` accepts either a
     list of enabled keys or a {key: bool} map and is normalized to a full map."""
     features = serializers.JSONField(required=False)
+    highlights = serializers.JSONField(required=False)
 
     class Meta:
         model = SubscriptionPlan
         fields = ["id", "name", "tier", "price_monthly", "price_yearly",
-                  "max_users", "max_branches", "max_products", "features", "is_active"]
+                  "max_users", "max_branches", "max_products", "features", "highlights", "is_active"]
+
+    def validate_highlights(self, value):
+        if isinstance(value, list):
+            return [str(x).strip() for x in value if str(x).strip()]
+        return []
 
     def validate_features(self, value):
         if isinstance(value, list):
@@ -1476,8 +1482,8 @@ class PublicPricingPlanSerializer(serializers.ModelSerializer):
     class Meta:
         model = SubscriptionPlan
         fields = [
-            "id", "name", "tier", "price_monthly", "price_yearly", 
-            "features", "max_users", "max_branches", "max_products"
+            "id", "name", "tier", "price_monthly", "price_yearly",
+            "features", "max_users", "max_branches", "max_products", "highlights"
         ]
 
 class PublicPricingPlanViewSet(viewsets.ReadOnlyModelViewSet):
@@ -1499,7 +1505,43 @@ class PublicSiteConfigView(APIView):
         if config.offer_enabled and config.offer_file:
             url = request.build_absolute_uri(config.offer_file.url)
             offer = {"url": url, "is_pdf": str(config.offer_file.name).lower().endswith(".pdf")}
-        return Response({"trial_days": config.default_trial_days, "offer": offer})
+        return Response({
+            "trial_days": config.default_trial_days,
+            "offer": offer,
+            "pricing_content": {**DEFAULT_PRICING_CONTENT, **(config.pricing_content or {})},
+        })
+
+
+DEFAULT_PRICING_CONTENT = {
+    "hero_title": "Simple, transparent pricing",
+    "hero_subtitle": "Choose the perfect plan for your retail business. No hidden fees.",
+    "trial_badge": "🎉 Start with a {days}-day free trial — no card required",
+    "yearly_save_label": "Save 20%",
+    "features_heading": "Features Included",
+    "cta_label": "Get Started",
+    "popular_badge": "Most Popular",
+}
+
+
+class PricingContentView(APIView):
+    """Staff-editable copy for the public pricing page."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        config = PlatformConfig.get_solo()
+        return Response({
+            "pricing_content": {**DEFAULT_PRICING_CONTENT, **(config.pricing_content or {})},
+            "defaults": DEFAULT_PRICING_CONTENT,
+        })
+
+    def put(self, request):
+        config = PlatformConfig.get_solo()
+        incoming = request.data.get("pricing_content") or {}
+        # Keep only known keys, coerce to trimmed strings.
+        cleaned = {k: str(incoming[k]).strip() for k in DEFAULT_PRICING_CONTENT if k in incoming}
+        config.pricing_content = cleaned
+        config.save(update_fields=["pricing_content"])
+        return Response({"pricing_content": {**DEFAULT_PRICING_CONTENT, **cleaned}})
 
 from .mail_service import MailServerConfigService
 

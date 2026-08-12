@@ -35,6 +35,7 @@ from .views import (
     PublicSiteConfigView,
     PlanAdminViewSet,
     PromoOfferView,
+    PricingContentView,
 )
 
 app_name = "platform_admin"
@@ -75,6 +76,7 @@ urlpatterns = [
     path("public/contact/", PublicContactView.as_view(), name="public-contact"),
     path("public/site-config/", PublicSiteConfigView.as_view(), name="public-site-config"),
     path("promo-offer/", PromoOfferView.as_view(), name="promo-offer"),
+    path("pricing-content/", PricingContentView.as_view(), name="pricing-content"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]

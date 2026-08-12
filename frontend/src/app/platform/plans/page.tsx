@@ -15,10 +15,22 @@ type Plan = {
   max_branches: number;
   max_products: number;
   features: Record<string, boolean>;
+  highlights: string[];
   is_active: boolean;
 };
 
 type Offer = { enabled: boolean; url: string | null; is_pdf: boolean };
+
+type Content = Record<string, string>;
+const CONTENT_FIELDS: { key: string; label: string; hint?: string }[] = [
+  { key: "hero_title", label: "Hero title" },
+  { key: "hero_subtitle", label: "Hero subtitle" },
+  { key: "trial_badge", label: "Trial badge", hint: "Use {days} for the trial length" },
+  { key: "yearly_save_label", label: "Yearly toggle label" },
+  { key: "features_heading", label: "Features heading" },
+  { key: "cta_label", label: "Button text" },
+  { key: "popular_badge", label: "'Most Popular' badge text" },
+];
 
 const TIER_LABEL: Record<string, string> = {
   free: "Free", basic: "Basic", professional: "Professional (Most Popular)", enterprise: "Enterprise",
@@ -37,15 +49,32 @@ export default function PlansPage() {
   const [offerBusy, setOfferBusy] = useState(false);
   const offerInput = useRef<HTMLInputElement>(null);
 
+  const [content, setContent] = useState<Content>({});
+  const [savingContent, setSavingContent] = useState(false);
+
   async function loadAll() {
     try {
-      const [p, o] = await Promise.all([
+      const [p, o, c] = await Promise.all([
         api<{ plans: Plan[]; feature_keys: string[]; tiers: string[] }>("/platform/plans-manage/"),
         api<Offer>("/platform/promo-offer/").catch(() => ({ enabled: false, url: null, is_pdf: false })),
+        api<{ pricing_content: Content }>("/platform/pricing-content/").catch(() => ({ pricing_content: {} })),
       ]);
       setPlans(p.plans); setKeys(p.feature_keys); setTiers(p.tiers); setOffer(o);
+      setContent(c.pricing_content || {});
       setLoaded(true);
     } catch (e: any) { setError(e?.message || "Failed to load plans."); }
+  }
+
+  async function saveContent() {
+    setSavingContent(true);
+    try {
+      const d = await api<{ pricing_content: Content }>("/platform/pricing-content/", {
+        method: "PUT", body: { pricing_content: content },
+      });
+      setContent(d.pricing_content);
+      toast.success("Pricing page text saved.");
+    } catch { toast.error("Failed to save text."); }
+    finally { setSavingContent(false); }
   }
   useEffect(() => { loadAll(); }, []);
 
@@ -65,7 +94,7 @@ export default function PlansPage() {
           name: plan.name, tier: plan.tier,
           price_monthly: plan.price_monthly, price_yearly: plan.price_yearly,
           max_users: plan.max_users, max_branches: plan.max_branches, max_products: plan.max_products,
-          features: plan.features, is_active: plan.is_active,
+          features: plan.features, highlights: plan.highlights || [], is_active: plan.is_active,
         },
       });
       upd(plan.id, saved);
@@ -85,7 +114,7 @@ export default function PlansPage() {
         body: {
           name: TIER_LABEL[freeTier]?.split(" ")[0] || "New Package", tier: freeTier,
           price_monthly: 0, price_yearly: 0, max_users: 2, max_branches: 1, max_products: 100,
-          features: keys.reduce((a, k) => ({ ...a, [k]: false }), {}), is_active: false,
+          features: keys.reduce((a, k) => ({ ...a, [k]: false }), {}), highlights: [], is_active: false,
         },
       });
       setPlans((ps) => [...ps, created]);
@@ -188,6 +217,31 @@ export default function PlansPage() {
         </div>
       </div>
 
+      {/* ── Pricing page text (CMS) ── */}
+      <div className="card shadow-sm border-top border-4 border-info">
+        <div className="card-body">
+          <h2 className="h6 fw-bold d-flex align-items-center gap-2 text-info mb-1">
+            <i className="bi bi-fonts"></i> Pricing Page Text
+          </h2>
+          <p className="text-secondary small mb-3">Edit the wording shown on the public pricing page.</p>
+          <div className="row g-3">
+            {CONTENT_FIELDS.map((f) => (
+              <div className="col-md-6" key={f.key}>
+                <label className="form-label small fw-medium">{f.label}</label>
+                <input className="form-control form-control-sm" value={content[f.key] ?? ""}
+                  onChange={(e) => setContent((c) => ({ ...c, [f.key]: e.target.value }))} />
+                {f.hint && <div className="form-text small">{f.hint}</div>}
+              </div>
+            ))}
+          </div>
+          <div className="d-flex justify-content-end mt-3">
+            <button className="btn btn-info text-white rounded-pill px-4" disabled={savingContent} onClick={saveContent}>
+              {savingContent ? "Saving..." : "Save Text"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* ── Packages ── */}
       <div className="d-flex align-items-center justify-content-between">
         <h2 className="h6 fw-bold mb-0">Packages ({plans.length})</h2>
@@ -241,6 +295,13 @@ export default function PlansPage() {
                     </div>
                   ))}
                 </div>
+
+                <label className="form-label small fw-bold">Feature bullets (one per line)</label>
+                <textarea className="form-control form-control-sm font-monospace mb-1" rows={5}
+                  placeholder={"Leave blank to auto-list limits & features.\nUp to 1000 Users\nPoint of Sale (POS)\nFree setup & training"}
+                  value={(plan.highlights || []).join("\n")}
+                  onChange={(e) => upd(plan.id, { highlights: e.target.value.split("\n") })} />
+                <div className="form-text small mb-3">These replace the auto feature list on the pricing card.</div>
 
                 <div className="form-check form-switch mb-3">
                   <input className="form-check-input" type="checkbox" role="switch" id={`show-${plan.id}`}

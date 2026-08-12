@@ -57,6 +57,10 @@ class SubscriptionPlan(TimeStampedModel):
     max_branches = models.PositiveIntegerField(default=1)
     max_products = models.PositiveIntegerField(default=100)
 
+    # Custom feature bullet points shown on the public pricing card (one per
+    # entry). When empty, the card falls back to the auto limits + feature flags.
+    highlights = models.JSONField(default=list, blank=True)
+
     is_active = models.BooleanField(default=True)
 
     class Meta:

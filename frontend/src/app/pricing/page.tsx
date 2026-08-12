@@ -44,6 +44,27 @@ type PricingPlan = {
   max_users: number;
   max_branches: number;
   max_products: number;
+  highlights?: string[];
+};
+
+type PricingContent = {
+  hero_title: string;
+  hero_subtitle: string;
+  trial_badge: string;
+  yearly_save_label: string;
+  features_heading: string;
+  cta_label: string;
+  popular_badge: string;
+};
+
+const DEFAULT_CONTENT: PricingContent = {
+  hero_title: "Simple, transparent pricing",
+  hero_subtitle: "Choose the perfect plan for your retail business. No hidden fees.",
+  trial_badge: "🎉 Start with a {days}-day free trial — no card required",
+  yearly_save_label: "Save 20%",
+  features_heading: "Features Included",
+  cta_label: "Get Started",
+  popular_badge: "Most Popular",
 };
 
 // Known features to map
@@ -66,6 +87,7 @@ export default function PricingPage() {
   const [trialDays, setTrialDays] = useState(45);
   const [offer, setOffer] = useState<{ url: string; is_pdf: boolean } | null>(null);
   const [showOffer, setShowOffer] = useState(false);
+  const [content, setContent] = useState<PricingContent>(DEFAULT_CONTENT);
 
   const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
@@ -78,10 +100,11 @@ export default function PricingPage() {
       })
       .catch((e) => console.error("Failed to load pricing plans", e))
       .finally(() => setLoading(false));
-    api<{ trial_days: number; offer: { url: string; is_pdf: boolean } | null }>("/platform/public/site-config/")
+    api<{ trial_days: number; offer: { url: string; is_pdf: boolean } | null; pricing_content: PricingContent }>("/platform/public/site-config/")
       .then((d) => {
         if (d?.trial_days != null) setTrialDays(d.trial_days);
         if (d?.offer?.url) { setOffer(d.offer); setShowOffer(true); }
+        if (d?.pricing_content) setContent({ ...DEFAULT_CONTENT, ...d.pricing_content });
       })
       .catch(() => {});
   }, []);
@@ -139,14 +162,14 @@ export default function PricingPage() {
               WebkitTextFillColor: 'transparent',
               fontSize: { xs: '2.5rem', md: '4rem' }
             }}>
-              Simple, transparent pricing
+              {content.hero_title}
             </Typography>
             <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, maxWidth: '600px', mx: 'auto', mb: 3, fontFamily: 'Outfit, sans-serif' }}>
-              Choose the perfect plan for your retail business. No hidden fees.
+              {content.hero_subtitle}
             </Typography>
 
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 5, px: 2.5, py: 1, borderRadius: 999, bgcolor: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700 }}>
-              🎉 Start with a {trialDays}-day free trial — no card required
+              {content.trial_badge.replace('{days}', String(trialDays))}
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
@@ -157,7 +180,7 @@ export default function PricingPage() {
                 color="primary"
               />
               <Typography sx={{ fontWeight: 600, color: isYearly ? COLORS.onSurface : COLORS.onSurfaceVariant }}>
-                Yearly <Typography component="span" sx={{ color: '#10b981', ml: 1, fontSize: '0.8rem', fontWeight: 700, bgcolor: 'rgba(16, 185, 129, 0.1)', px: 1, py: 0.5, borderRadius: '4px' }}>Save 20%</Typography>
+                Yearly <Typography component="span" sx={{ color: '#10b981', ml: 1, fontSize: '0.8rem', fontWeight: 700, bgcolor: 'rgba(16, 185, 129, 0.1)', px: 1, py: 0.5, borderRadius: '4px' }}>{content.yearly_save_label}</Typography>
               </Typography>
             </Box>
           </Box>
@@ -220,7 +243,7 @@ export default function PricingPage() {
                           textTransform: 'uppercase',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                         }}>
-                          Most Popular
+                          {content.popular_badge}
                         </Box>
                       )}
                       
@@ -263,46 +286,28 @@ export default function PricingPage() {
                             }
                           }}
                         >
-                          Get Started
+                          {content.cta_label}
                         </Button>
 
                         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: COLORS.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: '0.5px', mb: 1 }}>
-                            Features Included
+                            {content.features_heading}
                           </Typography>
-                          
-                          {/* Hard limits */}
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box sx={{ color: '#10b981' }}>✓</Box>
-                            <Typography sx={{ color: COLORS.onSurface, fontWeight: 500 }}>
-                              Up to {plan.max_users} Users
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box sx={{ color: '#10b981' }}>✓</Box>
-                            <Typography sx={{ color: COLORS.onSurface, fontWeight: 500 }}>
-                              {plan.max_branches} {plan.max_branches > 1 ? 'Branches' : 'Branch'}
-                            </Typography>
-                          </Box>
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                            <Box sx={{ color: '#10b981' }}>✓</Box>
-                            <Typography sx={{ color: COLORS.onSurface, fontWeight: 500 }}>
-                              {plan.max_products} Products Limit
-                            </Typography>
-                          </Box>
 
-                          {/* Dynamic Features */}
-                          {Object.entries(plan.features).map(([key, value]) => {
-                            if (!value) return null;
-                            return (
-                              <Box key={key} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                                <Box sx={{ color: '#10b981' }}>✓</Box>
-                                <Typography sx={{ color: COLORS.onSurface, fontWeight: 500 }}>
-                                  {FEATURE_LABELS[key] || key}
-                                </Typography>
-                              </Box>
-                            );
-                          })}
+                          {(plan.highlights && plan.highlights.length > 0
+                            ? plan.highlights
+                            : [
+                                `Up to ${plan.max_users} Users`,
+                                `${plan.max_branches} ${plan.max_branches > 1 ? 'Branches' : 'Branch'}`,
+                                `${plan.max_products} Products Limit`,
+                                ...Object.entries(plan.features).filter(([, v]) => v).map(([k]) => FEATURE_LABELS[k] || k),
+                              ]
+                          ).map((line, i) => (
+                            <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                              <Box sx={{ color: '#10b981' }}>✓</Box>
+                              <Typography sx={{ color: COLORS.onSurface, fontWeight: 500 }}>{line}</Typography>
+                            </Box>
+                          ))}
                         </Box>
                       </CardContent>
                     </Card>

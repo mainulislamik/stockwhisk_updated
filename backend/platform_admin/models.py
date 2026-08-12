@@ -99,6 +99,9 @@ class PlatformConfig(TimeStampedModel):
     offer_file = models.FileField(upload_to="offers/", blank=True, null=True)
     offer_enabled = models.BooleanField(default=False)
 
+    # Editable copy for the public pricing page (hero, CTA, badges, etc.).
+    pricing_content = models.JSONField(default=dict, blank=True)
+
     # Subscription: default trial length (days) granted to every new signup.
     default_trial_days = models.PositiveIntegerField(default=45)
 
