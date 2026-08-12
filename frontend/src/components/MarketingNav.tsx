@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Box, Container, Stack, Button, Typography } from "@mui/material";
+import { Box, Container, Stack, Button, Typography, IconButton, Menu, MenuItem } from "@mui/material";
 import { getAccess } from "@/lib/api";
 import { M } from "@/lib/marketing";
 
@@ -10,6 +10,11 @@ import { M } from "@/lib/marketing";
 export default function MarketingNav() {
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const menuOpen = Boolean(anchorEl);
+  const openMenu = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
+  const closeMenu = () => setAnchorEl(null);
+
   useEffect(() => {
     setMounted(true);
     setIsLoggedIn(!!getAccess());
@@ -17,7 +22,7 @@ export default function MarketingNav() {
 
   const link = {
     color: M.textMuted, fontWeight: 600, textTransform: "none" as const,
-    borderRadius: "8px", px: { xs: 1, sm: 1.5 },
+    borderRadius: "8px", px: 1.5,
     "&:hover": { color: M.primary, bgcolor: M.surfaceTint },
   };
   const cta = {
@@ -26,10 +31,17 @@ export default function MarketingNav() {
     "&:hover": { bgcolor: M.primaryDark },
   };
 
+  const navLinks = [
+    { href: "/", label: "Home" },
+    { href: "/pricing", label: "Pricing" },
+    { href: "/blog", label: "Blog" },
+    { href: "/contact", label: "Contact" },
+  ];
+
   return (
     <Box
       sx={{
-        bgcolor: "rgba(248,250,252,0.8)",
+        bgcolor: "rgba(248,250,252,0.85)",
         backdropFilter: "blur(12px)",
         borderBottom: `1px solid ${M.border}`,
         position: "sticky", top: 0, zIndex: 1200,
@@ -47,24 +59,58 @@ export default function MarketingNav() {
             }}>📦</Box>
             StockWhisk
           </Typography>
-          <Stack direction="row" spacing={{ xs: 0.25, sm: 1 }} sx={{ alignItems: "center" }}>
-            <Button component={Link} href="/" sx={{ ...link, display: { xs: "none", sm: "inline-flex" } }}>Home</Button>
-            <Button component={Link} href="/pricing" sx={link}>Pricing</Button>
-            <Button component={Link} href="/blog" sx={{ ...link, display: { xs: "none", sm: "inline-flex" } }}>Blog</Button>
-            <Button component={Link} href="/contact" sx={link}>Contact</Button>
+
+          {/* Desktop nav */}
+          <Stack direction="row" spacing={1} sx={{ alignItems: "center", display: { xs: "none", md: "flex" } }}>
+            {navLinks.map((l) => (
+              <Button key={l.href} component={Link} href={l.href} sx={link}>{l.label}</Button>
+            ))}
             {mounted && isLoggedIn ? (
               <Button component={Link} href="/app" sx={cta}>Dashboard</Button>
             ) : (
               <>
                 <Button component={Link} href="/login"
                   sx={{ color: M.textMuted, fontWeight: 600, textTransform: "none",
-                    display: { xs: "none", md: "inline-flex" }, "&:hover": { color: M.primary, bgcolor: "transparent" } }}>
+                    "&:hover": { color: M.primary, bgcolor: "transparent" } }}>
                   Login
                 </Button>
                 <Button component={Link} href="/register" sx={cta}>Sign Up</Button>
               </>
             )}
           </Stack>
+
+          {/* Mobile nav: CTA + hamburger menu */}
+          <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: 1 }}>
+            {mounted && isLoggedIn ? (
+              <Button component={Link} href="/app" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>Dashboard</Button>
+            ) : (
+              <Button component={Link} href="/register" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>Sign Up</Button>
+            )}
+            <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text }}>
+              <i className="bi bi-list" style={{ fontSize: "1.6rem", lineHeight: 1 }} />
+            </IconButton>
+            <Menu
+              anchorEl={anchorEl}
+              open={menuOpen}
+              onClose={closeMenu}
+              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+              transformOrigin={{ vertical: "top", horizontal: "right" }}
+              slotProps={{ paper: { sx: { mt: 1, minWidth: 180, borderRadius: 3, boxShadow: "0 12px 32px -12px rgba(15,23,42,.3)" } } }}
+            >
+              {navLinks.map((l) => (
+                <MenuItem key={l.href} component={Link} href={l.href} onClick={closeMenu}
+                  sx={{ fontWeight: 600, color: M.text, py: 1.2 }}>
+                  {l.label}
+                </MenuItem>
+              ))}
+              {!(mounted && isLoggedIn) && (
+                <MenuItem component={Link} href="/login" onClick={closeMenu}
+                  sx={{ fontWeight: 600, color: M.primary, py: 1.2 }}>
+                  Login
+                </MenuItem>
+              )}
+            </Menu>
+          </Box>
         </Box>
       </Container>
     </Box>
