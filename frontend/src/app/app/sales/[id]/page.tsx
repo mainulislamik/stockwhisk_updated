@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
+import { useAuth } from "@/components/AuthProvider";
 
 type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
 type Payment = { id: number; amount: string; method: string; paid_at: string; note: string };
@@ -12,6 +13,9 @@ type Sale = {
   id: number;
   invoice_no: string;
   customer_name: string | null;
+  bill_name?: string | null;
+  bill_phone?: string | null;
+  public_invoice_url?: string;
   sale_date: string;
   subtotal: string;
   discount: string;
@@ -28,6 +32,7 @@ type Sale = {
 
 export default function SaleDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -58,6 +63,33 @@ export default function SaleDetailPage() {
           </div>
         </div>
         <div className="d-flex gap-2">
+          {user?.shop_whatsapp_enabled !== false && (() => {
+            const digits = (sale.bill_phone || "").replace(/\D/g, "");
+            const intl = digits.startsWith("880") ? digits
+              : digits.startsWith("0") ? "880" + digits.slice(1)
+              : digits.length === 10 ? "880" + digits : digits;
+            const hasPhone = digits.length >= 10;
+            const pdf = sale.public_invoice_url
+              ? (sale.public_invoice_url.startsWith("http") ? sale.public_invoice_url : window.location.origin + sale.public_invoice_url)
+              : "";
+            const msg = `Hello ${sale.bill_name || sale.customer_name || ""}, thank you for shopping at ${user?.shop_name || "our shop"}!\n\n`
+              + `🧾 Invoice: ${sale.invoice_no}\n`
+              + `💰 Total: ৳${Number(sale.total).toFixed(2)}\n\n`
+              + (pdf ? `📄 Download your invoice PDF:\n${pdf}\n\n` : "")
+              + `We appreciate your business. 🙏`;
+            const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
+            return (
+              <a
+                className={`btn btn-sm text-white ${hasPhone ? "" : "disabled"}`}
+                style={{ background: "#25D366" }}
+                href={hasPhone ? waUrl : undefined}
+                target="_blank" rel="noreferrer"
+                title={hasPhone ? "Send invoice on WhatsApp" : "No phone number on this invoice"}
+              >
+                <i className="bi bi-whatsapp me-1"></i> WhatsApp
+              </a>
+            );
+          })()}
           <button className="btn btn-outline-brand btn-sm" onClick={() => window.open(`/invoice/${sale.id}`, "_blank")}>
             🖨️ Print
           </button>
