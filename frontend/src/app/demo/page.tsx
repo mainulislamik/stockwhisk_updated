@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Box, Typography, Button, Container, TextField, Stack, Alert } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
 import MarketingFooter from "@/components/MarketingFooter";
@@ -13,7 +12,6 @@ const DEMO_EMAIL = "admin@demo.stockwhisk.com";
 const DEMO_PASSWORD = "admin";
 
 export default function DemoPage() {
-  const router = useRouter();
   const { login } = useAuth();
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin");
@@ -29,7 +27,14 @@ export default function DemoPage() {
       const email = username.trim().toLowerCase() === "admin" ? DEMO_EMAIL : username.trim();
       const pass = username.trim().toLowerCase() === "admin" ? DEMO_PASSWORD : password;
       await login(email, pass);
-      router.push("/app");
+      // Always show the demo in light mode for a clean first impression,
+      // regardless of any dark preference saved in this browser.
+      try {
+        localStorage.setItem("themeMode", "light");
+        document.documentElement.setAttribute("data-bs-theme", "light");
+      } catch {}
+      // Full reload so the theme + auth re-initialise cleanly into the app.
+      window.location.href = "/app";
     } catch {
       setError("Demo is temporarily unavailable. Please try again shortly.");
       setBusy(false);
