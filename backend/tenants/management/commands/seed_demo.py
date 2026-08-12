@@ -1,14 +1,17 @@
-"""Create / refresh the public read-only demo shop.
+"""Create / refresh the public read-only demo shop with rich sample data.
 
 Idempotent: run on every deploy. Creates a demo shop with an owner
-(admin@demo.stockwhisk.com / admin) and a bit of realistic sample data so the
-public 'Live Demo' shows a populated owner interface. Writes from this shop are
-blocked by DemoReadOnlyMiddleware.
+(admin@demo.stockwhisk.com / admin) plus ~75 days of realistic data across every
+page — products, customers, suppliers, purchases, sales, warranties, service
+tickets and expenses. Writes from this shop are blocked by DemoReadOnlyMiddleware.
 """
+import random
+from datetime import timedelta as _td
 from decimal import Decimal
 
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils import timezone as _tz
 
 from accounts.models import User
 from core.tenant_context import set_current_tenant
@@ -16,29 +19,77 @@ from tenants.models import Shop
 
 DEMO_EMAIL = "admin@demo.stockwhisk.com"
 DEMO_PASSWORD = "admin"
+DAYS = 75  # history window
 
 PRODUCTS = [
-    # name, category, barcode, cost, price, warranty_months, stock (generous so
-    # the seeded sales never run a product out of stock)
-    ("A4TECH KRS-82 Wired Keyboard", "Accessories", "DEMO100001", 700, 1100, 12, 200),
-    ("Logitech M170 Wireless Mouse", "Accessories", "DEMO100002", 550, 850, 12, 200),
-    ("HP 65W Laptop Adapter", "Accessories", "DEMO100003", 400, 700, 6, 200),
-    ("Samsung 24\" LED Monitor", "Electronics", "DEMO100004", 9500, 12500, 24, 150),
-    ("TP-Link Archer C6 Router", "Electronics", "DEMO100005", 2200, 3200, 12, 150),
-    ("Sandisk 64GB Pendrive", "Accessories", "DEMO100006", 450, 750, 60, 300),
-    ("Xiaomi 10000mAh Power Bank", "Electronics", "DEMO100007", 1300, 1900, 6, 150),
-    ("HDMI 1.5m Cable", "Accessories", "DEMO100008", 120, 300, 0, 300),
+    # name, category, cost, price, warranty_months, stock
+    ("A4TECH KRS-82 Wired Keyboard", "Accessories", 700, 1100, 12, 300),
+    ("Logitech M170 Wireless Mouse", "Accessories", 550, 850, 12, 300),
+    ("HP 65W Laptop Adapter", "Accessories", 400, 700, 6, 300),
+    ("Samsung 24\" LED Monitor", "Electronics", 9500, 12500, 24, 200),
+    ("TP-Link Archer C6 Router", "Networking", 2200, 3200, 12, 200),
+    ("Sandisk 64GB Pendrive", "Storage", 450, 750, 60, 400),
+    ("Xiaomi 10000mAh Power Bank", "Electronics", 1300, 1900, 6, 250),
+    ("HDMI 1.5m Cable", "Accessories", 120, 300, 0, 500),
+    ("WD 1TB External HDD", "Storage", 4200, 5500, 24, 150),
+    ("Dell WB7022 Webcam", "Accessories", 4800, 6200, 12, 120),
+    ("JBL Go 3 Bluetooth Speaker", "Electronics", 2900, 3900, 12, 180),
+    ("Rapoo Wireless Keyboard+Mouse", "Accessories", 1400, 2100, 12, 200),
+    ("Netac 256GB SSD", "Storage", 1900, 2700, 36, 220),
+    ("Havit HV-N92 Headphone", "Accessories", 380, 650, 6, 260),
+    ("Asus 8-Port Gigabit Switch", "Networking", 1600, 2400, 24, 130),
+    ("UPS 650VA", "Electronics", 3200, 4300, 12, 90),
 ]
 
 CUSTOMERS = [
     ("Rahim Uddin", "01711000001", "Mirpur, Dhaka"),
-    ("Karim Store", "01711000002", "Uttara, Dhaka"),
-    ("Nusrat Jahan", "01711000003", "Chattogram"),
+    ("Karim Traders", "01711000002", "Uttara, Dhaka"),
+    ("Nusrat Jahan", "01711000003", "Agrabad, Chattogram"),
+    ("Shahin Alam", "01711000004", "Sylhet"),
+    ("Tania Akter", "01711000005", "Rajshahi"),
+    ("Digital Point", "01711000006", "Elephant Road, Dhaka"),
+    ("Mizanur Rahman", "01711000007", "Khulna"),
+    ("Farhana Islam", "01711000008", "Bashundhara, Dhaka"),
+    ("Sabbir Hossain", "01711000009", "Gazipur"),
+    ("Green IT Store", "01711000010", "Mouchak, Dhaka"),
+]
+
+SUPPLIERS = [
+    ("Global Tech Distribution", "Global Tech Ltd", "01811000001"),
+    ("Star Computers Wholesale", "Star Computers", "01811000002"),
+    ("Prime Electronics BD", "Prime Electronics", "01811000003"),
+    ("Ryans Trade", "Ryans", "01811000004"),
+]
+
+EXPENSES = [
+    ("Shop rent", 15000, "bank"),
+    ("Electricity bill", 3200, "cash"),
+    ("Staff salary", 22000, "bank"),
+    ("Internet bill", 1500, "bkash"),
+    ("Marketing / Facebook ads", 5000, "card"),
+    ("Transport", 1800, "cash"),
+    ("Office supplies", 900, "cash"),
+    ("Tea & refreshments", 700, "cash"),
+]
+
+TICKETS = [
+    ("HP Laptop 15s", "laptop", "screen", "in_repair", 1500),
+    ("Dell Optiplex Desktop", "desktop", "power", "diagnosing", 800),
+    ("Samsung Galaxy A54", "phone", "battery", "ready_for_pickup", 1200),
+    ("Asus TUF Gaming", "laptop", "software", "delivered", 900),
+    ("iPad Air", "tablet", "liquid", "awaiting_parts", 2500),
+    ("PS5 Console", "console", "power", "received", 0),
+    ("Lenovo ThinkPad", "laptop", "screen", "delivered", 2200),
+    ("iPhone 12", "phone", "battery", "ready_for_pickup", 1800),
+    ("HP Pavilion", "laptop", "virus", "delivered", 600),
+    ("Acer Monitor", "other", "power", "diagnosing", 500),
+    ("Xbox Series S", "console", "software", "in_repair", 1100),
+    ("Redmi Note 12", "phone", "screen", "delivered", 1600),
 ]
 
 
 class Command(BaseCommand):
-    help = "Create or refresh the public read-only demo shop + sample data."
+    help = "Create or refresh the public read-only demo shop with rich sample data."
 
     @transaction.atomic
     def handle(self, *args, **options):
@@ -50,22 +101,16 @@ class Command(BaseCommand):
             self.stdout.write("Demo owner exists — refreshing.")
         else:
             shop, owner = register_shop(
-                name="StockWhisk Demo Store",
-                owner_email=DEMO_EMAIL,
-                owner_password=DEMO_PASSWORD,
-                owner_name="Demo Owner",
-                phone="01700000000",
-                address="123 Demo Road, Dhaka",
+                name="StockWhisk Demo Store", owner_email=DEMO_EMAIL,
+                owner_password=DEMO_PASSWORD, owner_name="Demo Owner",
+                phone="01700000000", address="123 Demo Road, Dhaka",
             )
             self.stdout.write("Created demo shop + owner.")
 
-        # Always keep it a demo, active, never-expiring, and admin/admin.
-        from django.utils import timezone
-        from datetime import timedelta
         shop.is_demo = True
         shop.is_test = True
         shop.is_active = True
-        shop.trial_ends_at = timezone.now() + timedelta(days=3650)
+        shop.trial_ends_at = _tz.now() + _td(days=3650)
         shop.save(update_fields=["is_demo", "is_test", "is_active", "trial_ends_at"])
         owner.set_password(DEMO_PASSWORD)
         owner.is_active = True
@@ -78,102 +123,115 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Demo data already present — done."))
             return
 
+        random.seed(7)
         from crm.models import Customer
         from inventory.services import apply_movement
         from sales.services import create_sale
 
+        prefix = shop.effective_barcode_prefix
+
         # Categories
-        cats = {}
-        for cname in {"Electronics", "Accessories"}:
-            cats[cname] = Category.all_objects.create(shop_id=shop.id, name=cname)
+        cat_names = sorted({p[1] for p in PRODUCTS})
+        cats = {n: Category.all_objects.create(shop_id=shop.id, name=n) for n in cat_names}
 
         # Products + opening stock
         prods = []
-        for name, cat, barcode, cost, price, warranty, stock in PRODUCTS:
+        for i, (name, cat, cost, price, warranty, stock) in enumerate(PRODUCTS, start=1):
             p = Product.all_objects.create(
-                shop_id=shop.id, name=name, category=cats.get(cat),
-                barcode=f"{shop.effective_barcode_prefix}{barcode}",
+                shop_id=shop.id, name=name, category=cats[cat],
+                barcode=f"{prefix}{100000 + i}", sku=f"SKU-{1000 + i}",
                 cost_price=Decimal(cost), selling_price=Decimal(price),
                 warranty_months=warranty, track_inventory=True,
             )
-            apply_movement(
-                product=p, movement_type="opening", quantity=Decimal(stock),
-                unit_cost=Decimal(cost), shop=shop, created_by=owner,
-            )
+            # Keep every product generously stocked so the ~200 seeded sales
+            # never run one out (a stock error would roll back the whole seed).
+            apply_movement(product=p, movement_type="opening", quantity=Decimal(max(stock, 400)),
+                           unit_cost=Decimal(cost), shop=shop, created_by=owner)
             prods.append(p)
 
         # Customers
         custs = [Customer.all_objects.create(shop_id=shop.id, name=n, phone=ph, address=a) for n, ph, a in CUSTOMERS]
 
-        # Sales spread over the last ~25 days so dashboards/charts show a trend.
-        import random
-        from datetime import timedelta as _td
-        from django.utils import timezone as _tz
-        random.seed(42)  # deterministic demo
+        # Suppliers + a few received purchase orders
+        n_po = 0
+        try:
+            # Savepoint: if a purchase fails, roll back just this part and keep
+            # the outer transaction usable for the rest of the demo data.
+            with transaction.atomic():
+                from purchasing.models import Supplier
+                from purchasing.services import create_purchase_order, receive_purchase_order
+                suppliers = [Supplier.all_objects.create(shop_id=shop.id, name=n, company_name=c, phone=ph) for n, c, ph in SUPPLIERS]
+                for sup in suppliers:
+                    for _ in range(random.randint(1, 2)):
+                        picks = random.sample(prods, random.randint(2, 4))
+                        items = [{"product": p, "quantity": Decimal(random.randint(6, 14)), "unit_cost": p.cost_price} for p in picks]
+                        po = create_purchase_order(shop=shop, supplier=sup, items=items, created_by=owner)
+                        total = sum(i["quantity"] * i["unit_cost"] for i in items)
+                        receive_purchase_order(po=po, paid=(total * Decimal("0.7")).quantize(Decimal("1")), created_by=owner)
+                        n_po += 1
+        except Exception as e:  # purchasing is optional to the demo
+            n_po = 0
+            self.stdout.write(self.style.WARNING(f"Skipped purchases: {e}"))
 
-        def sell(items, customer, pay_ratio, days_ago, method="cash"):
-            total = sum(Decimal(q) * Decimal(pr) for _, q, pr in items)
-            amount = (total * Decimal(str(pay_ratio))).quantize(Decimal("1"))
-            create_sale(
-                shop=shop,
-                items=[{"product": p, "quantity": Decimal(q), "unit_price": Decimal(pr)} for p, q, pr in items],
-                customer=customer,
-                payments=[{"amount": amount, "method": method}] if amount > 0 else [],
-                created_by=owner,
-                sale_date=_tz.now() - _td(days=days_ago),
-            )
-
-        methods = ["cash", "bkash", "card", "nagad"]
+        # Sales spread across the history window
+        methods = ["cash", "cash", "bkash", "card", "nagad"]
         n_sales = 0
-        for d in range(25, -1, -1):
-            # 0–3 sales per day
-            for _ in range(random.randint(0, 3)):
+        for d in range(DAYS, -1, -1):
+            for _ in range(random.randint(1, 4)):
                 picks = random.sample(prods, random.randint(1, 3))
-                items = [(p, random.randint(1, 2), int(p.selling_price)) for p in picks]
-                cust = random.choice(custs + [None, None])  # some walk-ins
-                ratio = random.choice([1.0, 1.0, 1.0, 0.5, 0.0])  # some dues
-                sell(items, cust, ratio, d, random.choice(methods))
+                items = [{"product": p, "quantity": Decimal(random.randint(1, 3)), "unit_price": p.selling_price} for p in picks]
+                total = sum(i["quantity"] * i["unit_price"] for i in items)
+                ratio = random.choice([Decimal("1"), Decimal("1"), Decimal("1"), Decimal("0.5"), Decimal("0")])
+                amount = (total * ratio).quantize(Decimal("1"))
+                cust = random.choice(custs + [None, None])
+                create_sale(
+                    shop=shop, items=items, customer=cust,
+                    payments=[{"amount": amount, "method": random.choice(methods)}] if amount > 0 else [],
+                    created_by=owner, sale_date=_tz.now() - _td(days=d),
+                )
                 n_sales += 1
 
-        # ── Warranties (mix of active / expiring / expired) ──
+        # Warranties (active / expiring / expired mix)
         from service.models import ServiceTicket, Warranty
-        warr_specs = [
-            (prods[3], custs[0], 24, 20),   # active
-            (prods[4], custs[1], 12, 40),   # active
-            (prods[6], custs[2], 6, 160),   # expired
-            (prods[0], custs[0], 12, 350),  # expired
-            (prods[3], custs[1], 24, 5),    # fresh
-            (prods[6], custs[2], 6, 155),   # expiring soon
-        ]
-        warranties = []
-        for prod, cust, months, days_ago in warr_specs:
-            w = Warranty.all_objects.create(
+        n_warr = 0
+        for _ in range(14):
+            prod = random.choice([p for p in prods if p.warranty_months])
+            cust = random.choice(custs)
+            days_ago = random.randint(1, DAYS + 300)  # some already expired
+            Warranty.all_objects.create(
                 shop_id=shop.id, product=prod, customer=cust,
-                serial_no=f"SN-{prod.id}{days_ago:04d}", period_months=months,
+                serial_no=f"SN-{prod.id}-{days_ago:04d}", period_months=prod.warranty_months,
                 start_date=(_tz.now() - _td(days=days_ago)).date(),
             )
-            warranties.append(w)
+            n_warr += 1
 
-        # ── Service / repair tickets ──
-        ticket_specs = [
-            ("HP Laptop 15s", "laptop", "screen", "in_repair", 1500, custs[0], 3),
-            ("Dell Optiplex Desktop", "desktop", "power", "diagnosing", 800, custs[1], 1),
-            ("Samsung Galaxy A54", "phone", "battery", "ready_for_pickup", 1200, custs[2], 5),
-            ("Asus TUF Gaming", "laptop", "software", "delivered", 900, custs[0], 12),
-            ("iPad Air", "tablet", "liquid", "awaiting_parts", 2500, custs[1], 2),
-            ("PS5 Console", "console", "power", "received", 0, None, 0),
-        ]
-        for i, (device, dtype, itype, status, charge, cust, days_ago) in enumerate(ticket_specs, start=1):
+        # Service / repair tickets
+        for i, (device, dtype, itype, status, charge) in enumerate(TICKETS, start=1):
+            cust = random.choice(custs + [None])
             ServiceTicket.all_objects.create(
                 shop_id=shop.id, ticket_no=f"SVC-{i:06d}",
                 customer=cust, customer_name="" if cust else "Walk-in",
                 device_description=device, device_type=dtype, issue_type=itype,
-                complaint=f"Reported issue: {itype} on {device}.",
+                complaint=f"Reported: {itype} issue on {device}.",
                 status=status, service_charge=Decimal(charge),
-                received_at=_tz.now() - _td(days=days_ago),
+                received_at=_tz.now() - _td(days=random.randint(0, 30)),
             )
 
+        # Expenses (Finance page)
+        from accounting.models import Expense, ExpenseCategory
+        exp_cats = list(ExpenseCategory.all_objects.filter(shop_id=shop.id))
+        n_exp = 0
+        for note, amount, method in EXPENSES:
+            for _ in range(random.randint(1, 3)):
+                Expense.all_objects.create(
+                    shop_id=shop.id, category=(random.choice(exp_cats) if exp_cats else None),
+                    amount=Decimal(amount), spent_on=(_tz.now() - _td(days=random.randint(0, DAYS))).date(),
+                    payment_method=method, note=note, created_by=owner,
+                )
+                n_exp += 1
+
         self.stdout.write(self.style.SUCCESS(
-            f"Demo ready: shop #{shop.id}, {len(prods)} products, {len(custs)} customers, "
-            f"{n_sales} sales, {len(warranties)} warranties, {len(ticket_specs)} service tickets."
+            f"Demo ready (shop #{shop.id}): {len(prods)} products, {len(custs)} customers, "
+            f"{len(SUPPLIERS)} suppliers, {n_po} purchases, {n_sales} sales, "
+            f"{n_warr} warranties, {len(TICKETS)} service tickets, {n_exp} expenses."
         ))
