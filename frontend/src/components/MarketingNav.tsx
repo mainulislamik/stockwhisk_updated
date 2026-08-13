@@ -6,10 +6,13 @@ import { Box, Container, Stack, Button, Typography, IconButton, Menu, MenuItem }
 import { getAccess } from "@/lib/api";
 import { M } from "@/lib/marketing";
 import { useBranding } from "@/lib/branding";
+import LanguageToggle from "./LanguageToggle";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /** Shared top navigation for the public pages (home, pricing, blog, contact, login, register). */
 export default function MarketingNav() {
   const branding = useBranding();
+  const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -34,12 +37,8 @@ export default function MarketingNav() {
   };
 
   const navLinks = [
-    { href: "/", label: "Home" },
-    { href: "/pricing", label: "Pricing" },
-    { href: "/demo", label: "Live Demo" },
-    { href: "/reseller", label: "Reseller" },
-    { href: "/blog", label: "Blog" },
-    { href: "/contact", label: "Contact" },
+    { href: "/pricing", label: t("nav_pricing") },
+    { href: "/blog", label: t("nav_blog") },
   ];
 
   return (
@@ -78,27 +77,29 @@ export default function MarketingNav() {
               <Button key={l.href} component={Link} href={l.href} sx={link}>{l.label}</Button>
             ))}
             {mounted && isLoggedIn ? (
-              <Button component={Link} href="/app" sx={cta}>Dashboard</Button>
+              <Button component={Link} href="/app" sx={cta}>{t("nav_dashboard")}</Button>
             ) : (
               <>
                 <Button component={Link} href="/login"
                   sx={{ color: M.textMuted, fontWeight: 600, textTransform: "none",
                     "&:hover": { color: M.primary, bgcolor: "transparent" } }}>
-                  Login
+                  {t("nav_login")}
                 </Button>
-                <Button component={Link} href="/register" sx={cta}>Sign Up</Button>
+                {/* <Button component={Link} href="/register" sx={cta}>Sign Up</Button> */}
               </>
             )}
+            <LanguageToggle />
           </Stack>
 
           {/* Mobile nav: CTA + hamburger menu */}
           <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: 1 }}>
             {mounted && isLoggedIn ? (
-              <Button component={Link} href="/app" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>Dashboard</Button>
+              <Button component={Link} href="/app" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_dashboard")}</Button>
             ) : (
-              <Button component={Link} href="/register" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>Sign Up</Button>
+              <Button component={Link} href="/login" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_login")}</Button>
             )}
-            <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text }}>
+            <LanguageToggle />
+            <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text, ml: 1 }}>
               <i className="bi bi-list" style={{ fontSize: "1.6rem", lineHeight: 1 }} />
             </IconButton>
             <Menu
@@ -115,12 +116,6 @@ export default function MarketingNav() {
                   {l.label}
                 </MenuItem>
               ))}
-              {!(mounted && isLoggedIn) && (
-                <MenuItem component={Link} href="/login" onClick={closeMenu}
-                  sx={{ fontWeight: 600, color: M.primary, py: 1.2 }}>
-                  Login
-                </MenuItem>
-              )}
             </Menu>
           </Box>
         </Box>

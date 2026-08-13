@@ -7,6 +7,8 @@ import MarketingNav from '@/components/MarketingNav';
 import MarketingFooter from '@/components/MarketingFooter';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
+
 const LIGHT_COLORS = {
   surface: '#f8fafc',
   onSurface: '#0f172a',
@@ -52,37 +54,8 @@ type PricingPlan = {
   yearly_discount_percent?: number;
 };
 
-type PricingContent = {
-  hero_title: string;
-  hero_subtitle: string;
-  trial_badge: string;
-  yearly_save_label: string;
-  features_heading: string;
-  cta_label: string;
-  popular_badge: string;
-};
-
-const DEFAULT_CONTENT: PricingContent = {
-  hero_title: "Simple, transparent pricing",
-  hero_subtitle: "Choose the perfect plan for your retail business. No hidden fees.",
-  trial_badge: "🎉 Start with a {days}-day free trial — no card required",
-  yearly_save_label: "Save 20%",
-  features_heading: "Features Included",
-  cta_label: "Get Started",
-  popular_badge: "Most Popular",
-};
-
-// Known features to map
-const FEATURE_LABELS: Record<string, string> = {
-  "pos": "Point of Sale (POS)",
-  "basic_analytics": "Basic Analytics",
-  "advanced_analytics": "Advanced Analytics",
-  "reports_export": "Export Reports",
-  "multi_branch": "Multiple Branches",
-  "api_access": "API Access",
-};
-
 export default function PricingPage() {
+  const { t } = useLanguage();
   const mode: string = "light";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -92,7 +65,6 @@ export default function PricingPage() {
   const [trialDays, setTrialDays] = useState(45);
   const [offer, setOffer] = useState<{ url: string; is_pdf: boolean } | null>(null);
   const [showOffer, setShowOffer] = useState(false);
-  const [content, setContent] = useState<PricingContent>(DEFAULT_CONTENT);
 
   const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
@@ -108,11 +80,10 @@ export default function PricingPage() {
       })
       .catch((e) => console.error("Failed to load pricing plans", e))
       .finally(() => setLoading(false));
-    api<{ trial_days: number; offer: { url: string; is_pdf: boolean } | null; pricing_content: PricingContent }>("/platform/public/site-config/")
+    api<{ trial_days: number; offer: { url: string; is_pdf: boolean } | null }>("/platform/public/site-config/")
       .then((d) => {
         if (d?.trial_days != null) setTrialDays(d.trial_days);
         if (d?.offer?.url) { setOffer(d.offer); setShowOffer(true); }
-        if (d?.pricing_content) setContent({ ...DEFAULT_CONTENT, ...d.pricing_content });
       })
       .catch(() => {});
   }, []);
@@ -170,25 +141,25 @@ export default function PricingPage() {
               WebkitTextFillColor: 'transparent',
               fontSize: { xs: '2.5rem', md: '4rem' }
             }}>
-              {content.hero_title}
+              {t("pricing_title")}
             </Typography>
             <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, maxWidth: '600px', mx: 'auto', mb: 3, fontFamily: 'Outfit, sans-serif' }}>
-              {content.hero_subtitle}
+              {t("pricing_subtitle")}
             </Typography>
 
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 1, mb: 5, px: 2.5, py: 1, borderRadius: 999, bgcolor: 'rgba(16,185,129,0.1)', color: '#059669', fontWeight: 700 }}>
-              {content.trial_badge.replace('{days}', String(trialDays))}
+              {t("pricing_trial", { days: trialDays })}
             </Box>
 
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-              <Typography sx={{ fontWeight: 600, color: !isYearly ? COLORS.onSurface : COLORS.onSurfaceVariant }}>Monthly</Typography>
+              <Typography sx={{ fontWeight: 600, color: !isYearly ? COLORS.onSurface : COLORS.onSurfaceVariant }}>{t("pricing_monthly")}</Typography>
               <Switch 
                 checked={isYearly} 
                 onChange={(e) => setIsYearly(e.target.checked)} 
                 color="primary"
               />
               <Typography sx={{ fontWeight: 600, color: isYearly ? COLORS.onSurface : COLORS.onSurfaceVariant }}>
-                Yearly {maxSave > 0 && <Typography component="span" sx={{ color: '#10b981', ml: 1, fontSize: '0.8rem', fontWeight: 700, bgcolor: 'rgba(16, 185, 129, 0.1)', px: 1, py: 0.5, borderRadius: '4px' }}>Save up to {maxSave}%</Typography>}
+                {t("pricing_yearly")} {maxSave > 0 && <Typography component="span" sx={{ color: '#10b981', ml: 1, fontSize: '0.8rem', fontWeight: 700, bgcolor: 'rgba(16, 185, 129, 0.1)', px: 1, py: 0.5, borderRadius: '4px' }}>Save up to {maxSave}%</Typography>}
               </Typography>
             </Box>
           </Box>
@@ -197,7 +168,7 @@ export default function PricingPage() {
           <Grid container spacing={4} sx={{ justifyContent: "center", alignItems: "stretch" }}>
             {loading ? (
               <Box sx={{ py: 10, textAlign: 'center', width: '100%' }}>
-                <Typography>Loading plans...</Typography>
+                <Typography>{t("pricing_loading")}</Typography>
               </Box>
             ) : (
               plans.map((plan) => {
@@ -249,7 +220,7 @@ export default function PricingPage() {
                           textTransform: 'uppercase',
                           boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
                         }}>
-                          {content.popular_badge}
+                          {t("pricing_most_popular")}
                         </Box>
                       )}
                       
@@ -293,21 +264,21 @@ export default function PricingPage() {
                             }
                           }}
                         >
-                          {content.cta_label}
+                          {t("pricing_get_started")}
                         </Button>
 
                         <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: 2 }}>
                           <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', color: COLORS.onSurfaceVariant, textTransform: 'uppercase', letterSpacing: '0.5px', mb: 1 }}>
-                            {content.features_heading}
+                            {t("pricing_features_included")}
                           </Typography>
 
                           {(plan.highlights && plan.highlights.length > 0
                             ? plan.highlights
                             : [
-                                ...(plan.show_users !== false ? [`Up to ${plan.max_users} Users`] : []),
-                                ...(plan.show_branches !== false ? [`${plan.max_branches} ${plan.max_branches > 1 ? 'Branches' : 'Branch'}`] : []),
-                                ...(plan.show_products !== false ? [`${plan.max_products} Products Limit`] : []),
-                                ...Object.entries(plan.features).filter(([, v]) => v).map(([k]) => FEATURE_LABELS[k] || k),
+                                ...(plan.show_users !== false ? [t("pricing_users", { max_users: plan.max_users })] : []),
+                                ...(plan.show_branches !== false ? [t("pricing_branches", { max_branches: plan.max_branches })] : []),
+                                ...(plan.show_products !== false ? [t("pricing_products", { max_products: plan.max_products })] : []),
+                                ...Object.entries(plan.features).filter(([, v]) => v).map(([k]) => t(`feat_${k}`)),
                               ]
                           ).map((line, i) => (
                             <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>

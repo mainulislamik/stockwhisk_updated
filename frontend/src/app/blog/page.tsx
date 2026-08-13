@@ -7,6 +7,8 @@ import MarketingNav from '@/components/MarketingNav';
 import MarketingFooter from '@/components/MarketingFooter';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
+
 const LIGHT_COLORS = {
   surface: '#f8fafc',
   onSurface: '#0f172a',
@@ -44,6 +46,7 @@ type BlogPost = {
 };
 
 export default function BlogListPage() {
+  const { t } = useLanguage();
   const mode: string = "light";
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -102,7 +105,7 @@ export default function BlogListPage() {
 
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Chip 
-                label="The Official Blog" 
+                label={t("nav_blog")} 
                 sx={{ mb: 3, fontWeight: 700, bgcolor: COLORS.surfaceContainer, color: COLORS.primary, fontFamily: 'Outfit, sans-serif' }} 
               />
               <Typography variant="h2" sx={{ 
@@ -110,21 +113,21 @@ export default function BlogListPage() {
                 background: mounted && mode === 'dark' ? 'linear-gradient(to right, #38bdf8, #818cf8)' : 'linear-gradient(to right, #004ac6, #4338ca)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
               }}>
-                StockWhisk Journal
+                {t("blog_title")}
               </Typography>
               <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, maxWidth: '650px', mx: 'auto', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', md: '1.25rem' }, lineHeight: 1.6 }}>
-                Insights, updates, and modern retail strategies to help you run your shop smarter and scale faster.
+                {t("blog_subtitle")}
               </Typography>
             </Box>
           </Box>
 
           {loading ? (
             <Box sx={{ textAlign: 'center', py: 10 }}>
-              <Typography sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, fontSize: '1.1rem' }}>Loading the latest articles...</Typography>
+              <Typography sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, fontSize: '1.1rem' }}>{t("blog_loading")}</Typography>
             </Box>
           ) : blogs.length === 0 ? (
             <Box sx={{ textAlign: 'center', py: 10, bgcolor: COLORS.surfaceContainerLowest, borderRadius: 4, border: `1px solid ${COLORS.outlineVariant}` }}>
-              <Typography sx={{ color: COLORS.onSurfaceVariant, fontSize: '1.1rem' }}>Check back soon for our first post!</Typography>
+              <Typography sx={{ color: COLORS.onSurfaceVariant, fontSize: '1.1rem' }}>{t("blog_empty")}</Typography>
             </Box>
           ) : (
             <Grid container spacing={4}>
@@ -185,7 +188,7 @@ export default function BlogListPage() {
                         </Typography>
                         
                         <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', color: COLORS.primary, fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Outfit, sans-serif' }}>
-                          Read Article <Box component="span" sx={{ ml: 1, transition: 'transform 0.2s', '.MuiCard-root:hover &': { transform: 'translateX(4px)' } }}>→</Box>
+                          {t("blog_read_article")} <Box component="span" sx={{ ml: 1, transition: 'transform 0.2s', '.MuiCard-root:hover &': { transform: 'translateX(4px)' } }}>→</Box>
                         </Box>
                       </CardContent>
                     </Link>

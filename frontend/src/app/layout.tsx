@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 import ThemeRegistry from '@/components/ThemeRegistry';
 import { AuthProvider } from "@/components/AuthProvider";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import { Toaster } from "react-hot-toast";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://stockwhisk.com";
@@ -107,9 +108,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}
         />
-        <ThemeRegistry>
-          <AuthProvider>{children}</AuthProvider>
-        </ThemeRegistry>
+        <LanguageProvider>
+          <ThemeRegistry>
+            <AuthProvider>{children}</AuthProvider>
+          </ThemeRegistry>
+        </LanguageProvider>
         <Toaster position="bottom-center" />
         {/* Bootstrap bundle for offcanvas/modal/dropdown behaviour. */}
         <Script

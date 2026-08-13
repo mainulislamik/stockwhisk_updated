@@ -8,15 +8,7 @@ import MarketingFooter from "@/components/MarketingFooter";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { api } from "@/lib/api";
 import { M } from "@/lib/marketing";
-
-const FEATURES = [
-  { icon: "bi-upc-scan", title: "Barcode POS", desc: "Scan-and-sell checkout with per-unit barcodes, shared-barcode picker and mobile camera scanning." },
-  { icon: "bi-box-seam", title: "Inventory & Stock", desc: "Real-time stock levels, purchase receiving, adjustments and low-stock alerts across branches." },
-  { icon: "bi-shield-check", title: "Warranty Tracking", desc: "Auto-record warranty per sold unit, track coverage and service tickets, expire automatically." },
-  { icon: "bi-graph-up-arrow", title: "Sales & Reports", desc: "Daily sales, profit margins, top products and exportable reports — clarity at a glance." },
-  { icon: "bi-people", title: "Customers & Suppliers", desc: "Customer dues, supplier balances, EMI installments and full purchase history in one place." },
-  { icon: "bi-diagram-3", title: "Multi-branch & Staff", desc: "Run multiple outlets, add staff with roles and permissions, keep every branch in sync." },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const btnPrimary = {
   bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, textTransform: "none" as const,
@@ -43,6 +35,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
 }
 
 export default function LandingPage() {
+  const { t } = useLanguage();
   const [trialDays, setTrialDays] = useState(45);
   useEffect(() => {
     api<{ trial_days: number }>("/platform/public/site-config/")
@@ -55,6 +48,15 @@ export default function LandingPage() {
     { value: "< 30s", label: "Per checkout" },
     { value: "24/7", label: "Cloud access" },
     { value: "100%", label: "Data ownership" },
+  ];
+
+  const FEATURES = [
+    { icon: "bi-upc-scan", title: t("feat_pos"), desc: "Scan-and-sell checkout with per-unit barcodes, shared-barcode picker and mobile camera scanning." },
+    { icon: "bi-box-seam", title: "Inventory & Stock", desc: "Real-time stock levels, purchase receiving, adjustments and low-stock alerts across branches." },
+    { icon: "bi-shield-check", title: "Warranty Tracking", desc: "Auto-record warranty per sold unit, track coverage and service tickets, expire automatically." },
+    { icon: "bi-graph-up-arrow", title: t("feat_basic_analytics"), desc: "Daily sales, profit margins, top products and exportable reports — clarity at a glance." },
+    { icon: "bi-people", title: "Customers & Suppliers", desc: "Customer dues, supplier balances, EMI installments and full purchase history in one place." },
+    { icon: "bi-diagram-3", title: t("feat_multi_branch"), desc: "Run multiple outlets, add staff with roles and permissions, keep every branch in sync." },
   ];
 
   return (
@@ -71,34 +73,23 @@ export default function LandingPage() {
         }}>
           <Container maxWidth="lg">
             <Box sx={{ textAlign: "center", maxWidth: 860, mx: "auto" }}>
-              <Box sx={{
-                display: "inline-flex", alignItems: "center", gap: 1, mb: 3,
-                px: 2, py: 0.75, borderRadius: 999, bgcolor: M.card,
-                border: `1px solid ${M.border}`, color: M.primary, fontWeight: 700, fontSize: ".85rem",
-                boxShadow: "0 2px 10px -4px rgba(15,23,42,.12)",
-              }}>
-                <i className="bi bi-stars" /> Inventory &amp; POS, reimagined for retail
-              </Box>
               <Typography component="h1" sx={{
                 fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1,
                 fontSize: { xs: "2.4rem", md: "3.8rem" }, mb: 2.5,
               }}>
-                Run your shop smarter with{" "}
-                <Box component="span" sx={{ background: `linear-gradient(120deg, ${M.primary}, ${M.accent})`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>
-                  StockWhisk
-                </Box>
+                {t("hero_title")}
               </Typography>
               <Typography sx={{ color: M.textMuted, fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.6, maxWidth: 680, mx: "auto", mb: 4 }}>
-                The all-in-one retail platform for barcode billing, live inventory, warranty tracking and sales insight — fast, clear, and built for the way real shops work.
+                {t("hero_subtitle")}
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
-                <Button component={Link} href="/register" sx={btnPrimary}>Start free trial</Button>
+                <Button component={Link} href="/register" sx={btnPrimary}>{t("hero_btn_register")}</Button>
                 <Button component={Link} href="/demo" sx={{
                   bgcolor: "#059669", color: "#fff", fontWeight: 700, textTransform: "none",
                   borderRadius: "12px", px: 4, py: 1.5, fontSize: "1rem",
                   boxShadow: "0 10px 24px -8px rgba(5,150,105,.6)", "&:hover": { bgcolor: "#047857" },
-                }}>▶ Try Live Demo</Button>
-                <Button component={Link} href="/pricing" sx={btnGhost}>See pricing</Button>
+                }}>▶ {t("hero_btn_demo")}</Button>
+                <Button component={Link} href="/pricing" sx={btnGhost}>{t("nav_pricing")}</Button>
               </Stack>
             </Box>
 
@@ -181,20 +172,6 @@ export default function LandingPage() {
           </Container>
         </Box>
 
-        {/* ── Stats band ── */}
-        <Box sx={{ bgcolor: M.surfaceAlt, borderTop: `1px solid ${M.border}`, borderBottom: `1px solid ${M.border}`, py: { xs: 5, md: 7 } }}>
-          <Container maxWidth="lg">
-            <Grid container spacing={2}>
-              {STATS.map((s) => (
-                <Grid key={s.label} size={{ xs: 6, md: 3 }} sx={{ textAlign: "center" }}>
-                  <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.8rem", md: "2.4rem" }, color: M.primary, letterSpacing: "-0.02em" }}>{s.value}</Typography>
-                  <Typography sx={{ color: M.textMuted, fontWeight: 600, fontSize: ".9rem" }}>{s.label}</Typography>
-                </Grid>
-              ))}
-            </Grid>
-          </Container>
-        </Box>
-
         {/* ── Final CTA ── */}
         <Box sx={{ py: { xs: 8, md: 12 } }}>
           <Container maxWidth="md">
@@ -211,10 +188,7 @@ export default function LandingPage() {
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
                 <Button component={Link} href="/register" sx={{ bgcolor: "#fff", color: M.primaryDark, fontWeight: 800, textTransform: "none", borderRadius: "12px", px: 4, py: 1.5, "&:hover": { bgcolor: "#eef2ff" } }}>
-                  Start free trial
-                </Button>
-                <Button component={Link} href="/contact" sx={{ color: "#fff", border: "1px solid rgba(255,255,255,.5)", fontWeight: 700, textTransform: "none", borderRadius: "12px", px: 4, py: 1.5, "&:hover": { bgcolor: "rgba(255,255,255,.12)" } }}>
-                  Talk to us
+                  {t("hero_btn_register")}
                 </Button>
               </Stack>
             </Box>
