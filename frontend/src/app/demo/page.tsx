@@ -55,13 +55,16 @@ export default function DemoPage() {
       <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: M.surface, color: M.text, fontFamily: "Outfit, sans-serif" }}>
         <MarketingNav />
 
-        <Box component="main" sx={{ flexGrow: 1, py: { xs: 6, md: 9 } }}>
-          <Container maxWidth="md">
+        <Box component="main" sx={{ position: "relative", flexGrow: 1, py: { xs: 8, md: 12 }, overflow: "hidden" }}>
+          {/* Glowing Background Effect */}
+          <Box sx={{ position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)", width: 800, height: 400, background: `radial-gradient(ellipse at center, ${M.accent}33 0%, transparent 70%)`, filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
+
+          <Container maxWidth="md" sx={{ position: "relative", zIndex: 1 }}>
             <Box sx={{ textAlign: "center", mb: 5 }}>
-              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, mb: 2, px: 2, py: 0.75, borderRadius: 999, bgcolor: "rgba(16,185,129,0.12)", color: "#059669", fontWeight: 700, fontSize: ".85rem" }}>
-                🔴 Live interactive demo · read-only
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, px: 2, py: 0.75, borderRadius: "20px", bgcolor: "rgba(37,99,235,0.08)", color: M.primary, fontWeight: 700, fontSize: "0.85rem", mb: 3, border: `1px solid rgba(37,99,235,0.2)` }}>
+                <span style={{ color: "#ef4444" }}>●</span> Live interactive demo · read-only
               </Box>
-              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "2rem", md: "2.8rem" }, letterSpacing: "-0.02em" }}>
+              <Typography variant="h3" sx={{ fontWeight: 800, mb: 2, fontSize: { xs: "2rem", md: "3.2rem" }, letterSpacing: "-0.02em" }}>
                 Explore the full owner dashboard
               </Typography>
               <Typography sx={{ color: M.textMuted, fontSize: "1.1rem", maxWidth: 620, mx: "auto" }}>
@@ -70,7 +73,14 @@ export default function DemoPage() {
               </Typography>
             </Box>
 
-            <Box sx={{ maxWidth: 460, mx: "auto", bgcolor: M.card, border: `1px solid ${M.border}`, borderRadius: 4, p: { xs: 3, md: 4 }, boxShadow: "0 20px 50px -30px rgba(15,23,42,.4)" }}>
+            <Box sx={{ 
+              maxWidth: 460, mx: "auto", 
+              bgcolor: "rgba(255, 255, 255, 0.8)", 
+              backdropFilter: "blur(20px)",
+              border: `1px solid ${M.border}`, 
+              borderRadius: 4, p: { xs: 3, md: 4 }, 
+              boxShadow: "0 30px 60px -30px rgba(15,23,42,.35)" 
+            }}>
               <Box component="form" onSubmit={enterDemo}>
                 <Stack spacing={2}>
                   <TextField label="Username" fullWidth value={username} onChange={(e) => setUsername(e.target.value)} />
@@ -100,7 +110,12 @@ export default function DemoPage() {
               </Typography>
               <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 1.5 }}>
                 {features.map((f) => (
-                  <Box key={f.label} sx={{ display: "flex", alignItems: "center", gap: 1, px: 2, py: 1, bgcolor: M.card, border: `1px solid ${M.border}`, borderRadius: 999, fontWeight: 600, fontSize: ".9rem" }}>
+                  <Box key={f.label} sx={{ 
+                    display: "flex", alignItems: "center", gap: 1, px: 2, py: 1, 
+                    bgcolor: "rgba(255,255,255,0.6)", backdropFilter: "blur(10px)",
+                    border: `1px solid ${M.border}`, borderRadius: 999, fontWeight: 600, fontSize: ".9rem",
+                    transition: "transform .2s ease", "&:hover": { transform: "translateY(-2px)" }
+                  }}>
                     <span>{f.icon}</span> {f.label}
                   </Box>
                 ))}

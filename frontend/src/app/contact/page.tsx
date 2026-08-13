@@ -64,8 +64,11 @@ export default function ContactPage() {
 
       <Box component="main" sx={{ flexGrow: 1 }}>
         {/* Hero */}
-        <Box sx={{ py: { xs: 6, md: 9 }, textAlign: "center" }}>
-          <Container maxWidth="md">
+        <Box sx={{ position: "relative", py: { xs: 8, md: 12 }, textAlign: "center", overflow: "hidden" }}>
+          {/* Glowing Background Effect */}
+          <Box sx={{ position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)", width: 800, height: 400, background: `radial-gradient(ellipse at center, ${COLORS.primary}25 0%, transparent 70%)`, filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
+          
+          <Container maxWidth="md" sx={{ position: "relative", zIndex: 1 }}>
             <Typography variant="h3" sx={{ fontWeight: 700, mb: 2, fontSize: { xs: "2rem", md: "3rem" } }}>
               Contact Us
             </Typography>
@@ -89,10 +92,11 @@ export default function ContactPage() {
                     rel="noopener noreferrer"
                     sx={{
                       textDecoration: "none",
-                      bgcolor: COLORS.surfaceContainerLowest,
+                      bgcolor: "rgba(255, 255, 255, 0.6)",
+                      backdropFilter: "blur(20px)",
                       border: `1px solid ${COLORS.outlineVariant}`,
-                      borderRadius: 3, transition: "transform .15s, box-shadow .15s",
-                      "&:hover": { transform: "translateY(-2px)", boxShadow: 3 },
+                      borderRadius: 4, transition: "transform .2s ease, box-shadow .2s ease",
+                      "&:hover": { transform: "translateY(-4px)", boxShadow: "0 20px 40px -20px rgba(37,99,235,.2)", borderColor: COLORS.primary },
                     }}
                   >
                     <CardContent sx={{ display: "flex", alignItems: "center", gap: 2 }}>
@@ -111,7 +115,13 @@ export default function ContactPage() {
 
             {/* Form */}
             <Grid size={{ xs: 12, md: 7 }}>
-              <Card sx={{ bgcolor: COLORS.surfaceContainerLowest, border: `1px solid ${COLORS.outlineVariant}`, borderRadius: 3 }}>
+              <Card sx={{ 
+                bgcolor: "rgba(255, 255, 255, 0.8)", 
+                backdropFilter: "blur(20px)", 
+                border: `1px solid ${COLORS.outlineVariant}`, 
+                borderRadius: 4,
+                boxShadow: "0 30px 60px -30px rgba(15,23,42,.2)"
+              }}>
                 <CardContent sx={{ p: { xs: 3, md: 4 } }}>
                   {sent ? (
                     <Box sx={{ textAlign: "center", py: 5 }}>
