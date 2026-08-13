@@ -146,7 +146,17 @@ class Command(BaseCommand):
         shop.is_test = True
         shop.is_active = True
         shop.trial_ends_at = _tz.now() + _td(days=3650)
-        shop.save(update_fields=["is_demo", "is_test", "is_active", "trial_ends_at"])
+        # Turn on every optional feature so the demo shows the full owner UI
+        # (EMI, VAT, delivery, WhatsApp invoice) — matches a fully-configured shop.
+        shop.emi_enabled = True
+        shop.vat_enabled = True
+        shop.vat_percent = Decimal("5")
+        shop.delivery_enabled = True
+        shop.whatsapp_invoice_enabled = True
+        shop.save(update_fields=[
+            "is_demo", "is_test", "is_active", "trial_ends_at",
+            "emi_enabled", "vat_enabled", "vat_percent", "delivery_enabled", "whatsapp_invoice_enabled",
+        ])
         owner.set_password(DEMO_PASSWORD)
         owner.is_active = True
         owner.save(update_fields=["password", "is_active"])
