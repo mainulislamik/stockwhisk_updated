@@ -32,7 +32,12 @@ class SaleViewSet(
     mixins.CreateModelMixin, viewsets.GenericViewSet,
 ):
     permission_classes = [IsTenantMember, HasPermCode]
-    required_perm = "create_sale"
+    # Viewing invoices/sales (list, retrieve, search) only needs read access;
+    # creating a sale (POST) and the write actions still need create_sale. Void
+    # (cancel) and returns keep their own stricter inner checks (delete_sale /
+    # process_return).
+    required_perm = "view_sales"
+    required_write_perm = "create_sale"
 
     def initial(self, request, *args, **kwargs):
         set_current_tenant(getattr(request.user, "shop", None))

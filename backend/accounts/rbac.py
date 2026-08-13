@@ -43,7 +43,7 @@ DEFAULT_ROLE_PERMISSIONS = {
     ],
     RoleType.INVENTORY_MANAGER: [
         "view_products", "manage_products", "manage_inventory", "view_inventory",
-        "manage_purchasing", "view_reports",
+        "manage_purchasing", "view_reports", "view_sales",
     ],
     RoleType.ACCOUNTANT: [
         "view_sales", "view_profit", "view_reports", "manage_accounting",
