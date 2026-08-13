@@ -24,7 +24,7 @@ export default function MarketingFooter() {
             <Stack spacing={1}>
               <Link href="/pricing" style={linkSx}>{t("nav_pricing")}</Link>
               <Link href="/blog" style={linkSx}>{t("nav_blog")}</Link>
-              {/* <Link href="/contact" style={linkSx}>Contact</Link> */}
+              <Link href="/contact" style={linkSx}>{t("nav_contact")}</Link>
             </Stack>
           </Grid>
           <Grid size={{ xs: 6, md: 4 }}>
@@ -36,7 +36,7 @@ export default function MarketingFooter() {
           </Grid>
         </Grid>
         <Typography variant="body2" sx={{ mt: 5, pt: 3, borderTop: `1px solid rgba(255,255,255,.1)`, fontSize: ".85rem" }}>
-          © {new Date().getFullYear()} StockWhisk. All rights reserved.
+          {t("footer_rights").replace("{year}", String(new Date().getFullYear()))}
         </Typography>
       </Container>
     </Box>

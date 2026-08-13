@@ -44,10 +44,10 @@ export default function LandingPage() {
   }, []);
 
   const STATS = [
-    { value: `${trialDays}-day`, label: "Free trial" },
-    { value: "< 30s", label: "Per checkout" },
-    { value: "24/7", label: "Cloud access" },
-    { value: "100%", label: "Data ownership" },
+    { value: t("stat_trial_val").replace("{days}", String(trialDays)), label: t("stat_trial") },
+    { value: t("stat_speed_val"), label: t("stat_speed") },
+    { value: t("stat_uptime_val"), label: t("stat_uptime") },
+    { value: t("stat_ownership_val"), label: t("stat_ownership") },
   ];
 
   const FEATURES = [
@@ -172,6 +172,20 @@ export default function LandingPage() {
           </Container>
         </Box>
 
+        {/* ── Stats band ── */}
+        <Box sx={{ bgcolor: M.surfaceAlt, borderTop: `1px solid ${M.border}`, borderBottom: `1px solid ${M.border}`, py: { xs: 5, md: 7 } }}>
+          <Container maxWidth="lg">
+            <Grid container spacing={2}>
+              {STATS.map((s) => (
+                <Grid key={s.label} size={{ xs: 6, md: 3 }} sx={{ textAlign: "center" }}>
+                  <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.8rem", md: "2.4rem" }, color: M.primary, letterSpacing: "-0.02em" }}>{s.value}</Typography>
+                  <Typography sx={{ color: M.textMuted, fontWeight: 600, fontSize: ".9rem" }}>{s.label}</Typography>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
+
         {/* ── Final CTA ── */}
         <Box sx={{ py: { xs: 8, md: 12 } }}>
           <Container maxWidth="md">
@@ -181,14 +195,17 @@ export default function LandingPage() {
               boxShadow: "0 40px 80px -40px rgba(37,99,235,.7)",
             }}>
               <Typography component="h2" sx={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "1.8rem", md: "2.6rem" }, mb: 2 }}>
-                Ready to take control of your shop?
+                {t("cta_title")}
               </Typography>
               <Typography sx={{ opacity: 0.9, fontSize: { xs: "1rem", md: "1.15rem" }, mb: 4, maxWidth: 560, mx: "auto" }}>
-                Set up in minutes and start your free trial today.
+                {t("cta_subtitle")}
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
                 <Button component={Link} href="/register" sx={{ bgcolor: "#fff", color: M.primaryDark, fontWeight: 800, textTransform: "none", borderRadius: "12px", px: 4, py: 1.5, "&:hover": { bgcolor: "#eef2ff" } }}>
                   {t("hero_btn_register")}
+                </Button>
+                <Button component={Link} href="/contact" sx={{ color: "#fff", border: "1px solid rgba(255,255,255,.5)", fontWeight: 700, textTransform: "none", borderRadius: "12px", px: 4, py: 1.5, "&:hover": { bgcolor: "rgba(255,255,255,.12)" } }}>
+                  {t("cta_btn_contact")}
                 </Button>
               </Stack>
             </Box>

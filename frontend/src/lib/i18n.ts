@@ -9,17 +9,37 @@ type Translations = {
 export const translations: Translations = {
   en: {
     // Navigation
+    nav_home: "Home",
     nav_pricing: "Pricing",
+    nav_demo: "Live Demo",
+    nav_reseller: "Reseller",
     nav_blog: "Blog",
+    nav_contact: "Contact",
     nav_dashboard: "Dashboard",
     nav_login: "Login",
+    nav_signup: "Sign Up",
     
     // Landing Page
     hero_title: "Run Your Shop Smarter with StockWhisk",
     hero_subtitle: "The modern retail dashboard built for clarity, speed, and precision. Manage inventory, track sales, and grow your business without the cognitive load.",
-    hero_btn_register: "Register Now",
-    hero_btn_demo: "View Demo",
+    hero_btn_register: "Start free trial",
+    hero_btn_demo: "Try Live Demo",
     
+    // Landing Page Stats
+    stat_trial: "Free trial",
+    stat_trial_val: "{days}-day",
+    stat_speed: "Per checkout",
+    stat_speed_val: "< 30s",
+    stat_uptime: "Cloud access",
+    stat_uptime_val: "24/7",
+    stat_ownership: "Data ownership",
+    stat_ownership_val: "100%",
+
+    // Landing Page Final CTA
+    cta_title: "Ready to take control of your shop?",
+    cta_subtitle: "Set up in minutes and start your free trial today.",
+    cta_btn_contact: "Talk to us",
+
     // Pricing Page
     pricing_title: "Simple, transparent pricing",
     pricing_subtitle: "Choose the perfect plan for your retail business. No hidden fees.",
@@ -33,6 +53,7 @@ export const translations: Translations = {
     pricing_users: "Up to {max_users} Users",
     pricing_branches: "{max_branches} Branch(es)",
     pricing_products: "{max_products} Products Limit",
+    pricing_trial: "🎉 Start with a {days}-day free trial — no card required",
     
     // Feature translations for Pricing
     feat_pos: "Point of Sale (POS)",
@@ -54,16 +75,36 @@ export const translations: Translations = {
   },
   bn: {
     // Navigation
+    nav_home: "হোম",
     nav_pricing: "প্রাইসিং",
+    nav_demo: "লাইভ ডেমো",
+    nav_reseller: "রিসেলার",
     nav_blog: "ব্লগ",
+    nav_contact: "যোগাযোগ",
     nav_dashboard: "ড্যাশবোর্ড",
     nav_login: "লগইন",
+    nav_signup: "সাইন আপ",
     
     // Landing Page
     hero_title: "স্টকহিস্ক দিয়ে আপনার দোকান আরও স্মার্টভাবে চালান",
     hero_subtitle: "স্পষ্টতা, গতি এবং নির্ভুলতার জন্য তৈরি আধুনিক রিটেইল ড্যাশবোর্ড। ইনভেন্টরি ম্যানেজ করুন, সেলস ট্র্যাক করুন এবং ঝামেলা ছাড়াই আপনার ব্যবসা প্রসারিত করুন।",
-    hero_btn_register: "রেজিস্টার করুন",
+    hero_btn_register: "ফ্রি ট্রায়াল শুরু করুন",
     hero_btn_demo: "ডেমো দেখুন",
+
+    // Landing Page Stats
+    stat_trial: "ফ্রি ট্রায়াল",
+    stat_trial_val: "{days} দিন",
+    stat_speed: "প্রতি চেকআউট",
+    stat_speed_val: "< ৩০সেঃ",
+    stat_uptime: "ক্লাউড অ্যাক্সেস",
+    stat_uptime_val: "২৪/৭",
+    stat_ownership: "ডেটার মালিকানা",
+    stat_ownership_val: "১০০%",
+
+    // Landing Page Final CTA
+    cta_title: "আপনার দোকানের নিয়ন্ত্রণ নিতে প্রস্তুত?",
+    cta_subtitle: "মাত্র কয়েক মিনিটে সেট আপ করুন এবং আজই ফ্রি ট্রায়াল শুরু করুন।",
+    cta_btn_contact: "আমাদের সাথে কথা বলুন",
 
     // Pricing Page
     pricing_title: "সহজ ও স্বচ্ছ প্রাইসিং",
@@ -78,6 +119,7 @@ export const translations: Translations = {
     pricing_users: "সর্বোচ্চ {max_users} জন ইউজার",
     pricing_branches: "{max_branches} টি ব্রাঞ্চ",
     pricing_products: "{max_products} টি প্রোডাক্ট লিমিট",
+    pricing_trial: "🎉 {days} দিনের ফ্রি ট্রায়াল দিয়ে শুরু করুন — কোনো কার্ডের প্রয়োজন নেই",
     
     // Feature translations for Pricing
     feat_pos: "পয়েন্ট অফ সেল (POS)",

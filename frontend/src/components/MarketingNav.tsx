@@ -37,8 +37,12 @@ export default function MarketingNav() {
   };
 
   const navLinks = [
+    { href: "/", label: t("nav_home") },
     { href: "/pricing", label: t("nav_pricing") },
+    { href: "/demo", label: t("nav_demo") },
+    { href: "/reseller", label: t("nav_reseller") },
     { href: "/blog", label: t("nav_blog") },
+    { href: "/contact", label: t("nav_contact") },
   ];
 
   return (
@@ -85,7 +89,7 @@ export default function MarketingNav() {
                     "&:hover": { color: M.primary, bgcolor: "transparent" } }}>
                   {t("nav_login")}
                 </Button>
-                {/* <Button component={Link} href="/register" sx={cta}>Sign Up</Button> */}
+                <Button component={Link} href="/register" sx={cta}>{t("nav_signup")}</Button>
               </>
             )}
             <LanguageToggle />
@@ -96,7 +100,7 @@ export default function MarketingNav() {
             {mounted && isLoggedIn ? (
               <Button component={Link} href="/app" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_dashboard")}</Button>
             ) : (
-              <Button component={Link} href="/login" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_login")}</Button>
+              <Button component={Link} href="/register" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_signup")}</Button>
             )}
             <LanguageToggle />
             <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text, ml: 1 }}>
@@ -116,6 +120,12 @@ export default function MarketingNav() {
                   {l.label}
                 </MenuItem>
               ))}
+              {!(mounted && isLoggedIn) && (
+                <MenuItem component={Link} href="/login" onClick={closeMenu}
+                  sx={{ fontWeight: 600, color: M.primary, py: 1.2 }}>
+                  {t("nav_login")}
+                </MenuItem>
+              )}
             </Menu>
           </Box>
         </Box>
