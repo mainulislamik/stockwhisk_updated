@@ -20,6 +20,7 @@ export const translations: Translations = {
     nav_signup: "Sign Up",
     
     // Landing Page
+    hero_badge: "#1 Cloud POS Solution",
     hero_title: "Run Your Shop Smarter with StockWhisk",
     hero_subtitle: "The modern retail dashboard built for clarity, speed, and precision. Manage inventory, track sales, and grow your business without the cognitive load.",
     hero_btn_register: "Start free trial",
@@ -34,6 +35,29 @@ export const translations: Translations = {
     stat_uptime_val: "24/7",
     stat_ownership: "Data ownership",
     stat_ownership_val: "100%",
+
+    // Industries Section
+    industries_eyebrow: "Built For Every Business",
+    industries_title: "Industries We Serve",
+    industries_retail: "Retail & E-commerce",
+    industries_grocery: "Supermarkets & Grocery",
+    industries_fashion: "Fashion & Apparel",
+    industries_electronics: "Electronics & Mobile",
+
+    // Why Choose Us Section
+    why_eyebrow: "Built for Smarter Business",
+    why_title: "Why Choose StockWhisk?",
+    why_easy_title: "Easy to Use",
+    why_easy_text: "Simple, intuitive, and designed for seamless daily operations",
+    why_secure_title: "Secure & Reliable",
+    why_secure_text: "Advanced security measures to keep your business data safe",
+    why_cloud_title: "Cloud-Based System",
+    why_cloud_text: "Access your business data anytime, anywhere in real time",
+    why_support_title: "24/7 Support",
+    why_support_text: "Dedicated assistance whenever you need it",
+
+    // FAQ Section
+    faq_title: "Frequently Asked Questions",
 
     // Landing Page Final CTA
     cta_title: "Ready to take control of your shop?",
@@ -86,6 +110,7 @@ export const translations: Translations = {
     nav_signup: "সাইন আপ",
     
     // Landing Page
+    hero_badge: "#১ ক্লাউড পিওএস সমাধান",
     hero_title: "স্টকহিস্ক দিয়ে আপনার দোকান আরও স্মার্টভাবে চালান",
     hero_subtitle: "স্পষ্টতা, গতি এবং নির্ভুলতার জন্য তৈরি আধুনিক রিটেইল ড্যাশবোর্ড। ইনভেন্টরি ম্যানেজ করুন, সেলস ট্র্যাক করুন এবং ঝামেলা ছাড়াই আপনার ব্যবসা প্রসারিত করুন।",
     hero_btn_register: "ফ্রি ট্রায়াল শুরু করুন",
@@ -100,6 +125,29 @@ export const translations: Translations = {
     stat_uptime_val: "২৪/৭",
     stat_ownership: "ডেটার মালিকানা",
     stat_ownership_val: "১০০%",
+
+    // Industries Section
+    industries_eyebrow: "সব ধরনের ব্যবসার জন্য তৈরি",
+    industries_title: "যেসকল ইন্ডাস্ট্রিতে আমরা কাজ করি",
+    industries_retail: "রিটেইল ও ই-কমার্স",
+    industries_grocery: "সুপারমার্কেট ও মুদি দোকান",
+    industries_fashion: "ফ্যাশন ও পোশাক",
+    industries_electronics: "ইলেকট্রনিক্স ও মোবাইল",
+
+    // Why Choose Us Section
+    why_eyebrow: "স্মার্ট ব্যবসার জন্য তৈরি",
+    why_title: "কেন স্টকহিস্ক বেছে নিবেন?",
+    why_easy_title: "সহজ ব্যবহার",
+    why_easy_text: "সহজ, সাবলীল এবং দৈনন্দিন কাজের জন্য দারুণভাবে ডিজাইন করা",
+    why_secure_title: "নিরাপদ ও বিশ্বস্ত",
+    why_secure_text: "আপনার ব্যবসার ডেটা সুরক্ষিত রাখতে উন্নত নিরাপত্তা ব্যবস্থা",
+    why_cloud_title: "ক্লাউড-ভিত্তিক সিস্টেম",
+    why_cloud_text: "যে কোনো সময়, যে কোনো জায়গা থেকে রিয়েল-টাইমে ব্যবসার ডেটা অ্যাক্সেস করুন",
+    why_support_title: "২৪/৭ সাপোর্ট",
+    why_support_text: "আপনার প্রয়োজনে সার্বক্ষণিক ডেডিকেটেড সাপোর্ট",
+
+    // FAQ Section
+    faq_title: "সাধারণ জিজ্ঞাসা",
 
     // Landing Page Final CTA
     cta_title: "আপনার দোকানের নিয়ন্ত্রণ নিতে প্রস্তুত?",

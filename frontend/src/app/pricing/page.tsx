@@ -201,7 +201,17 @@ export default function PricingPage() {
                         boxShadow: isPopular 
                           ? (mode === 'dark' ? '0 25px 50px -12px rgba(56,189,248,0.3)' : '0 25px 50px -12px rgba(0,74,198,0.3)')
                           : '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
-                      }
+                      },
+                      ...(isPopular && {
+                        '&::after': {
+                          content: '""',
+                          position: 'absolute',
+                          inset: 0,
+                          borderRadius: '24px',
+                          background: `linear-gradient(135deg, ${COLORS.primary}1A, transparent)`,
+                          pointerEvents: 'none',
+                        }
+                      })
                     }}>
                       {isPopular && (
                         <Box sx={{
@@ -294,6 +304,32 @@ export default function PricingPage() {
               })
             )}
           </Grid>
+
+          {/* ── FAQ Section ── */}
+          <Box sx={{ mt: { xs: 8, md: 12 }, pt: { xs: 6, md: 8 }, borderTop: `1px solid ${COLORS.outlineVariant}` }}>
+            <Container maxWidth="md">
+              <Box sx={{ textAlign: "center", mb: { xs: 5, md: 7 } }}>
+                <Typography component="h2" sx={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "1.9rem", md: "2.6rem" } }}>
+                  {t("faq_title")}
+                </Typography>
+              </Box>
+              <Box>
+                {/* Note: In a real implementation we would map through an array, but we'll hardcode some for now */}
+                <Box sx={{ mb: 2, p: 3, bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#fff', border: `1px solid ${COLORS.outlineVariant}`, borderRadius: '16px' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>How does the 45-day trial work?</Typography>
+                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>You get full access to all features for 45 days. No credit card is required. You can upgrade to a paid plan at any time during or after the trial.</Typography>
+                </Box>
+                <Box sx={{ mb: 2, p: 3, bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#fff', border: `1px solid ${COLORS.outlineVariant}`, borderRadius: '16px' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>Can I change my plan later?</Typography>
+                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>Yes, you can upgrade or downgrade your plan at any time from your billing dashboard. Changes are prorated automatically.</Typography>
+                </Box>
+                <Box sx={{ p: 3, bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#fff', border: `1px solid ${COLORS.outlineVariant}`, borderRadius: '16px' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>What counts as a "product"?</Typography>
+                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>A product is a unique item in your inventory (SKU). Variations (like sizes or colors) may count as separate products depending on how you configure them.</Typography>
+                </Box>
+              </Box>
+            </Container>
+          </Box>
         </Container>
       </Box>
 

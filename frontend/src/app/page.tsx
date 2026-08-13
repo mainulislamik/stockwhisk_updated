@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Box, Typography, Button, Container, Stack, Grid } from "@mui/material";
+import { Box, Typography, Button, Container, Stack, Grid, Accordion, AccordionSummary, AccordionDetails } from "@mui/material";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import MarketingNav from "@/components/MarketingNav";
 import MarketingFooter from "@/components/MarketingFooter";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
@@ -50,6 +51,20 @@ export default function LandingPage() {
     { value: t("stat_ownership_val"), label: t("stat_ownership") },
   ];
 
+  const INDUSTRIES = [
+    { icon: "bi-shop", title: t("industries_retail") },
+    { icon: "bi-cart-check", title: t("industries_grocery") },
+    { icon: "bi-tags", title: t("industries_fashion") },
+    { icon: "bi-phone", title: t("industries_electronics") },
+  ];
+
+  const WHY_CHOOSE_US = [
+    { title: t("why_easy_title"), text: t("why_easy_text") },
+    { title: t("why_secure_title"), text: t("why_secure_text") },
+    { title: t("why_cloud_title"), text: t("why_cloud_text") },
+    { title: t("why_support_title"), text: t("why_support_text") },
+  ];
+
   const FEATURES = [
     { icon: "bi-upc-scan", title: t("feat_pos"), desc: "Scan-and-sell checkout with per-unit barcodes, shared-barcode picker and mobile camera scanning." },
     { icon: "bi-box-seam", title: "Inventory & Stock", desc: "Real-time stock levels, purchase receiving, adjustments and low-stock alerts across branches." },
@@ -68,18 +83,24 @@ export default function LandingPage() {
         {/* ── Hero ── */}
         <Box sx={{
           position: "relative", overflow: "hidden",
-          background: `radial-gradient(1200px 500px at 50% -10%, ${M.surfaceAlt} 0%, ${M.surface} 60%)`,
-          pt: { xs: 7, md: 11 }, pb: { xs: 7, md: 10 },
+          pt: { xs: 8, md: 12 }, pb: { xs: 8, md: 12 },
         }}>
-          <Container maxWidth="lg">
+          {/* Glowing Orbs */}
+          <Box sx={{ position: "absolute", top: "10%", left: "50%", transform: "translateX(-50%)", width: 800, height: 400, background: `radial-gradient(ellipse at center, ${M.accent}33 0%, transparent 70%)`, filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
+          
+          <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
             <Box sx={{ textAlign: "center", maxWidth: 860, mx: "auto" }}>
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, px: 2, py: 0.75, borderRadius: "20px", bgcolor: "rgba(37,99,235,0.08)", color: M.primary, fontWeight: 700, fontSize: "0.85rem", mb: 3, border: `1px solid rgba(37,99,235,0.2)` }}>
+                <i className="bi bi-star-fill" style={{ color: "#f59e0b" }}></i>
+                {t("hero_badge")}
+              </Box>
               <Typography component="h1" sx={{
                 fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1,
-                fontSize: { xs: "2.4rem", md: "3.8rem" }, mb: 2.5,
+                fontSize: { xs: "2.5rem", md: "4rem" }, mb: 2.5,
               }}>
                 {t("hero_title")}
               </Typography>
-              <Typography sx={{ color: M.textMuted, fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.6, maxWidth: 680, mx: "auto", mb: 4 }}>
+              <Typography sx={{ color: M.textMuted, fontSize: { xs: "1.05rem", md: "1.2rem" }, lineHeight: 1.6, maxWidth: 680, mx: "auto", mb: 5 }}>
                 {t("hero_subtitle")}
               </Typography>
               <Stack direction={{ xs: "column", sm: "row" }} spacing={2} sx={{ justifyContent: "center" }}>
@@ -89,13 +110,12 @@ export default function LandingPage() {
                   borderRadius: "12px", px: 4, py: 1.5, fontSize: "1rem",
                   boxShadow: "0 10px 24px -8px rgba(5,150,105,.6)", "&:hover": { bgcolor: "#047857" },
                 }}>▶ {t("hero_btn_demo")}</Button>
-                <Button component={Link} href="/pricing" sx={btnGhost}>{t("nav_pricing")}</Button>
               </Stack>
             </Box>
 
-            {/* Self-contained dashboard preview (no external image) */}
+            {/* Dashboard Preview */}
             <Box sx={{
-              mt: { xs: 5, md: 7 }, maxWidth: 980, mx: "auto",
+              mt: { xs: 6, md: 8 }, maxWidth: 980, mx: "auto",
               borderRadius: "20px", border: `1px solid ${M.border}`, bgcolor: M.card,
               boxShadow: "0 30px 60px -30px rgba(15,23,42,.35)", overflow: "hidden",
             }}>
@@ -122,7 +142,6 @@ export default function LandingPage() {
                     <MiniStat label="Orders" value="126" />
                     <MiniStat label="Low Stock" value="7" />
                   </Stack>
-                  {/* fake bar chart */}
                   <Box sx={{ bgcolor: M.surfaceTint, border: `1px solid ${M.border}`, borderRadius: "12px", p: 2 }}>
                     <Typography sx={{ fontSize: ".78rem", color: M.textFaint, fontWeight: 700, mb: 1.5 }}>Sales this week</Typography>
                     <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1, height: { xs: 90, md: 140 } }}>
@@ -138,36 +157,99 @@ export default function LandingPage() {
           </Container>
         </Box>
 
-        {/* ── Features ── */}
-        <Box sx={{ py: { xs: 7, md: 11 } }}>
+        {/* ── Stats band ── */}
+        <Box sx={{ bgcolor: M.surfaceAlt, borderTop: `1px solid ${M.border}`, borderBottom: `1px solid ${M.border}`, py: { xs: 5, md: 7 } }}>
+          <Container maxWidth="lg">
+            <Grid container spacing={2}>
+              {STATS.map((s) => (
+                <Grid key={s.label} size={{ xs: 6, md: 3 }} sx={{ textAlign: "center" }}>
+                  <Typography sx={{ fontWeight: 800, fontSize: { xs: "1.8rem", md: "2.4rem" }, color: M.primary, letterSpacing: "-0.02em" }}>{s.value}</Typography>
+                  <Typography sx={{ color: M.textMuted, fontWeight: 600, fontSize: ".9rem" }}>{s.label}</Typography>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* ── Industries ── */}
+        <Box sx={{ py: { xs: 8, md: 12 } }}>
           <Container maxWidth="lg">
             <Box sx={{ textAlign: "center", mb: { xs: 5, md: 7 } }}>
               <Typography sx={{ color: M.primary, fontWeight: 800, letterSpacing: ".08em", fontSize: ".85rem", textTransform: "uppercase", mb: 1 }}>
-                Everything your shop needs
+                <i className="bi bi-buildings" style={{ marginRight: 6 }}></i>
+                {t("industries_eyebrow")}
               </Typography>
               <Typography component="h2" sx={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "1.9rem", md: "2.6rem" } }}>
-                One platform, from purchase to profit
+                {t("industries_title")}
               </Typography>
             </Box>
-            <Grid container spacing={3}>
-              {FEATURES.map((f) => (
-                <Grid key={f.title} size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid container spacing={3} sx={{ justifyContent: "center" }}>
+              {INDUSTRIES.map((ind, i) => (
+                <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
                   <Box sx={{
-                    height: "100%", bgcolor: M.card, border: `1px solid ${M.border}`, borderRadius: "16px", p: 3,
-                    transition: "transform .15s, box-shadow .15s, border-color .15s",
-                    "&:hover": { transform: "translateY(-4px)", boxShadow: "0 20px 40px -24px rgba(15,23,42,.35)", borderColor: M.primary },
+                    bgcolor: M.card, border: `1px solid ${M.border}`, borderRadius: "20px", p: 4, textAlign: "center",
+                    transition: "all .2s ease", cursor: "default",
+                    "&:hover": { borderColor: M.primary, transform: "translateY(-4px)", boxShadow: "0 20px 40px -20px rgba(37,99,235,.2)" }
                   }}>
-                    <Box sx={{
-                      width: 48, height: 48, borderRadius: "12px", mb: 2, display: "flex", alignItems: "center", justifyContent: "center",
-                      color: M.primary, fontSize: "1.5rem", background: `linear-gradient(135deg, ${M.surfaceAlt}, #dbeafe)`,
-                    }}>
-                      <i className={`bi ${f.icon}`} />
+                    <Box sx={{ width: 64, height: 64, mx: "auto", borderRadius: "16px", bgcolor: "rgba(37,99,235,0.08)", color: M.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", mb: 2 }}>
+                      <i className={`bi ${ind.icon}`}></i>
                     </Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: "1.15rem", mb: 1 }}>{f.title}</Typography>
-                    <Typography sx={{ color: M.textMuted, fontSize: ".95rem", lineHeight: 1.6 }}>{f.desc}</Typography>
+                    <Typography sx={{ fontWeight: 700, fontSize: "1.1rem" }}>{ind.title}</Typography>
                   </Box>
                 </Grid>
               ))}
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* ── Split Layout Features ── */}
+        <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.surfaceAlt, borderTop: `1px solid ${M.border}`, borderBottom: `1px solid ${M.border}` }}>
+          <Container maxWidth="lg">
+            <Grid container spacing={6} sx={{ alignItems: "center" }}>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ position: "relative" }}>
+                  <Box sx={{ position: "absolute", top: -40, left: -40, width: 200, height: 200, background: `radial-gradient(circle, ${M.accent}40 0%, transparent 70%)`, filter: "blur(40px)" }} />
+                  <Box sx={{
+                    position: "relative", zIndex: 1,
+                    bgcolor: M.card, borderRadius: "24px", p: 4, border: `1px solid ${M.border}`,
+                    boxShadow: "0 30px 60px -30px rgba(15,23,42,.35)"
+                  }}>
+                    {/* Placeholder abstract illustration */}
+                    <Stack spacing={2}>
+                      <Box sx={{ height: 20, width: "40%", bgcolor: M.borderStrong, borderRadius: 999 }} />
+                      <Box sx={{ height: 120, width: "100%", bgcolor: M.surfaceTint, borderRadius: "12px", border: `1px solid ${M.border}` }} />
+                      <Stack direction="row" spacing={2}>
+                        <Box sx={{ flex: 1, height: 60, bgcolor: "rgba(37,99,235,0.1)", borderRadius: "12px" }} />
+                        <Box sx={{ flex: 1, height: 60, bgcolor: "rgba(37,99,235,0.1)", borderRadius: "12px" }} />
+                      </Stack>
+                    </Stack>
+                  </Box>
+                </Box>
+              </Grid>
+              <Grid size={{ xs: 12, md: 6 }}>
+                <Box sx={{ mb: 4 }}>
+                  <Typography sx={{ color: M.primary, fontWeight: 800, letterSpacing: ".08em", fontSize: ".85rem", textTransform: "uppercase", mb: 1 }}>
+                    <i className="bi bi-lightning-charge-fill" style={{ marginRight: 6 }}></i>
+                    Powerful Features
+                  </Typography>
+                  <Typography component="h2" sx={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "1.9rem", md: "2.6rem" } }}>
+                    Advanced tools with incredible design
+                  </Typography>
+                </Box>
+                <Grid container spacing={3}>
+                  {FEATURES.map((f, i) => (
+                    <Grid key={i} size={{ xs: 12 }}>
+                      <Box sx={{ display: "flex", gap: 2 }}>
+                        <Typography sx={{ color: M.primary, fontWeight: 800, fontSize: "1.2rem", opacity: 0.5 }}>0{i + 1}</Typography>
+                        <Box>
+                          <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", mb: 0.5 }}>{f.title}</Typography>
+                          <Typography sx={{ color: M.textMuted, fontSize: "0.9rem", lineHeight: 1.5 }}>{f.desc}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Grid>
             </Grid>
           </Container>
         </Box>
@@ -183,6 +265,70 @@ export default function LandingPage() {
                 </Grid>
               ))}
             </Grid>
+          </Container>
+        </Box>
+        {/* ── Why Choose Us ── */}
+        <Box sx={{ py: { xs: 8, md: 12 } }}>
+          <Container maxWidth="lg">
+            <Box sx={{ textAlign: "center", mb: { xs: 5, md: 7 } }}>
+              <Typography sx={{ color: M.primary, fontWeight: 800, letterSpacing: ".08em", fontSize: ".85rem", textTransform: "uppercase", mb: 1 }}>
+                <i className="bi bi-shield-check" style={{ marginRight: 6 }}></i>
+                {t("why_eyebrow")}
+              </Typography>
+              <Typography component="h2" sx={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "1.9rem", md: "2.6rem" } }}>
+                {t("why_title")}
+              </Typography>
+            </Box>
+            <Grid container spacing={4} sx={{ justifyContent: "center" }}>
+              {WHY_CHOOSE_US.map((item, i) => (
+                <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+                  <Box sx={{ textAlign: "center" }}>
+                    <Box sx={{ width: 50, height: 50, mx: "auto", borderRadius: "50%", bgcolor: M.surfaceAlt, border: `1px solid ${M.border}`, color: M.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.4rem", mb: 2 }}>
+                      <i className="bi bi-check-lg"></i>
+                    </Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: "1.1rem", mb: 1 }}>{item.title}</Typography>
+                    <Typography sx={{ color: M.textMuted, fontSize: "0.9rem", lineHeight: 1.5 }}>{item.text}</Typography>
+                  </Box>
+                </Grid>
+              ))}
+            </Grid>
+          </Container>
+        </Box>
+
+        {/* ── FAQ Section ── */}
+        <Box sx={{ py: { xs: 8, md: 12 }, bgcolor: M.surfaceAlt, borderTop: `1px solid ${M.border}` }}>
+          <Container maxWidth="md">
+            <Box sx={{ textAlign: "center", mb: { xs: 5, md: 7 } }}>
+              <Typography component="h2" sx={{ fontWeight: 800, letterSpacing: "-0.02em", fontSize: { xs: "1.9rem", md: "2.6rem" } }}>
+                {t("faq_title")}
+              </Typography>
+            </Box>
+            <Box>
+              <Accordion sx={{ bgcolor: "transparent", borderBottom: `1px solid ${M.border}`, boxShadow: "none", "&:before": { display: "none" } }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: M.primary }} />}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem" }}>Do I need to download an app?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography sx={{ color: M.textMuted }}>No, StockWhisk is 100% cloud-based. You can access it securely from any web browser on your phone, tablet, or computer.</Typography>
+                </AccordionDetails>
+              </Accordion>
+              <Accordion sx={{ bgcolor: "transparent", borderBottom: `1px solid ${M.border}`, boxShadow: "none", "&:before": { display: "none" } }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: M.primary }} />}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem" }}>Is my business data secure?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography sx={{ color: M.textMuted }}>Absolutely. We use industry-standard encryption to protect your data, and we perform automated daily backups.</Typography>
+                </AccordionDetails>
+              </Accordion>
+              <Accordion sx={{ bgcolor: "transparent", borderBottom: `1px solid ${M.border}`, boxShadow: "none", "&:before": { display: "none" } }}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon sx={{ color: M.primary }} />}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem" }}>What happens after the free trial?</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                  <Typography sx={{ color: M.textMuted }}>At the end of your trial, you can choose to upgrade to a paid plan. Your data is kept safe, and you can pick up exactly where you left off.</Typography>
+                </AccordionDetails>
+              </Accordion>
+            </Box>
           </Container>
         </Box>
 
