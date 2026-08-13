@@ -31,9 +31,56 @@ export default function PosPage() {
     return () => clearTimeout(timer);
   }, [query]);
 
-  // Server-side fetching for the main POS search
-  const { data: posData } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedQuery, page_size: 20, in_stock: "1" });
-  const shown = posData?.results || [];
+  // Main POS product grid: load the first 20 fast (light = no embedded units),
+  // then append more on scroll (infinite scroll). Units are fetched on click.
+  const GRID_PAGE_SIZE = 20;
+  const [shown, setShown] = useState<Product[]>([]);
+  const [gridPage, setGridPage] = useState(1);
+  const [gridHasMore, setGridHasMore] = useState(false);
+  const [gridLoading, setGridLoading] = useState(true);
+  const [unitLoadingId, setUnitLoadingId] = useState<number | null>(null);
+
+  async function fetchGrid(page: number, replace: boolean) {
+    setGridLoading(true);
+    try {
+      const qs = new URLSearchParams({ page: String(page), page_size: String(GRID_PAGE_SIZE), in_stock: "1", light: "1" });
+      if (debouncedQuery) qs.set("search", debouncedQuery);
+      const d = await api<Paginated<Product>>(`/catalog/products/?${qs.toString()}`);
+      setShown((prev) => (replace ? d.results : [...prev, ...d.results]));
+      setGridPage(page);
+      setGridHasMore(!!d.next);
+    } catch {
+      if (replace) setShown([]);
+      setGridHasMore(false);
+    } finally {
+      setGridLoading(false);
+    }
+  }
+
+  // Reset to page 1 whenever the search changes.
+  useEffect(() => { fetchGrid(1, true); /* eslint-disable-next-line */ }, [debouncedQuery]);
+
+  function onGridScroll(e: React.UIEvent<HTMLDivElement>) {
+    const el = e.currentTarget;
+    if (!gridLoading && gridHasMore && el.scrollHeight - el.scrollTop - el.clientHeight < 140) {
+      fetchGrid(gridPage + 1, false);
+    }
+  }
+
+  // Grid cards are loaded light (no units); fetch this product's units on click,
+  // then run the normal add / unit-selection flow.
+  async function pickFromGrid(p: Product) {
+    if (p.track_inventory === false) { tryAdd(p); return; }
+    setUnitLoadingId(p.id);
+    try {
+      const full = await api<Product>(`/catalog/products/${p.id}/`);
+      tryAdd({ ...p, units: full.units });
+    } catch {
+      tryAdd(p);
+    } finally {
+      setUnitLoadingId(null);
+    }
+  }
   const [scanning, setScanning] = useState(false);
   const [showScanner, setShowScanner] = useState(false);
   const [scanMsg, setScanMsg] = useState<ScanMsg>(null);
@@ -302,7 +349,7 @@ export default function PosPage() {
           </div>
 
           {/* ── Product grid ── */}
-          {shown.length === 0 && query ? (
+          {shown.length === 0 && query && !gridLoading ? (
             <div className="card shadow-sm">
               <div className="card-body text-center py-4 text-secondary small">
                 No barcoded products match "<strong>{query}</strong>"
@@ -312,17 +359,18 @@ export default function PosPage() {
               </div>
             </div>
           ) : (
-            <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }}>
+            <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
               {shown.map((p) => {
                 const out = p.track_inventory !== false && Number(p.current_stock) <= 0;
                 const inCart = cart.some((l) => l.product.id === p.id);
                 const exactMatch = query.trim() !== "" && p.barcode === query.trim();
+                const busy = unitLoadingId === p.id;
                 return (
                   <div className="col-6 col-md-4" key={p.id}>
                     <button
                       className={`pos-item w-100 p-2 text-start ${inCart ? "pos-item-active" : ""} ${exactMatch ? "pos-item-exact" : ""}`}
-                      disabled={out}
-                      onClick={() => tryAdd(p)}
+                      disabled={out || busy}
+                      onClick={() => pickFromGrid(p)}
                     >
                       <div className="small fw-semibold text-truncate">{p.name}</div>
                       <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
@@ -332,13 +380,19 @@ export default function PosPage() {
                         <span className="small fw-bold">{money(p.selling_price)}</span>
                         <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
                               style={{ fontSize: ".68rem" }}>
-                          {out ? "OUT" : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : `stock ${p.current_stock}`}
+                          {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? "OUT" : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : `stock ${p.current_stock}`}
                         </span>
                       </div>
                     </button>
                   </div>
                 );
               })}
+              {gridLoading && (
+                <div className="col-12 text-center text-secondary py-3">
+                  <span className="spinner-border spinner-border-sm me-2" role="status" />
+                  <span className="small">Loading products…</span>
+                </div>
+              )}
             </div>
           )}
         </div>
