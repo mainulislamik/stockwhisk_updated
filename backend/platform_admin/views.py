@@ -665,6 +665,46 @@ class PromoOfferView(APIView):
         return Response(self._state(config, request))
 
 
+class BrandingView(APIView):
+    """Upload / remove the platform logo and favicon (multipart). Shown across
+    the app + marketing site."""
+    permission_classes = [IsPlatformStaff]
+
+    @staticmethod
+    def _state(config, request):
+        def _url(f):
+            if not f:
+                return None
+            return request.build_absolute_uri(f.url) if request is not None else f.url
+        return {"logo": _url(config.logo), "favicon": _url(config.favicon)}
+
+    def get(self, request):
+        return Response(self._state(PlatformConfig.get_solo(), request))
+
+    def post(self, request):
+        config = PlatformConfig.get_solo()
+        for field in ("logo", "favicon"):
+            if field in request.FILES:
+                old = getattr(config, field)
+                if old:
+                    old.delete(save=False)
+                setattr(config, field, request.FILES[field])
+        config.save()
+        return Response(self._state(config, request))
+
+    def delete(self, request):
+        config = PlatformConfig.get_solo()
+        which = request.query_params.get("field") or request.data.get("field")
+        fields = [which] if which in ("logo", "favicon") else ["logo", "favicon"]
+        for field in fields:
+            f = getattr(config, field)
+            if f:
+                f.delete(save=False)
+            setattr(config, field, None)
+        config.save()
+        return Response(self._state(config, request))
+
+
 # --- Contact messages --------------------------------------------------------
 
 class ContactMessageSerializer(serializers.ModelSerializer):
@@ -1511,6 +1551,8 @@ class PublicSiteConfigView(APIView):
         return Response({
             "trial_days": config.default_trial_days,
             "offer": offer,
+            "logo": request.build_absolute_uri(config.logo.url) if config.logo else None,
+            "favicon": request.build_absolute_uri(config.favicon.url) if config.favicon else None,
             "pricing_content": {**DEFAULT_PRICING_CONTENT, **(config.pricing_content or {})},
         })
 

@@ -22,7 +22,46 @@ export default function PlatformSettingsPage() {
   const [savingContact, setSavingContact] = useState(false);
   const [testingContact, setTestingContact] = useState(false);
 
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
+  const [brandingBusy, setBrandingBusy] = useState(false);
+
+  async function uploadBranding(field: "logo" | "favicon", file: File) {
+    setBrandingBusy(true);
+    setMsg(null);
+    try {
+      const fd = new FormData();
+      fd.append(field, file);
+      const res = await api<{ logo: string | null; favicon: string | null }>("/platform/branding/", { method: "POST", body: fd });
+      setLogoUrl(res.logo);
+      setFaviconUrl(res.favicon);
+      setMsg({ ok: true, text: `${field === "logo" ? "Logo" : "Favicon"} updated. Reload to see it everywhere.` });
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.detail || `Failed to upload ${field}.` });
+    } finally {
+      setBrandingBusy(false);
+    }
+  }
+
+  async function removeBranding(field: "logo" | "favicon") {
+    setBrandingBusy(true);
+    setMsg(null);
+    try {
+      const res = await api<{ logo: string | null; favicon: string | null }>(`/platform/branding/?field=${field}`, { method: "DELETE" });
+      setLogoUrl(res.logo);
+      setFaviconUrl(res.favicon);
+      setMsg({ ok: true, text: `${field === "logo" ? "Logo" : "Favicon"} removed.` });
+    } catch (e: any) {
+      setMsg({ ok: false, text: e?.data?.detail || `Failed to remove ${field}.` });
+    } finally {
+      setBrandingBusy(false);
+    }
+  }
+
   useEffect(() => {
+    api<{ logo: string | null; favicon: string | null }>("/platform/branding/")
+      .then((b) => { setLogoUrl(b.logo); setFaviconUrl(b.favicon); })
+      .catch(() => {});
     api<any>("/platform/smtp-settings/").then((data) => {
       setSmtpHost(data.smtp_host || "");
       setSmtpPort(data.smtp_port?.toString() || "587");
@@ -128,6 +167,49 @@ export default function PlatformSettingsPage() {
           )}
         </div>
       )}
+
+      <Card className="border-top border-4 border-dark">
+        <div className="p-2">
+          <h2 className="h5 fw-bold mb-2 d-flex align-items-center gap-2">
+            <i className="bi bi-image"></i> Branding — Logo &amp; Favicon
+          </h2>
+          <p className="text-secondary small mb-4">
+            Your company logo appears in the app sidebar, the marketing site header and login pages.
+            The favicon is the small icon in the browser tab. PNG or SVG recommended.
+          </p>
+          <div className="row g-4">
+            {([
+              { field: "logo" as const, label: "Company Logo", url: logoUrl, hint: "Wide/horizontal image, transparent background." },
+              { field: "favicon" as const, label: "Favicon", url: faviconUrl, hint: "Square, 32×32 or 64×64 (.png / .ico / .svg)." },
+            ]).map(({ field, label, url, hint }) => (
+              <div className="col-md-6" key={field}>
+                <label className="fw-semibold mb-2 d-block">{label}</label>
+                <div className="d-flex align-items-center gap-3">
+                  <div className="border rounded d-flex align-items-center justify-content-center bg-body-tertiary" style={{ width: 88, height: 56, overflow: "hidden", flexShrink: 0 }}>
+                    {url
+                      ? <img src={url} alt={label} style={{ maxWidth: "100%", maxHeight: "100%" }} />
+                      : <span className="text-secondary small">None</span>}
+                  </div>
+                  <div className="flex-grow-1">
+                    <input
+                      type="file" accept="image/*,.ico" className="form-control form-control-sm" disabled={brandingBusy}
+                      onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadBranding(field, f); e.target.value = ""; }}
+                    />
+                    <div className="d-flex align-items-center justify-content-between mt-1">
+                      <span className="text-secondary" style={{ fontSize: ".72rem" }}>{hint}</span>
+                      {url && (
+                        <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={brandingBusy} onClick={() => removeBranding(field)}>
+                          Remove
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </Card>
 
       <Card className="border-top border-4 border-primary">
         <div className="p-2">

@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { Box, Container, Stack, Button, Typography, IconButton, Menu, MenuItem } from "@mui/material";
 import { getAccess } from "@/lib/api";
 import { M } from "@/lib/marketing";
+import { useBranding } from "@/lib/branding";
 
 /** Shared top navigation for the public pages (home, pricing, blog, contact, login, register). */
 export default function MarketingNav() {
+  const branding = useBranding();
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -53,12 +55,18 @@ export default function MarketingNav() {
           <Typography component={Link} href="/" variant="h6"
             sx={{ fontWeight: 800, color: M.text, textDecoration: "none", fontFamily: "Outfit, sans-serif",
                   display: "flex", alignItems: "center", gap: 1, letterSpacing: "-0.02em" }}>
-            <Box component="span" sx={{
-              width: 30, height: 30, borderRadius: "8px", display: "inline-flex",
-              alignItems: "center", justifyContent: "center", fontSize: 16,
-              background: `linear-gradient(135deg, ${M.accent}, ${M.primaryDark})`,
-            }}>📦</Box>
-            StockWhisk
+            {branding.logo ? (
+              <Box component="img" src={branding.logo} alt="Logo" sx={{ height: 38, maxWidth: 180, objectFit: "contain" }} />
+            ) : (
+              <>
+                <Box component="span" sx={{
+                  width: 30, height: 30, borderRadius: "8px", display: "inline-flex",
+                  alignItems: "center", justifyContent: "center", fontSize: 16,
+                  background: `linear-gradient(135deg, ${M.accent}, ${M.primaryDark})`,
+                }}>📦</Box>
+                StockWhisk
+              </>
+            )}
           </Typography>
 
           {/* Desktop nav */}

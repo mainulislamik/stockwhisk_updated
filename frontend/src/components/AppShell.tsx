@@ -10,9 +10,11 @@ import UniversalSearch from "@/components/UniversalSearch";
 import { impersonatingShop, isImpersonating, returnToAdmin } from "@/lib/impersonation";
 import ThemeToggle from "@/components/ThemeToggle";
 import { api } from "@/lib/api";
+import { useBranding } from "@/lib/branding";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, billing } = useAuth();
+  const branding = useBranding();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState("products");
@@ -87,7 +89,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       >
         <div className="d-flex flex-column gap-3 p-3 border-bottom" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
-            {!collapsed && <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>}
+            {!collapsed && (branding.logo
+              ? <img src={branding.logo} alt="Logo" style={{ height: 30, maxWidth: 150, objectFit: "contain" }} />
+              : <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>)}
             <button
               onClick={toggle}
               className="btn btn-sm flex-shrink-0 ms-auto p-0"
@@ -156,7 +160,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       <div className="offcanvas offcanvas-start sidebar d-md-none" tabIndex={-1} id="mobileNav" style={{ width: "15rem" }}>
         <div className="offcanvas-header border-bottom flex-column align-items-stretch gap-3" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
-            <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>
+            {branding.logo
+              ? <img src={branding.logo} alt="Logo" style={{ height: 30, maxWidth: 150, objectFit: "contain" }} />
+              : <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>}
             <button type="button" className="btn-close p-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
           </div>
           

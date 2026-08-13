@@ -99,6 +99,10 @@ class PlatformConfig(TimeStampedModel):
     offer_file = models.FileField(upload_to="offers/", blank=True, null=True)
     offer_enabled = models.BooleanField(default=False)
 
+    # Platform branding shown across the app + marketing site.
+    logo = models.FileField(upload_to="branding/", blank=True, null=True)
+    favicon = models.FileField(upload_to="branding/", blank=True, null=True)
+
     # Editable copy for the public pricing page (hero, CTA, badges, etc.).
     pricing_content = models.JSONField(default=dict, blank=True)
 
