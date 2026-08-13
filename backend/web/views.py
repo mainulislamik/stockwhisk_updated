@@ -52,6 +52,8 @@ from service.services import (
     add_ticket_part, add_ticket_payment, change_ticket_status, create_ticket,
     lookup_warranties,
 )
+from django.core.exceptions import PermissionDenied
+
 from tenants.models import SubscriptionPlan
 
 from .guards import perm_required, shop_member_required
@@ -1394,6 +1396,7 @@ def selling_details(request):
 
 
 @shop_member_required
+@perm_required("view_sales")
 def sales(request):
     qs = Sale.objects.select_related("customer").order_by("-sale_date")
     if status := request.GET.get("status"):
@@ -1403,9 +1406,13 @@ def sales(request):
 
 
 @shop_member_required
+@perm_required("view_sales")
 def sale_detail(request, pk):
     sale = get_object_or_404(Sale.objects.prefetch_related("items", "payments"), pk=pk)
     if request.method == "POST" and request.POST.get("action") == "add_payment":
+        # Recording a payment is a write — a read-only (view_sales) user cannot.
+        if not request.user.has_perm_code("create_sale"):
+            raise PermissionDenied("You lack the 'create_sale' permission.")
         try:
             add_payment(sale=sale, amount=_dec(request.POST.get("amount")),
                         method=request.POST.get("method", "cash"), created_by=request.user)
@@ -1460,6 +1467,7 @@ def sale_edit(request, pk):
 
 
 @shop_member_required
+@perm_required("view_sales")
 def sale_print(request, pk):
     """Printable invoice document (item 1) — clean layout with the shop logo."""
     sale = get_object_or_404(Sale.objects.prefetch_related("items", "payments"), pk=pk)
