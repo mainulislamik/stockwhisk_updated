@@ -5,9 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import PlatformNav from "@/components/PlatformNav";
 import ThemeToggle from "@/components/ThemeToggle";
+import { useBranding } from "@/lib/branding";
 
 export default function PlatformShell({ children }: { children: React.ReactNode }) {
   const { user, loading, logout } = useAuth();
+  const branding = useBranding();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -50,7 +52,9 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
         <div className="d-flex align-items-center justify-content-between gap-2 p-3 border-bottom border-secondary border-opacity-25">
           {!collapsed && (
             <div className="text-truncate">
-              <div className="fs-5 fw-bold brand-title">StockWhisk</div>
+              {branding.logo
+                ? <img src={branding.logo} alt="Logo" style={{ height: 34, maxWidth: 150, objectFit: "contain" }} />
+                : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
               <div className="small text-secondary">Platform Admin</div>
             </div>
           )}
@@ -73,7 +77,9 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
       <div className="offcanvas offcanvas-start sidebar text-light d-md-none" tabIndex={-1} id="platformNav" style={{ width: "15rem" }}>
         <div className="offcanvas-header border-bottom border-secondary border-opacity-25">
           <div>
-            <div className="fs-5 fw-bold brand-title">StockWhisk</div>
+            {branding.logo
+              ? <img src={branding.logo} alt="Logo" style={{ height: 34, maxWidth: 150, objectFit: "contain" }} />
+              : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
             <div className="small text-secondary">Platform Admin</div>
           </div>
           <button type="button" className="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
