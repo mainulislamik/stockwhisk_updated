@@ -51,7 +51,12 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_units(self, obj):
         if not getattr(obj, "track_inventory", True):
             return []
-        
+
+        # Light mode (list/table views): skip units entirely for a small payload.
+        request = self.context.get("request")
+        if request is not None and request.query_params.get("light") in {"1", "true"}:
+            return []
+
         # Use prefetched IN_STOCK units if available to prevent N+1 queries
         if hasattr(obj, "prefetched_in_stock_units"):
             units = obj.prefetched_in_stock_units

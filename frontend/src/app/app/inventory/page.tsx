@@ -26,23 +26,27 @@ export default function InventoryPage() {
   const { can, isOwner } = useAuth();
   const canAdjust = isOwner || can("manage_inventory");
   const [inv, setInv] = useState<InvSummary | null>(null);
-  const [moves, setMoves] = useState<Movement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [adj, setAdj] = useState({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
   const [products, setProducts] = useState<{ id: number; name: string }[]>([]);
   const [saving, setSaving] = useState(false);
 
+  // Stock movements: server-side paginated (only the current page is fetched).
+  const [moveData, setMoveData] = useState<{ count: number; next: string | null; previous: string | null; results: Movement[] } | null>(null);
+  const [movePageNo, setMovePageNo] = useState(1);
+  const [movLoading, setMovLoading] = useState(true);
+  const [movTick, setMovTick] = useState(0);
+
   async function load() {
     setLoading(true);
     try {
-      const [i, m, p] = await Promise.all([
+      const [i, p] = await Promise.all([
         api<InvSummary>("/analytics/inventory/"),
-        fetchAll<Movement>("/inventory/stock-movements/").catch(() => []),
-        fetchAll<{ id: number; name: string }>("/catalog/products/").catch(() => []),
+        // light=1 → products without their (potentially thousands of) units.
+        fetchAll<{ id: number; name: string }>("/catalog/products/?light=1").catch(() => []),
       ]);
       setInv(i);
-      setMoves(m);
       setProducts(p);
     } catch (e: any) {
       setError(e?.message || "Failed to load inventory");
@@ -50,9 +54,17 @@ export default function InventoryPage() {
       setLoading(false);
     }
   }
+  useEffect(() => { load(); }, []);
+
   useEffect(() => {
-    load();
-  }, []);
+    let alive = true;
+    setMovLoading(true);
+    api<{ count: number; next: string | null; previous: string | null; results: Movement[] }>(`/inventory/stock-movements/?page=${movePageNo}&page_size=25`)
+      .then((d) => { if (alive) setMoveData(d); })
+      .catch(() => { if (alive) setMoveData({ count: 0, next: null, previous: null, results: [] }); })
+      .finally(() => { if (alive) setMovLoading(false); });
+    return () => { alive = false; };
+  }, [movePageNo, movTick]);
 
   async function submitAdjust(e: React.FormEvent) {
     e.preventDefault();
@@ -72,6 +84,8 @@ export default function InventoryPage() {
       });
       setAdj({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
       await load();
+      setMovePageNo(1);
+      setMovTick((t) => t + 1);
     } catch (e: any) {
       toast.error(e?.message || "Could not adjust stock");
     } finally {
@@ -81,7 +95,8 @@ export default function InventoryPage() {
 
   const lowStock = usePagination(inv?.low_stock ?? []);
   const outStock = usePagination(inv?.out_of_stock ?? []);
-  const movePage = usePagination(moves);
+  const moves = moveData?.results ?? [];
+  const moveTotalPages = Math.max(1, Math.ceil((moveData?.count ?? 0) / 25));
 
   if (loading) return <Spinner label="Loading inventory…" />;
   if (error) return <ErrorState error={error} />;
@@ -271,7 +286,12 @@ export default function InventoryPage() {
       <div className="card shadow-sm">
         <div className="card-body">
           <div className="fw-semibold mb-3">Recent stock movements</div>
-          <div className="table-responsive">
+          <div className="table-responsive position-relative">
+            {movLoading && (
+              <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ background: "rgba(255,255,255,.5)", zIndex: 2 }}>
+                <Spinner label="Loading…" />
+              </div>
+            )}
             <table className="table table-striped table-sm mb-0">
               <thead className="thead-6">
                 <tr>
@@ -283,12 +303,12 @@ export default function InventoryPage() {
                 </tr>
               </thead>
               <tbody>
-                {moves.length === 0 ? (
+                {moves.length === 0 && !movLoading ? (
                   <tr data-empty="">
                     <td colSpan={5} className="text-center text-secondary py-4">No movements recorded.</td>
                   </tr>
                 ) : (
-                  movePage.paged.map((m) => (
+                  moves.map((m) => (
                     <tr key={m.id}>
                       <td className="text-secondary">{fmtDate(m.created_at)}</td>
                       <td>{m.product_name}</td>
@@ -303,7 +323,15 @@ export default function InventoryPage() {
               </tbody>
             </table>
           </div>
-          <Pagination page={movePage.page} totalPages={movePage.totalPages} setPage={movePage.setPage} total={movePage.total} />
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 pt-2">
+            <span className="small text-secondary">{(moveData?.count ?? 0).toLocaleString()} movements · Page {movePageNo} of {moveTotalPages}</span>
+            <div className="btn-group btn-group-sm">
+              <button className="btn btn-outline-secondary" disabled={movLoading || !moveData?.previous} onClick={() => setMovePageNo(1)}>«</button>
+              <button className="btn btn-outline-secondary" disabled={movLoading || !moveData?.previous} onClick={() => setMovePageNo((p) => Math.max(1, p - 1))}>‹ Prev</button>
+              <button className="btn btn-outline-secondary" disabled={movLoading || !moveData?.next} onClick={() => setMovePageNo((p) => p + 1)}>Next ›</button>
+              <button className="btn btn-outline-secondary" disabled={movLoading || !moveData?.next} onClick={() => setMovePageNo(moveTotalPages)}>»</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

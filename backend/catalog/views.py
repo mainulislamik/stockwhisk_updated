@@ -98,7 +98,8 @@ class ProductViewSet(TenantScopedViewSet):
         params = self.request.query_params
         low_stock = params.get("low_stock") in {"1", "true"}
         search = params.get("search")
-        qs = ProductService.get_catalog_queryset(low_stock=low_stock, search=search)
+        light = params.get("light") in {"1", "true"}
+        qs = ProductService.get_catalog_queryset(low_stock=low_stock, search=search, light=light)
         if params.get("in_stock") in {"1", "true"}:
             from django.db.models import Q
             qs = qs.filter(Q(track_inventory=False) | Q(current_stock__gt=0))
