@@ -49,7 +49,7 @@ export default function Nav({
   setGroup: (g: string) => void;
 }) {
   const pathname = usePathname();
-  const { can, isOwner } = useAuth();
+  const { can, isOwner, user } = useAuth();
   
   const active = (href: string) => (pathname === href ? "active" : "");
 
@@ -71,6 +71,7 @@ export default function Nav({
   const showInventory = isOwner || can("view_inventory");
   const showProductsGroup = showProductsRead || showInventory || showProductMgmt || showPurchasing;
   const showCustomers = isOwner || can("view_customers") || can("manage_customers");
+  const showSalesGroup = showSalesRead || showReports || can("process_return") || !!user?.shop_emi_enabled;
 
   return (
     <>
@@ -93,17 +94,21 @@ export default function Nav({
         </NavGroup>
       )}
 
+      {showSalesGroup && (
       <NavGroup id="sales" icon="bi-receipt" label="Sales" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
         {/* Invoices + Selling details read /sales/sales/ → gate by view_sales. */}
         {showSalesRead && <Item href="/app/sales" icon="bi-receipt-cutoff" label="Invoices" />}
-        <Item href="/app/sales/returns" icon="bi-arrow-return-left" label="Returns" />
-        {useAuth().user?.shop_emi_enabled && (
+        {/* Returns is a scan→process-return workflow → gate by process_return
+            (return history itself is visible on a sale's detail via view_sales). */}
+        {(isOwner || can("process_return")) && <Item href="/app/sales/returns" icon="bi-arrow-return-left" label="Returns" />}
+        {user?.shop_emi_enabled && (
           <Item href="/app/emi" icon="bi-calendar-check" label="EMI Management" />
         )}
         {/* Sold products is an analytics report → view_reports. */}
         {showReports && <Item href="/app/sales/products" icon="bi-list-check" label="Sold products" />}
         {showSalesRead && <Item href="/app/sales/details" icon="bi-card-list" label="Selling details" />}
       </NavGroup>
+      )}
 
       {showCustomers && (
         <NavGroup id="customers" icon="bi-people" label="Customers" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
