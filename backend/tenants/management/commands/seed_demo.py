@@ -169,6 +169,7 @@ class Command(BaseCommand):
             return
 
         random.seed(7)
+        from catalog.models import ProductUnit
         from crm.models import Customer
         from inventory.services import apply_movement
         from sales.services import create_sale
@@ -179,19 +180,30 @@ class Command(BaseCommand):
         cat_names = sorted({p[1] for p in PRODUCTS})
         cats = {n: Category.all_objects.create(shop_id=shop.id, name=n) for n in cat_names}
 
-        # Products + opening stock
+        # Products + serialized in-stock units. Each product gets individual
+        # units (barcode + warranty), exactly like the real software — so POS
+        # shows the "Select Units to Sell" modal when a product is clicked.
         prods = []
-        for i, (name, cat, cost, price, warranty, stock) in enumerate(PRODUCTS, start=1):
+        stock_left = {}  # product_id -> units still in stock (caps seeded sales)
+        for i, (name, cat, cost, price, warranty, _stock) in enumerate(PRODUCTS, start=1):
             p = Product.all_objects.create(
                 shop_id=shop.id, name=name, category=cats[cat],
                 barcode=f"{prefix}{100000 + i}", sku=f"SKU-{1000 + i}",
                 cost_price=Decimal(cost), selling_price=Decimal(price),
                 warranty_months=warranty, track_inventory=True,
             )
-            # Keep every product generously stocked so the ~200 seeded sales
-            # never run one out (a stock error would roll back the whole seed).
-            apply_movement(product=p, movement_type="opening", quantity=Decimal(max(stock, 400)),
+            n_units = random.randint(50, 90)
+            apply_movement(product=p, movement_type="opening", quantity=Decimal(n_units),
                            unit_cost=Decimal(cost), shop=shop, created_by=owner)
+            ProductUnit.all_objects.bulk_create([
+                ProductUnit(
+                    shop_id=shop.id, product=p, barcode=f"{prefix}U{i:02d}{u:04d}",
+                    cost_price=Decimal(cost), selling_price=Decimal(price),
+                    warranty_months=(warranty or None), status=ProductUnit.Status.IN_STOCK,
+                )
+                for u in range(1, n_units + 1)
+            ])
+            stock_left[p.id] = n_units
             prods.append(p)
 
         # Customers
@@ -222,9 +234,22 @@ class Command(BaseCommand):
         methods = ["cash", "cash", "bkash", "card", "nagad"]
         n_sales = 0
         for d in range(DAYS, -1, -1):
-            for _ in range(random.randint(1, 4)):
-                picks = random.sample(prods, random.randint(1, 3))
-                items = [{"product": p, "quantity": Decimal(random.randint(1, 3)), "unit_price": p.selling_price} for p in picks]
+            for _ in range(random.randint(1, 3)):
+                # Only sell products that still have units, and never more than
+                # remain — so create_sale can't hit an out-of-stock error.
+                available = [p for p in prods if stock_left[p.id] >= 1]
+                if not available:
+                    continue
+                picks = random.sample(available, min(random.randint(1, 3), len(available)))
+                items = []
+                for p in picks:
+                    q = min(random.randint(1, 2), stock_left[p.id])
+                    if q <= 0:
+                        continue
+                    items.append({"product": p, "quantity": Decimal(q), "unit_price": p.selling_price})
+                    stock_left[p.id] -= q
+                if not items:
+                    continue
                 total = sum(i["quantity"] * i["unit_price"] for i in items)
                 ratio = random.choice([Decimal("1"), Decimal("1"), Decimal("1"), Decimal("0.5"), Decimal("0")])
                 amount = (total * ratio).quantize(Decimal("1"))
