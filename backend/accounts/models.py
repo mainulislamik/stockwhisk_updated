@@ -171,9 +171,10 @@ class PendingRegistration(TimeStampedModel):
     phone = models.CharField(max_length=30, blank=True)
     business_type = models.CharField(max_length=20, default="general")
     address = models.TextField(blank=True)
+    referral_code = models.CharField(max_length=20, blank=True, default="")
     otp = models.CharField(max_length=6)
     expires_at = models.DateTimeField()
-    
+
     def __str__(self):
         return f"{self.email} ({self.otp})"
 

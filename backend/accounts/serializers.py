@@ -17,6 +17,7 @@ class ShopRegistrationSerializer(serializers.Serializer):
     )
     phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
     address = serializers.CharField(max_length=500, required=False, allow_blank=True)
+    referral_code = serializers.CharField(max_length=20, required=False, allow_blank=True)
 
     def validate_owner_email(self, value):
         if User.objects.filter(email__iexact=value).exists():

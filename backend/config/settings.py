@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     # Phase 3 apps
     "service",
     "public_api",
+    "resellers",
     # Server-rendered frontend
     "web",
     # Super-admin bulk data import pipeline

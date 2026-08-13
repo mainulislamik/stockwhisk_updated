@@ -150,6 +150,15 @@ class Shop(TimeStampedModel):
     # Public read-only demo shop. Users of a demo shop can browse everything but
     # every write (POST/PUT/PATCH/DELETE) is blocked by DemoReadOnlyMiddleware.
     is_demo = models.BooleanField(default=False)
+
+    # Reseller/partner attribution (via referral code at registration). Nullable —
+    # most shops have no reseller. SET_NULL so removing a reseller never deletes a
+    # shop. Only admins may change this; reseller users can never touch it.
+    reseller = models.ForeignKey(
+        "resellers.ResellerProfile", on_delete=models.SET_NULL,
+        null=True, blank=True, related_name="shops",
+    )
+    reseller_attributed_at = models.DateTimeField(null=True, blank=True)
     # When the shop was last suspended (is_active flipped to False). Used to
     # enforce a cool-off before a shop can be permanently deleted.
     suspended_at = models.DateTimeField(null=True, blank=True)

@@ -18,6 +18,7 @@ TRIAL_DAYS = 14
 def register_shop(
     *, name, owner_email, owner_password, owner_name="",
     business_type=Shop.BusinessType.GENERAL, phone="", address="", plan=None,
+    reseller=None,
 ):
     """
     Provision a new tenant:
@@ -48,6 +49,8 @@ def register_shop(
         address=address,
         plan=plan,
         trial_ends_at=now + timedelta(days=trial_days),
+        reseller=reseller if reseller is not None else None,
+        reseller_attributed_at=now if reseller is not None else None,
     )
 
     Branch.objects.create(shop=shop, name="Main", is_main=True)

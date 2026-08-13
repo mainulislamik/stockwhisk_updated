@@ -46,6 +46,7 @@ class InitiateRegistrationView(APIView):
                 "phone": data.get("phone", ""),
                 "business_type": data.get("business_type", "general"),
                 "address": data.get("address", ""),
+                "referral_code": (data.get("referral_code", "") or "").strip().upper(),
                 "otp": otp,
                 "expires_at": timezone.now() + timedelta(minutes=3)
             }
@@ -118,6 +119,13 @@ class VerifyOTPRegistrationView(APIView):
         if pending.expires_at < timezone.now():
             return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
             
+        # Resolve referral attribution (only ACTIVE resellers; invalid/inactive
+        # codes are silently ignored so registration never fails on them).
+        reseller = None
+        if pending.referral_code:
+            from resellers.services import resolve_active_reseller
+            reseller = resolve_active_reseller(pending.referral_code)
+
         # All good! Create the actual shop and owner
         shop, owner = register_shop(
             name=pending.shop_name,
@@ -127,6 +135,7 @@ class VerifyOTPRegistrationView(APIView):
             business_type=pending.business_type,
             phone=pending.phone,
             address=pending.address,
+            reseller=reseller,
         )
         
         # Overwrite password with the hashed one from pending (to avoid storing plain text in pending)
