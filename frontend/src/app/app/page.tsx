@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
+import { getLandingPath } from "@/lib/landing";
 import { Card, ErrorState, Spinner, money } from "@/components/ui";
 
 type Summary = {
@@ -109,7 +111,9 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
 }
 
 export default function DashboardPage() {
-  const { can, isOwner } = useAuth();
+  const router = useRouter();
+  const { user, loading: authLoading, can, isOwner } = useAuth();
+  const canDashboard = isOwner || can("view_reports");
   const canProfit = isOwner || can("view_profit");
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState("");
@@ -118,7 +122,17 @@ export default function DashboardPage() {
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInst = useRef<any>(null);
 
+  // The dashboard is protected server-side by `view_reports`. If a user without
+  // it lands here directly, send them to a page they can actually use instead of
+  // showing a 403 (backend protection stays intact — this only steers the UI).
   useEffect(() => {
+    if (!authLoading && user && !canDashboard) {
+      router.replace(getLandingPath({ isOwner, can }));
+    }
+  }, [authLoading, user, canDashboard, isOwner, can, router]);
+
+  useEffect(() => {
+    if (!canDashboard) { setLoading(false); return; }  // skip the 403-ing call
     (async () => {
       try {
         const d = await api<Summary>("/analytics/dashboard/", { params: { days: 30 } });
@@ -129,7 +143,7 @@ export default function DashboardPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [canDashboard]);
 
   useEffect(() => {
     api<SubStatus>("/billing/status/").then(setSub).catch(() => {});
@@ -159,6 +173,9 @@ export default function DashboardPage() {
     return () => chartInst.current?.destroy();
   }, [data]);
 
+  // Users without dashboard access are being redirected (effect above); show a
+  // spinner meanwhile rather than the dashboard shell or a 403.
+  if (!canDashboard) return <Spinner label="Redirecting…" />;
   if (loading) return <Spinner label="Loading dashboard…" />;
   if (error) return <ErrorState error={error} />;
   if (!data) return null;

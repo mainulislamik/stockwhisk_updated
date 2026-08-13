@@ -11,6 +11,7 @@ import MarketingNav from '@/components/MarketingNav';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import LockIcon from '@mui/icons-material/Lock';
 import { useBranding } from '@/lib/branding';
+import { getLandingPath } from '@/lib/landing';
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -27,9 +28,16 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await login(email, password);
-      // Platform staff land on the admin dashboard; shop users on the app.
+      // Platform staff land on the admin dashboard.
       const me = await api<{ is_staff: boolean }>("/auth/me/").catch(() => null);
-      router.push(me?.is_staff ? "/platform" : "/app");
+      if (me?.is_staff) { router.push("/platform"); return; }
+      // Shop users: resolve the first page their permissions actually allow, so
+      // roles without `view_reports` don't get dropped on the protected dashboard.
+      const p = await api<{ role: string; permissions: string[] }>("/auth/my-permissions/")
+        .catch(() => ({ role: "", permissions: [] as string[] }));
+      const isOwner = p.role === "owner";
+      const perms = new Set(p.permissions || []);
+      router.push(getLandingPath({ isOwner, can: (c) => isOwner || perms.has(c) }));
     } catch (err: any) {
       setError(err?.data?.detail || "No active account found with the given credentials.");
       setBusy(false);

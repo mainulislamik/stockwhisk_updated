@@ -66,7 +66,7 @@ export default function Nav({
 
   return (
     <>
-      <Item href="/app" icon="bi-speedometer2" label="Dashboard" />
+      {(isOwner || can("view_reports")) && <Item href="/app" icon="bi-speedometer2" label="Dashboard" />}
       <Item href="/app/pos" icon="bi-cart3" label="POS" />
 
       <NavGroup id="products" icon="bi-box-seam" label="Products" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
