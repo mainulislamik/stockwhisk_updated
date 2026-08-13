@@ -16,6 +16,7 @@ PERMISSION_CATALOG = [
     ("view_profit", "View profit figures", "reports"),
     ("view_reports", "View reports", "reports"),
     ("manage_expenses", "Manage expenses", "accounting"),
+    ("view_products", "View/browse products (POS & lists)", "catalog"),
     ("manage_products", "Create/edit products", "catalog"),
     ("manage_inventory", "Adjust & transfer stock", "inventory"),
     ("view_inventory", "View stock levels", "inventory"),
@@ -32,16 +33,16 @@ PERMISSION_CATALOG = [
 DEFAULT_ROLE_PERMISSIONS = {
     RoleType.MANAGER: [
         "manage_users", "manage_settings", "view_sales", "view_profit", "view_reports",
-        "manage_products", "manage_inventory", "view_inventory", "create_sale",
+        "view_products", "manage_products", "manage_inventory", "view_inventory", "create_sale",
         "delete_sale", "process_return", "manage_purchasing", "manage_customers",
         "manage_accounting", "manage_expenses", "manage_service", "view_service",
     ],
     RoleType.CASHIER: [
         "view_sales", "create_sale", "process_return", "view_inventory", "manage_customers",
-        "view_service",
+        "view_service", "view_products",
     ],
     RoleType.INVENTORY_MANAGER: [
-        "manage_products", "manage_inventory", "view_inventory",
+        "view_products", "manage_products", "manage_inventory", "view_inventory",
         "manage_purchasing", "view_reports",
     ],
     RoleType.ACCOUNTANT: [

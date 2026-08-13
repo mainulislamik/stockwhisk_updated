@@ -92,7 +92,10 @@ from .services import ProductService
 
 class ProductViewSet(TenantScopedViewSet):
     serializer_class = ProductSerializer
-    required_perm = "manage_products"
+    # Browsing/searching/selecting products (POS grid, product lists) only needs
+    # read access; creating/editing/deleting still needs manage_products.
+    required_perm = "view_products"
+    required_write_perm = "manage_products"
 
     def get_queryset(self):
         params = self.request.query_params

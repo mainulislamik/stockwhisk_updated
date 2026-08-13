@@ -49,7 +49,7 @@ class BarcodeLookupView(_POSBase):
         if len(matches) > 1:
             return Response({
                 "multiple": True,
-                "products": ProductSerializer(matches, many=True).data,
+                "products": ProductSerializer(matches, many=True, context={"request": request}).data,
             })
 
         product = matches[0] if matches else None
@@ -65,9 +65,9 @@ class BarcodeLookupView(_POSBase):
         if product is None:
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
-        data = ProductSerializer(product).data
+        data = ProductSerializer(product, context={"request": request}).data
         if scanned_unit:
-            data["scanned_unit"] = ProductUnitSerializer(scanned_unit).data
+            data["scanned_unit"] = ProductUnitSerializer(scanned_unit, context={"request": request}).data
 
         return Response(data)
 

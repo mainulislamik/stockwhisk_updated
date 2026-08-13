@@ -2,6 +2,37 @@ from rest_framework import serializers
 
 from .models import Brand, Category, Product, ProductVariation, Unit, ProductUnit
 
+# Permissions that grant sight of internal cost/margin figures. A pure POS
+# reader (view_products only, e.g. a Cashier) sees none of these.
+COST_VIEW_PERMS = ("manage_products", "view_profit", "manage_purchasing")
+
+
+def _can_view_cost(context) -> bool:
+    request = context.get("request") if context else None
+    user = getattr(request, "user", None)
+    # Only interactive RBAC users (Cashier, Manager, …) get cost-filtered. API-key
+    # / anonymous / service principals have no `has_perm_code` and keep the legacy
+    # behaviour (cost visible) — so the public API and internal callers are unchanged.
+    if user is None or not hasattr(user, "has_perm_code"):
+        return True
+    if not getattr(user, "is_authenticated", False):
+        return True
+    return any(user.has_perm_code(c) for c in COST_VIEW_PERMS)
+
+
+class HideCostMixin:
+    """Strips internal cost fields from the output for users who lack a
+    cost-viewing permission. Only affects reads — write validation is untouched."""
+
+    COST_FIELDS = ("cost_price", "effective_cost_price")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if not _can_view_cost(self.context):
+            for field in self.COST_FIELDS:
+                data.pop(field, None)
+        return data
+
 
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -21,7 +52,7 @@ class UnitSerializer(serializers.ModelSerializer):
         fields = ["id", "name", "short_code"]
 
 
-class ProductVariationSerializer(serializers.ModelSerializer):
+class ProductVariationSerializer(HideCostMixin, serializers.ModelSerializer):
     class Meta:
         model = ProductVariation
         fields = [
@@ -31,7 +62,7 @@ class ProductVariationSerializer(serializers.ModelSerializer):
         read_only_fields = ["current_stock"]
 
 
-class ProductSerializer(serializers.ModelSerializer):
+class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
     is_low_stock = serializers.BooleanField(read_only=True)
     units = serializers.SerializerMethodField()
@@ -63,9 +94,11 @@ class ProductSerializer(serializers.ModelSerializer):
         else:
             units = obj.units.filter(status=ProductUnit.Status.IN_STOCK)
             
-        return ProductUnitSerializer(units, many=True).data
+        # Pass context so the nested serializer can apply the same cost-hiding.
+        return ProductUnitSerializer(units, many=True, context=self.context).data
 
-class ProductUnitSerializer(serializers.ModelSerializer):
+
+class ProductUnitSerializer(HideCostMixin, serializers.ModelSerializer):
     effective_cost_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     effective_selling_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)
     effective_warranty_months = serializers.IntegerField(read_only=True)

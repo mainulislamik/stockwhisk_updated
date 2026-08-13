@@ -1,5 +1,5 @@
 """DRF permission classes for tenant membership and RBAC."""
-from rest_framework.permissions import BasePermission
+from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsTenantMember(BasePermission):
@@ -42,19 +42,41 @@ def log_permission_denied(request, code, view_name=""):
 
 class HasPermCode(BasePermission):
     """
-    Checks a feature-level RBAC code declared on the view as
-    ``required_perm``. Owners/platform staff pass automatically (handled in
-    ``User.has_perm_code``). Denials of sensitive permissions are audited.
+    Checks a feature-level RBAC code declared on the view as ``required_perm``.
+
+    Read/write split (optional): a view may also declare ``required_write_perm``.
+    When it does, safe methods (GET/HEAD/OPTIONS) require the *read* code
+    (``required_perm``) OR the write code — so a manage-level permission always
+    implies read — while unsafe methods (POST/PUT/PATCH/DELETE) require the
+    *write* code. Views that declare only ``required_perm`` behave exactly as
+    before (that code gates every method).
+
+    Owners/platform staff pass automatically (handled in ``User.has_perm_code``).
+    Denials of sensitive permissions are audited.
     """
 
     def has_permission(self, request, view):
-        code = getattr(view, "required_perm", None)
-        if code is None:
+        read_code = getattr(view, "required_perm", None)
+        write_code = getattr(view, "required_write_perm", None)
+
+        # No RBAC declared → allow (other permission classes still apply).
+        if read_code is None and write_code is None:
             return True
+
         user = request.user
         if not (user and user.is_authenticated):
             return False
-        allowed = user.has_perm_code(code)
-        if not allowed and (code in SENSITIVE_PERMS or getattr(view, "audit_denials", False)):
-            log_permission_denied(request, code, view.__class__.__name__)
+
+        if request.method in SAFE_METHODS:
+            # Reading: any of the declared codes is sufficient (manage ⇒ view).
+            codes = [c for c in (read_code, write_code) if c]
+            allowed = any(user.has_perm_code(c) for c in codes)
+            denied_code = read_code or write_code
+        else:
+            # Writing: require the write code (falls back to the single code).
+            denied_code = write_code or read_code
+            allowed = user.has_perm_code(denied_code)
+
+        if not allowed and (denied_code in SENSITIVE_PERMS or getattr(view, "audit_denials", False)):
+            log_permission_denied(request, denied_code, view.__class__.__name__)
         return allowed
