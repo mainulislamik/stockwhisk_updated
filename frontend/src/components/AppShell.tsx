@@ -90,8 +90,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="d-flex flex-column gap-3 p-3 border-bottom" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
             {!collapsed && (branding.logo
-              ? <span style={{ background: "#fff", borderRadius: 8, padding: "3px 7px", display: "inline-flex" }}>
-                  <img src={branding.logo} alt="Logo" style={{ height: 28, maxWidth: 140, objectFit: "contain", display: "block" }} />
+              ? <span style={{ background: "#fff", borderRadius: 10, padding: "5px 10px", display: "inline-flex" }}>
+                  <img src={branding.logo} alt="Logo" style={{ height: 44, maxWidth: 170, objectFit: "contain", display: "block" }} />
                 </span>
               : <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>)}
             <button
@@ -163,8 +163,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         <div className="offcanvas-header border-bottom flex-column align-items-stretch gap-3" style={{ borderColor: "var(--line)" }}>
           <div className="d-flex align-items-center justify-content-between">
             {branding.logo
-              ? <span style={{ background: "#fff", borderRadius: 8, padding: "3px 7px", display: "inline-flex" }}>
-                  <img src={branding.logo} alt="Logo" style={{ height: 28, maxWidth: 140, objectFit: "contain", display: "block" }} />
+              ? <span style={{ background: "#fff", borderRadius: 10, padding: "5px 10px", display: "inline-flex" }}>
+                  <img src={branding.logo} alt="Logo" style={{ height: 44, maxWidth: 170, objectFit: "contain", display: "block" }} />
                 </span>
               : <div className="fs-5 fw-bold brand-title lh-1" style={{ color: "var(--text-main)" }}>StockWhisk</div>}
             <button type="button" className="btn-close p-0" data-bs-dismiss="offcanvas" aria-label="Close"></button>
