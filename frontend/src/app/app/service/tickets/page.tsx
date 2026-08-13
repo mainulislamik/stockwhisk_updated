@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
+import { useState } from "react";
+import { api, useApi, useApiAll, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
-import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
 type Ticket = {
@@ -33,29 +33,19 @@ const statusBadge: Record<string, string> = {
 export default function TicketsPage() {
   const { can, isOwner } = useAuth();
   const canManage = isOwner || can("manage_service");
-  const [rows, setRows] = useState<Ticket[]>([]);
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ customer: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    setLoading(true);
-    try {
-      const [t, c] = await Promise.all([fetchAll<Ticket>("/service/tickets/"), fetchAll<Customer>("/crm/customers/").catch(() => [])]);
-      setRows(t);
-      setCustomers(c);
-    } catch (e: any) {
-      setError(e?.message || "Failed to load tickets");
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    load();
-  }, []);
+  const PAGE_SIZE = 20;
+  // Only the current page of tickets is fetched (constant-size request).
+  const { data, loading, error, mutate } = useApi<Paginated<Ticket>>("/service/tickets/", { page, page_size: PAGE_SIZE });
+  const rows = data?.results || [];
+  const total = data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  // Customer dropdown only loads when the add form is opened.
+  const { data: customers } = useApiAll<Customer>(showAdd ? "/crm/customers/" : null);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -73,15 +63,14 @@ export default function TicketsPage() {
       });
       setForm({ customer: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
       setShowAdd(false);
-      await load();
+      setPage(1);
+      mutate();
     } catch (e: any) {
       toast.error(e?.message || "Could not create ticket");
     } finally {
       setSaving(false);
     }
   }
-
-  const { paged, page, setPage, totalPages, total } = usePagination(rows);
 
   if (loading) return <Spinner label="Loading tickets…" />;
   if (error) return <ErrorState error={error} />;
@@ -104,7 +93,7 @@ export default function TicketsPage() {
                 <label className="small">Customer</label>
                 <select className="form-select form-select-sm" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
                   <option value="">Walk-in</option>
-                  {customers.map((c) => (
+                  {(customers || []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
                     </option>
@@ -159,7 +148,7 @@ export default function TicketsPage() {
                   </td>
                 </tr>
               ) : (
-                paged.map((t) => (
+                rows.map((t) => (
                   <tr key={t.id} className={t.is_overdue ? "table-danger" : ""}>
                     <td className="fw-medium">{t.ticket_no || `#${t.id}`}</td>
                     <td>{t.device_description}</td>

@@ -36,6 +36,14 @@ class CustomerViewSet(TenantScopedViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return super().create(request, *args, **kwargs)
 
+    @action(detail=False, methods=["get"], url_path="dues-total")
+    def dues_total(self, request):
+        """Sum of all outstanding dues (for the Dues page header, independent of
+        which page is shown)."""
+        from django.db.models import Sum
+        total = Customer.objects.filter(due_balance__gt=0).aggregate(t=Sum("due_balance"))["t"] or 0
+        return Response({"total": total})
+
     @action(detail=False, methods=["get"])
     def inactive(self, request):
         """Customers with no purchase in N (default 60) days."""

@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
-import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import { useState } from "react";
+import { api, useApi, Paginated } from "@/lib/api";
+import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import Swal from "sweetalert2";
 import { showSuccess, showError } from "@/lib/dialogs";
 
@@ -14,24 +14,19 @@ type Customer = {
   last_purchase_at: string | null;
 };
 
+const PAGE_SIZE = 20;
+
 export default function DuesPage() {
-  const [rows, setRows] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
+  // Only the current page of dues is fetched; the total is a separate O(1) sum.
+  const { data, loading, error, mutate } = useApi<Paginated<Customer>>("/crm/customers/", { with_due: 1, page, page_size: PAGE_SIZE });
+  const { data: totalData, mutate: mutateTotal } = useApi<{ total: string }>("/crm/customers/dues-total/");
+  const rows = data?.results || [];
+  const rowCount = data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
+  const total = Number(totalData?.total || 0);
 
-  const loadDues = async () => {
-    try {
-      setRows(await fetchAll<Customer>("/crm/customers/", { with_due: 1 }));
-    } catch (e: any) {
-      setError(e?.message || "Failed to load dues");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    loadDues();
-  }, []);
+  const loadDues = async () => { await mutate(); await mutateTotal(); };
 
   const receivePayment = async (customer: Customer) => {
     const { value: formValues, isConfirmed } = await Swal.fire({
@@ -89,12 +84,8 @@ export default function DuesPage() {
     }
   };
 
-  const { paged, page, setPage, totalPages, total: rowCount } = usePagination(rows);
-
   if (loading) return <Spinner label="Loading dues…" />;
   if (error) return <ErrorState error={error} />;
-
-  const total = rows.reduce((s, c) => s + Number(c.due_balance || 0), 0);
 
   return (
     <div className="vstack gap-3">
@@ -125,7 +116,7 @@ export default function DuesPage() {
                   </td>
                 </tr>
               ) : (
-                paged.map((c) => (
+                rows.map((c) => (
                   <tr key={c.id}>
                     <td className="fw-medium">{c.name}</td>
                     <td className="text-secondary">{c.phone || "—"}</td>

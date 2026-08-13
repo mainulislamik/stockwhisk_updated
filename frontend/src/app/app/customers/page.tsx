@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
+import { api, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
-import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
 type Customer = {
@@ -22,33 +22,30 @@ type Customer = {
 export default function CustomersPage() {
   const { can, isOwner } = useAuth();
   const canManage = isOwner || can("manage_customers");
-  const [rows, setRows] = useState<Customer[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ name: "", phone: "", email: "", address: "" });
-  
+
   // Payment State
   const [paying, setPaying] = useState<number | null>(null);
   const [payForm, setPayForm] = useState({ type: "payment", amount: "", method: "cash", note: "" });
 
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    setLoading(true);
-    try {
-      setRows(await fetchAll<Customer>("/crm/customers/"));
-    } catch (e: any) {
-      setError(e?.message || "Failed to load customers");
-    } finally {
-      setLoading(false);
-    }
-  }
-  
+  // Debounce the filter into the server `search` param and reset to page 1.
   useEffect(() => {
-    load();
-  }, []);
+    const t = setTimeout(() => { setSearch(filter.trim()); setPage(1); }, 350);
+    return () => clearTimeout(t);
+  }, [filter]);
+
+  const PAGE_SIZE = 20;
+  // Server-side: only the current page is fetched (constant-size request).
+  const { data, loading, error, mutate } = useApi<Paginated<Customer>>("/crm/customers/", { page, page_size: PAGE_SIZE, search });
+  const rows = data?.results || [];
+  const total = data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -57,7 +54,7 @@ export default function CustomersPage() {
       await api("/crm/customers/", { method: "POST", body: form });
       setForm({ name: "", phone: "", email: "", address: "" });
       setShowAdd(false);
-      await load();
+      mutate();
     } catch (e: any) {
       toast.error(e?.message || "Could not save customer");
     } finally {
@@ -69,27 +66,18 @@ export default function CustomersPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      // If type is settlement, override method
       const method = payForm.type === "settlement" ? "settlement" : payForm.method;
-      
-      const updatedCustomer = await api<Customer>(`/crm/customers/${c.id}/pay-due/`, {
+      await api<Customer>(`/crm/customers/${c.id}/pay-due/`, {
         method: "POST",
-        body: {
-          amount: payForm.amount,
-          method: method,
-          note: payForm.note
-        }
+        body: { amount: payForm.amount, method, note: payForm.note },
       });
-      
       toast.success(payForm.type === "settlement" ? "Settlement recorded successfully!" : "Payment received successfully!");
       setPaying(null);
-      
-      // Update row in state
-      setRows(r => r.map(x => x.id === c.id ? updatedCustomer : x));
-    } catch (e: any) { 
-      toast.error(e?.message || "Could not process payment"); 
-    } finally { 
-      setSaving(false); 
+      mutate();
+    } catch (e: any) {
+      toast.error(e?.message || "Could not process payment");
+    } finally {
+      setSaving(false);
     }
   }
 
@@ -98,12 +86,6 @@ export default function CustomersPage() {
     setPayForm({ type: "payment", amount: c.due_balance, method: "cash", note: "" });
     setShowAdd(false);
   }
-
-  const shown = rows.filter((c) => {
-    const q = filter.trim().toLowerCase();
-    return !q || `${c.name} ${c.phone} ${c.email}`.toLowerCase().includes(q);
-  });
-  const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
 
   if (loading) return <Spinner label="Loading customers…" />;
   if (error) return <ErrorState error={error} />;
@@ -163,7 +145,7 @@ export default function CustomersPage() {
               </tr>
             </thead>
             <tbody>
-              {shown.length === 0 ? (
+              {rows.length === 0 ? (
                 <tr data-empty="">
                   <td colSpan={canManage ? 6 : 5} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>👥</div>
@@ -171,7 +153,7 @@ export default function CustomersPage() {
                   </td>
                 </tr>
               ) : (
-                paged.map((c) => (
+                rows.map((c) => (
                   <React.Fragment key={c.id}>
                     <tr>
                       <td className="fw-medium">{c.name}</td>

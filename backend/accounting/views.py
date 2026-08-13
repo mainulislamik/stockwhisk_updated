@@ -1,4 +1,5 @@
 from django.utils.dateparse import parse_datetime
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -24,7 +25,18 @@ class ExpenseViewSet(TenantScopedViewSet):
     required_perm = "manage_expenses"
 
     def get_queryset(self):
-        return Expense.objects.select_related("category")
+        qs = Expense.objects.select_related("category")
+        if search := self.request.query_params.get("search"):
+            from django.db.models import Q
+            qs = qs.filter(Q(note__icontains=search) | Q(category__name__icontains=search) | Q(payment_method__icontains=search))
+        return qs
+
+    @action(detail=False, methods=["get"])
+    def total(self, request):
+        """Sum of all expenses (page-independent header figure)."""
+        from django.db.models import Sum
+        total = self.get_queryset().aggregate(t=Sum("amount"))["t"] or 0
+        return Response({"total": total})
 
     def perform_create(self, serializer):
         # Route through the service so the cash ledger stays in sync.

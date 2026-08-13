@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
+import { useApi, Paginated } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, fmtDate, usePagination } from "@/components/ui";
 
 type Warranty = {
@@ -34,44 +34,36 @@ const statusBadge: Record<string, string> = {
 
 export default function WarrantiesPage() {
   const [activeTab, setActiveTab] = useState<"products" | "issued">("products");
-  const [warranties, setWarranties] = useState<Warranty[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [search, setSearch] = useState("");
+  const [pageW, setPageW] = useState(1);
 
+  // Debounce the filter into the server `search` param (issued tab) + reset page.
   useEffect(() => {
-    (async () => {
-      try {
-        const [wList, groups] = await Promise.all([
-          fetchAll<Warranty>("/service/warranties/"),
-          api<WarrantyGroup[]>("/catalog/product-units/warranty-groups/").catch(() => []),
-        ]);
-        setWarranties(wList);
-        setProducts((groups || []).map((g) => ({
-          id: g.product_id, name: g.product_name, sku: g.sku,
-          warranty_months: g.warranty_months, count: g.count,
-        })));
-      } catch (e: any) {
-        setError(e?.message || "Failed to load data");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    const t = setTimeout(() => { setSearch(filter.trim()); setPageW(1); }, 350);
+    return () => clearTimeout(t);
+  }, [filter]);
 
-  const shownWarranties = warranties.filter((w) => {
-    const q = filter.trim().toLowerCase();
-    return !q || `${w.product_name} ${w.serial_no} ${w.customer_name || ""}`.toLowerCase().includes(q);
-  });
-  const { paged: pagedWarranties, page: pageW, setPage: setPageW, totalPages: totalPagesW, total: totalW } = usePagination(shownWarranties, [filter, activeTab]);
-
+  // Warrantied products: one aggregate call (bounded by distinct products).
+  const { data: groups, loading: loadingP, error: errorP } = useApi<WarrantyGroup[]>("/catalog/product-units/warranty-groups/");
+  const products: Product[] = (groups || []).map((g) => ({
+    id: g.product_id, name: g.product_name, sku: g.sku, warranty_months: g.warranty_months, count: g.count,
+  }));
   const shownProducts = products.filter((p) => {
     const q = filter.trim().toLowerCase();
     return !q || `${p.name} ${p.sku}`.toLowerCase().includes(q);
   });
   const { paged: pagedProducts, page: pageP, setPage: setPageP, totalPages: totalPagesP, total: totalP } = usePagination(shownProducts, [filter, activeTab]);
 
+  // Coverage records: server-side paginated (only the current page is fetched).
+  const PAGE_SIZE = 20;
+  const { data: wData, loading: loadingW, error: errorW } = useApi<Paginated<Warranty>>("/service/warranties/", { page: pageW, page_size: PAGE_SIZE, search });
+  const pagedWarranties = wData?.results || [];
+  const totalW = wData?.count || 0;
+  const totalPagesW = Math.max(1, Math.ceil(totalW / PAGE_SIZE));
+
+  const loading = activeTab === "products" ? loadingP : loadingW;
+  const error = activeTab === "products" ? errorP : errorW;
   if (loading) return <Spinner label="Loading warranty data…" />;
   if (error) return <ErrorState error={error} />;
 
@@ -150,7 +142,7 @@ export default function WarrantiesPage() {
                   ))
                 )
               ) : (
-                shownWarranties.length === 0 ? (
+                pagedWarranties.length === 0 ? (
                   <tr data-empty="">
                     <td colSpan={6} className="text-center text-secondary py-5">
                       <div className="display-4 mb-3">🛡️</div>

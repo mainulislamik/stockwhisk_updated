@@ -1,36 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
-import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import { useState } from "react";
+import { api, useApi, useApiAll, Paginated } from "@/lib/api";
+import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
 type Expense = { id: number; category: number | null; category_name: string | null; amount: string; spent_on: string; payment_method: string; note: string };
 type Cat = { id: number; name: string };
 
+const PAGE_SIZE = 20;
+
 export default function ExpensesPage() {
-  const [rows, setRows] = useState<Expense[]>([]);
-  const [cats, setCats] = useState<Cat[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  const [page, setPage] = useState(1);
   const [form, setForm] = useState({ category: "", amount: "", spent_on: new Date().toISOString().slice(0, 10), payment_method: "CASH", note: "" });
   const [saving, setSaving] = useState(false);
 
-  async function load() {
-    setLoading(true);
-    try {
-      const [e, c] = await Promise.all([fetchAll<Expense>("/accounting/expenses/"), fetchAll<Cat>("/accounting/expense-categories/").catch(() => [])]);
-      setRows(e);
-      setCats(c);
-    } catch (err: any) {
-      setError(err?.message || "Failed to load expenses");
-    } finally {
-      setLoading(false);
-    }
-  }
-  useEffect(() => {
-    load();
-  }, []);
+  // Only the current page is fetched; the total is a separate O(1) sum.
+  const { data, loading, error, mutate } = useApi<Paginated<Expense>>("/accounting/expenses/", { page, page_size: PAGE_SIZE });
+  const { data: totalData, mutate: mutateTotal } = useApi<{ total: string }>("/accounting/expenses/total/");
+  const { data: cats } = useApiAll<Cat>("/accounting/expense-categories/");
+  const rows = data?.results || [];
+  const rowCount = data?.count || 0;
+  const totalPages = Math.max(1, Math.ceil(rowCount / PAGE_SIZE));
+  const total = Number(totalData?.total || 0);
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
@@ -41,16 +33,15 @@ export default function ExpensesPage() {
         body: { category: form.category || null, amount: form.amount, spent_on: form.spent_on, payment_method: form.payment_method, note: form.note },
       });
       setForm({ category: "", amount: "", spent_on: new Date().toISOString().slice(0, 10), payment_method: "CASH", note: "" });
-      await load();
+      setPage(1);
+      mutate();
+      mutateTotal();
     } catch (err: any) {
       toast.error(err?.message || "Could not save expense");
     } finally {
       setSaving(false);
     }
   }
-
-  const total = rows.reduce((s, r) => s + Number(r.amount || 0), 0);
-  const { paged, page: pg, setPage, totalPages, total: rowCount } = usePagination(rows);
 
   if (loading) return <Spinner label="Loading expenses…" />;
   if (error) return <ErrorState error={error} />;
@@ -65,7 +56,7 @@ export default function ExpensesPage() {
               <label className="small">Category</label>
               <select className="form-select form-select-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
                 <option value="">— none —</option>
-                {cats.map((c) => (
+                {(cats || []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
@@ -126,7 +117,7 @@ export default function ExpensesPage() {
                   <td colSpan={5} className="text-center text-secondary py-5">No expenses recorded.</td>
                 </tr>
               ) : (
-                paged.map((r) => (
+                rows.map((r) => (
                   <tr key={r.id}>
                     <td className="text-secondary">{fmtDate(r.spent_on)}</td>
                     <td>{r.category_name || "—"}</td>
@@ -139,7 +130,7 @@ export default function ExpensesPage() {
             </tbody>
           </table>
         </div>
-        <Pagination page={pg} totalPages={totalPages} setPage={setPage} total={rowCount} />
+        <Pagination page={page} totalPages={totalPages} setPage={setPage} total={rowCount} />
       </div>
     </div>
   );

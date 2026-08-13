@@ -39,6 +39,12 @@ class WarrantyViewSet(TenantScopedViewSet):
         if self.request.query_params.get("include_expired") not in {"1", "true"}:
             qs = qs.filter(expiry_date__gte=timezone.localdate()).exclude(
                 status=Warranty.Status.VOID)
+        if search := self.request.query_params.get("search"):
+            qs = qs.filter(
+                Q(product__name__icontains=search) |
+                Q(serial_no__icontains=search) |
+                Q(customer__name__icontains=search)
+            )
         return qs
 
     @action(detail=False, methods=["get"])
