@@ -61,6 +61,7 @@ export default function Nav({
 
   const showPurchasing = isOwner || can("manage_purchasing");
   const showReports = isOwner || can("view_reports");
+  const showSalesRead = isOwner || can("view_sales");
   const showService = isOwner || can("manage_service") || can("view_service");
   const showFinance = isOwner || can("manage_expenses") || can("view_profit") || can("view_reports");
 
@@ -84,17 +85,15 @@ export default function Nav({
       </NavGroup>
 
       <NavGroup id="sales" icon="bi-receipt" label="Sales" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-        <Item href="/app/sales" icon="bi-receipt-cutoff" label="Invoices" />
+        {/* Invoices + Selling details read /sales/sales/ → gate by view_sales. */}
+        {showSalesRead && <Item href="/app/sales" icon="bi-receipt-cutoff" label="Invoices" />}
         <Item href="/app/sales/returns" icon="bi-arrow-return-left" label="Returns" />
         {useAuth().user?.shop_emi_enabled && (
           <Item href="/app/emi" icon="bi-calendar-check" label="EMI Management" />
         )}
-        {showReports && (
-          <>
-            <Item href="/app/sales/products" icon="bi-list-check" label="Sold products" />
-            <Item href="/app/sales/details" icon="bi-card-list" label="Selling details" />
-          </>
-        )}
+        {/* Sold products is an analytics report → view_reports. */}
+        {showReports && <Item href="/app/sales/products" icon="bi-list-check" label="Sold products" />}
+        {showSalesRead && <Item href="/app/sales/details" icon="bi-card-list" label="Selling details" />}
       </NavGroup>
 
       <NavGroup id="customers" icon="bi-people" label="Customers" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
