@@ -56,7 +56,9 @@ export default function MarketingNav() {
             sx={{ fontWeight: 800, color: M.text, textDecoration: "none", fontFamily: "Outfit, sans-serif",
                   display: "flex", alignItems: "center", gap: 1, letterSpacing: "-0.02em" }}>
             {branding.logo ? (
-              <Box component="img" src={branding.logo} alt="Logo" sx={{ height: 52, maxWidth: 240, objectFit: "contain" }} />
+              <Box sx={{ bgcolor: "#fff", borderRadius: "10px", px: 1, py: 0.5, display: "inline-flex", boxShadow: "0 1px 6px rgba(15,23,42,.12)" }}>
+                <Box component="img" src={branding.logo} alt="Logo" sx={{ height: 46, maxWidth: 220, objectFit: "contain", display: "block" }} />
+              </Box>
             ) : (
               <>
                 <Box component="span" sx={{

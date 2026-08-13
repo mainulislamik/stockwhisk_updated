@@ -53,7 +53,9 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
           {!collapsed && (
             <div className="text-truncate">
               {branding.logo
-                ? <img src={branding.logo} alt="Logo" style={{ height: 34, maxWidth: 150, objectFit: "contain" }} />
+                ? <span style={{ background: "#fff", borderRadius: 8, padding: "3px 8px", display: "inline-flex" }}>
+                    <img src={branding.logo} alt="Logo" style={{ height: 30, maxWidth: 140, objectFit: "contain", display: "block" }} />
+                  </span>
                 : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
               <div className="small text-secondary">Platform Admin</div>
             </div>
@@ -78,7 +80,9 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
         <div className="offcanvas-header border-bottom border-secondary border-opacity-25">
           <div>
             {branding.logo
-              ? <img src={branding.logo} alt="Logo" style={{ height: 34, maxWidth: 150, objectFit: "contain" }} />
+              ? <span style={{ background: "#fff", borderRadius: 8, padding: "3px 8px", display: "inline-flex" }}>
+                  <img src={branding.logo} alt="Logo" style={{ height: 30, maxWidth: 140, objectFit: "contain", display: "block" }} />
+                </span>
               : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
             <div className="small text-secondary">Platform Admin</div>
           </div>
