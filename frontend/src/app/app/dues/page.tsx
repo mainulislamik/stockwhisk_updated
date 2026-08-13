@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { api, useApi, Paginated } from "@/lib/api";
+import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import Swal from "sweetalert2";
 import { showSuccess, showError } from "@/lib/dialogs";
@@ -17,6 +18,8 @@ type Customer = {
 const PAGE_SIZE = 20;
 
 export default function DuesPage() {
+  const { isOwner, can } = useAuth();
+  const canCollect = isOwner || can("manage_customers");  // pay-due is a write
   const [page, setPage] = useState(1);
   // Only the current page of dues is fetched; the total is a separate O(1) sum.
   const { data, loading, error, mutate } = useApi<Paginated<Customer>>("/crm/customers/", { with_due: 1, page, page_size: PAGE_SIZE });
@@ -123,12 +126,14 @@ export default function DuesPage() {
                     <td className="text-secondary">{fmtDate(c.last_purchase_at)}</td>
                     <td className="text-end text-danger fw-semibold">{money(c.due_balance)}</td>
                     <td className="text-end">
-                      <button 
-                        className="btn btn-sm btn-outline-success fw-semibold rounded-pill px-3"
-                        onClick={() => receivePayment(c)}
-                      >
-                        Receive Payment
-                      </button>
+                      {canCollect && (
+                        <button
+                          className="btn btn-sm btn-outline-success fw-semibold rounded-pill px-3"
+                          onClick={() => receivePayment(c)}
+                        >
+                          Receive Payment
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))

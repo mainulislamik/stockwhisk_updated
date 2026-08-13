@@ -87,10 +87,15 @@ class ProductPermissionTests(APITestCase):
         r = self.api(self.manager).get(f"{PRODUCTS_URL}{self.product.id}/")
         self.assertIn("cost_price", r.data)
 
-    # ── User without any product permission: denied ─────────────────────────
-    def test_accountant_cannot_read_products(self):
+    # ── Accountant now has view_products (read) but not manage_products ──────
+    def test_accountant_can_read_products(self):
         r = self.api(self.accountant).get(PRODUCTS_URL)
-        self.assertEqual(r.status_code, 403)
+        self.assertEqual(r.status_code, 200)
+
+    def test_accountant_cannot_write_products(self):
+        c = self.api(self.accountant)
+        self.assertEqual(c.post(PRODUCTS_URL, {"name": "X", "selling_price": "1", "cost_price": "1"}).status_code, 403)
+        self.assertEqual(c.patch(f"{PRODUCTS_URL}{self.product.id}/", {"selling_price": "2"}).status_code, 403)
 
     # ── Owner: full access ──────────────────────────────────────────────────
     def test_owner_can_read_and_write(self):

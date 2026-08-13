@@ -24,6 +24,7 @@ PERMISSION_CATALOG = [
     ("delete_sale", "Delete/void sales", "sales"),
     ("process_return", "Process returns & exchanges", "sales"),
     ("manage_purchasing", "Manage purchase orders & suppliers", "purchasing"),
+    ("view_customers", "View customers & dues", "crm"),
     ("manage_customers", "Manage customers", "crm"),
     ("manage_accounting", "Manage income/expense entries", "accounting"),
     ("manage_service", "Manage warranties & service tickets", "service"),
@@ -48,6 +49,8 @@ DEFAULT_ROLE_PERMISSIONS = {
     RoleType.ACCOUNTANT: [
         "view_sales", "view_profit", "view_reports", "manage_accounting",
         "manage_expenses", "view_inventory",
+        # Read-only access for accounting workflows (no create/manage).
+        "view_products", "view_customers",
     ],
 }
 

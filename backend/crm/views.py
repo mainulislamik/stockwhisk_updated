@@ -12,7 +12,11 @@ from .serializers import CustomerSerializer
 
 class CustomerViewSet(TenantScopedViewSet):
     serializer_class = CustomerSerializer
-    required_perm = "manage_customers"
+    # Viewing customers, dues and balances only needs read access; creating/
+    # editing/deleting a customer and recording a due payment (pay-due) still
+    # need manage_customers.
+    required_perm = "view_customers"
+    required_write_perm = "manage_customers"
 
     def get_queryset(self):
         qs = Customer.objects.all()

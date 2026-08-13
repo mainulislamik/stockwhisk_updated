@@ -64,25 +64,34 @@ export default function Nav({
   const showSalesRead = isOwner || can("view_sales");
   const showService = isOwner || can("manage_service") || can("view_service");
   const showFinance = isOwner || can("manage_expenses") || can("view_profit") || can("view_reports");
+  // POS is sale creation; product browse/lookup is separate (view_products).
+  const showPOS = isOwner || can("create_sale");
+  const showProductsRead = isOwner || can("view_products");   // list / lookup / barcodes
+  const showProductMgmt = isOwner || can("manage_products");  // create / purchase products
+  const showInventory = isOwner || can("view_inventory");
+  const showProductsGroup = showProductsRead || showInventory || showProductMgmt || showPurchasing;
+  const showCustomers = isOwner || can("view_customers") || can("manage_customers");
 
   return (
     <>
       {(isOwner || can("view_reports")) && <Item href="/app" icon="bi-speedometer2" label="Dashboard" />}
-      <Item href="/app/pos" icon="bi-cart3" label="POS" />
+      {showPOS && <Item href="/app/pos" icon="bi-cart3" label="POS" />}
 
-      <NavGroup id="products" icon="bi-box-seam" label="Products" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-        <Item href="/app/products" icon="bi-list-ul" label="Product list" />
-        <Item href="/app/products/purchase" icon="bi-upc-scan" label="Purchase product" />
-        <Item href="/app/products/lookup" icon="bi-qr-code-scan" label="Item lookup" />
-        <Item href="/app/barcodes" icon="bi-upc" label="Barcodes" />
-        <Item href="/app/inventory" icon="bi-boxes" label="Inventory & stock" />
-        {showPurchasing && (
-          <>
-            <Item href="/app/suppliers" icon="bi-truck" label="Suppliers" />
-            <Item href="/app/purchases" icon="bi-box-arrow-in-down" label="Purchases" />
-          </>
-        )}
-      </NavGroup>
+      {showProductsGroup && (
+        <NavGroup id="products" icon="bi-box-seam" label="Products" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          {showProductsRead && <Item href="/app/products" icon="bi-list-ul" label="Product list" />}
+          {showProductMgmt && <Item href="/app/products/purchase" icon="bi-upc-scan" label="Purchase product" />}
+          {showProductsRead && <Item href="/app/products/lookup" icon="bi-qr-code-scan" label="Item lookup" />}
+          {showProductsRead && <Item href="/app/barcodes" icon="bi-upc" label="Barcodes" />}
+          {showInventory && <Item href="/app/inventory" icon="bi-boxes" label="Inventory & stock" />}
+          {showPurchasing && (
+            <>
+              <Item href="/app/suppliers" icon="bi-truck" label="Suppliers" />
+              <Item href="/app/purchases" icon="bi-box-arrow-in-down" label="Purchases" />
+            </>
+          )}
+        </NavGroup>
+      )}
 
       <NavGroup id="sales" icon="bi-receipt" label="Sales" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
         {/* Invoices + Selling details read /sales/sales/ → gate by view_sales. */}
@@ -96,10 +105,12 @@ export default function Nav({
         {showSalesRead && <Item href="/app/sales/details" icon="bi-card-list" label="Selling details" />}
       </NavGroup>
 
-      <NavGroup id="customers" icon="bi-people" label="Customers" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-        <Item href="/app/customers" icon="bi-person-lines-fill" label="Customer list" />
-        <Item href="/app/dues" icon="bi-cash-coin" label="Dues" />
-      </NavGroup>
+      {showCustomers && (
+        <NavGroup id="customers" icon="bi-people" label="Customers" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          <Item href="/app/customers" icon="bi-person-lines-fill" label="Customer list" />
+          <Item href="/app/dues" icon="bi-cash-coin" label="Dues" />
+        </NavGroup>
+      )}
 
       {showService && (
         <NavGroup id="service" icon="bi-tools" label="Service" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
