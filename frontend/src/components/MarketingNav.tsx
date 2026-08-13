@@ -37,6 +37,7 @@ export default function MarketingNav() {
     { href: "/", label: "Home" },
     { href: "/pricing", label: "Pricing" },
     { href: "/demo", label: "Live Demo" },
+    { href: "/reseller", label: "Reseller" },
     { href: "/blog", label: "Blog" },
     { href: "/contact", label: "Contact" },
   ];
