@@ -1,90 +1,127 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
-import { fetchAll } from "@/lib/api";
+import { useEffect, useMemo, useState } from "react";
+import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 
 type Item = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string };
 type Sale = { id: number; invoice_no: string; customer_name: string | null; sale_date: string; items: Item[] };
-type Row = { saleId: number; invoice: string; customer: string; date: string; item: Item };
+type Page = { count: number; next: string | null; previous: string | null; results: Sale[] };
+
+const PAGE_SIZE = 25;
 
 export default function SellingDetailsPage() {
-  const [rows, setRows] = useState<Row[]>([]);
+  const [data, setData] = useState<Page | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
+  const [search, setSearch] = useState("");
 
+  // Debounce the filter box into the server `search` param; reset to page 1.
   useEffect(() => {
-    (async () => {
-      try {
-        const sales = await fetchAll<Sale>("/sales/sales/");
-        const flat: Row[] = [];
-        sales.forEach((s) => {
-          (s.items || []).forEach((it) => {
-            flat.push({ saleId: s.id, invoice: s.invoice_no || `#${s.id}`, customer: s.customer_name || "Walk-in", date: s.sale_date, item: it });
-          });
-        });
-        setRows(flat);
-      } catch (e: any) {
-        setError(e?.message || "Failed to load selling details");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, []);
+    const t = setTimeout(() => { setSearch(filter.trim()); setPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [filter]);
 
-  const shown = rows.filter((r) => {
-    const q = filter.trim().toLowerCase();
-    return !q || `${r.invoice} ${r.customer} ${r.item.product_name}`.toLowerCase().includes(q);
-  });
+  // Fetch ONLY the current page (constant-size request, independent of total rows).
+  useEffect(() => {
+    let alive = true;
+    setLoading(true);
+    const qs = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
+    if (search) qs.set("search", search);
+    api<Page>(`/sales/sales/?${qs.toString()}`)
+      .then((d) => { if (alive) { setData(d); setError(""); } })
+      .catch((e: any) => { if (alive) setError(e?.message || "Failed to load selling details"); })
+      .finally(() => { if (alive) setLoading(false); });
+    return () => { alive = false; };
+  }, [page, search]);
 
-  if (loading) return <Spinner label="Loading selling details…" />;
-  if (error) return <ErrorState error={error} />;
+  // Flatten the current page's sales into one row per line item.
+  const rows = useMemo(() => {
+    const flat: { saleId: number; invoice: string; customer: string; date: string; item: Item }[] = [];
+    (data?.results || []).forEach((s) => {
+      (s.items || []).forEach((it) => {
+        flat.push({ saleId: s.id, invoice: s.invoice_no || `#${s.id}`, customer: s.customer_name || "Walk-in", date: s.sale_date, item: it });
+      });
+    });
+    return flat;
+  }, [data]);
+
+  const count = data?.count ?? 0;
+  const totalPages = Math.max(1, Math.ceil(count / PAGE_SIZE));
 
   return (
     <div className="vstack gap-3">
-      <input placeholder="Filter invoice/customer/product…" className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
-      <div className="card shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-striped table-sm align-middle mb-0">
-            <thead className="thead-2">
-              <tr>
-                <th>Invoice</th>
-                <th>Date</th>
-                <th>Customer</th>
-                <th>Product</th>
-                <th className="text-end">Qty</th>
-                <th className="text-end">Price</th>
-                <th className="text-end">Subtotal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.length === 0 ? (
-                <tr data-empty="">
-                  <td colSpan={7} className="text-center text-secondary py-5">No sales yet.</td>
+      <input
+        placeholder="Filter invoice/customer/product…"
+        className="form-control form-control-sm" style={{ maxWidth: "20rem" }}
+        value={filter} onChange={(e) => setFilter(e.target.value)}
+      />
+
+      {error ? (
+        <ErrorState error={error} />
+      ) : (
+        <div className="card shadow-sm">
+          <div className="table-responsive position-relative">
+            {loading && (
+              <div className="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center" style={{ background: "rgba(255,255,255,.5)", zIndex: 2 }}>
+                <Spinner label="Loading…" />
+              </div>
+            )}
+            <table className="table table-striped table-sm align-middle mb-0">
+              <thead className="thead-2">
+                <tr>
+                  <th>Invoice</th>
+                  <th>Date</th>
+                  <th>Customer</th>
+                  <th>Product</th>
+                  <th className="text-end">Qty</th>
+                  <th className="text-end">Price</th>
+                  <th className="text-end">Subtotal</th>
                 </tr>
-              ) : (
-                shown.map((r, i) => (
-                  <tr key={i}>
-                    <td>
-                      <Link href={`/app/sales/${r.saleId}`} className="text-decoration-none">
-                        {r.invoice}
-                      </Link>
+              </thead>
+              <tbody>
+                {rows.length === 0 && !loading ? (
+                  <tr data-empty="">
+                    <td colSpan={7} className="text-center text-secondary py-5">
+                      {search ? "No matching sales." : "No sales yet."}
                     </td>
-                    <td className="text-secondary">{fmtDate(r.date)}</td>
-                    <td className="text-secondary">{r.customer}</td>
-                    <td>{r.item.product_name}</td>
-                    <td className="text-end">{r.item.quantity}</td>
-                    <td className="text-end">{money(r.item.unit_price)}</td>
-                    <td className="text-end">{money(r.item.subtotal)}</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  rows.map((r, i) => (
+                    <tr key={`${r.saleId}-${r.item.id}-${i}`}>
+                      <td>
+                        <Link href={`/app/sales/${r.saleId}`} className="text-decoration-none">{r.invoice}</Link>
+                      </td>
+                      <td className="text-secondary">{fmtDate(r.date)}</td>
+                      <td className="text-secondary">{r.customer}</td>
+                      <td>{r.item.product_name}</td>
+                      <td className="text-end">{r.item.quantity}</td>
+                      <td className="text-end">{money(r.item.unit_price)}</td>
+                      <td className="text-end">{money(r.item.subtotal)}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination */}
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 p-2 border-top">
+            <span className="small text-secondary">
+              {count.toLocaleString()} invoice{count === 1 ? "" : "s"} · Page {page} of {totalPages}
+            </span>
+            <div className="btn-group btn-group-sm">
+              <button className="btn btn-outline-secondary" disabled={loading || !data?.previous} onClick={() => setPage(1)} title="First">«</button>
+              <button className="btn btn-outline-secondary" disabled={loading || !data?.previous} onClick={() => setPage((p) => Math.max(1, p - 1))}>‹ Prev</button>
+              <button className="btn btn-outline-secondary" disabled={loading || !data?.next} onClick={() => setPage((p) => p + 1)}>Next ›</button>
+              <button className="btn btn-outline-secondary" disabled={loading || !data?.next} onClick={() => setPage(totalPages)} title="Last">»</button>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
