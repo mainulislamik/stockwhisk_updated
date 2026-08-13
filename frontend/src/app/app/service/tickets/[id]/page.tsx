@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
+import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
@@ -27,6 +28,8 @@ const STATUSES = ["received", "diagnosing", "awaiting_parts", "in_repair", "read
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const { isOwner, can } = useAuth();
+  const canManage = isOwner || can("manage_service");  // status change is a write
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,18 +106,22 @@ export default function TicketDetailPage() {
           <div className="card shadow-sm">
             <div className="card-body">
               <div className="fw-semibold mb-2">Status</div>
-              <div className="input-group input-group-sm mb-3">
-                <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s.replace(/_/g, " ")}
-                    </option>
-                  ))}
-                </select>
-                <button className="btn btn-brand" onClick={changeStatus}>
-                  Update
-                </button>
-              </div>
+              {canManage ? (
+                <div className="input-group input-group-sm mb-3">
+                  <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
+                    {STATUSES.map((s) => (
+                      <option key={s} value={s}>
+                        {s.replace(/_/g, " ")}
+                      </option>
+                    ))}
+                  </select>
+                  <button className="btn btn-brand" onClick={changeStatus}>
+                    Update
+                  </button>
+                </div>
+              ) : (
+                <div className="mb-3"><span className="badge text-bg-secondary">{status.replace(/_/g, " ")}</span></div>
+              )}
               <div className="d-flex justify-content-between">
                 <span className="text-secondary">Service charge</span>
                 <span>{money(ticket.service_charge)}</span>

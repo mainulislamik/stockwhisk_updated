@@ -25,7 +25,10 @@ from .services import (
 
 class WarrantyViewSet(TenantScopedViewSet):
     serializer_class = WarrantySerializer
-    required_perm = "manage_service"
+    # Viewing warranties/coverage only needs read access; editing/voiding needs
+    # manage_service.
+    required_perm = "view_service"
+    required_write_perm = "manage_service"
 
     def get_queryset(self):
         from django.db.models import Q
@@ -60,14 +63,18 @@ class WarrantyViewSet(TenantScopedViewSet):
 
 class WarrantyClaimViewSet(TenantScopedViewSet):
     serializer_class = WarrantyClaimSerializer
-    required_perm = "manage_service"
+    required_perm = "view_service"
+    required_write_perm = "manage_service"
 
     def get_queryset(self):
         return WarrantyClaim.objects.select_related("warranty")
 
 
 class ServiceTicketViewSet(TenantScopedViewSet):
-    required_perm = "manage_service"
+    # Viewing repair tickets/status is read; create/edit/change-status needs
+    # manage_service.
+    required_perm = "view_service"
+    required_write_perm = "manage_service"
 
     def get_queryset(self):
         return ServiceTicket.objects.select_related("customer", "technician").prefetch_related(
