@@ -43,12 +43,13 @@ export default function ProductsPage() {
   useEffect(() => { setPage(1); }, [debouncedFilter]);
 
   // Server-side fetching via SWR
+  const PAGE_SIZE = 10;
   // light=1 → skip each product's in-stock units in the payload (the list only
   // needs product fields), so a shop with thousands of units still loads fast.
-  const { data, loading, error, mutate } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedFilter, page, page_size: 20, ordering: "-current_stock", light: 1 });
+  const { data, loading, error, mutate } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedFilter, page, page_size: PAGE_SIZE, ordering: "-current_stock", light: 1 });
   const products = data?.results || [];
   const total = data?.count || 0;
-  const totalPages = Math.ceil(total / 20);
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
