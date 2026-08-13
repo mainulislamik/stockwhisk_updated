@@ -68,6 +68,16 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [referralCode, setReferralCode] = useState("");
+
+  // Capture a reseller referral code from ?ref=CODE (window avoids needing a
+  // Suspense boundary for useSearchParams during static build).
+  useEffect(() => {
+    try {
+      const ref = new URLSearchParams(window.location.search).get("ref");
+      if (ref) setReferralCode(ref.trim().toUpperCase());
+    } catch {}
+  }, []);
 
   const isDark = false;
 
@@ -96,7 +106,8 @@ export default function RegisterPage() {
           owner_password: password,
           phone: phone,
           business_type: businessType,
-          address: address
+          address: address,
+          referral_code: referralCode,
         },
       });
       setSuccess("An OTP has been sent to your email.");
@@ -311,6 +322,16 @@ export default function RegisterPage() {
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   slotProps={{ input: { startAdornment: <InputAdornment position="start" sx={{alignSelf: 'flex-start', mt: 1.5}}><LocationOnIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
+                  sx={textFieldStyles}
+                />
+
+                <TextField
+                  label="Reseller / Referral code (optional)"
+                  variant="outlined"
+                  fullWidth
+                  value={referralCode}
+                  onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
+                  helperText={referralCode ? "You were referred by a StockWhisk partner." : undefined}
                   sx={textFieldStyles}
                 />
 
