@@ -103,6 +103,11 @@ class PlatformConfig(TimeStampedModel):
     logo = models.FileField(upload_to="branding/", blank=True, null=True)
     favicon = models.FileField(upload_to="branding/", blank=True, null=True)
 
+    # Optional per-industry photos for the marketing "industries" section,
+    # keyed by industry slug (retail/grocery/…). When a key is absent the
+    # frontend falls back to its bundled default illustration.
+    industry_images = models.JSONField(default=dict, blank=True)
+
     # Editable copy for the public pricing page (hero, CTA, badges, etc.).
     pricing_content = models.JSONField(default=dict, blank=True)
 

@@ -36,6 +36,7 @@ from .views import (
     PlanAdminViewSet,
     PromoOfferView,
     BrandingView,
+    IndustryImagesView,
     PricingContentView,
 )
 
@@ -78,6 +79,7 @@ urlpatterns = [
     path("public/site-config/", PublicSiteConfigView.as_view(), name="public-site-config"),
     path("promo-offer/", PromoOfferView.as_view(), name="promo-offer"),
     path("branding/", BrandingView.as_view(), name="branding"),
+    path("industry-images/", IndustryImagesView.as_view(), name="industry-images"),
     path("pricing-content/", PricingContentView.as_view(), name="pricing-content"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),

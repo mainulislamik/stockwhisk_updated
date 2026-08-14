@@ -705,6 +705,51 @@ class BrandingView(APIView):
         return Response(self._state(config, request))
 
 
+class IndustryImagesView(APIView):
+    """Upload / remove per-industry photos for the marketing site. Keyed by a
+    fixed set of industry slugs; a missing key means the frontend shows its
+    bundled default illustration."""
+    permission_classes = [IsPlatformStaff]
+    KEYS = {"retail", "grocery", "fashion", "electronics", "sme", "automobile"}
+
+    def _state(self, config, request):
+        imgs = config.industry_images or {}
+        return {k: (request.build_absolute_uri(v) if request is not None and v else v) for k, v in imgs.items()}
+
+    def get(self, request):
+        return Response(self._state(PlatformConfig.get_solo(), request))
+
+    def post(self, request):
+        from django.core.files.storage import default_storage
+        config = PlatformConfig.get_solo()
+        key = request.data.get("key")
+        if key not in self.KEYS:
+            return Response({"detail": "Invalid industry key."}, status=status.HTTP_400_BAD_REQUEST)
+        f = request.FILES.get("image")
+        if not f:
+            return Response({"detail": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+        imgs = dict(config.industry_images or {})
+        ext = (f.name.rsplit(".", 1)[-1] if "." in f.name else "png").lower()[:5]
+        path = f"industries/{key}.{ext}"
+        if default_storage.exists(path):
+            default_storage.delete(path)
+        saved = default_storage.save(path, f)
+        imgs[key] = default_storage.url(saved)
+        config.industry_images = imgs
+        config.save(update_fields=["industry_images"])
+        return Response(self._state(config, request))
+
+    def delete(self, request):
+        config = PlatformConfig.get_solo()
+        key = request.query_params.get("key") or request.data.get("key")
+        imgs = dict(config.industry_images or {})
+        if key in imgs:
+            imgs.pop(key)
+            config.industry_images = imgs
+            config.save(update_fields=["industry_images"])
+        return Response(self._state(config, request))
+
+
 # --- Contact messages --------------------------------------------------------
 
 class ContactMessageSerializer(serializers.ModelSerializer):
@@ -1553,6 +1598,7 @@ class PublicSiteConfigView(APIView):
             "offer": offer,
             "logo": request.build_absolute_uri(config.logo.url) if config.logo else None,
             "favicon": request.build_absolute_uri(config.favicon.url) if config.favicon else None,
+            "industry_images": {k: request.build_absolute_uri(v) for k, v in (config.industry_images or {}).items() if v},
             "pricing_content": {**DEFAULT_PRICING_CONTENT, **(config.pricing_content or {})},
         })
 

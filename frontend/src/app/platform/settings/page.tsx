@@ -26,6 +26,37 @@ export default function PlatformSettingsPage() {
   const [faviconUrl, setFaviconUrl] = useState<string | null>(null);
   const [brandingBusy, setBrandingBusy] = useState(false);
 
+  const INDUSTRIES = [
+    { key: "retail", label: "Retail & E-commerce" },
+    { key: "grocery", label: "Supermarket & Grocery" },
+    { key: "fashion", label: "Fashion & Apparel" },
+    { key: "electronics", label: "Electronics & Mobile" },
+    { key: "sme", label: "SME & E-commerce" },
+    { key: "automobile", label: "Automobile & Parts" },
+  ];
+  const [industryImgs, setIndustryImgs] = useState<Record<string, string>>({});
+  const [industryBusy, setIndustryBusy] = useState<string | null>(null);
+
+  async function uploadIndustry(key: string, file: File) {
+    setIndustryBusy(key); setMsg(null);
+    try {
+      const fd = new FormData(); fd.append("key", key); fd.append("image", file);
+      const res = await api<Record<string, string>>("/platform/industry-images/", { method: "POST", body: fd });
+      setIndustryImgs(res);
+      setMsg({ ok: true, text: "Industry photo updated. Reload the homepage to see it." });
+    } catch (e: any) { setMsg({ ok: false, text: e?.data?.detail || "Failed to upload photo." }); }
+    finally { setIndustryBusy(null); }
+  }
+  async function removeIndustry(key: string) {
+    setIndustryBusy(key); setMsg(null);
+    try {
+      const res = await api<Record<string, string>>(`/platform/industry-images/?key=${key}`, { method: "DELETE" });
+      setIndustryImgs(res);
+      setMsg({ ok: true, text: "Reverted to the default illustration." });
+    } catch (e: any) { setMsg({ ok: false, text: e?.data?.detail || "Failed to remove." }); }
+    finally { setIndustryBusy(null); }
+  }
+
   async function uploadBranding(field: "logo" | "favicon", file: File) {
     setBrandingBusy(true);
     setMsg(null);
@@ -62,6 +93,8 @@ export default function PlatformSettingsPage() {
     api<{ logo: string | null; favicon: string | null }>("/platform/branding/")
       .then((b) => { setLogoUrl(b.logo); setFaviconUrl(b.favicon); })
       .catch(() => {});
+    api<Record<string, string>>("/platform/industry-images/")
+      .then(setIndustryImgs).catch(() => {});
     api<any>("/platform/smtp-settings/").then((data) => {
       setSmtpHost(data.smtp_host || "");
       setSmtpPort(data.smtp_port?.toString() || "587");
@@ -207,6 +240,38 @@ export default function PlatformSettingsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      </Card>
+
+      <Card className="border-top border-4 border-info">
+        <div className="p-2">
+          <h2 className="h5 fw-bold mb-2 d-flex align-items-center gap-2">
+            <i className="bi bi-images"></i> Industry Photos (homepage)
+          </h2>
+          <p className="text-secondary small mb-4">
+            Upload a photo for each industry shown on the homepage “industries we work in” section.
+            If you don’t upload one, the built-in default illustration is used. PNG/JPG, landscape ~16:9.
+          </p>
+          <div className="row g-4">
+            {INDUSTRIES.map(({ key, label }) => {
+              const url = industryImgs[key];
+              const preview = url || `/industries/${key === "automobile" ? "automobile" : key}.svg`;
+              return (
+                <div className="col-md-6 col-lg-4" key={key}>
+                  <label className="fw-semibold small mb-2 d-block">{label}</label>
+                  <div className="border rounded overflow-hidden bg-body-tertiary mb-2" style={{ aspectRatio: "16/9" }}>
+                    <img src={preview} alt={label} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                  </div>
+                  <input type="file" accept="image/*" className="form-control form-control-sm" disabled={industryBusy === key}
+                    onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadIndustry(key, f); e.target.value = ""; }} />
+                  <div className="d-flex justify-content-between align-items-center mt-1">
+                    <span className="text-secondary" style={{ fontSize: ".72rem" }}>{url ? "Custom photo" : "Using default illustration"}</span>
+                    {url && <button type="button" className="btn btn-link btn-sm text-danger p-0" disabled={industryBusy === key} onClick={() => removeIndustry(key)}>Remove</button>}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Card>

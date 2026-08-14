@@ -10,6 +10,7 @@ import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { api } from "@/lib/api";
 import { M } from "@/lib/marketing";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBranding } from "@/lib/branding";
 
 const btnPrimary = {
   bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, textTransform: "none" as const,
@@ -37,6 +38,7 @@ function MiniStat({ label, value, accent }: { label: string; value: string; acce
 
 export default function LandingPage() {
   const { t } = useLanguage();
+  const branding = useBranding();
   const [trialDays, setTrialDays] = useState(45);
   useEffect(() => {
     api<{ trial_days: number }>("/platform/public/site-config/")
@@ -52,12 +54,12 @@ export default function LandingPage() {
   ];
 
   const INDUSTRIES = [
-    { icon: "bi-shop", title: t("industries_retail"), img: "/industries/retail.svg" },
-    { icon: "bi-cart-check", title: t("industries_grocery"), img: "/industries/grocery.svg" },
-    { icon: "bi-tags", title: t("industries_fashion"), img: "/industries/fashion.svg" },
-    { icon: "bi-phone", title: t("industries_electronics"), img: "/industries/electronics.svg" },
-    { icon: "bi-box-seam", title: t("industries_sme"), img: "/industries/sme.svg" },
-    { icon: "bi-car-front", title: t("industries_auto"), img: "/industries/automobile.svg" },
+    { key: "retail", icon: "bi-shop", title: t("industries_retail"), img: "/industries/retail.svg" },
+    { key: "grocery", icon: "bi-cart-check", title: t("industries_grocery"), img: "/industries/grocery.svg" },
+    { key: "fashion", icon: "bi-tags", title: t("industries_fashion"), img: "/industries/fashion.svg" },
+    { key: "electronics", icon: "bi-phone", title: t("industries_electronics"), img: "/industries/electronics.svg" },
+    { key: "sme", icon: "bi-box-seam", title: t("industries_sme"), img: "/industries/sme.svg" },
+    { key: "automobile", icon: "bi-car-front", title: t("industries_auto"), img: "/industries/automobile.svg" },
   ];
 
   const WHY_CHOOSE_US = [
@@ -197,7 +199,8 @@ export default function LandingPage() {
                         the card looks good even before an image is dropped in. */}
                     <Box sx={{
                       height: 210,
-                      backgroundImage: `url(${ind.img}), linear-gradient(135deg, ${M.primary} 0%, ${M.accent} 100%)`,
+                      // Admin-uploaded photo (if any) → default illustration → gradient.
+                      backgroundImage: `url(${branding.industryImages?.[ind.key] || ind.img}), linear-gradient(135deg, ${M.primary} 0%, ${M.accent} 100%)`,
                       backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat",
                     }} />
                     <Box sx={{ p: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
