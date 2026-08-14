@@ -3,6 +3,11 @@
 import { useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
+import { Box, Button, Container, Typography, TextField, Grid, Alert, Paper } from "@mui/material";
+import PublicThemeProvider from "@/components/PublicThemeProvider";
+import MarketingNav from "@/components/MarketingNav";
+import MarketingFooter from "@/components/MarketingFooter";
+import { M } from "@/lib/marketing";
 
 export default function ResellerRegisterPage() {
   const [form, setForm] = useState({ full_name: "", email: "", phone: "", company_name: "", country: "", address: "", password: "", confirm_password: "" });
@@ -24,44 +29,97 @@ export default function ResellerRegisterPage() {
     }
   }
 
-  if (done) {
-    return (
-      <div className="d-flex align-items-center justify-content-center vh-100" style={{ background: "#0f172a" }}>
-        <div className="card shadow-lg border-0 text-center" style={{ width: 460, maxWidth: "92vw" }}>
-          <div className="card-body p-5">
-            <div style={{ fontSize: "3rem" }}>✅</div>
-            <h4 className="fw-bold">Registration received</h4>
-            <p className="text-secondary">Your reseller account is <strong>pending admin approval</strong>. You’ll be able to log in once it’s activated.</p>
-            <Link href="/reseller/login" className="btn btn-primary">Go to login</Link>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const inputProps = {
+    sx: {
+      "& .MuiOutlinedInput-root": {
+        borderRadius: "12px",
+        bgcolor: M.surface,
+        "& fieldset": { borderColor: M.border },
+        "&:hover fieldset": { borderColor: M.borderStrong },
+        "&.Mui-focused fieldset": { borderColor: M.primary, borderWidth: "2px" },
+      }
+    }
+  };
 
   return (
-    <div className="d-flex align-items-center justify-content-center py-5" style={{ minHeight: "100vh", background: "#0f172a" }}>
-      <div className="card shadow-lg border-0" style={{ width: 560, maxWidth: "94vw" }}>
-        <div className="card-body p-4">
-          <div className="fw-bold fs-4">Become a StockWhisk Reseller</div>
-          <div className="text-secondary small mb-4">Earn a share of the profit from shops you refer.</div>
-          <form onSubmit={submit} className="row g-3">
-            <div className="col-md-6"><input className="form-control" placeholder="Full name *" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} required /></div>
-            <div className="col-md-6"><input className="form-control" type="email" placeholder="Email *" value={form.email} onChange={(e) => set("email", e.target.value)} required /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Phone" value={form.phone} onChange={(e) => set("phone", e.target.value)} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Company / business name" value={form.company_name} onChange={(e) => set("company_name", e.target.value)} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Country" value={form.country} onChange={(e) => set("country", e.target.value)} /></div>
-            <div className="col-md-6"><input className="form-control" placeholder="Address" value={form.address} onChange={(e) => set("address", e.target.value)} /></div>
-            <div className="col-md-6"><input className="form-control" type="password" placeholder="Password *" value={form.password} onChange={(e) => set("password", e.target.value)} required /></div>
-            <div className="col-md-6"><input className="form-control" type="password" placeholder="Confirm password *" value={form.confirm_password} onChange={(e) => set("confirm_password", e.target.value)} required /></div>
-            {error && <div className="col-12"><div className="alert alert-danger py-2 mb-0 small">{error}</div></div>}
-            <div className="col-12 d-flex justify-content-between align-items-center">
-              <Link href="/reseller/login" className="small">Already a partner? Sign in</Link>
-              <button className="btn btn-primary" disabled={busy}>{busy ? "Submitting…" : "Register"}</button>
-            </div>
-          </form>
-        </div>
-      </div>
-    </div>
+    <PublicThemeProvider>
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: M.surfaceAlt, fontFamily: "Outfit, sans-serif" }}>
+        <MarketingNav />
+
+        <Box component="main" sx={{ flexGrow: 1, display: "flex", alignItems: "center", justifyContent: "center", py: 8, position: "relative" }}>
+          {/* Subtle background glow */}
+          <Box sx={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 600, background: `radial-gradient(circle, ${M.accent}33 0%, transparent 70%)`, filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
+          
+          <Container maxWidth="sm" sx={{ position: "relative", zIndex: 1 }}>
+            {done ? (
+              <Paper sx={{ p: 5, borderRadius: "24px", textAlign: "center", border: `1px solid ${M.border}`, boxShadow: "0 20px 40px -20px rgba(15,23,42,.15)", bgcolor: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)" }}>
+                <Box sx={{ fontSize: "4rem", mb: 2 }}>✅</Box>
+                <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, color: M.text }}>Registration received</Typography>
+                <Typography sx={{ color: M.textMuted, mb: 4 }}>Your reseller account is <strong>pending admin approval</strong>. You’ll be able to log in once it’s activated.</Typography>
+                <Button component={Link} href="/reseller/login" fullWidth sx={{
+                  bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, borderRadius: "12px", py: 1.5,
+                  "&:hover": { bgcolor: M.primaryDark }
+                }}>
+                  Go to login
+                </Button>
+              </Paper>
+            ) : (
+              <Paper sx={{ p: { xs: 4, md: 5 }, borderRadius: "24px", border: `1px solid ${M.border}`, boxShadow: "0 20px 40px -20px rgba(15,23,42,.15)", bgcolor: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)" }}>
+                <Box sx={{ textAlign: "center", mb: 4 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: M.text, mb: 1, letterSpacing: "-0.02em" }}>Become a StockWhisk Reseller</Typography>
+                  <Typography sx={{ color: M.textMuted, fontSize: "1.05rem" }}>Earn a share of the profit from shops you refer.</Typography>
+                </Box>
+                
+                <form onSubmit={submit}>
+                  <Grid container spacing={2.5}>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Full name *" variant="outlined" value={form.full_name} onChange={(e) => set("full_name", e.target.value)} required {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Email *" type="email" variant="outlined" value={form.email} onChange={(e) => set("email", e.target.value)} required {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Phone" variant="outlined" value={form.phone} onChange={(e) => set("phone", e.target.value)} {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Company / business name" variant="outlined" value={form.company_name} onChange={(e) => set("company_name", e.target.value)} {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Country" variant="outlined" value={form.country} onChange={(e) => set("country", e.target.value)} {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Address" variant="outlined" value={form.address} onChange={(e) => set("address", e.target.value)} {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Password *" type="password" variant="outlined" value={form.password} onChange={(e) => set("password", e.target.value)} required {...inputProps} />
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                      <TextField fullWidth label="Confirm password *" type="password" variant="outlined" value={form.confirm_password} onChange={(e) => set("confirm_password", e.target.value)} required {...inputProps} />
+                    </Grid>
+                  </Grid>
+
+                  {error && <Alert severity="error" sx={{ mt: 3, borderRadius: "10px" }}>{error}</Alert>}
+
+                  <Box sx={{ mt: 4, display: "flex", flexDirection: { xs: "column", sm: "row" }, alignItems: "center", justifyContent: "space-between", gap: 2 }}>
+                    <Typography component={Link} href="/reseller/login" sx={{ color: M.textMuted, textDecoration: "none", fontWeight: 600, "&:hover": { color: M.primary } }}>
+                      Already a partner? Sign in
+                    </Typography>
+                    <Button type="submit" disabled={busy} sx={{
+                      bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, borderRadius: "12px", px: 4, py: 1.5,
+                      boxShadow: "0 8px 20px -8px rgba(37,99,235,.6)",
+                      "&:hover": { bgcolor: M.primaryDark }
+                    }}>
+                      {busy ? "Submitting…" : "Register"}
+                    </Button>
+                  </Box>
+                </form>
+              </Paper>
+            )}
+          </Container>
+        </Box>
+
+        <MarketingFooter />
+      </Box>
+    </PublicThemeProvider>
   );
 }
