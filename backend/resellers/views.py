@@ -19,9 +19,8 @@ from .services import resolve_active_reseller
 User = get_user_model()
 
 
-# ── Public ──────────────────────────────────────────────────────────────────
-class ResellerRegisterView(APIView):
-    """Public: create a PENDING reseller (User with shop=None + profile). No login."""
+class InitiateResellerRegistrationView(APIView):
+    """Public: receive reseller registration details, generate OTP, send email."""
     authentication_classes = []
     permission_classes = [AllowAny]
 
@@ -29,16 +28,112 @@ class ResellerRegisterView(APIView):
         ser = ResellerRegisterSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         d = ser.validated_data
-        first, _, last = d["full_name"].partition(" ")
+        email = d["email"]
+
+        import random
+        from django.utils import timezone
+        from datetime import timedelta
+        otp = str(random.randint(100000, 999999))
+
+        from django.contrib.auth.hashers import make_password
+        hashed_password = make_password(d["password"])
+
+        from .models import PendingResellerRegistration
+        PendingResellerRegistration.objects.update_or_create(
+            email=email,
+            defaults={
+                "password_hash": hashed_password,
+                "full_name": d["full_name"],
+                "company_name": d.get("company_name", ""),
+                "phone": d.get("phone", ""),
+                "address": d.get("address", ""),
+                "country": d.get("country", ""),
+                "otp": otp,
+                "expires_at": timezone.now() + timedelta(minutes=3)
+            }
+        )
+
+        from django.core.mail import get_connection, send_mail
+        from django.conf import settings
+        from platform_admin.models import PlatformConfig
+
+        config = PlatformConfig.get_solo()
+        connection = None
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+        if config.smtp_host and config.smtp_user:
+            connection = get_connection(
+                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_user,
+                password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+            )
+            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
+
+        try:
+            send_mail(
+                subject="Your Reseller Verification Code",
+                message=f"Welcome to the Reseller Program!\n\nYour verification code is: {otp}\n\nThis code expires in 3 minutes.",
+                from_email=from_email,
+                recipient_list=[email],
+                fail_silently=False,
+                connection=connection,
+            )
+        except Exception as e:
+            import traceback
+            return Response({
+                "detail": "Failed to send email. Check SMTP configuration.",
+                "error": str(e),
+                "trace": traceback.format_exc()
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response({"detail": "OTP sent to email."}, status=status.HTTP_200_OK)
+
+
+class VerifyResellerOTPRegistrationView(APIView):
+    """Public: verify OTP and finalize PENDING reseller profile creation."""
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from .serializers import VerifyResellerOTPRegistrationSerializer
+        ser = VerifyResellerOTPRegistrationSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+
+        email = ser.validated_data["email"]
+        otp = ser.validated_data["otp"]
+
+        from .models import PendingResellerRegistration
+        from django.utils import timezone
+        try:
+            pending = PendingResellerRegistration.objects.get(email=email)
+        except PendingResellerRegistration.DoesNotExist:
+            return Response({"detail": "No pending registration found for this email."}, status=status.HTTP_404_NOT_FOUND)
+
+        if pending.otp != otp:
+            return Response({"detail": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if pending.expires_at < timezone.now():
+            return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        first, _, last = pending.full_name.partition(" ")
         user = User.objects.create_user(
-            email=d["email"], password=d["password"],
+            email=pending.email, password="will-be-overwritten",
             first_name=first, last_name=last, shop=None,
         )
+        user.password = pending.password_hash
+        user.save(update_fields=["password"])
+
         profile = ResellerProfile.objects.create(
-            user=user, company_name=d.get("company_name", ""), phone=d.get("phone", ""),
-            address=d.get("address", ""), country=d.get("country", ""),
+            user=user, company_name=pending.company_name, phone=pending.phone,
+            address=pending.address, country=pending.country,
             status=ResellerProfile.Status.PENDING,
         )
+
+        pending.delete()
+
         return Response(
             {"detail": "Registration received — your reseller account is pending admin approval.",
              "reseller_code": profile.reseller_code},

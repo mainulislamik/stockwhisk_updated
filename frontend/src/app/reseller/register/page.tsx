@@ -10,21 +10,27 @@ import MarketingFooter from "@/components/MarketingFooter";
 import { M } from "@/lib/marketing";
 
 export default function ResellerRegisterPage() {
-  const [form, setForm] = useState({ full_name: "", email: "", phone: "", company_name: "", country: "", address: "", password: "", confirm_password: "" });
+  const [form, setForm] = useState({ full_name: "", email: "", phone: "", company_name: "", country: "", address: "", password: "", confirm_password: "", otp: "" });
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [done, setDone] = useState(false);
   const set = (k: string, v: string) => setForm((f) => ({ ...f, [k]: v }));
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setBusy(true); setError("");
     try {
-      await api("/reseller/register/", { method: "POST", body: form });
-      setDone(true);
+      if (step === 1) {
+        await api("/reseller/register/", { method: "POST", body: form });
+        setStep(2);
+      } else if (step === 2) {
+        await api("/reseller/verify-otp/", { method: "POST", body: { email: form.email, otp: form.otp } });
+        setStep(3);
+      }
     } catch (err: any) {
       const d = err?.data;
       setError(d?.detail || (d ? Object.values(d).flat().join(" ") : "Registration failed."));
+    } finally {
       setBusy(false);
     }
   }
@@ -51,17 +57,41 @@ export default function ResellerRegisterPage() {
           <Box sx={{ position: "absolute", top: "20%", left: "50%", transform: "translateX(-50%)", width: 600, height: 600, background: `radial-gradient(circle, ${M.accent}33 0%, transparent 70%)`, filter: "blur(60px)", zIndex: 0, pointerEvents: "none" }} />
           
           <Container maxWidth="sm" sx={{ position: "relative", zIndex: 1 }}>
-            {done ? (
+            {step === 3 ? (
               <Paper sx={{ p: 5, borderRadius: "24px", textAlign: "center", border: `1px solid ${M.border}`, boxShadow: "0 20px 40px -20px rgba(15,23,42,.15)", bgcolor: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)" }}>
                 <Box sx={{ fontSize: "4rem", mb: 2 }}>✅</Box>
                 <Typography variant="h4" sx={{ fontWeight: 800, mb: 2, color: M.text }}>Registration received</Typography>
-                <Typography sx={{ color: M.textMuted, mb: 4 }}>Your reseller account is <strong>pending admin approval</strong>. You’ll be able to log in once it’s activated.</Typography>
+                <Typography sx={{ color: M.textMuted, mb: 4 }}>Your reseller account is <strong>pending admin approval</strong>. You’ll be notified via email when it’s activated.</Typography>
                 <Button component={Link} href="/reseller/login" fullWidth sx={{
                   bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, borderRadius: "12px", py: 1.5,
                   "&:hover": { bgcolor: M.primaryDark }
                 }}>
                   Go to login
                 </Button>
+              </Paper>
+            ) : step === 2 ? (
+              <Paper sx={{ p: { xs: 4, md: 5 }, borderRadius: "24px", border: `1px solid ${M.border}`, boxShadow: "0 20px 40px -20px rgba(15,23,42,.15)", bgcolor: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)" }}>
+                <Box sx={{ textAlign: "center", mb: 4 }}>
+                  <Typography variant="h4" sx={{ fontWeight: 800, color: M.text, mb: 1, letterSpacing: "-0.02em" }}>Check your email</Typography>
+                  <Typography sx={{ color: M.textMuted, fontSize: "1.05rem" }}>We sent a 6-digit verification code to <strong>{form.email}</strong>.</Typography>
+                </Box>
+                
+                <form onSubmit={submit}>
+                  <TextField fullWidth label="6-digit code *" variant="outlined" value={form.otp} onChange={(e) => set("otp", e.target.value)} required {...inputProps} sx={{ mb: 2, ...inputProps.sx }} />
+                  
+                  {error && <Alert severity="error" sx={{ mb: 3, borderRadius: "10px" }}>{error}</Alert>}
+
+                  <Button type="submit" disabled={busy} fullWidth sx={{
+                    bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, borderRadius: "12px", py: 1.5,
+                    boxShadow: "0 8px 20px -8px rgba(37,99,235,.6)",
+                    "&:hover": { bgcolor: M.primaryDark }
+                  }}>
+                    {busy ? "Verifying…" : "Verify code"}
+                  </Button>
+                  <Button disabled={busy} onClick={() => setStep(1)} fullWidth sx={{ mt: 2, color: M.textMuted, fontWeight: 600, "&:hover": { bgcolor: "transparent", color: M.text } }}>
+                    Go back
+                  </Button>
+                </form>
               </Paper>
             ) : (
               <Paper sx={{ p: { xs: 4, md: 5 }, borderRadius: "24px", border: `1px solid ${M.border}`, boxShadow: "0 20px 40px -20px rgba(15,23,42,.15)", bgcolor: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)" }}>

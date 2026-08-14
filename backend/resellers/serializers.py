@@ -29,6 +29,9 @@ class ResellerRegisterSerializer(serializers.Serializer):
         return attrs
 
 
+class VerifyResellerOTPRegistrationSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    otp = serializers.CharField(max_length=6)
 class ResellerProfileSerializer(serializers.ModelSerializer):
     """Reseller's own profile. Identity/rate/status fields are read-only."""
     email = serializers.EmailField(source="user.email", read_only=True)

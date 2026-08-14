@@ -141,3 +141,21 @@ class ResellerCommission(TimeStampedModel):
         if note:
             self.notes = (self.notes + "\n" + note).strip()
         self.save(update_fields=["status", "paid_at", "payment_reference", "notes", "updated_at"])
+
+
+class PendingResellerRegistration(TimeStampedModel):
+    """
+    Temporarily stores reseller registration details until the email OTP is verified.
+    """
+    email = models.EmailField(unique=True)
+    password_hash = models.CharField(max_length=255)
+    full_name = models.CharField(max_length=150)
+    company_name = models.CharField(max_length=180, blank=True)
+    phone = models.CharField(max_length=30, blank=True)
+    address = models.TextField(blank=True)
+    country = models.CharField(max_length=80, blank=True)
+    otp = models.CharField(max_length=6)
+    expires_at = models.DateTimeField()
+
+    def __str__(self):
+        return f"{self.email} ({self.otp})"

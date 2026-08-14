@@ -5,7 +5,8 @@ from .views import (
     ResellerDashboardView,
     ResellerLoginView,
     ResellerProfileView,
-    ResellerRegisterView,
+    InitiateResellerRegistrationView,
+    VerifyResellerOTPRegistrationView,
     ResellerShopDetailView,
     ResellerShopsView,
     ResellerValidateCodeView,
@@ -13,7 +14,8 @@ from .views import (
 
 urlpatterns = [
     # Public
-    path("register/", ResellerRegisterView.as_view(), name="reseller-register"),
+    path("register/", InitiateResellerRegistrationView.as_view(), name="reseller-register"),
+    path("verify-otp/", VerifyResellerOTPRegistrationView.as_view(), name="reseller-verify-otp"),
     path("login/", ResellerLoginView.as_view(), name="reseller-login"),
     path("validate-code/", ResellerValidateCodeView.as_view(), name="reseller-validate-code"),
     # Authenticated reseller portal (read-only)
