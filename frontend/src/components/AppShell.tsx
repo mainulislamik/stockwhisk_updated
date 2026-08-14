@@ -13,7 +13,7 @@ import { api } from "@/lib/api";
 import { useBranding } from "@/lib/branding";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout, billing } = useAuth();
+  const { user, loading, logout, billing, can, isOwner } = useAuth();
   const branding = useBranding();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -22,6 +22,20 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [unread, setUnread] = useState(0);
   const [showContact, setShowContact] = useState(false);
   const [showPlan, setShowPlan] = useState(false);
+  const [showQuick, setShowQuick] = useState(false);
+
+  // Core shortcuts shown in the Quick Access menu (permission-aware).
+  const QUICK_ITEMS = [
+    { href: "/app/pos", icon: "bi-cart-plus-fill", label: "New Sale", color: "#2563eb", perms: ["create_sale"] },
+    { href: "/app/products", icon: "bi-box-seam-fill", label: "Products", color: "#7c3aed", perms: ["view_products"] },
+    { href: "/app/inventory", icon: "bi-boxes", label: "Inventory", color: "#0891b2", perms: ["view_inventory"] },
+    { href: "/app/sales", icon: "bi-receipt", label: "Invoices", color: "#059669", perms: ["view_sales"] },
+    { href: "/app/customers", icon: "bi-people-fill", label: "Customers", color: "#d97706", perms: ["view_customers", "manage_customers"] },
+    { href: "/app/dues", icon: "bi-cash-coin", label: "Dues", color: "#e11d48", perms: ["view_customers", "manage_customers"] },
+    { href: "/app/reports", icon: "bi-graph-up-arrow", label: "Reports", color: "#0ea5e9", perms: ["view_reports"] },
+    { href: "/app/service/tickets", icon: "bi-wrench-adjustable", label: "Service", color: "#9333ea", perms: ["view_service", "manage_service"] },
+  ];
+  const quickItems = QUICK_ITEMS.filter((q) => isOwner || q.perms.some((p) => can(p)));
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -276,6 +290,49 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             ) : null}
 
             <ThemeToggle />
+
+            {/* Quick access — hover to reveal core shortcuts */}
+            {quickItems.length > 0 && (
+              <div className="position-relative" onMouseEnter={() => setShowQuick(true)} onMouseLeave={() => setShowQuick(false)}>
+                <button
+                  type="button"
+                  className="btn border-0 p-0 fs-5 d-flex align-items-center"
+                  aria-label="Quick access"
+                  title="Quick access"
+                  style={{ color: "var(--topbar-color)" }}
+                  onClick={() => setShowQuick((v) => !v)}
+                >
+                  <i className="bi bi-grid-3x3-gap-fill"></i>
+                </button>
+                {showQuick && (
+                  <div
+                    className="position-absolute end-0 p-2 rounded-4 shadow-lg bg-body border"
+                    style={{ zIndex: 3000, top: "calc(100% + 10px)", width: 300 }}
+                  >
+                    <div className="small fw-bold text-secondary px-2 pb-2 d-flex align-items-center gap-1">
+                      <i className="bi bi-lightning-charge-fill text-warning"></i> Quick access
+                    </div>
+                    <div className="d-grid gap-1" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                      {quickItems.map((q) => (
+                        <Link
+                          key={q.href}
+                          href={q.href}
+                          onClick={() => setShowQuick(false)}
+                          className="d-flex flex-column align-items-center justify-content-center gap-1 p-3 rounded-3 text-decoration-none text-body quick-tile"
+                          style={{ transition: "background .15s" }}
+                        >
+                          <span className="d-inline-flex align-items-center justify-content-center rounded-3"
+                                style={{ width: 40, height: 40, background: `${q.color}1a`, color: q.color }}>
+                            <i className={`bi ${q.icon} fs-5`}></i>
+                          </span>
+                          <span className="small fw-medium">{q.label}</span>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Contact / support */}
             <div className="position-relative">

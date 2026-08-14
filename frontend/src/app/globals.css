@@ -323,3 +323,6 @@ a:hover { color: var(--brand-400); }
   padding-left: 0.5rem;
 }
 .nav-link { cursor: pointer; text-decoration: none; }
+
+/* Quick Access hover menu */
+.quick-tile:hover { background: var(--sidebar-hover); }
