@@ -11,10 +11,17 @@ type BlogPost = { slug: string; published_at?: string; updated_at?: string };
 export const revalidate = 3600;
 
 async function getBlogPosts(): Promise<BlogPost[]> {
+  // Hard timeout so a build-time fetch (backend not reachable during
+  // `docker build`) fails fast instead of hanging past Next's 60s static-page
+  // timeout and breaking the whole build. ISR (revalidate) fills blogs at runtime.
   try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 5000);
     const res = await fetch(`${API_BASE}/api/platform/public/blogs/`, {
       next: { revalidate: 3600 },
+      signal: controller.signal,
     });
+    clearTimeout(timer);
     if (!res.ok) return [];
     const data = await res.json();
     return Array.isArray(data) ? data : data?.results ?? [];

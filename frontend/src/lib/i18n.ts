@@ -43,6 +43,8 @@ export const translations: Translations = {
     industries_grocery: "Supermarkets & Grocery",
     industries_fashion: "Fashion & Apparel",
     industries_electronics: "Electronics & Mobile",
+    industries_sme: "SME & E-commerce",
+    industries_auto: "Automobile & Parts",
 
     // Why Choose Us Section
     why_eyebrow: "Built for Smarter Business",
@@ -133,6 +135,8 @@ export const translations: Translations = {
     industries_grocery: "সুপারমার্কেট ও মুদি দোকান",
     industries_fashion: "ফ্যাশন ও পোশাক",
     industries_electronics: "ইলেকট্রনিক্স ও মোবাইল",
+    industries_sme: "SME ও ই-কমার্স",
+    industries_auto: "অটোমোবাইল ও যন্ত্রাংশ",
 
     // Why Choose Us Section
     why_eyebrow: "স্মার্ট ব্যবসার জন্য তৈরি",

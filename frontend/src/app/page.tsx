@@ -52,10 +52,12 @@ export default function LandingPage() {
   ];
 
   const INDUSTRIES = [
-    { icon: "bi-shop", title: t("industries_retail") },
-    { icon: "bi-cart-check", title: t("industries_grocery") },
-    { icon: "bi-tags", title: t("industries_fashion") },
-    { icon: "bi-phone", title: t("industries_electronics") },
+    { icon: "bi-shop", title: t("industries_retail"), img: "/industries/retail.jpg" },
+    { icon: "bi-cart-check", title: t("industries_grocery"), img: "/industries/grocery.jpg" },
+    { icon: "bi-tags", title: t("industries_fashion"), img: "/industries/fashion.jpg" },
+    { icon: "bi-phone", title: t("industries_electronics"), img: "/industries/electronics.jpg" },
+    { icon: "bi-box-seam", title: t("industries_sme"), img: "/industries/sme.jpg" },
+    { icon: "bi-car-front", title: t("industries_auto"), img: "/industries/automobile.jpg" },
   ];
 
   const WHY_CHOOSE_US = [
@@ -185,16 +187,23 @@ export default function LandingPage() {
             </Box>
             <Grid container spacing={3} sx={{ justifyContent: "center" }}>
               {INDUSTRIES.map((ind, i) => (
-                <Grid key={i} size={{ xs: 12, sm: 6, md: 3 }}>
+                <Grid key={i} size={{ xs: 12, sm: 6, md: 4 }}>
                   <Box sx={{
-                    bgcolor: M.card, border: `1px solid ${M.border}`, borderRadius: "20px", p: 4, textAlign: "center",
-                    transition: "all .2s ease", cursor: "default",
-                    "&:hover": { borderColor: M.primary, transform: "translateY(-4px)", boxShadow: "0 20px 40px -20px rgba(37,99,235,.2)" }
+                    bgcolor: M.card, border: `1px solid ${M.border}`, borderRadius: "20px", overflow: "hidden",
+                    transition: "all .2s ease", cursor: "default", height: "100%",
+                    "&:hover": { borderColor: M.primary, transform: "translateY(-4px)", boxShadow: "0 24px 48px -24px rgba(37,99,235,.28)" }
                   }}>
-                    <Box sx={{ width: 64, height: 64, mx: "auto", borderRadius: "16px", bgcolor: "rgba(37,99,235,0.08)", color: M.primary, display: "flex", alignItems: "center", justifyContent: "center", fontSize: "2rem", mb: 2 }}>
-                      <i className={`bi ${ind.icon}`}></i>
+                    {/* Photo (if present) layered over a brand-gradient fallback, so
+                        the card looks good even before an image is dropped in. */}
+                    <Box sx={{
+                      height: 210,
+                      backgroundImage: `url(${ind.img}), linear-gradient(135deg, ${M.primary} 0%, ${M.accent} 100%)`,
+                      backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat",
+                    }} />
+                    <Box sx={{ p: 3, display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <Box sx={{ color: M.primary, fontSize: "1.3rem", lineHeight: 1 }}><i className={`bi ${ind.icon}`}></i></Box>
+                      <Typography sx={{ fontWeight: 700, fontSize: "1.05rem" }}>{ind.title}</Typography>
                     </Box>
-                    <Typography sx={{ fontWeight: 700, fontSize: "1.1rem" }}>{ind.title}</Typography>
                   </Box>
                 </Grid>
               ))}
