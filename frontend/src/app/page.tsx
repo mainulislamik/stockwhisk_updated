@@ -94,10 +94,6 @@ export default function LandingPage() {
           
           <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
             <Box sx={{ textAlign: "center", maxWidth: 860, mx: "auto" }}>
-              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, px: 2, py: 0.75, borderRadius: "20px", bgcolor: "rgba(37,99,235,0.08)", color: M.primary, fontWeight: 700, fontSize: "0.85rem", mb: 3, border: `1px solid rgba(37,99,235,0.2)` }}>
-                <i className="bi bi-star-fill" style={{ color: "#f59e0b" }}></i>
-                {t("hero_badge")}
-              </Box>
               <Typography component="h1" sx={{
                 fontWeight: 800, letterSpacing: "-0.03em", lineHeight: 1.1,
                 fontSize: { xs: "2.5rem", md: "4rem" }, mb: 2.5,
