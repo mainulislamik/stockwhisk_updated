@@ -97,7 +97,20 @@ export const translations: Translations = {
     blog_empty: "No blog posts found.",
 
     // Footer
-    footer_rights: "© {year} StockWhisk. All rights reserved."
+    footer_rights: "© {year} StockWhisk. All rights reserved.",
+
+    // Reseller Page
+    reseller_eyebrow: "🤝 StockWhisk Partner Program",
+    reseller_title_1: "Grow with StockWhisk — ",
+    reseller_title_2: "earn a share of the profit",
+    reseller_subtitle: "Refer retail shops with your unique code and earn a fixed percentage of the profit they generate — every month, transparently.",
+    reseller_btn_register: "Become a Reseller →",
+    reseller_feat1_title: "Register",
+    reseller_feat1_desc: "Sign up as a partner. Your account is reviewed and approved by our team.",
+    reseller_feat2_title: "Share your code",
+    reseller_feat2_desc: "Get a unique referral code & link. Shops that sign up with it are attributed to you.",
+    reseller_feat3_title: "Earn monthly",
+    reseller_feat3_desc: "Receive a fixed % of each connected shop’s monthly gross profit — tracked in your dashboard."
   },
   bn: {
     // Navigation
@@ -189,6 +202,19 @@ export const translations: Translations = {
     blog_empty: "কোনো ব্লগ পোস্ট পাওয়া যায়নি।",
 
     // Footer
-    footer_rights: "© {year} StockWhisk. সর্বস্বত্ব সংরক্ষিত।"
+    footer_rights: "© {year} StockWhisk. সর্বস্বত্ব সংরক্ষিত。",
+
+    // Reseller Page
+    reseller_eyebrow: "🤝 স্টকহিস্ক পার্টনার প্রোগ্রাম",
+    reseller_title_1: "স্টকহিস্কের সাথে বেড়ে উঠুন — ",
+    reseller_title_2: "লাভের একটি অংশ আয় করুন",
+    reseller_subtitle: "আপনার ইউনিক কোড দিয়ে রিটেইল শপ রেফার করুন এবং তাদের তৈরি করা লাভের একটি নির্দিষ্ট অংশ আয় করুন — প্রতি মাসে, সম্পূর্ণ স্বচ্ছতার সাথে।",
+    reseller_btn_register: "রিসেলার হোন →",
+    reseller_feat1_title: "রেজিস্টার করুন",
+    reseller_feat1_desc: "পার্টনার হিসেবে সাইন আপ করুন। আমাদের টিম আপনার অ্যাকাউন্টটি রিভিউ করে অ্যাপ্রুভ করবে।",
+    reseller_feat2_title: "আপনার কোড শেয়ার করুন",
+    reseller_feat2_desc: "একটি ইউনিক রেফারেল কোড এবং লিঙ্ক পান। যে দোকানগুলো এই লিঙ্ক দিয়ে সাইন আপ করবে, তারা আপনার রেফারেল হিসেবে যুক্ত হবে।",
+    reseller_feat3_title: "প্রতি মাসে আয় করুন",
+    reseller_feat3_desc: "প্রতিটি যুক্ত দোকানের মাসিক মোট লাভের একটি নির্দিষ্ট % পান — যা আপনার ড্যাশবোর্ডে ট্র্যাক করা যায়।"
   }
 };
