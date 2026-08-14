@@ -214,15 +214,51 @@ export default function LandingPage() {
                     bgcolor: M.card, borderRadius: "24px", p: 4, border: `1px solid ${M.border}`,
                     boxShadow: "0 30px 60px -30px rgba(15,23,42,.35)"
                   }}>
-                    {/* Placeholder abstract illustration */}
-                    <Stack spacing={2}>
-                      <Box sx={{ height: 20, width: "40%", bgcolor: M.borderStrong, borderRadius: 999 }} />
-                      <Box sx={{ height: 120, width: "100%", bgcolor: M.surfaceTint, borderRadius: "12px", border: `1px solid ${M.border}` }} />
-                      <Stack direction="row" spacing={2}>
-                        <Box sx={{ flex: 1, height: 60, bgcolor: "rgba(37,99,235,0.1)", borderRadius: "12px" }} />
-                        <Box sx={{ flex: 1, height: 60, bgcolor: "rgba(37,99,235,0.1)", borderRadius: "12px" }} />
-                      </Stack>
-                    </Stack>
+                    {/* On-brand POS / analytics illustration (pure SVG) */}
+                    <Box component="svg" viewBox="0 0 400 300" sx={{ width: "100%", height: "auto", display: "block" }}>
+                      <defs>
+                        <linearGradient id="feat-bar" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0" stopColor={M.primary} />
+                          <stop offset="1" stopColor={M.accent} />
+                        </linearGradient>
+                      </defs>
+                      {/* window header */}
+                      <rect x="0" y="0" width="400" height="300" rx="16" fill={M.surfaceTint} />
+                      <rect x="0" y="0" width="400" height="34" rx="16" fill={M.card} />
+                      <rect x="0" y="18" width="400" height="16" fill={M.card} />
+                      <circle cx="20" cy="17" r="4" fill="#ef4444" />
+                      <circle cx="34" cy="17" r="4" fill="#f59e0b" />
+                      <circle cx="48" cy="17" r="4" fill="#22c55e" />
+                      {/* stat tiles */}
+                      <g>
+                        <rect x="16" y="48" width="115" height="52" rx="10" fill={M.primary} />
+                        <rect x="28" y="60" width="55" height="7" rx="3.5" fill="rgba(255,255,255,.6)" />
+                        <rect x="28" y="74" width="80" height="14" rx="4" fill="#fff" />
+                        <rect x="143" y="48" width="115" height="52" rx="10" fill={M.card} stroke={M.border} />
+                        <rect x="155" y="60" width="45" height="7" rx="3.5" fill={M.borderStrong} />
+                        <rect x="155" y="74" width="70" height="14" rx="4" fill={M.text} opacity="0.85" />
+                        <rect x="270" y="48" width="114" height="52" rx="10" fill={M.card} stroke={M.border} />
+                        <rect x="282" y="60" width="45" height="7" rx="3.5" fill={M.borderStrong} />
+                        <rect x="282" y="74" width="55" height="14" rx="4" fill={M.text} opacity="0.85" />
+                      </g>
+                      {/* chart card */}
+                      <rect x="16" y="114" width="368" height="120" rx="12" fill={M.card} stroke={M.border} />
+                      <rect x="30" y="128" width="90" height="9" rx="4.5" fill={M.borderStrong} />
+                      {[70, 110, 55, 135, 90, 160, 120].map((h, i) => (
+                        <rect key={i} x={34 + i * 50} y={214 - h * 0.55} width="30" height={h * 0.55} rx="5" fill="url(#feat-bar)" opacity={0.55 + (i % 3) * 0.15} />
+                      ))}
+                      {/* product rows */}
+                      <g>
+                        {[0, 1].map((r) => (
+                          <g key={r} transform={`translate(0 ${r * 26})`}>
+                            <rect x="16" y="248" width="368" height="18" rx="6" fill={M.card} stroke={M.border} />
+                            <circle cx="30" cy="257" r="5" fill={M.accent} opacity="0.7" />
+                            <rect x="44" y="253" width="120" height="8" rx="4" fill={M.borderStrong} />
+                            <rect x="330" y="253" width="42" height="8" rx="4" fill={M.primary} opacity="0.7" />
+                          </g>
+                        ))}
+                      </g>
+                    </Box>
                   </Box>
                 </Box>
               </Grid>
