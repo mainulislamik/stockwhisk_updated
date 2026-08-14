@@ -799,6 +799,146 @@ class PublicContactView(APIView):
     permission_classes = []
     authentication_classes = []
 
+# --- Reseller Management ----------------------------------------------------
+
+class PlatformResellerListView(APIView):
+    """List all resellers for the Super Admin panel."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        from resellers.models import ResellerProfile
+        qs = ResellerProfile.objects.select_related("user").order_by("-created_at")
+        
+        data = [{
+            "id": r.id,
+            "reseller_code": r.reseller_code,
+            "company_name": r.company_name,
+            "user_name": f"{r.user.first_name} {r.user.last_name}".strip(),
+            "user_email": r.user.email,
+            "phone": r.phone,
+            "status": r.status,
+            "commission_rate": r.commission_rate,
+            "created_at": r.created_at,
+        } for r in qs]
+        
+        return Response({"resellers": data})
+
+
+class PlatformResellerActionView(APIView):
+    """Approve, Reject, or Suspend a reseller."""
+    permission_classes = [IsPlatformStaff]
+
+    def _send_status_email(self, profile, new_status):
+        from django.core.mail import get_connection, EmailMultiAlternatives
+        from django.conf import settings
+        from platform_admin.models import PlatformConfig
+
+        config = PlatformConfig.get_solo()
+        connection = None
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+        if config.smtp_host and config.smtp_user:
+            connection = get_connection(
+                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_user,
+                password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+            )
+            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
+
+        subject = ""
+        html_content = ""
+        first_name = profile.user.first_name or "Partner"
+
+        from resellers.models import ResellerProfile
+        if new_status == ResellerProfile.Status.ACTIVE:
+            subject = "Your StockWhisk Reseller Account is Approved! 🎉"
+            html_content = f"""
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                  <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #2563eb; margin: 0;">StockWhisk</h1>
+                  </div>
+                  <h2 style="color: #1e293b; font-size: 24px; margin-bottom: 10px;">Welcome to the Team, {{first_name}}!</h2>
+                  <p style="color: #475569; font-size: 16px; line-height: 1.6;">Your reseller application has been <strong>approved</strong>. We are thrilled to have you partner with us.</p>
+                  <p style="color: #475569; font-size: 16px; line-height: 1.6;">You can now log in to your Reseller Dashboard to get your unique referral link and start earning commissions.</p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="https://stockwhisk.com/reseller/login" style="background-color: #2563eb; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold; font-size: 16px;">Go to Dashboard</a>
+                  </div>
+                  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                  <p style="color: #94a3b8; font-size: 14px; text-align: center; margin: 0;">© 2026 StockWhisk. All rights reserved.</p>
+                </div>
+              </body>
+            </html>
+            """
+        elif new_status == ResellerProfile.Status.REJECTED:
+            subject = "Update on your StockWhisk Reseller Application"
+            html_content = f"""
+            <html>
+              <body style="font-family: Arial, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px;">
+                <div style="max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 8px; padding: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.05);">
+                  <div style="text-align: center; margin-bottom: 20px;">
+                    <h1 style="color: #2563eb; margin: 0;">StockWhisk</h1>
+                  </div>
+                  <h2 style="color: #1e293b; font-size: 20px; margin-bottom: 10px;">Application Update</h2>
+                  <p style="color: #475569; font-size: 16px; line-height: 1.6;">Hi {{first_name}},</p>
+                  <p style="color: #475569; font-size: 16px; line-height: 1.6;">Thank you for your interest in joining the StockWhisk Reseller Program. After careful review, we regret to inform you that we cannot approve your application at this time.</p>
+                  <p style="color: #475569; font-size: 16px; line-height: 1.6;">If you have any questions, please contact our support team.</p>
+                  <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 20px 0;" />
+                  <p style="color: #94a3b8; font-size: 14px; text-align: center; margin: 0;">© 2026 StockWhisk. All rights reserved.</p>
+                </div>
+              </body>
+            </html>
+            """
+        else:
+            return
+
+        try:
+            msg = EmailMultiAlternatives(
+                subject=subject,
+                body="Please view this email in a client that supports HTML.",
+                from_email=from_email,
+                to=[profile.user.email],
+                connection=connection,
+            )
+            msg.attach_alternative(html_content, "text/html")
+            msg.send(fail_silently=True)
+        except Exception:
+            pass
+
+    def post(self, request, pk):
+        from resellers.models import ResellerProfile
+        try:
+            profile = ResellerProfile.objects.get(pk=pk)
+        except ResellerProfile.DoesNotExist:
+            return Response({"detail": "Reseller not found."}, status=status.HTTP_404_NOT_FOUND)
+            
+        action = request.data.get("action")
+        old_status = profile.status
+
+        if action == "approve":
+            profile.status = ResellerProfile.Status.ACTIVE
+            if not profile.approved_at:
+                profile.approved_at = timezone.now()
+                profile.approved_by = request.user
+        elif action == "reject":
+            profile.status = ResellerProfile.Status.REJECTED
+        elif action == "suspend":
+            profile.status = ResellerProfile.Status.SUSPENDED
+        else:
+            return Response({"detail": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        profile.save()
+
+        # Send email if status transitioned to Active or Rejected
+        if old_status != profile.status and profile.status in [ResellerProfile.Status.ACTIVE, ResellerProfile.Status.REJECTED]:
+            self._send_status_email(profile, profile.status)
+            
+        return Response({"status": profile.status})
+
     DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
 
     def post(self, request):

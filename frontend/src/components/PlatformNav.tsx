@@ -10,6 +10,7 @@ const ITEMS: { href: string; icon: string; label: string }[] = [
   { href: "/platform/shops", icon: "bi-shop", label: "Shops" },
   { href: "/platform/users", icon: "bi-people", label: "Active Users" },
   { href: "/platform/plans", icon: "bi-puzzle", label: "Plan & Features" },
+  { href: "/platform/resellers", icon: "bi-person-badge", label: "Resellers" },
   { href: "/platform/payments", icon: "bi-credit-card", label: "Manual Payments" },
   { href: "/platform/imports", icon: "bi-inbox-fill", label: "Data Import" },
   { href: "/platform/api-keys", icon: "bi-plug", label: "API Keys" },

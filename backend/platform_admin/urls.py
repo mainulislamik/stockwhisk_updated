@@ -38,6 +38,8 @@ from .views import (
     BrandingView,
     IndustryImagesView,
     PricingContentView,
+    PlatformResellerListView,
+    PlatformResellerActionView,
 )
 
 app_name = "platform_admin"
@@ -81,6 +83,8 @@ urlpatterns = [
     path("branding/", BrandingView.as_view(), name="branding"),
     path("industry-images/", IndustryImagesView.as_view(), name="industry-images"),
     path("pricing-content/", PricingContentView.as_view(), name="pricing-content"),
+    path("resellers/", PlatformResellerListView.as_view(), name="platform-resellers"),
+    path("resellers/<int:pk>/action/", PlatformResellerActionView.as_view(), name="platform-resellers-action"),
     path("imports/", include("imports.api")),
     path("", include(router.urls)),
 ]
