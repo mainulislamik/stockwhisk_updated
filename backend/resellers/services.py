@@ -80,6 +80,14 @@ def generate_commissions_for_month(year, month):
 
     for shop in shops:
         reseller = shop.reseller
+        # A reseller earns only once the referred shop is a PAYING customer:
+        # nothing during the free trial, and nothing while the shop is
+        # suspended (non-paying). Trial is over when trial_ends_at falls before
+        # this month starts.
+        on_trial = shop.trial_ends_at is None or shop.trial_ends_at >= start
+        if on_trial or not shop.is_active:
+            skipped += 1
+            continue
         summary = profit_summary(shop, start=start, end=end)
         gross = Decimal(summary.get("gross_profit") or 0)
         if gross <= 0:

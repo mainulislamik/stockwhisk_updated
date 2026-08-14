@@ -29,5 +29,6 @@ class Command(BaseCommand):
             year, month = prev.year, prev.month
         created, skipped = generate_commissions_for_month(year, month)
         self.stdout.write(self.style.SUCCESS(
-            f"{year}-{month:02d}: created {created} commission(s), skipped {skipped} (zero/negative profit)."
+            f"{year}-{month:02d}: created {created} commission(s), "
+            f"skipped {skipped} (on trial / suspended / zero-or-negative profit)."
         ))

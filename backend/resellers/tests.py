@@ -114,11 +114,15 @@ class CommissionMathTests(APITestCase):
 
 
 class CommissionGenerationTests(APITestCase):
-    def _sale_shop_with_profit(self, reseller, when):
+    def _sale_shop_with_profit(self, reseller, when, email="p@gen.test", trial_ends=None):
         from catalog.models import Product
         from inventory.services import apply_movement
         from sales.services import create_sale
-        shop, owner = register_shop(name="ProfitShop", owner_email="p@gen.test", owner_password="pw12345", reseller=reseller)
+        shop, owner = register_shop(name="ProfitShop", owner_email=email, owner_password="pw12345", reseller=reseller)
+        # Trial ended before the target month → paying customer (unless overridden).
+        shop.trial_ends_at = trial_ends or timezone.make_aware(datetime.datetime(2026, 6, 1))
+        shop.is_active = True
+        shop.save(update_fields=["trial_ends_at", "is_active"])
         set_current_tenant(shop)
         p = Product.all_objects.create(shop_id=shop.id, name="W", selling_price="100", cost_price="60", track_inventory=True)
         apply_movement(product=p, movement_type="opening", quantity=Decimal("20"), unit_cost=Decimal("60"), shop=shop, created_by=owner)
@@ -126,6 +130,16 @@ class CommissionGenerationTests(APITestCase):
         create_sale(shop=shop, items=[{"product": p, "quantity": Decimal("10"), "unit_price": Decimal("100")}],
                     payments=[{"amount": Decimal("1000"), "method": "cash"}], created_by=owner, sale_date=when)
         return shop
+
+    def test_no_commission_while_on_trial(self):
+        reseller = _make_reseller("trial@r.test", rate="10.00")
+        when = timezone.make_aware(datetime.datetime(2026, 7, 15, 12, 0))
+        # Trial ends AFTER the target month → still on trial → no commission.
+        self._sale_shop_with_profit(reseller, when, email="trialshop@gen.test",
+                                    trial_ends=timezone.make_aware(datetime.datetime(2026, 9, 1)))
+        created, skipped = generate_commissions_for_month(2026, 7)
+        self.assertEqual(created, 0)
+        self.assertGreaterEqual(skipped, 1)
 
     def test_generation_snapshot_and_idempotency(self):
         reseller = _make_reseller("gen@r.test", rate="10.00")
