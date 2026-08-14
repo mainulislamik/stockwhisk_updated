@@ -14,7 +14,8 @@ class Migration(migrations.Migration):
             model_name="emiinstallment",
             name="shop",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, editable=False,
+                db_index=True, editable=False,
+                on_delete=django.db.models.deletion.CASCADE,
                 related_name="emiinstallments", to="tenants.shop",
             ),
         ),
@@ -22,7 +23,8 @@ class Migration(migrations.Migration):
             model_name="emischedule",
             name="shop",
             field=models.ForeignKey(
-                on_delete=django.db.models.deletion.CASCADE, editable=False,
+                db_index=True, editable=False,
+                on_delete=django.db.models.deletion.CASCADE,
                 related_name="emischedules", to="tenants.shop",
             ),
         ),
