@@ -14,18 +14,16 @@ class Migration(migrations.Migration):
             model_name="emiinstallment",
             name="shop",
             field=models.ForeignKey(
-                db_index=True, editable=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="emiinstallments", to="tenants.shop",
+                editable=False, on_delete=django.db.models.deletion.CASCADE,
+                related_name="%(class)ss", to="tenants.shop",
             ),
         ),
         migrations.AlterField(
             model_name="emischedule",
             name="shop",
             field=models.ForeignKey(
-                db_index=True, editable=False,
-                on_delete=django.db.models.deletion.CASCADE,
-                related_name="emischedules", to="tenants.shop",
+                editable=False, on_delete=django.db.models.deletion.CASCADE,
+                related_name="%(class)ss", to="tenants.shop",
             ),
         ),
     ]
