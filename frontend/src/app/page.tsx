@@ -52,12 +52,12 @@ export default function LandingPage() {
   ];
 
   const INDUSTRIES = [
-    { icon: "bi-shop", title: t("industries_retail"), img: "/industries/retail.jpg" },
-    { icon: "bi-cart-check", title: t("industries_grocery"), img: "/industries/grocery.jpg" },
-    { icon: "bi-tags", title: t("industries_fashion"), img: "/industries/fashion.jpg" },
-    { icon: "bi-phone", title: t("industries_electronics"), img: "/industries/electronics.jpg" },
-    { icon: "bi-box-seam", title: t("industries_sme"), img: "/industries/sme.jpg" },
-    { icon: "bi-car-front", title: t("industries_auto"), img: "/industries/automobile.jpg" },
+    { icon: "bi-shop", title: t("industries_retail"), img: "/industries/retail.svg" },
+    { icon: "bi-cart-check", title: t("industries_grocery"), img: "/industries/grocery.svg" },
+    { icon: "bi-tags", title: t("industries_fashion"), img: "/industries/fashion.svg" },
+    { icon: "bi-phone", title: t("industries_electronics"), img: "/industries/electronics.svg" },
+    { icon: "bi-box-seam", title: t("industries_sme"), img: "/industries/sme.svg" },
+    { icon: "bi-car-front", title: t("industries_auto"), img: "/industries/automobile.svg" },
   ];
 
   const WHY_CHOOSE_US = [

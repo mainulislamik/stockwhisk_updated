@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 230" width="400" height="230">
+  <defs><linearGradient id="bg4" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#eff6ff"/><stop offset="1" stop-color="#dbeafe"/></linearGradient></defs>
+  <rect width="400" height="230" fill="url(#bg4)"/>
+  <circle cx="70" cy="60" r="30" fill="#bfdbfe" opacity="0.8"/>
+  <rect x="60" y="182" width="280" height="14" rx="4" fill="#cbd5e1"/>
+  <!-- tablet -->
+  <rect x="90" y="70" width="96" height="112" rx="10" fill="#1e293b"/><rect x="98" y="80" width="80" height="92" rx="4" fill="#3b82f6"/>
+  <rect x="106" y="90" width="40" height="7" rx="3.5" fill="#bfdbfe"/><rect x="106" y="104" width="64" height="30" rx="4" fill="#60a5fa"/><rect x="106" y="142" width="30" height="20" rx="3" fill="#93c5fd"/><rect x="142" y="142" width="28" height="20" rx="3" fill="#93c5fd"/>
+  <!-- phone -->
+  <rect x="204" y="92" width="60" height="94" rx="10" fill="#0f172a"/><rect x="210" y="102" width="48" height="74" rx="4" fill="#6366f1"/>
+  <circle cx="234" cy="182" r="3" fill="#334155"/><rect x="224" y="96" width="16" height="3" rx="1.5" fill="#334155"/>
+  <rect x="216" y="110" width="36" height="6" rx="3" fill="#c7d2fe"/><rect x="216" y="122" width="36" height="24" rx="3" fill="#818cf8"/><rect x="216" y="152" width="36" height="8" rx="3" fill="#a5b4fc"/>
+  <!-- headphones -->
+  <g fill="#334155"><path d="M286 150 a34 34 0 0 1 68 0" fill="none" stroke="#334155" stroke-width="8"/><rect x="280" y="146" width="16" height="30" rx="6"/><rect x="344" y="146" width="16" height="30" rx="6"/></g>
+  <rect x="283" y="152" width="10" height="18" rx="4" fill="#2563eb"/><rect x="347" y="152" width="10" height="18" rx="4" fill="#2563eb"/>
+</svg>
