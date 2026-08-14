@@ -55,10 +55,20 @@ class BarcodeLookupView(_POSBase):
         product = matches[0] if matches else None
         scanned_unit = None
 
+        tenant_id = getattr(request.tenant, "id", None)
+
         if product is None:
-            # Check if it matches a ProductUnit (per-unit serial)
-            unit = ProductUnit.all_objects.filter(barcode=code, status=ProductUnit.Status.IN_STOCK).select_related("product").first()
-            if unit and unit.product.is_active and getattr(unit.product, "shop_id", None) == request.tenant.id:
+            # Check if it matches an in-stock ProductUnit (per-unit serial). Scope
+            # to the current shop so a barcode reused across shops can't leak or
+            # pick the wrong record.
+            unit = (
+                ProductUnit.all_objects.filter(
+                    barcode=code, status=ProductUnit.Status.IN_STOCK, shop_id=tenant_id
+                )
+                .select_related("product")
+                .first()
+            )
+            if unit and unit.product.is_active:
                 product = unit.product
                 scanned_unit = unit
 
@@ -66,12 +76,12 @@ class BarcodeLookupView(_POSBase):
             # Distinguish a genuinely sold/returned unit from an unknown barcode,
             # so the POS can show a precise message instead of the assign flow.
             sold = (
-                ProductUnit.all_objects.filter(barcode=code)
+                ProductUnit.all_objects.filter(barcode=code, shop_id=tenant_id)
                 .exclude(status=ProductUnit.Status.IN_STOCK)
                 .select_related("product")
                 .first()
             )
-            if sold and getattr(sold.product, "shop_id", None) == getattr(request.tenant, "id", None):
+            if sold:
                 return Response(
                     {
                         "detail": f'Unit "{code}" is already sold or not in stock.',

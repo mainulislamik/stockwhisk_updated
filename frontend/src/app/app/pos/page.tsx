@@ -159,8 +159,14 @@ export default function PosPage() {
       return;
     }
     if (p.scanned_unit) {
-      addToCart(p, p.scanned_unit);
-      flash(`✓ Added unit: ${p.scanned_unit.barcode}`, true);
+      const unit = p.scanned_unit;
+      const already = cart.some((l) => l.product.id === p.id && l.selectedUnits.some((u) => u.id === unit.id));
+      if (already) {
+        flash(`Already in cart: ${unit.barcode}`, false);
+      } else {
+        addToCart(p, unit);
+        flash(`✓ Added unit: ${unit.barcode}`, true);
+      }
       setQuery("");
       setTimeout(() => inputRef.current?.focus(), 50);
       return;
