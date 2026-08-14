@@ -30,8 +30,8 @@ export default function LanguageToggle() {
         height: 32,
         borderRadius: 16,
         cursor: 'pointer',
-        background: 'rgba(255, 255, 255, 0.1)',
-        border: '1px solid rgba(255, 255, 255, 0.2)',
+        background: 'rgba(15, 23, 42, 0.06)',
+        border: '1px solid rgba(15, 23, 42, 0.1)',
         backdropFilter: 'blur(8px)',
         overflow: 'hidden',
         ml: 2, // margin left from the rest of the navbar
@@ -69,7 +69,7 @@ export default function LanguageToggle() {
           sx={{
             fontSize: '0.7rem',
             fontWeight: 700,
-            color: lang === 'bn' ? '#fff' : 'rgba(255,255,255,0.5)',
+            color: lang === 'bn' ? '#fff' : 'rgba(15, 23, 42, 0.5)',
             width: '50%',
             textAlign: 'center',
             transition: 'color 0.3s ease',
@@ -81,7 +81,7 @@ export default function LanguageToggle() {
           sx={{
             fontSize: '0.7rem',
             fontWeight: 700,
-            color: lang === 'en' ? '#fff' : 'rgba(255,255,255,0.5)',
+            color: lang === 'en' ? '#fff' : 'rgba(15, 23, 42, 0.5)',
             width: '50%',
             textAlign: 'center',
             transition: 'color 0.3s ease',
