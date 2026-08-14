@@ -26,7 +26,7 @@ export default function LanguageToggle() {
         position: 'relative',
         display: 'flex',
         alignItems: 'center',
-        width: 64,
+        width: 76,
         height: 32,
         borderRadius: 16,
         cursor: 'pointer',
@@ -40,7 +40,7 @@ export default function LanguageToggle() {
       <Box
         component={motion.div}
         animate={{
-          x: lang === 'bn' ? 0 : 32,
+          x: lang === 'bn' ? 0 : 46,
         }}
         transition={{ type: 'spring', stiffness: 500, damping: 30 }}
         sx={{

@@ -6,6 +6,7 @@ import { Box, Container, Stack, Button, Typography, IconButton, Menu, MenuItem }
 import { getAccess } from "@/lib/api";
 import { M } from "@/lib/marketing";
 import { useBranding } from "@/lib/branding";
+import LanguageToggle from "./LanguageToggle";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 /** Shared top navigation for the public pages (home, pricing, blog, contact, login, register). */
@@ -91,6 +92,7 @@ export default function MarketingNav() {
                 <Button component={Link} href="/register" sx={cta}>{t("nav_signup")}</Button>
               </>
             )}
+            <LanguageToggle />
           </Stack>
 
           {/* Mobile nav: CTA + hamburger menu */}
@@ -100,6 +102,7 @@ export default function MarketingNav() {
             ) : (
               <Button component={Link} href="/register" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_signup")}</Button>
             )}
+            <LanguageToggle />
             <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text, ml: 1 }}>
               <i className="bi bi-list" style={{ fontSize: "1.6rem", lineHeight: 1 }} />
             </IconButton>
