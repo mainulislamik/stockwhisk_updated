@@ -26,11 +26,19 @@ def _make_reseller(email, status=ResellerProfile.Status.ACTIVE, rate="10.00"):
 
 class ResellerLifecycleTests(APITestCase):
     def test_registration_creates_pending_reseller(self):
+        # Step 1: register → OTP emailed, no profile yet (200).
         r = self.client.post("/api/reseller/register/", {
             "full_name": "Jane Doe", "email": "jane@r.test",
             "password": "StrongPass123", "confirm_password": "StrongPass123",
         }, format="json")
-        self.assertEqual(r.status_code, 201)
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(ResellerProfile.objects.filter(user__email="jane@r.test").exists())
+
+        # Step 2: verify OTP → PENDING reseller profile created (201).
+        from resellers.models import PendingResellerRegistration
+        pending = PendingResellerRegistration.objects.get(email="jane@r.test")
+        r2 = self.client.post("/api/reseller/verify-otp/", {"email": "jane@r.test", "otp": pending.otp}, format="json")
+        self.assertEqual(r2.status_code, 201)
         profile = ResellerProfile.objects.get(user__email="jane@r.test")
         self.assertEqual(profile.status, ResellerProfile.Status.PENDING)
         self.assertTrue(profile.reseller_code.startswith("RS-"))

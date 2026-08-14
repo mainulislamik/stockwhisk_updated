@@ -149,7 +149,10 @@ class PlatformRevenue(TimeStampedModel):
 
     class Meta:
         ordering = ["-occurred_at"]
-        indexes = [models.Index(fields=["occurred_at"]), models.Index(fields=["is_test"])]
+        indexes = [
+            models.Index(fields=["occurred_at"], name="platform_ad_occurre_idx"),
+            models.Index(fields=["is_test"], name="platform_ad_is_test_idx"),
+        ]
 
     def __str__(self):
         return f"{self.shop_name} · {self.amount} · {self.occurred_at:%Y-%m-%d}"

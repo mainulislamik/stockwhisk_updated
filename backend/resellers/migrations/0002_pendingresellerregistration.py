@@ -14,7 +14,7 @@ class Migration(migrations.Migration):
             name='PendingResellerRegistration',
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('created_at', models.DateTimeField(auto_now_add=True)),
+                ('created_at', models.DateTimeField(auto_now_add=True, db_index=True)),
                 ('updated_at', models.DateTimeField(auto_now=True)),
                 ('email', models.EmailField(max_length=254, unique=True)),
                 ('password_hash', models.CharField(max_length=255)),

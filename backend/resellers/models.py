@@ -61,7 +61,7 @@ class ResellerProfile(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["status"])]
+        indexes = [models.Index(fields=["status"], name="resellers_r_status_idx")]
 
     def __str__(self):
         return f"{self.reseller_code or 'RS-?'} ({self.user.email})"
@@ -126,8 +126,8 @@ class ResellerCommission(TimeStampedModel):
             ),
         ]
         indexes = [
-            models.Index(fields=["reseller", "status"]),
-            models.Index(fields=["period_year", "period_month"]),
+            models.Index(fields=["reseller", "status"], name="resellers_r_res_status_idx"),
+            models.Index(fields=["period_year", "period_month"], name="resellers_r_period_idx"),
         ]
 
     def __str__(self):
