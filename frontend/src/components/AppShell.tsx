@@ -38,6 +38,22 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const quickItems = QUICK_ITEMS.filter((q) => isOwner || q.perms.some((p) => can(p)));
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  // Quick Access: portal dropdown anchored under its icon. Hover or click opens
+  // it; a short close delay lets the pointer travel from the icon to the panel.
+  const quickBtnRef = useRef<HTMLButtonElement>(null);
+  const quickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [quickPos, setQuickPos] = useState<{ top: number; right: number }>({ top: 62, right: 14 });
+  const openQuick = () => {
+    if (quickTimer.current) clearTimeout(quickTimer.current);
+    const r = quickBtnRef.current?.getBoundingClientRect();
+    if (r) setQuickPos({ top: r.bottom + 8, right: Math.max(8, window.innerWidth - r.right) });
+    setShowQuick(true);
+  };
+  const closeQuickSoon = () => {
+    if (quickTimer.current) clearTimeout(quickTimer.current);
+    quickTimer.current = setTimeout(() => setShowQuick(false), 180);
+  };
+
   useEffect(() => {
     setMounted(true);
     setCollapsed(localStorage.getItem("sbCollapsed") === "1");
@@ -291,47 +307,55 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
             <ThemeToggle />
 
-            {/* Quick access — hover to reveal core shortcuts */}
+            {/* Quick access — hover or click the grid icon to reveal shortcuts */}
             {quickItems.length > 0 && (
-              <div className="position-relative" onMouseEnter={() => setShowQuick(true)} onMouseLeave={() => setShowQuick(false)}>
+              <>
                 <button
+                  ref={quickBtnRef}
                   type="button"
                   className="btn border-0 p-0 fs-5 d-flex align-items-center"
                   aria-label="Quick access"
                   title="Quick access"
-                  style={{ color: "var(--topbar-color)" }}
-                  onClick={() => setShowQuick((v) => !v)}
+                  style={{ color: showQuick ? "var(--bs-primary, #2563eb)" : "var(--topbar-color)" }}
+                  onMouseEnter={openQuick}
+                  onMouseLeave={closeQuickSoon}
+                  onClick={() => (showQuick ? setShowQuick(false) : openQuick())}
                 >
                   <i className="bi bi-grid-3x3-gap-fill"></i>
                 </button>
-                {showQuick && (
-                  <div
-                    className="position-absolute end-0 p-2 rounded-4 shadow-lg bg-body border"
-                    style={{ zIndex: 3000, top: "calc(100% + 10px)", width: 300 }}
-                  >
-                    <div className="small fw-bold text-secondary px-2 pb-2 d-flex align-items-center gap-1">
-                      <i className="bi bi-lightning-charge-fill text-warning"></i> Quick access
+                {showQuick && mounted && createPortal(
+                  <>
+                    <div
+                      className="position-fixed p-2 rounded-4 shadow-lg bg-body border"
+                      style={{ zIndex: 100001, top: quickPos.top, right: quickPos.right, width: 300 }}
+                      onMouseEnter={openQuick}
+                      onMouseLeave={closeQuickSoon}
+                    >
+                      <div className="small fw-bold text-secondary px-2 pb-2 d-flex align-items-center gap-1">
+                        <i className="bi bi-lightning-charge-fill text-warning"></i> Quick access
+                      </div>
+                      <div className="d-grid gap-1" style={{ gridTemplateColumns: "1fr 1fr" }}>
+                        {quickItems.map((q) => (
+                          <Link
+                            key={q.href}
+                            href={q.href}
+                            onClick={() => setShowQuick(false)}
+                            className="d-flex flex-column align-items-center justify-content-center gap-1 p-3 rounded-3 text-decoration-none text-body quick-tile"
+                            style={{ transition: "background .15s" }}
+                          >
+                            <span className="d-inline-flex align-items-center justify-content-center rounded-3"
+                                  style={{ width: 40, height: 40, background: `${q.color}1a`, color: q.color }}>
+                              <i className={`bi ${q.icon} fs-5`}></i>
+                            </span>
+                            <span className="small fw-medium">{q.label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                    <div className="d-grid gap-1" style={{ gridTemplateColumns: "1fr 1fr" }}>
-                      {quickItems.map((q) => (
-                        <Link
-                          key={q.href}
-                          href={q.href}
-                          onClick={() => setShowQuick(false)}
-                          className="d-flex flex-column align-items-center justify-content-center gap-1 p-3 rounded-3 text-decoration-none text-body quick-tile"
-                          style={{ transition: "background .15s" }}
-                        >
-                          <span className="d-inline-flex align-items-center justify-content-center rounded-3"
-                                style={{ width: 40, height: 40, background: `${q.color}1a`, color: q.color }}>
-                            <i className={`bi ${q.icon} fs-5`}></i>
-                          </span>
-                          <span className="small fw-medium">{q.label}</span>
-                        </Link>
-                      ))}
-                    </div>
-                  </div>
+                  </>,
+                  document.body
                 )}
-              </div>
+              </>
             )}
 
             {/* Contact / support */}
