@@ -125,7 +125,7 @@ export default function ShopsPage() {
                     </span>
                   </td>
                   <td className="fw-semibold">
-                    <Link href={`/platform/shops/${s.id}`} className="text-decoration-none text-white hover-underline">
+                    <Link href={`/platform/shops/${s.id}`} className="text-decoration-none text-body hover-underline">
                       {s.name}
                     </Link>
                   </td>
@@ -134,7 +134,7 @@ export default function ShopsPage() {
                     {s.subscription_info ? (
                       <div className="d-flex flex-column gap-1">
                         <div className="d-flex align-items-center gap-2">
-                          <span className="fw-semibold text-capitalize text-white">
+                          <span className="fw-semibold text-capitalize text-body">
                             {s.subscription_info.plan_tier || "—"}
                           </span>
                           {s.subscription_info.state === "trial" && (
