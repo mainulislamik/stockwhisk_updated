@@ -83,13 +83,14 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
 
     @action(detail=True, methods=["post"])
     def receive(self, request, pk=None):
-        """Receive the PO into stock. Body: {"paid": <amount>}."""
+        """Receive the PO into stock. Body: {"paid": <amount>, "method": <cash|bank|...>}."""
         from django.db import IntegrityError
 
         po = self.get_object()
         try:
             po = receive_purchase_order(
                 po=po, paid=Decimal(request.data.get("paid", 0)),
+                payment_method=request.data.get("method", "cash"),
                 created_by=request.user,
             )
         except ValueError as exc:

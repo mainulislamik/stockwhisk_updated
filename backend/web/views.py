@@ -1663,7 +1663,8 @@ def purchases(request):
                     "unit_cost": _dec_nn(request.POST.get("unit_cost"))}],
         )
         if request.POST.get("receive") == "on":
-            receive_purchase_order(po=po, paid=_dec_nn(request.POST.get("paid", 0)), created_by=request.user)
+            receive_purchase_order(po=po, paid=_dec_nn(request.POST.get("paid", 0)),
+                                   payment_method=request.POST.get("method", "cash"), created_by=request.user)
         messages.success(request, f"Purchase order {po.po_number} created.")
         return redirect(request.POST.get("next") or "web:purchases")
     page = _paginate(request, PurchaseOrder.objects.select_related("supplier").order_by("-created_at"))
@@ -1691,7 +1692,8 @@ def purchase_print(request, pk):
 def purchase_receive(request, pk):
     po = get_object_or_404(PurchaseOrder.objects, pk=pk)
     try:
-        receive_purchase_order(po=po, paid=_dec(request.POST.get("paid", 0)), created_by=request.user)
+        receive_purchase_order(po=po, paid=_dec(request.POST.get("paid", 0)),
+                               payment_method=request.POST.get("method", "cash"), created_by=request.user)
         messages.success(request, "Received into stock.")
     except ValueError as exc:
         messages.error(request, str(exc))

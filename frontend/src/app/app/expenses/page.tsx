@@ -121,7 +121,7 @@ export default function ExpensesPage() {
                   <tr key={r.id}>
                     <td className="text-secondary">{fmtDate(r.spent_on)}</td>
                     <td>{r.category_name || "—"}</td>
-                    <td className="text-secondary">{r.payment_method}</td>
+                    <td className="text-secondary">{r.payment_method ? r.payment_method.toUpperCase() : "—"}</td>
                     <td className="text-secondary">{r.note || "—"}</td>
                     <td className="text-end">{money(r.amount)}</td>
                   </tr>

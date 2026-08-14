@@ -25,7 +25,7 @@ def _purchase_expense_category(shop):
     return cat
 
 
-def post_purchase_payment_to_accounting(*, shop, po, amount, when=None, created_by=None):
+def post_purchase_payment_to_accounting(*, shop, po, amount, when=None, created_by=None, method=""):
     """
     Decide whether a product-purchase transaction is an expense or income,
     then post it to the accounting tables (feature #3).
@@ -46,7 +46,7 @@ def post_purchase_payment_to_accounting(*, shop, po, amount, when=None, created_
     if amount > 0:
         return record_expense(
             shop=shop, amount=amount, spent_on=when or timezone.localdate(),
-            category=_purchase_expense_category(shop), payment_method="",
+            category=_purchase_expense_category(shop), payment_method=(method or "").upper(),
             note=f"Purchase payment {po.po_number}", created_by=created_by,
         )
     LedgerEntry.all_objects.create(
@@ -84,7 +84,7 @@ def add_purchase_payment(*, po, amount, method=PurchasePayment.Method.CASH,
     supplier.save(update_fields=["due_balance"])
 
     post_purchase_payment_to_accounting(
-        shop=po.shop, po=po, amount=amount, created_by=created_by,
+        shop=po.shop, po=po, amount=amount, created_by=created_by, method=method,
     )
     return payment
 
@@ -200,7 +200,8 @@ def create_purchase_order(
 
 
 @transaction.atomic
-def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None):
+def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None,
+                           payment_method=PurchasePayment.Method.CASH):
     """
     Receive an ordered PO into stock: write PURCHASE_IN movements for each line,
     optionally refresh product cost, record supplier due + any payment.
@@ -268,5 +269,6 @@ def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None):
         # classify it and post to accounting (Expense row + cash ledger).
         post_purchase_payment_to_accounting(
             shop=po.shop, po=po, amount=paid, created_by=created_by,
+            method=payment_method,
         )
     return po
