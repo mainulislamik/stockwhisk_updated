@@ -63,6 +63,24 @@ class BarcodeLookupView(_POSBase):
                 scanned_unit = unit
 
         if product is None:
+            # Distinguish a genuinely sold/returned unit from an unknown barcode,
+            # so the POS can show a precise message instead of the assign flow.
+            sold = (
+                ProductUnit.all_objects.filter(barcode=code)
+                .exclude(status=ProductUnit.Status.IN_STOCK)
+                .select_related("product")
+                .first()
+            )
+            if sold and getattr(sold.product, "shop_id", None) == getattr(request.tenant, "id", None):
+                return Response(
+                    {
+                        "detail": f'Unit "{code}" is already sold or not in stock.',
+                        "sold_unit": True,
+                        "unit_status": sold.status,
+                        "product_name": sold.product.name,
+                    },
+                    status=status.HTTP_409_CONFLICT,
+                )
             return Response({"detail": "Not found."}, status=status.HTTP_404_NOT_FOUND)
 
         data = ProductSerializer(product, context={"request": request}).data

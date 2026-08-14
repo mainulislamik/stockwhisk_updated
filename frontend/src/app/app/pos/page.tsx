@@ -211,28 +211,20 @@ export default function PosPage() {
       }
     }
 
-    // 2c. A full numeric code that found a product (matched via its unit index)
-    // but is NOT one of its in-stock units → it's a sold/returned unit. Show a
-    // clear message instead of opening the unit picker.
-    if (query === code && /^\d{6,}$/.test(code)) {
-      const soldHit = shown.find((p) =>
-        !(p.sku && p.sku === code) &&
-        !(p.barcode && p.barcode.split(",").map((s) => s.trim()).includes(code)) &&
-        !p.units?.some((u) => u.barcode === code)
-      );
-      if (soldHit) {
-        flash(`✗ Unit "${code}" is already sold or not in stock.`, false);
-        setQuery("");
-        setTimeout(() => inputRef.current?.focus(), 50);
-        return;
-      }
-    }
+    // Note: whether a barcode belongs to a SOLD unit is decided authoritatively
+    // by the backend lookup below (grid cards are loaded light, without units),
+    // so we never guess "already sold" from the local list here.
+
+    // The grid only reflects `code` once the debounced search for it has run.
+    // If it's still stale (fast scanner: type + Enter before debounce fires),
+    // don't trust the grid — fall straight through to the authoritative lookup.
+    const gridReflectsCode = debouncedQuery === code && !gridLoading;
 
     // 3. Exactly one filtered result → auto-add
-    if (shown.length === 1 && query === code) { tryAdd(shown[0]); return; }
+    if (gridReflectsCode && shown.length === 1 && query === code) { tryAdd(shown[0]); return; }
 
-    // 4. Multiple results → keep showing
-    if (shown.length > 1 && query === code) return;
+    // 4. Multiple results → keep showing (let the user click one)
+    if (gridReflectsCode && shown.length > 1 && query === code) return;
 
     // 5. No local match → backend lookup
     setScanning(true);
@@ -244,17 +236,24 @@ export default function PosPage() {
       } else {
         tryAdd(res as Product);
       }
-    } catch {
-      // Not found → offer to assign
-      setScanMsg(null);
-      setAssignBarcode(code);
-      setAssignSearch("");
-      setAssignSelected(null);
-      setShowAssign(true);
+    } catch (e: any) {
+      // 409 → barcode belongs to a real unit that's already sold/returned.
+      if (e?.status === 409 || e?.data?.sold_unit) {
+        flash(e?.data?.detail || `✗ Unit "${code}" is already sold or not in stock.`, false);
+        setQuery("");
+        setTimeout(() => inputRef.current?.focus(), 50);
+      } else {
+        // Truly unknown barcode → offer to assign it to a product.
+        setScanMsg(null);
+        setAssignBarcode(code);
+        setAssignSearch("");
+        setAssignSelected(null);
+        setShowAssign(true);
+      }
     } finally {
       setScanning(false);
     }
-  }, [shown, query, tryAdd, cart]);
+  }, [shown, query, tryAdd, cart, debouncedQuery, gridLoading]);
 
   // ── Enter / scan handler ────────────────────────────────────────────────
   const handleEnter = useCallback(async () => {
