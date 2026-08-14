@@ -9,17 +9,6 @@ stockwhisk.com, www.stockwhisk.com {
 		max_size 20MB
 	}
 
-	# Per-IP flood guard for the whole site. A normal visitor never approaches
-	# this; a load test / scripted flood from one IP is capped and gets HTTP 429
-	# before it ever reaches Django + Postgres.
-	rate_limit {
-		zone sw_perip {
-			key    {remote_host}
-			events 300
-			window 10s
-		}
-	}
-
 	handle_path /media/* {
 		root * /app/media
 		file_server
@@ -28,10 +17,21 @@ stockwhisk.com, www.stockwhisk.com {
 		root * /app/staticfiles
 		file_server
 	}
-	handle /api/* {
-		reverse_proxy backend:8000
-	}
-	handle /admin/* {
+
+	# Per-IP flood guard for the DB-backed backend only (Django + Postgres). It
+	# deliberately does NOT cover static assets or the Next.js app: a single SPA
+	# page load pulls dozens of JS chunks, so a few quick reloads would otherwise
+	# blow a whole-site budget and get legit users 429'd (and bounced to login).
+	# A scripted flood against /api or /admin from one IP is still capped at 429.
+	@backend path /api/* /admin/*
+	handle @backend {
+		rate_limit {
+			zone sw_backend {
+				key    {remote_host}
+				events 300
+				window 10s
+			}
+		}
 		reverse_proxy backend:8000
 	}
 	handle {

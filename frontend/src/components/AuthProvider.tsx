@@ -63,28 +63,46 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
       return;
     }
-    try {
-      const me = await api<User>("/auth/me/");
-      setUser(me);
+    // Fetch the profile with a few retries so a transient hiccup — a rate-limit
+    // 429 during rapid reloads, a brief 5xx, a network blip — never nukes the
+    // session and bounces the user to /login. Only a real auth rejection does.
+    for (let attempt = 0; attempt < 3; attempt++) {
       try {
-        const p = await api<{ role: string; permissions: string[] }>("/auth/my-permissions/");
-        setPerms(new Set(p.permissions || []));
-      } catch {
-        setPerms(new Set());
+        const me = await api<User>("/auth/me/");
+        setUser(me);
+        try {
+          const p = await api<{ role: string; permissions: string[] }>("/auth/my-permissions/");
+          setPerms(new Set(p.permissions || []));
+        } catch {
+          setPerms(new Set());
+        }
+        try {
+          const b = await api<BillingStatus>("/billing/status/");
+          setBilling(b);
+        } catch {
+          setBilling(null);
+        }
+        setLoading(false);
+        return;
+      } catch (e: any) {
+        const status = e?.status;
+        if (status === 401 || status === 403) {
+          // Genuine auth failure (refresh already attempted inside api()).
+          clearTokens();
+          setUser(null);
+          setPerms(new Set());
+          setLoading(false);
+          return;
+        }
+        // Transient — back off and retry. Keep tokens intact either way.
+        if (attempt < 2) {
+          await new Promise((r) => setTimeout(r, 600 * (attempt + 1)));
+        }
       }
-      try {
-        const b = await api<BillingStatus>("/billing/status/");
-        setBilling(b);
-      } catch {
-        setBilling(null);
-      }
-    } catch {
-      clearTokens();
-      setUser(null);
-      setPerms(new Set());
-    } finally {
-      setLoading(false);
     }
+    // Retries exhausted on transient errors: do NOT clear tokens, so a reload
+    // recovers once the burst passes. We just couldn't load the profile now.
+    setLoading(false);
   }, []);
 
   useEffect(() => {

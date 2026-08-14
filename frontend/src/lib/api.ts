@@ -38,21 +38,44 @@ export class ApiError extends Error {
   }
 }
 
+// De-dupe concurrent refreshes: on a page load many requests can 401 at once
+// (expired access token). Without this, each fires its own refresh — a request
+// burst that can trip rate limiting and needlessly hammer the auth endpoint.
+let refreshInFlight: Promise<string | null> | null = null;
+
 async function refreshAccess(): Promise<string | null> {
-  const refresh = getRefresh();
-  if (!refresh) return null;
-  const res = await fetch(`${API_BASE}/api/auth/token/refresh/`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ refresh }),
-  });
-  if (!res.ok) {
-    clearTokens();
+  if (refreshInFlight) return refreshInFlight;
+  refreshInFlight = (async () => {
+    const refresh = getRefresh();
+    if (!refresh) return null;
+    let res: Response;
+    try {
+      res = await fetch(`${API_BASE}/api/auth/token/refresh/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refresh }),
+      });
+    } catch {
+      // Network blip — transient. Keep the session; a later retry can recover.
+      return null;
+    }
+    if (res.ok) {
+      const data = await res.json();
+      setTokens(data.access);
+      return data.access;
+    }
+    // Only a definitive auth rejection means the refresh token is really dead.
+    // A 429 (rate limit) or 5xx is transient and must NOT log the user out.
+    if (res.status === 401 || res.status === 403) {
+      clearTokens();
+    }
     return null;
+  })();
+  try {
+    return await refreshInFlight;
+  } finally {
+    refreshInFlight = null;
   }
-  const data = await res.json();
-  setTokens(data.access);
-  return data.access;
 }
 
 type Opts = {
