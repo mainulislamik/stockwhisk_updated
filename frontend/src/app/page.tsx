@@ -134,116 +134,124 @@ export default function LandingPage() {
               sx={{ position: "absolute", top: 160, right: -100, width: 500, height: 500, bgcolor: `${C.secondaryContainer}26`, borderRadius: "50%", filter: "blur(90px)", zIndex: 0, pointerEvents: "none" }} 
             />
             
-            <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
+            <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1 }}>
+              <Grid container spacing={{ xs: 6, md: 4 }} sx={{ alignItems: "center" }}>
                 
-                <motion.div variants={fadeUp}>
-                  <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, bgcolor: `${C.surfaceContainerLow}E6`, backdropFilter: "blur(12px)", border: `1px solid ${C.outlineVariant}`, borderRadius: 999, px: 2, py: 1, mb: 4, boxShadow: `0 4px 12px ${C.primary}1A` }}>
-                    <MaterialIcon icon="star" filled sx={{ color: C.secondaryContainer, fontSize: "1rem" }} />
-                    <Typography sx={{ fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: C.onSurfaceVariant, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                      {t('hero_badge')}
-                    </Typography>
-                  </Box>
-                </motion.div>
+                {/* Left Side: Text Content */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'center' : 'flex-start', textAlign: isMobile ? 'center' : 'left', width: '100%' }}>
+                    
+                    <motion.div variants={fadeUp}>
+                      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, bgcolor: `${C.surfaceContainerLow}E6`, backdropFilter: "blur(12px)", border: `1px solid ${C.outlineVariant}`, borderRadius: 999, px: 2, py: 1, mb: 4, boxShadow: `0 4px 12px ${C.primary}1A` }}>
+                        <MaterialIcon icon="star" filled sx={{ color: C.secondaryContainer, fontSize: "1rem" }} />
+                        <Typography sx={{ fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: C.onSurfaceVariant, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
+                          {t('hero_badge')}
+                        </Typography>
+                      </Box>
+                    </motion.div>
 
-                <motion.div variants={fadeUp}>
-                  <Typography component="h1" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: "2.5rem", md: "4.5rem" }, lineHeight: 1.1, letterSpacing: "-0.02em", color: C.onBackground, mb: 3, maxWidth: 900, mx: "auto" }}>
+                    <motion.div variants={fadeUp}>
+                      <Typography component="h1" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: "2.5rem", md: "4rem", lg: "4.5rem" }, lineHeight: 1.1, letterSpacing: "-0.02em", color: C.onBackground, mb: 3, maxWidth: 900 }}>
+                        {isMobile ? (
+                          <>
+                            {t('hero_title_mobile')} <br />
+                            <Box component="span" sx={{ color: C.primary, position: "relative", display: "inline-block" }}>
+                              {t('hero_title_mobile_highlight')}
+                              <Box component="svg" viewBox="0 0 100 10" preserveAspectRatio="none" sx={{ position: "absolute", width: "100%", height: 12, bottom: -4, left: 0, color: C.primaryFixedDim }}>
+                                <path d="M0 5 Q 50 10 100 5" fill="transparent" stroke="currentColor" strokeWidth="3" />
+                              </Box>
+                            </Box>{" "}
+                            {t('hero_title_mobile_suffix')}
+                          </>
+                        ) : (
+                          <>
+                            {t('hero_title_desktop')} <br />
+                            <Box component="span" sx={{ background: `linear-gradient(135deg, ${C.primary}, #0053db)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t('hero_title_desktop_highlight')}</Box>
+                          </>
+                        )}
+                      </Typography>
+                    </motion.div>
+
+                    <motion.div variants={fadeUp}>
+                      <Typography sx={{ fontSize: { xs: "1rem", md: "1.125rem" }, color: C.onSurfaceVariant, maxWidth: 680, mb: 5, lineHeight: 1.6 }}>
+                        {t('hero_subtitle')}
+                      </Typography>
+                    </motion.div>
+
+                    <motion.div variants={fadeUp}>
+                      <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, width: { xs: "100%", sm: "auto" } }}>
+                        <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                          <Button component={Link} href="/register" sx={{ bgcolor: C.primary, color: C.onPrimary, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", boxShadow: `0 8px 24px ${C.primary}66`, "&:hover": { bgcolor: C.onPrimaryFixedVariant } }}>
+                            {t('hero_btn_trial')}
+                          </Button>
+                        </motion.div>
+                        <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                          <Button component={Link} href="/demo" sx={{ bgcolor: `${C.surface}E6`, backdropFilter: "blur(12px)", color: C.primary, border: `1px solid ${C.primary}33`, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", "&:hover": { bgcolor: C.surfaceContainerLow } }}>
+                            <MaterialIcon icon="play_arrow" filled sx={{ mr: 1 }} />
+                            {t('hero_btn_demo')}
+                          </Button>
+                        </motion.div>
+                      </Box>
+                    </motion.div>
+                  </motion.div>
+                </Grid>
+
+                {/* Right Side: Image Mockup */}
+                <Grid size={{ xs: 12, md: 6 }}>
+                  <motion.div initial="hidden" animate="show" variants={fadeScale} style={{ width: '100%' }}>
                     {isMobile ? (
-                      <>
-                        {t('hero_title_mobile')} <br />
-                        <Box component="span" sx={{ color: C.primary, position: "relative", display: "inline-block" }}>
-                          {t('hero_title_mobile_highlight')}
-                          <Box component="svg" viewBox="0 0 100 10" preserveAspectRatio="none" sx={{ position: "absolute", width: "100%", height: 12, bottom: -4, left: 0, color: C.primaryFixedDim }}>
-                            <path d="M0 5 Q 50 10 100 5" fill="transparent" stroke="currentColor" strokeWidth="3" />
+                      <Box sx={{ width: "100%", position: "relative" }}>
+                        <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.primaryFixedDim}33, transparent)`, borderRadius: "32px 32px 0 0", filter: "blur(20px)", zIndex: 0 }} />
+                        <Box sx={{ position: "relative", zIndex: 1, bgcolor: "#fff", borderRadius: "24px 24px 0 0", boxShadow: "0 -10px 40px rgba(15,23,42,0.08)", borderTop: `1px solid ${C.surfaceVariant}`, borderLeft: `1px solid ${C.surfaceVariant}`, borderRight: `1px solid ${C.surfaceVariant}`, overflow: "hidden", pt: 2, px: 2, height: 260, textAlign: "left" }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
+                            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.errorContainer, border: `1px solid ${C.onErrorContainer}` }} />
+                            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.secondaryContainer }} />
+                            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.tertiaryContainer }} />
+                            <Box sx={{ height: 16, width: "33%", bgcolor: C.surfaceContainer, borderRadius: 1, ml: 1 }} />
                           </Box>
-                        </Box>{" "}
-                        {t('hero_title_mobile_suffix')}
-                      </>
+                          <Grid container spacing={1.5}>
+                            <Grid size={{ xs: 6 }}>
+                              <Box sx={{ bgcolor: C.primary, color: C.onPrimary, p: 2, borderRadius: "12px" }}>
+                                <Typography sx={{ fontSize: "0.75rem", opacity: 0.8, mb: 0.5 }}>{t('hero_sales_today')}</Typography>
+                                <Typography sx={{ fontWeight: 700, fontSize: "1.125rem" }}>৳ 48,250</Typography>
+                              </Box>
+                            </Grid>
+                            <Grid size={{ xs: 6 }}>
+                              <Box sx={{ bgcolor: C.surfaceContainerLow, border: `1px solid ${C.surfaceVariant}`, p: 2, borderRadius: "12px" }}>
+                                <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 0.5 }}>{t('hero_orders')}</Typography>
+                                <Typography sx={{ fontWeight: 700, fontSize: "1.125rem", color: C.onSurface }}>126</Typography>
+                              </Box>
+                            </Grid>
+                          </Grid>
+                          <Box sx={{ bgcolor: C.surfaceContainerLow, border: `1px solid ${C.surfaceVariant}`, borderRadius: "12px", mt: 1.5, p: 2, height: 130, position: "relative", overflow: "hidden" }}>
+                            <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 1 }}>{t('hero_sales_trend')}</Typography>
+                            <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 64, display: "flex", alignItems: "flex-end", justifyContent: "space-between", px: 2, pb: 1, opacity: 0.3 }}>
+                              <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 16 }} />
+                              <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 32 }} />
+                              <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 24 }} />
+                              <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 48 }} />
+                              <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 40 }} />
+                            </Box>
+                          </Box>
+                        </Box>
+                      </Box>
                     ) : (
-                      <>
-                        {t('hero_title_desktop')} <br />
-                        <Box component="span" sx={{ background: `linear-gradient(135deg, ${C.primary}, #0053db)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t('hero_title_desktop_highlight')}</Box>
-                      </>
-                    )}
-                  </Typography>
-                </motion.div>
-
-                <motion.div variants={fadeUp}>
-                  <Typography sx={{ fontSize: { xs: "1rem", md: "1.125rem" }, color: C.onSurfaceVariant, maxWidth: 680, mx: "auto", mb: 5, lineHeight: 1.6 }}>
-                    {t('hero_subtitle')}
-                  </Typography>
-                </motion.div>
-
-                <motion.div variants={fadeUp}>
-                  <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, width: { xs: "100%", sm: "auto" }, mb: { xs: 6, md: 10 }, mx: "auto" }}>
-                    <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-                      <Button component={Link} href="/register" sx={{ bgcolor: C.primary, color: C.onPrimary, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", boxShadow: `0 8px 24px ${C.primary}66`, "&:hover": { bgcolor: C.onPrimaryFixedVariant } }}>
-                        {t('hero_btn_trial')}
-                      </Button>
-                    </motion.div>
-                    <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-                      <Button component={Link} href="/demo" sx={{ bgcolor: `${C.surface}E6`, backdropFilter: "blur(12px)", color: C.primary, border: `1px solid ${C.primary}33`, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", "&:hover": { bgcolor: C.surfaceContainerLow } }}>
-                        <MaterialIcon icon="play_arrow" filled sx={{ mr: 1 }} />
-                        {t('hero_btn_demo')}
-                      </Button>
-                    </motion.div>
-                  </Box>
-                </motion.div>
-
-                {/* Hero Image Mockup */}
-                <motion.div variants={fadeScale} style={{ width: '100%' }}>
-                  {isMobile ? (
-                    <Box sx={{ width: "100%", position: "relative", mt: 4 }}>
-                      <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom, ${C.primaryFixedDim}33, transparent)`, borderRadius: "32px 32px 0 0", filter: "blur(20px)", zIndex: 0 }} />
-                      <Box sx={{ position: "relative", zIndex: 1, bgcolor: "#fff", borderRadius: "24px 24px 0 0", boxShadow: "0 -10px 40px rgba(15,23,42,0.08)", borderTop: `1px solid ${C.surfaceVariant}`, borderLeft: `1px solid ${C.surfaceVariant}`, borderRight: `1px solid ${C.surfaceVariant}`, overflow: "hidden", pt: 2, px: 2, height: 260, textAlign: "left" }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.errorContainer, border: `1px solid ${C.onErrorContainer}` }} />
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.secondaryContainer }} />
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.tertiaryContainer }} />
-                          <Box sx={{ height: 16, width: "33%", bgcolor: C.surfaceContainer, borderRadius: 1, ml: 1 }} />
-                        </Box>
-                        <Grid container spacing={1.5}>
-                          <Grid size={{ xs: 6 }}>
-                            <Box sx={{ bgcolor: C.primary, color: C.onPrimary, p: 2, borderRadius: "12px" }}>
-                              <Typography sx={{ fontSize: "0.75rem", opacity: 0.8, mb: 0.5 }}>{t('hero_sales_today')}</Typography>
-                              <Typography sx={{ fontWeight: 700, fontSize: "1.125rem" }}>৳ 48,250</Typography>
-                            </Box>
-                          </Grid>
-                          <Grid size={{ xs: 6 }}>
-                            <Box sx={{ bgcolor: C.surfaceContainerLow, border: `1px solid ${C.surfaceVariant}`, p: 2, borderRadius: "12px" }}>
-                              <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 0.5 }}>{t('hero_orders')}</Typography>
-                              <Typography sx={{ fontWeight: 700, fontSize: "1.125rem", color: C.onSurface }}>126</Typography>
-                            </Box>
-                          </Grid>
-                        </Grid>
-                        <Box sx={{ bgcolor: C.surfaceContainerLow, border: `1px solid ${C.surfaceVariant}`, borderRadius: "12px", mt: 1.5, p: 2, height: 130, position: "relative", overflow: "hidden" }}>
-                          <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 1 }}>{t('hero_sales_trend')}</Typography>
-                          <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 64, display: "flex", alignItems: "flex-end", justifyContent: "space-between", px: 2, pb: 1, opacity: 0.3 }}>
-                            <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 16 }} />
-                            <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 32 }} />
-                            <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 24 }} />
-                            <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 48 }} />
-                            <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 40 }} />
+                      <Box component={motion.div} whileHover={{ scale: 1.02 }} transition={{ type: "spring", stiffness: 150, damping: 20 }} sx={{ width: "100%", position: "relative" }}>
+                        <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${C.background} 5%, transparent 30%, transparent)`, zIndex: 10, pointerEvents: "none" }} />
+                        <Box sx={{ position: "relative", borderRadius: "24px", border: `1px solid ${C.outlineVariant}4D`, boxShadow: `0 30px 80px ${C.primary}33`, overflow: "hidden", bgcolor: C.surface, transform: "perspective(1000px) rotateY(-5deg) rotateX(2deg)", transformOrigin: "right center" }}>
+                          <Box sx={{ height: 40, bgcolor: C.surfaceContainerLowest, borderBottom: `1px solid ${C.outlineVariant}4D`, display: "flex", alignItems: "center", px: 2, gap: 1 }}>
+                            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: "#ef4444" }} />
+                            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.secondaryFixedDim }} />
+                            <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.tertiaryFixedDim }} />
+                            <Typography sx={{ flex: 1, textAlign: "center", fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: `${C.onSurfaceVariant}80` }}>stockwhisk.com/app</Typography>
                           </Box>
+                          <Box component="img" src="/images/dashboard_mockup.jpg" alt="StockWhisk Dashboard Mockup" sx={{ width: "100%", display: "block" }} />
                         </Box>
                       </Box>
-                    </Box>
-                  ) : (
-                    <Box component={motion.div} whileHover={{ y: -10 }} transition={{ type: "spring", stiffness: 150, damping: 20 }} sx={{ width: "100%", maxWidth: 1200, mx: "auto", position: "relative", perspective: 1000, transformStyle: "preserve-3d" }}>
-                      <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${C.background} 5%, transparent 30%, transparent)`, zIndex: 10, pointerEvents: "none" }} />
-                      <Box sx={{ position: "relative", borderRadius: "24px", border: `1px solid ${C.outlineVariant}4D`, boxShadow: `0 30px 80px ${C.primary}33`, overflow: "hidden", bgcolor: C.surface }}>
-                        <Box sx={{ height: 40, bgcolor: C.surfaceContainerLowest, borderBottom: `1px solid ${C.outlineVariant}4D`, display: "flex", alignItems: "center", px: 2, gap: 1 }}>
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: "#ef4444" }} />
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.secondaryFixedDim }} />
-                          <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.tertiaryFixedDim }} />
-                          <Typography sx={{ flex: 1, textAlign: "center", fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: `${C.onSurfaceVariant}80` }}>stockwhisk.com/app</Typography>
-                        </Box>
-                        <Box component="img" src="/images/dashboard_mockup.jpg" alt="StockWhisk Dashboard Mockup" sx={{ width: "100%", display: "block" }} />
-                      </Box>
-                    </Box>
-                  )}
-                </motion.div>
-              </motion.div>
+                    )}
+                  </motion.div>
+                </Grid>
+              </Grid>
             </Container>
           </Box>
 
