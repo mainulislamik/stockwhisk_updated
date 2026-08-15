@@ -166,7 +166,19 @@ export const translations: Translations = {
     blog_cat_5: "StockWhisk",
     blog_featured: "Featured Insight",
     blog_latest: "Latest Articles",
-    blog_view_all: "View all",
+    blog_view_all: "View All",
+
+    // Registration Guideline
+    reg_guide_title: "How to Create Your Account",
+    reg_step1_title: "1. Basic Details",
+    reg_step1_desc: "Enter your shop name, your full name, and an active email address.",
+    reg_step2_title: "2. Contact Info",
+    reg_step2_desc: "Provide your mobile number, shop category, and full address.",
+    reg_step3_title: "3. Secure Password",
+    reg_step3_desc: "Create a strong password containing at least 8 characters.",
+    reg_step4_title: "4. Verification",
+    reg_step4_desc: "Submit the form and verify your email using the OTP sent to your inbox.",
+    
     blog_cta_title: "Manage Your Inventory With StockWhisk",
     blog_cta_subtitle: "Stop wrestling with spreadsheets. Gain real-time visibility into your stock, automate ordering, and focus on growing your retail business.",
     blog_cta_btn: "Start Free Trial",
@@ -357,6 +369,18 @@ export const translations: Translations = {
     blog_featured: "ফিচার্ড ইনসাইট",
     blog_latest: "সর্বশেষ আর্টিকেল",
     blog_view_all: "সবগুলো দেখুন",
+
+    // Registration Guideline
+    reg_guide_title: "কীভাবে অ্যাকাউন্ট তৈরি করবেন",
+    reg_step1_title: "১. প্রাথমিক তথ্য",
+    reg_step1_desc: "আপনার দোকানের নাম, নিজের নাম এবং একটি সচল ইমেইল অ্যাড্রেস দিন।",
+    reg_step2_title: "২. যোগাযোগের তথ্য",
+    reg_step2_desc: "আপনার মোবাইল নম্বর, দোকানের ধরন এবং সম্পূর্ণ ঠিকানা দিন।",
+    reg_step3_title: "৩. পাসওয়ার্ড",
+    reg_step3_desc: "কমপক্ষে ৮ অক্ষরের একটি শক্তিশালী পাসওয়ার্ড তৈরি করুন।",
+    reg_step4_title: "৪. ভেরিফিকেশন",
+    reg_step4_desc: "ফর্মটি সাবমিট করুন এবং ইমেইলে পাঠানো OTP দিয়ে অ্যাকাউন্ট ভেরিফাই করুন।",
+    
     blog_cta_title: "স্টকহুইস্ক দিয়ে আপনার ইনভেন্টরি পরিচালনা করুন",
     blog_cta_subtitle: "স্প্রেডশিটের ঝামেলা থেকে মুক্তি পান। আপনার স্টকের রিয়েল-টাইম তথ্য পান, অর্ডারিং স্বয়ংক্রিয় করুন এবং আপনার রিটেইল ব্যবসা বাড়ানোর দিকে মনোযোগ দিন।",
     blog_cta_btn: "ফ্রি ট্রায়াল শুরু করুন",
