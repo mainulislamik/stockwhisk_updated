@@ -117,6 +117,7 @@ export default function Home() {
   
   const [plans, setPlans] = useState<PricingPlan[]>([]);
   const [loadingPricing, setLoadingPricing] = useState(true);
+  const [trialDays, setTrialDays] = useState(14);
 
   useEffect(() => {
     api<any>("/platform/public/pricing/")
@@ -125,6 +126,12 @@ export default function Home() {
       })
       .catch((e) => console.error("Failed to load pricing plans", e))
       .finally(() => setLoadingPricing(false));
+
+    api<{ trial_days: number }>("/platform/public/site-config/")
+      .then((d) => {
+        if (d?.trial_days != null) setTrialDays(d.trial_days);
+      })
+      .catch(() => {});
   }, []);
 
   const toBnNum = (str: string | number) => str.toString().replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d as any]);
@@ -174,15 +181,6 @@ export default function Home() {
                   <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', alignItems: isMobile ? 'center' : 'flex-start', textAlign: isMobile ? 'center' : 'left', width: '100%' }}>
                     
                     <motion.div variants={fadeUp}>
-                      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, bgcolor: `${C.surfaceContainerLow}E6`, backdropFilter: "blur(12px)", border: `1px solid ${C.outlineVariant}`, borderRadius: 999, px: 2, py: 1, mb: 4, boxShadow: `0 4px 12px ${C.primary}1A` }}>
-                        <MaterialIcon icon="star" filled sx={{ color: C.secondaryContainer, fontSize: "1rem" }} />
-                        <Typography sx={{ fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: C.onSurfaceVariant, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                          {t('hero_badge')}
-                        </Typography>
-                      </Box>
-                    </motion.div>
-
-                    <motion.div variants={fadeUp}>
                       <Typography component="h1" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: "2.5rem", md: "4rem", lg: "4.5rem" }, lineHeight: 1.1, letterSpacing: "-0.02em", color: C.onBackground, mb: 3, maxWidth: 900 }}>
                         {isMobile ? (
                           <>
@@ -213,8 +211,8 @@ export default function Home() {
                     <motion.div variants={fadeUp}>
                       <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, width: { xs: "100%", sm: "auto" } }}>
                         <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
-                          <Button component={Link} href="/register" sx={{ bgcolor: C.primary, color: C.onPrimary, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", boxShadow: `0 8px 24px ${C.primary}66`, "&:hover": { bgcolor: C.onPrimaryFixedVariant } }}>
-                            {t('hero_btn_trial')}
+                          <Button component={Link} href="/register" sx={{ bgcolor: C.primary, color: C.onPrimary, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", boxShadow: `0 8px 24px ${C.primary}66`, transition: 'all 0.3s ease', "&:hover": { bgcolor: C.onPrimaryFixedVariant, boxShadow: `0 12px 32px ${C.primary}80`, transform: 'translateY(-2px)' } }}>
+                            {lang === 'bn' ? `${toBnNum(trialDays)}-দিনের ফ্রি ট্রায়াল শুরু করুন` : `Start ${trialDays}-Day Free Trial`}
                           </Button>
                         </motion.div>
                         <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
@@ -691,10 +689,14 @@ export default function Home() {
                               
                               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                 <Button component={Link} href={plan.tier === 'enterprise' ? "/contact" : "/register"} sx={isPopular 
-                                  ? { width: "100%", py: 1.5, borderRadius: 999, bgcolor: C.surface, color: C.primary, fontWeight: 800, textTransform: "none", fontSize: "1rem", boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", "&:hover": { bgcolor: C.surfaceContainerLow } }
-                                  : { width: "100%", py: 1.5, borderRadius: 999, border: `1px solid ${plan.tier === 'starter' ? C.primary : C.outlineVariant}`, color: plan.tier === 'starter' ? C.primary : C.onSurface, fontWeight: 800, textTransform: "none", fontSize: "1rem", "&:hover": { bgcolor: C.surfaceContainerLow } }
+                                  ? { width: "100%", py: 1.5, borderRadius: 999, bgcolor: C.surface, color: C.primary, fontWeight: 800, textTransform: "none", fontSize: "1.05rem", boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)", transition: "all 0.3s ease", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "translateY(-2px)", boxShadow: "0 12px 32px rgba(0, 0, 0, 0.2)" } }
+                                  : { width: "100%", py: 1.5, borderRadius: 999, border: `2px solid ${plan.tier === 'starter' ? C.primary : C.outlineVariant}`, color: plan.tier === 'starter' ? C.primary : C.onSurface, fontWeight: 800, textTransform: "none", fontSize: "1.05rem", transition: "all 0.3s ease", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "translateY(-2px)" } }
                                 }>
-                                  {plan.tier === 'starter' ? t('price_card_1_btn') : plan.tier === 'enterprise' ? t('price_card_3_btn') : t('price_card_2_btn')}
+                                  {plan.tier === 'starter' 
+                                    ? t('price_card_1_btn') 
+                                    : plan.tier === 'enterprise' 
+                                      ? t('price_card_3_btn') 
+                                      : (lang === 'bn' ? `${toBnNum(trialDays)}-দিনের ফ্রি ট্রায়াল শুরু করুন` : `Start ${trialDays}-Day Free Trial`)}
                                 </Button>
                               </motion.div>
                             </Box>
@@ -735,9 +737,9 @@ export default function Home() {
                   {t('final_cta_subtitle')}
                 </Typography>
                 <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "center", gap: 3 }}>
-                  <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                    <Button component={Link} href="/register" sx={{ bgcolor: C.surface, color: C.primary, fontWeight: 800, borderRadius: 999, px: 6, py: 2.5, fontSize: "1.125rem", textTransform: "none", boxShadow: `0 12px 30px ${C.onBackground}4D`, "&:hover": { bgcolor: C.surfaceContainerLowest } }}>
-                      {t('final_cta_btn_1')}
+                  <motion.div whileHover={{ scale: 1.05, y: -2 }} whileTap={{ scale: 0.95 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                    <Button component={Link} href="/register" sx={{ bgcolor: C.surface, color: C.primary, fontWeight: 800, borderRadius: 999, px: 4, py: 2, fontSize: "1.05rem", textTransform: "none", boxShadow: "0 8px 24px rgba(0,0,0,0.15)", transition: "all 0.3s ease", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "translateY(-2px)", boxShadow: "0 12px 32px rgba(0,0,0,0.2)" } }}>
+                      {lang === 'bn' ? `${toBnNum(trialDays)}-দিনের ফ্রি ট্রায়াল শুরু করুন` : `Start ${trialDays}-Day Free Trial`}
                     </Button>
                   </motion.div>
                   <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
