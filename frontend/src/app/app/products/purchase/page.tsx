@@ -41,6 +41,9 @@ export default function PurchaseProductPage() {
   // optional and capped at this number — the rest are received without a barcode
   // (for products with no barcode on the packet).
   const [bulkQty, setBulkQty] = useState("");
+  // When the user hasn't typed a quantity, it auto-mirrors the scanned barcode
+  // count. Typing a value takes over; clearing the field returns to auto.
+  const [qtyTouched, setQtyTouched] = useState(false);
 
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);
@@ -99,7 +102,7 @@ export default function PurchaseProductPage() {
     setSearchName("");
     setSearchBarcode("");
     setBarcodeText("");
-    setBulkQty("");
+    setBulkQty(""); setQtyTouched(false);
   }
 
   // ─── New product creation ────────────────────────────────────────────────
@@ -149,9 +152,11 @@ export default function PurchaseProductPage() {
   const parsedBarcodes = barcodeText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
   // A quantity is only meaningful when a single product is selected. When set,
   // it decides how many units to receive; barcodes may be fewer (or none).
-  const hasBulkQty = !!selected && bulkQty.trim() !== "";
+  const hasBulkQty = !!selected && qtyTouched && bulkQty.trim() !== "";
   const effQty = hasBulkQty ? Math.max(1, Math.round(Number(bulkQty) || 0)) : parsedBarcodes.length;
   const tooManyBarcodes = hasBulkQty && parsedBarcodes.length > effQty;
+  // Value shown in the Quantity box: the typed value, else the live barcode count.
+  const qtyDisplay = qtyTouched ? bulkQty : (parsedBarcodes.length ? String(parsedBarcodes.length) : "");
 
   async function addScannedUnits() {
     // Allow adding barcode-less units when a product is selected and a quantity
@@ -230,7 +235,7 @@ export default function PurchaseProductPage() {
         setBarcodeText(remainingText);
       } else {
         setBarcodeText("");
-        setBulkQty("");
+        setBulkQty(""); setQtyTouched(false);
       }
     } catch (e: any) {
       setError(e?.message || "Error looking up barcodes");
@@ -496,15 +501,17 @@ export default function PurchaseProductPage() {
                   type="number" min={1} step={1}
                   className={`form-control ${tooManyBarcodes ? "is-invalid" : ""}`}
                   placeholder={selected ? "e.g. 10" : "Select a product first"}
-                  value={bulkQty}
+                  value={qtyDisplay}
                   disabled={!selected}
-                  onChange={(e) => setBulkQty(e.target.value)}
+                  onChange={(e) => { const v = e.target.value; setBulkQty(v); setQtyTouched(v.trim() !== ""); }}
                 />
                 <div className={`small mt-1 ${tooManyBarcodes ? "text-danger" : "text-muted"}`}>
                   {selected
                     ? (hasBulkQty
                         ? `${parsedBarcodes.length} / ${effQty} barcodes scanned` + (tooManyBarcodes ? " — too many!" : (parsedBarcodes.length < effQty ? ` · ${effQty - parsedBarcodes.length} without barcode` : ""))
-                        : "Leave blank to receive one unit per scanned barcode. Useful when the packet has no barcode.")
+                        : (parsedBarcodes.length > 0
+                            ? `Auto: ${parsedBarcodes.length} unit(s) from scanned barcodes. Type a number to override (e.g. when the packet has no barcode).`
+                            : "Auto-counts scanned barcodes. Type a number to receive more units than barcodes (packet has no barcode)."))
                     : "Pick a product above to set a quantity."}
                 </div>
               </div>
@@ -540,7 +547,7 @@ export default function PurchaseProductPage() {
                   <button className="btn btn-outline-primary btn-sm w-100 mt-1 d-md-none" onClick={() => setShowScanner(true)}>
                     📷 Scan with Camera
                   </button>
-                  <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => { setBarcodeText(""); setBulkQty(""); }}>Clear List</button>
+                  <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => { setBarcodeText(""); setBulkQty(""); setQtyTouched(false); }}>Clear List</button>
                 </div>
               </div>
             </div>
