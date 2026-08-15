@@ -294,16 +294,27 @@ class ShopSettingsView(APIView):
         return Response(ShopSettingsSerializer(request.user.shop).data)
 
     def patch(self, request):
-        if not request.user.shop:
+        shop = getattr(request.user, "shop", None)
+        if not shop:
             return Response({"detail": "No shop associated."}, status=400)
         if request.user.role != "owner":
             from rest_framework.exceptions import PermissionDenied
             raise PermissionDenied("Only the shop owner can edit shop settings.")
-            
+
         from .serializers import ShopSettingsSerializer
-        ser = ShopSettingsSerializer(request.user.shop, data=request.data, partial=True)
+        ser = ShopSettingsSerializer(shop, data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
-        ser.save()
+        try:
+            ser.save()
+        except Exception as exc:
+            # Surface the real cause instead of an opaque 500 HTML page, and log
+            # the full traceback so we can see exactly what failed on the server.
+            import logging
+            logging.getLogger("django").exception("Shop settings save failed")
+            return Response(
+                {"detail": f"Could not save settings: {exc.__class__.__name__}: {exc}"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(ser.data)
 
 
