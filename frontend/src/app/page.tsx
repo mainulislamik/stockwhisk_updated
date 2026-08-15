@@ -134,7 +134,7 @@ export default function LandingPage() {
               sx={{ position: "absolute", top: 160, right: -100, width: 500, height: 500, bgcolor: `${C.secondaryContainer}26`, borderRadius: "50%", filter: "blur(90px)", zIndex: 0, pointerEvents: "none" }} 
             />
             
-            <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <motion.div variants={staggerContainer} initial="hidden" animate="show" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%' }}>
                 
                 <motion.div variants={fadeUp}>
@@ -229,7 +229,7 @@ export default function LandingPage() {
                       </Box>
                     </Box>
                   ) : (
-                    <Box component={motion.div} whileHover={{ y: -10 }} transition={{ type: "spring", stiffness: 150, damping: 20 }} sx={{ width: "100%", maxWidth: 1024, mx: "auto", position: "relative", perspective: 1000, transformStyle: "preserve-3d" }}>
+                    <Box component={motion.div} whileHover={{ y: -10 }} transition={{ type: "spring", stiffness: 150, damping: 20 }} sx={{ width: "100%", maxWidth: 1200, mx: "auto", position: "relative", perspective: 1000, transformStyle: "preserve-3d" }}>
                       <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to top, ${C.background} 5%, transparent 30%, transparent)`, zIndex: 10, pointerEvents: "none" }} />
                       <Box sx={{ position: "relative", borderRadius: "24px", border: `1px solid ${C.outlineVariant}4D`, boxShadow: `0 30px 80px ${C.primary}33`, overflow: "hidden", bgcolor: C.surface }}>
                         <Box sx={{ height: 40, bgcolor: C.surfaceContainerLowest, borderBottom: `1px solid ${C.outlineVariant}4D`, display: "flex", alignItems: "center", px: 2, gap: 1 }}>
@@ -251,7 +251,7 @@ export default function LandingPage() {
           <Box id="features" sx={{ py: { xs: 8, md: 12 }, bgcolor: `${C.surfaceContainerLow}80`, position: "relative", overflow: "hidden" }}>
             <Box sx={{ position: "absolute", top: -100, right: -100, width: 300, height: 300, bgcolor: `${C.tertiaryContainer}1A`, borderRadius: "50%", filter: "blur(80px)", zIndex: 0 }} />
             
-            <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
+            <Container maxWidth="xl" sx={{ position: "relative", zIndex: 1 }}>
               <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer}>
                 <Box sx={{ textAlign: "center", mb: 8 }}>
                   <motion.div variants={fadeUp}>
@@ -364,7 +364,7 @@ export default function LandingPage() {
 
           {/* --- RETAIL PROBLEMS & SOLUTION --- */}
           <Box sx={{ py: { xs: 12, md: 16 } }}>
-            <Container maxWidth="lg">
+            <Container maxWidth="xl">
               <Grid container spacing={8} sx={{ alignItems: "center" }}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={slideInLeft}>
@@ -426,7 +426,7 @@ export default function LandingPage() {
 
           {/* --- FLOW DIAGRAM --- */}
           <Box id="how-it-works" sx={{ py: { xs: 12, md: 16 }, bgcolor: C.surfaceContainerLowest, borderTop: `1px solid ${C.outlineVariant}33`, borderBottom: `1px solid ${C.outlineVariant}33` }}>
-            <Container maxWidth="lg" sx={{ textAlign: "center" }}>
+            <Container maxWidth="xl" sx={{ textAlign: "center" }}>
               <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={fadeUp}>
                 <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: "2rem", md: "2.75rem" }, color: C.onBackground, mb: 10 }}>
                   {t('flow_title')}
@@ -461,7 +461,7 @@ export default function LandingPage() {
                 )}
 
                 <motion.div whileHover={{ scale: 1.01 }} transition={{ type: "spring", stiffness: 300 }}>
-                  <Box sx={{ borderRadius: "32px", border: `1px solid ${C.outlineVariant}4D`, boxShadow: `0 24px 80px ${C.primary}1A`, overflow: "hidden", bgcolor: C.surface, maxWidth: 1024, mx: "auto" }}>
+                  <Box sx={{ borderRadius: "32px", border: `1px solid ${C.outlineVariant}4D`, boxShadow: `0 24px 80px ${C.primary}1A`, overflow: "hidden", bgcolor: C.surface, maxWidth: 1200, mx: "auto" }}>
                     <Box component="img" src="/images/full_dashboard.jpg" alt="Full Dashboard" sx={{ width: "100%", display: "block" }} />
                   </Box>
                 </motion.div>
@@ -471,7 +471,7 @@ export default function LandingPage() {
 
           {/* --- FEATURE DETAILS (Alternating) --- */}
           <Box sx={{ py: { xs: 12, md: 16 } }}>
-            <Container maxWidth="lg">
+            <Container maxWidth="xl">
               
               {/* Inventory Feature */}
               <Grid container spacing={8} sx={{ alignItems: "center", mb: { xs: 12, md: 20 } }}>
@@ -563,7 +563,7 @@ export default function LandingPage() {
 
           {/* --- PRICING TEASER --- */}
           <Box id="pricing" sx={{ py: { xs: 12, md: 16 }, position: "relative" }}>
-            <Container maxWidth="lg">
+            <Container maxWidth="xl">
               <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={staggerContainer}>
                 
                 <Box sx={{ textAlign: "center", mb: 10 }}>
@@ -579,7 +579,7 @@ export default function LandingPage() {
                   </motion.div>
                 </Box>
 
-                <Grid container spacing={4} sx={{ maxWidth: 1024, mx: "auto", alignItems: "center" }}>
+                <Grid container spacing={4} sx={{ maxWidth: 1200, mx: "auto", alignItems: "center" }}>
                   
                   {/* Starter Plan */}
                   <Grid size={{ xs: 12, md: 4 }}>
@@ -681,7 +681,7 @@ export default function LandingPage() {
 
           {/* --- FINAL CTA --- */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={fadeScale}>
-            <Box sx={{ py: { xs: 12, md: 16 }, position: "relative", overflow: "hidden", bgcolor: C.primary, color: C.onPrimary, borderRadius: { md: "40px" }, mx: { md: 4 }, mb: { md: 8 } }}>
+            <Box sx={{ py: { xs: 12, md: 16 }, position: "relative", overflow: "hidden", bgcolor: C.primary, color: C.onPrimary, mb: { md: 8 } }}>
               <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom right, ${C.primary}, #003ea8, #00174b)`, zIndex: 0 }} />
               
               {/* Decorative shapes */}
