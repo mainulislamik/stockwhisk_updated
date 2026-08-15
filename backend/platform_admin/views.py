@@ -799,6 +799,108 @@ class PublicContactView(APIView):
     permission_classes = []
     authentication_classes = []
 
+    DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
+
+    def post(self, request):
+        ser = PublicContactCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        msg = ser.save()
+
+        # Destination inbox is managed from Platform Admin → Settings.
+        contact_to = (PlatformConfig.get_solo().contact_email or "").strip() or self.DEFAULT_CONTACT_TO
+
+        # Best-effort email notification. The message is already stored (Super
+        # Admin → Messages), so email is a convenience — never fail the request.
+        import logging
+        from django.core.mail import EmailMultiAlternatives
+        from notifications.channels import _contact_email
+        log = logging.getLogger(__name__)
+        try:
+            connection, from_email = _contact_email()
+            subject = f"New contact message from {msg.name}"
+            if msg.subject:
+                subject += f" — {msg.subject}"
+            text = (
+                f"Name: {msg.name}\n"
+                f"Email: {msg.email}\n"
+                f"Phone: {msg.phone or '—'}\n"
+                f"Subject: {msg.subject or '—'}\n\n"
+                f"{msg.message}\n"
+            )
+            html = f"""
+            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
+              <h2 style="color:#1B3C53">📨 New Contact Message</h2>
+              <table style="width:100%;border-collapse:collapse;font-size:14px">
+                <tr><td style="padding:6px 0;color:#666">Name</td><td style="padding:6px 0"><b>{msg.name}</b></td></tr>
+                <tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0"><a href="mailto:{msg.email}">{msg.email}</a></td></tr>
+                <tr><td style="padding:6px 0;color:#666">Phone</td><td style="padding:6px 0">{msg.phone or '—'}</td></tr>
+                <tr><td style="padding:6px 0;color:#666">Subject</td><td style="padding:6px 0">{msg.subject or '—'}</td></tr>
+              </table>
+              <p style="margin-top:16px;padding:14px;background:#f6f8fa;border-radius:8px;white-space:pre-wrap">{msg.message}</p>
+              <p style="color:#999;font-size:12px">Sent from the StockWhisk contact page.</p>
+            </div>
+            """
+            email = EmailMultiAlternatives(
+                subject, text, from_email, [contact_to],
+                connection=connection, reply_to=[msg.email],
+            )
+            email.attach_alternative(html, "text/html")
+            # fail_silently=False so a real SMTP error is logged below (not hidden).
+            sent = email.send(fail_silently=False)
+            log.warning("Contact email to %s sent=%s (from=%s)", contact_to, sent, from_email)
+        except Exception:
+            log.exception("Contact email delivery failed (message #%s stored)", msg.id)
+
+        # Auto-acknowledgement to the sender (best-effort, independent of above).
+        try:
+            connection, from_email = _contact_email()
+            ack_subject = "We've Received Your Message – StockWhisk"
+            ack_text = (
+                f"Dear {msg.name or 'Customer'},\n\n"
+                "Thank you for contacting StockWhisk.\n\n"
+                "We have successfully received your message and our team will review it "
+                "shortly. We will get back to you as soon as possible.\n\n"
+                "We appreciate your interest in StockWhisk and look forward to assisting you.\n\n"
+                "Best regards,\n"
+                "StockWhisk Team\n"
+                "Your trusted shopping partner"
+            )
+            ack_html = f"""
+            <div style="margin:0;padding:24px;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif">
+              <div style="max-width:560px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden">
+                <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:28px 32px;color:#ffffff">
+                  <div style="font-size:20px;font-weight:800;letter-spacing:-.3px">📦 StockWhisk</div>
+                  <div style="font-size:15px;opacity:.9;margin-top:4px">We've received your message</div>
+                </div>
+                <div style="padding:32px;color:#0f172a;font-size:15px;line-height:1.7">
+                  <p style="margin:0 0 16px">Dear {msg.name or 'Customer'},</p>
+                  <p style="margin:0 0 16px">Thank you for contacting <strong>StockWhisk</strong>.</p>
+                  <p style="margin:0 0 16px">We have <strong>successfully received your message</strong> and our team
+                     will review it shortly. We will get back to you as soon as possible.</p>
+                  <p style="margin:0 0 16px">We appreciate your interest in StockWhisk and look forward to assisting you.</p>
+                  <div style="margin:24px 0;padding:14px 18px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:8px;color:#1e3a8a;font-size:14px">
+                    Need something urgent? Call or WhatsApp us at <strong>01613511887</strong>.
+                  </div>
+                  <p style="margin:24px 0 0">Best regards,<br><strong>StockWhisk Team</strong><br>
+                     <span style="color:#64748b">Your trusted shopping partner</span></p>
+                </div>
+                <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;text-align:center">
+                  This is an automated confirmation — please do not reply to this email.
+                </div>
+              </div>
+            </div>
+            """
+            ack = EmailMultiAlternatives(
+                ack_subject, ack_text, from_email, [msg.email], connection=connection,
+            )
+            ack.attach_alternative(ack_html, "text/html")
+            ack_sent = ack.send(fail_silently=False)
+            log.warning("Contact auto-reply to %s sent=%s", msg.email, ack_sent)
+        except Exception:
+            log.exception("Contact auto-reply failed (message #%s)", msg.id)
+
+        return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
+
 # --- Reseller Management ----------------------------------------------------
 
 class PlatformResellerListView(APIView):
@@ -948,108 +1050,6 @@ class PlatformResellerActionView(APIView):
                 logging.getLogger("django").exception("Reseller status email failed for %s", profile.pk)
 
         return Response({"status": profile.status})
-
-    DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
-
-    def post(self, request):
-        ser = PublicContactCreateSerializer(data=request.data)
-        ser.is_valid(raise_exception=True)
-        msg = ser.save()
-
-        # Destination inbox is managed from Platform Admin → Settings.
-        contact_to = (PlatformConfig.get_solo().contact_email or "").strip() or self.DEFAULT_CONTACT_TO
-
-        # Best-effort email notification. The message is already stored (Super
-        # Admin → Messages), so email is a convenience — never fail the request.
-        import logging
-        from django.core.mail import EmailMultiAlternatives
-        from notifications.channels import _contact_email
-        log = logging.getLogger(__name__)
-        try:
-            connection, from_email = _contact_email()
-            subject = f"New contact message from {msg.name}"
-            if msg.subject:
-                subject += f" — {msg.subject}"
-            text = (
-                f"Name: {msg.name}\n"
-                f"Email: {msg.email}\n"
-                f"Phone: {msg.phone or '—'}\n"
-                f"Subject: {msg.subject or '—'}\n\n"
-                f"{msg.message}\n"
-            )
-            html = f"""
-            <div style="font-family:Arial,sans-serif;max-width:560px;margin:auto">
-              <h2 style="color:#1B3C53">📨 New Contact Message</h2>
-              <table style="width:100%;border-collapse:collapse;font-size:14px">
-                <tr><td style="padding:6px 0;color:#666">Name</td><td style="padding:6px 0"><b>{msg.name}</b></td></tr>
-                <tr><td style="padding:6px 0;color:#666">Email</td><td style="padding:6px 0"><a href="mailto:{msg.email}">{msg.email}</a></td></tr>
-                <tr><td style="padding:6px 0;color:#666">Phone</td><td style="padding:6px 0">{msg.phone or '—'}</td></tr>
-                <tr><td style="padding:6px 0;color:#666">Subject</td><td style="padding:6px 0">{msg.subject or '—'}</td></tr>
-              </table>
-              <p style="margin-top:16px;padding:14px;background:#f6f8fa;border-radius:8px;white-space:pre-wrap">{msg.message}</p>
-              <p style="color:#999;font-size:12px">Sent from the StockWhisk contact page.</p>
-            </div>
-            """
-            email = EmailMultiAlternatives(
-                subject, text, from_email, [contact_to],
-                connection=connection, reply_to=[msg.email],
-            )
-            email.attach_alternative(html, "text/html")
-            # fail_silently=False so a real SMTP error is logged below (not hidden).
-            sent = email.send(fail_silently=False)
-            log.warning("Contact email to %s sent=%s (from=%s)", contact_to, sent, from_email)
-        except Exception:
-            log.exception("Contact email delivery failed (message #%s stored)", msg.id)
-
-        # Auto-acknowledgement to the sender (best-effort, independent of above).
-        try:
-            connection, from_email = _contact_email()
-            ack_subject = "We've Received Your Message – StockWhisk"
-            ack_text = (
-                f"Dear {msg.name or 'Customer'},\n\n"
-                "Thank you for contacting StockWhisk.\n\n"
-                "We have successfully received your message and our team will review it "
-                "shortly. We will get back to you as soon as possible.\n\n"
-                "We appreciate your interest in StockWhisk and look forward to assisting you.\n\n"
-                "Best regards,\n"
-                "StockWhisk Team\n"
-                "Your trusted shopping partner"
-            )
-            ack_html = f"""
-            <div style="margin:0;padding:24px;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif">
-              <div style="max-width:560px;margin:auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden">
-                <div style="background:linear-gradient(135deg,#1d4ed8,#2563eb);padding:28px 32px;color:#ffffff">
-                  <div style="font-size:20px;font-weight:800;letter-spacing:-.3px">📦 StockWhisk</div>
-                  <div style="font-size:15px;opacity:.9;margin-top:4px">We've received your message</div>
-                </div>
-                <div style="padding:32px;color:#0f172a;font-size:15px;line-height:1.7">
-                  <p style="margin:0 0 16px">Dear {msg.name or 'Customer'},</p>
-                  <p style="margin:0 0 16px">Thank you for contacting <strong>StockWhisk</strong>.</p>
-                  <p style="margin:0 0 16px">We have <strong>successfully received your message</strong> and our team
-                     will review it shortly. We will get back to you as soon as possible.</p>
-                  <p style="margin:0 0 16px">We appreciate your interest in StockWhisk and look forward to assisting you.</p>
-                  <div style="margin:24px 0;padding:14px 18px;background:#eff6ff;border-left:4px solid #2563eb;border-radius:8px;color:#1e3a8a;font-size:14px">
-                    Need something urgent? Call or WhatsApp us at <strong>01613511887</strong>.
-                  </div>
-                  <p style="margin:24px 0 0">Best regards,<br><strong>StockWhisk Team</strong><br>
-                     <span style="color:#64748b">Your trusted shopping partner</span></p>
-                </div>
-                <div style="padding:16px 32px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#94a3b8;font-size:12px;text-align:center">
-                  This is an automated confirmation — please do not reply to this email.
-                </div>
-              </div>
-            </div>
-            """
-            ack = EmailMultiAlternatives(
-                ack_subject, ack_text, from_email, [msg.email], connection=connection,
-            )
-            ack.attach_alternative(ack_html, "text/html")
-            ack_sent = ack.send(fail_silently=False)
-            log.warning("Contact auto-reply to %s sent=%s", msg.email, ack_sent)
-        except Exception:
-            log.exception("Contact auto-reply failed (message #%s)", msg.id)
-
-        return Response({"status": "ok"}, status=status.HTTP_201_CREATED)
 
 
 # --- Tutorial videos ---------------------------------------------------------
