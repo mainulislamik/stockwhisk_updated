@@ -1,6 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
+import { api, unwrap } from "@/lib/api";
 import { Box, Typography, Button, Container, Grid, useTheme, useMediaQuery } from "@mui/material";
 import { motion } from "framer-motion";
 import MarketingNav from "@/components/MarketingNav";
@@ -48,6 +50,22 @@ const C = {
 };
 
 // --- ANIMATION VARIANTS ---
+
+type PricingPlan = {
+  id: number;
+  name: string;
+  tier: string;
+  price_monthly: string;
+  price_yearly: string;
+  features: Record<string, any>;
+  max_users: number;
+  max_branches: number;
+  max_products: number;
+  highlights?: string[];
+  show_users?: boolean;
+  show_branches?: boolean;
+  show_products?: boolean;
+};
 const staggerContainer = {
   hidden: { opacity: 0 },
   show: {
@@ -92,10 +110,24 @@ function MaterialIcon({ icon, filled = false, sx = {} }: { icon: string, filled?
   );
 }
 
-export default function LandingPage() {
+export default function Home() {
+  const { lang, t } = useLanguage();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-  const { t } = useLanguage();
+  
+  const [plans, setPlans] = useState<PricingPlan[]>([]);
+  const [loadingPricing, setLoadingPricing] = useState(true);
+
+  useEffect(() => {
+    api<any>("/platform/public/pricing/")
+      .then((data) => {
+        setPlans((unwrap(data) as PricingPlan[]).slice(0, 3)); // show top 3 on homepage
+      })
+      .catch((e) => console.error("Failed to load pricing plans", e))
+      .finally(() => setLoadingPricing(false));
+  }, []);
+
+  const toBnNum = (str: string | number) => str.toString().replace(/\d/g, d => '০১২৩৪৫৬৭৮৯'[d as any]);
 
   return (
     <PublicThemeProvider>
@@ -595,89 +627,82 @@ export default function LandingPage() {
 
                 <Grid container spacing={4} sx={{ maxWidth: 1200, mx: "auto", alignItems: "center" }}>
                   
-                  {/* Starter Plan */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -8 }} sx={{ bgcolor: C.surface, borderRadius: "32px", p: 4, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", height: "100%" }}>
-                        <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "1.5rem", color: C.onBackground, mb: 1 }}>{t('price_card_1_title')}</Typography>
-                        <Typography sx={{ fontSize: "1rem", color: C.onSurfaceVariant, mb: 3 }}>{t('price_card_1_desc')}</Typography>
-                        <Box sx={{ mb: 4 }}>
-                          <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.5rem", color: C.onBackground }}>{t('price_card_1_price')}</Typography>
-                          <Typography component="span" sx={{ fontSize: "1rem", color: C.onSurfaceVariant, ml: 1 }}>{t('price_card_1_period')}</Typography>
-                        </Box>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                          {[t('price_card_1_bullet_1'), t('price_card_1_bullet_2'), t('price_card_1_bullet_3')].map((text, i) => (
-                            <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                              <MaterialIcon icon="check" sx={{ color: C.primary, fontSize: "1.25rem" }} />
-                              <Typography sx={{ fontSize: "0.9375rem", color: C.onSurface }}>{text}</Typography>
-                            </Box>
-                          ))}
-                        </Box>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button component={Link} href="/register" sx={{ width: "100%", py: 1.5, borderRadius: 999, border: `1px solid ${C.primary}`, color: C.primary, fontWeight: 800, textTransform: "none", fontSize: "1rem", "&:hover": { bgcolor: C.surfaceContainerLow } }}>
-                            {t('price_card_1_btn')}
-                          </Button>
-                        </motion.div>
-                      </Box>
-                    </motion.div>
-                  </Grid>
+                  {loadingPricing ? (
+                    <Box sx={{ py: 10, textAlign: 'center', width: '100%' }}>
+                      <Typography>{t('pricing_loading') || 'Loading pricing...'}</Typography>
+                    </Box>
+                  ) : plans.length === 0 ? (
+                    <Box sx={{ py: 10, textAlign: 'center', width: '100%' }}>
+                      <Typography>No plans found.</Typography>
+                    </Box>
+                  ) : (
+                    plans.map((plan) => {
+                      const isPopular = plan.tier === 'professional';
+                      const monthly = parseFloat(plan.price_monthly) || 0;
+                      
+                      let priceStr = monthly > 0 ? `$${monthly}` : t('price_card_1_price');
+                      if (lang === 'bn' && monthly > 0) priceStr = `$${toBnNum(monthly)}`;
+                      
+                      const features = plan.highlights && plan.highlights.length > 0
+                        ? plan.highlights
+                        : [
+                            ...(plan.show_users !== false ? [t("pricing_users", { max_users: plan.max_users })] : []),
+                            ...(plan.show_branches !== false ? [t("pricing_branches", { max_branches: plan.max_branches })] : []),
+                            ...(plan.show_products !== false ? [t("pricing_products", { max_products: plan.max_products })] : []),
+                            ...Object.entries(plan.features || {}).filter(([, v]) => v).map(([k]) => t(`feat_${k}`)),
+                          ];
 
-                  {/* Professional Plan (Highlighted) */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <motion.div variants={fadeScale} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -8 }} sx={{ bgcolor: C.primary, color: C.onPrimary, borderRadius: "32px", p: 4, boxShadow: `0 24px 60px ${C.primary}4D`, display: "flex", flexDirection: "column", height: "100%", position: "relative", transform: { md: "translateY(-16px)" } }}>
-                        <Box sx={{ position: "absolute", top: 0, right: 0, bgcolor: C.secondaryContainer, color: C.onSecondaryContainer, fontSize: "0.75rem", fontWeight: 800, px: 2, py: 0.75, borderBottomLeftRadius: "16px", borderTopRightRadius: "32px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                          {t('price_card_2_badge')}
-                        </Box>
-                        <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "1.5rem", color: C.onPrimary, mb: 1 }}>{t('price_card_2_title')}</Typography>
-                        <Typography sx={{ fontSize: "1rem", color: C.primaryFixedDim, mb: 3 }}>{t('price_card_2_desc')}</Typography>
-                        <Box sx={{ mb: 4 }}>
-                          <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.5rem", color: C.onPrimary }}>{t('price_card_2_price')}</Typography>
-                          <Typography component="span" sx={{ fontSize: "1rem", color: C.primaryFixedDim, ml: 1 }}>{t('price_card_2_period')}</Typography>
-                        </Box>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                          {[t('price_card_2_bullet_1'), t('price_card_2_bullet_2'), t('price_card_2_bullet_3'), t('price_card_2_bullet_4')].map((text, i) => (
-                            <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                              <MaterialIcon icon="check" sx={{ color: C.tertiaryFixedDim, fontSize: "1.25rem" }} />
-                              <Typography sx={{ fontSize: "0.9375rem", color: C.onPrimary }}>{text}</Typography>
+                      return (
+                        <Grid size={{ xs: 12, md: 4 }} key={plan.id}>
+                          <motion.div variants={isPopular ? fadeScale : fadeUp} style={{ height: '100%' }}>
+                            <Box component={motion.div} whileHover={{ y: -8 }} 
+                              sx={isPopular 
+                                ? { bgcolor: C.primary, color: C.onPrimary, borderRadius: "32px", p: 4, boxShadow: `0 24px 60px ${C.primary}4D`, display: "flex", flexDirection: "column", height: "100%", position: "relative", transform: { md: "translateY(-16px)" } }
+                                : { bgcolor: C.surface, borderRadius: "32px", p: 4, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", height: "100%" }
+                              }>
+                              
+                              {isPopular && (
+                                <Box sx={{ position: "absolute", top: 0, right: 0, bgcolor: C.secondaryContainer, color: C.onSecondaryContainer, fontSize: "0.75rem", fontWeight: 800, px: 2, py: 0.75, borderBottomLeftRadius: "16px", borderTopRightRadius: "32px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+                                  {t('price_card_2_badge')}
+                                </Box>
+                              )}
+                              
+                              <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "1.5rem", color: isPopular ? C.onPrimary : C.onBackground, mb: 1 }}>
+                                {plan.name}
+                              </Typography>
+                              
+                              <Typography sx={{ fontSize: "1rem", color: isPopular ? C.primaryFixedDim : C.onSurfaceVariant, mb: 3 }}>
+                                {plan.tier === 'starter' ? t('price_card_1_desc') : plan.tier === 'enterprise' ? t('price_card_3_desc') : t('price_card_2_desc')}
+                              </Typography>
+                              
+                              <Box sx={{ mb: 4 }}>
+                                <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.5rem", color: isPopular ? C.onPrimary : C.onBackground }}>{priceStr}</Typography>
+                                <Typography component="span" sx={{ fontSize: "1rem", color: isPopular ? C.primaryFixedDim : C.onSurfaceVariant, ml: 1 }}>{t('price_card_1_period')}</Typography>
+                              </Box>
+                              
+                              <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
+                                {features.slice(0, 4).map((text, i) => (
+                                  <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                                    <MaterialIcon icon="check" sx={{ color: isPopular ? C.tertiaryFixedDim : C.primary, fontSize: "1.25rem" }} />
+                                    <Typography sx={{ fontSize: "0.9375rem", color: isPopular ? C.onPrimary : C.onSurface }}>{text}</Typography>
+                                  </Box>
+                                ))}
+                              </Box>
+                              
+                              <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                                <Button component={Link} href={plan.tier === 'enterprise' ? "/contact" : "/register"} sx={isPopular 
+                                  ? { width: "100%", py: 1.5, borderRadius: 999, bgcolor: C.surface, color: C.primary, fontWeight: 800, textTransform: "none", fontSize: "1rem", boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", "&:hover": { bgcolor: C.surfaceContainerLow } }
+                                  : { width: "100%", py: 1.5, borderRadius: 999, border: `1px solid ${plan.tier === 'starter' ? C.primary : C.outlineVariant}`, color: plan.tier === 'starter' ? C.primary : C.onSurface, fontWeight: 800, textTransform: "none", fontSize: "1rem", "&:hover": { bgcolor: C.surfaceContainerLow } }
+                                }>
+                                  {plan.tier === 'starter' ? t('price_card_1_btn') : plan.tier === 'enterprise' ? t('price_card_3_btn') : t('price_card_2_btn')}
+                                </Button>
+                              </motion.div>
                             </Box>
-                          ))}
-                        </Box>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button component={Link} href="/register" sx={{ width: "100%", py: 1.5, borderRadius: 999, bgcolor: C.surface, color: C.primary, fontWeight: 800, textTransform: "none", fontSize: "1rem", boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)", "&:hover": { bgcolor: C.surfaceContainerLow } }}>
-                            {t('price_card_2_btn')}
-                          </Button>
-                        </motion.div>
-                      </Box>
-                    </motion.div>
-                  </Grid>
-
-                  {/* Enterprise Plan */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -8 }} sx={{ bgcolor: C.surface, borderRadius: "32px", p: 4, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", display: "flex", flexDirection: "column", height: "100%" }}>
-                        <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "1.5rem", color: C.onBackground, mb: 1 }}>{t('price_card_3_title')}</Typography>
-                        <Typography sx={{ fontSize: "1rem", color: C.onSurfaceVariant, mb: 3 }}>{t('price_card_3_desc')}</Typography>
-                        <Box sx={{ mb: 4 }}>
-                          <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.5rem", color: C.onBackground }}>{t('price_card_3_price')}</Typography>
-                          <Typography component="span" sx={{ fontSize: "1rem", color: C.onSurfaceVariant, ml: 1 }}>{t('price_card_3_period')}</Typography>
-                        </Box>
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                          {[t('price_card_3_bullet_1'), t('price_card_3_bullet_2'), t('price_card_3_bullet_3')].map((text, i) => (
-                            <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                              <MaterialIcon icon="check" sx={{ color: C.primary, fontSize: "1.25rem" }} />
-                              <Typography sx={{ fontSize: "0.9375rem", color: C.onSurface }}>{text}</Typography>
-                            </Box>
-                          ))}
-                        </Box>
-                        <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                          <Button component={Link} href="/contact" sx={{ width: "100%", py: 1.5, borderRadius: 999, border: `1px solid ${C.outlineVariant}`, color: C.onSurface, fontWeight: 800, textTransform: "none", fontSize: "1rem", "&:hover": { bgcolor: C.surfaceContainerLow } }}>
-                            {t('price_card_3_btn')}
-                          </Button>
-                        </motion.div>
-                      </Box>
-                    </motion.div>
-                  </Grid>
+                          </motion.div>
+                        </Grid>
+                      );
+                    })
+                  )}
 
                 </Grid>
                 
