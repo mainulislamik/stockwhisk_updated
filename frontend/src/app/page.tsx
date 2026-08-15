@@ -288,8 +288,8 @@ export default function LandingPage() {
                         <Typography sx={{ color: C.onSurfaceVariant, mb: 4, flexGrow: 1, fontSize: "1.0625rem" }}>
                           {t('bento_inv_desc')}
                         </Typography>
-                        <Box sx={{ height: 200, borderRadius: "16px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
-                          <Box component="img" src="/images/inventory_illustration.jpg" alt="Inventory illustration" sx={{ width: "100%", height: "100%", objectFit: "cover" }} />
+                        <Box sx={{ minHeight: 280, flexGrow: 1, borderRadius: "16px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
+                          <Box component="img" src="/images/inventory_illustration.jpg" alt="Inventory illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
                         </Box>
                       </Box>
                     </motion.div>
@@ -310,8 +310,8 @@ export default function LandingPage() {
                             <Typography sx={{ color: C.onSurfaceVariant, flexGrow: 1, mb: 3, fontSize: "1.0625rem" }}>
                               {t('bento_pos_desc')}
                             </Typography>
-                            <Box sx={{ height: 120, borderRadius: "16px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
-                              <Box component="img" src="/images/pos_illustration.jpg" alt="POS illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} />
+                            <Box sx={{ height: 200, borderRadius: "16px", bgcolor: "#fff", border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Box component="img" src="/images/pos_illustration.jpg" alt="POS illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
                             </Box>
                           </Box>
                         </motion.div>
@@ -328,8 +328,8 @@ export default function LandingPage() {
                             <Typography sx={{ color: C.onSurfaceVariant, flexGrow: 1, mb: 3, fontSize: "1.0625rem" }}>
                               {t('bento_rep_desc')}
                             </Typography>
-                            <Box sx={{ height: 120, borderRadius: "16px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
-                              <Box component="img" src="/images/reports_illustration.jpg" alt="Reports illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%" }} />
+                            <Box sx={{ height: 200, borderRadius: "16px", bgcolor: "#fff", border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                              <Box component="img" src="/images/reports_illustration.jpg" alt="Reports illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center" }} />
                             </Box>
                           </Box>
                         </motion.div>
