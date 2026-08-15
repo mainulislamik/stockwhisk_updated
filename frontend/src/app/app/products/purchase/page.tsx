@@ -40,7 +40,7 @@ export default function PurchaseProductPage() {
 
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);
-  const [newProd, setNewProd] = useState({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "1" });
+  const [newProd, setNewProd] = useState({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "5" });
   const [savingProd, setSavingProd] = useState(false);
 
   // Sidebar / payment
@@ -110,12 +110,12 @@ export default function PurchaseProductPage() {
           sku: newProd.sku.trim() || "",
           cost_price: newProd.cost_price || 0,
           selling_price: newProd.selling_price || 0,
-          reorder_level: newProd.reorder_level === "" ? 1 : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
+          reorder_level: newProd.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
           track_inventory: true,
         },
       });
       setShowNewProduct(false);
-      setNewProd({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "1" });
+      setNewProd({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "5" });
       selectProduct(p);
       // also add to receive list automatically
       setLines((prev) => [...prev, { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: [] }]);

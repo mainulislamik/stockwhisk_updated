@@ -51,7 +51,7 @@ export default function ProductEditPage() {
           brand: form.brand || null,
           cost_price: form.cost_price,
           selling_price: form.selling_price,
-          reorder_level: form.reorder_level === "" || form.reorder_level == null ? 1 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
+          reorder_level: form.reorder_level === "" || form.reorder_level == null ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
           warranty_months: form.warranty_months,
           description: form.description,
           is_active: form.is_active,
