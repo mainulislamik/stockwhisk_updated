@@ -13,8 +13,22 @@ export default function ResellerProfilePage() {
   const [p, setP] = useState<Profile | null>(null);
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState("");
+  const [copied, setCopied] = useState(false);
   useEffect(() => { api<Profile>("/reseller/profile/").then(setP).catch(() => {}); }, []);
   const set = (k: string, v: string) => setP((x) => (x ? { ...x, [k]: v } : x));
+
+  // referral_link is a relative path (/register/?ref=…); show it as a full URL.
+  const fullReferralLink = p
+    ? (typeof window !== "undefined" ? window.location.origin : "") + (p.referral_link || `/register/?ref=${p.referral_code}`)
+    : "";
+
+  async function copyReferral() {
+    try {
+      await navigator.clipboard.writeText(fullReferralLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch { /* clipboard blocked — ignore */ }
+  }
 
   async function save(e: React.FormEvent) {
     e.preventDefault(); if (!p) return;
@@ -33,10 +47,22 @@ export default function ResellerProfilePage() {
           <div className="card-body">
             <div className="row g-3 mb-4">
               <div className="col-md-4"><div className="text-secondary small">Reseller ID</div><div className="fw-semibold">{p.reseller_code}</div></div>
+              <div className="col-md-4"><div className="text-secondary small">Full name</div><div className="fw-semibold">{p.full_name}</div></div>
               <div className="col-md-4"><div className="text-secondary small">Referral code</div><div className="fw-semibold font-monospace">{p.referral_code}</div></div>
-              <div className="col-md-4"><div className="text-secondary small">Commission rate</div><div className="fw-semibold">{p.commission_rate}% <span className="badge text-bg-light ms-1">set by admin</span></div></div>
               <div className="col-md-6"><div className="text-secondary small">Email</div><div className="fw-semibold">{p.email}</div></div>
-              <div className="col-md-6"><div className="text-secondary small">Status</div><div className="fw-semibold text-capitalize">{p.status}</div></div>
+              <div className="col-md-3"><div className="text-secondary small">Commission rate</div><div className="fw-semibold">{p.commission_rate}% <span className="badge text-bg-light ms-1">set by admin</span></div></div>
+              <div className="col-md-3"><div className="text-secondary small">Status</div><div className="fw-semibold text-capitalize">{p.status}</div></div>
+
+              <div className="col-12">
+                <div className="text-secondary small">Your referral link</div>
+                <div className="input-group input-group-sm mt-1" style={{ maxWidth: 520 }}>
+                  <input className="form-control font-monospace" readOnly value={fullReferralLink} onFocus={(e) => e.target.select()} />
+                  <button type="button" className={`btn ${copied ? "btn-success" : "btn-outline-primary"}`} onClick={copyReferral}>
+                    {copied ? "Copied!" : "Copy"}
+                  </button>
+                </div>
+                <div className="text-secondary small mt-1">Share this link — shops that sign up through it are attributed to you.</div>
+              </div>
             </div>
             <form onSubmit={save} className="row g-3">
               <div className="col-md-6"><label className="small">Company name</label><input className="form-control" value={p.company_name} onChange={(e) => set("company_name", e.target.value)} /></div>
