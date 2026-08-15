@@ -173,7 +173,7 @@ export default function LandingPage() {
                       <Box sx={{ width: 12, height: 12, borderRadius: "50%", bgcolor: C.tertiaryFixedDim }} />
                       <Typography sx={{ flex: 1, textAlign: "center", fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: `${C.onSurfaceVariant}80` }}>stockwhisk.com/app</Typography>
                     </Box>
-                    <Box component="img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6-ujRGatBx_3wsyR5uq1BS91XjnkpfBxNc7seDYzGQK4OipRJ00bVUgYOSGbkJlPdNwKUab_MzJi8EEz3X32hkkUAwQYHSAwLl8vOqiF7DTXwluQbmDRvlHab8t_RQrftCOGveHxJ0337OxQp3yOizdCjfdyXtYuYEXKQoqO63vmW5KaBj7R-zLXzjMAEwklupd6qYKAgoUMNXCDTNUDJpfllGa2b_e9bqVbxYqMglWGgzxdHusxp" alt="StockWhisk Dashboard Mockup" sx={{ width: "100%", display: "block" }} />
+                    <Box component="img" src="/images/dashboard_mockup.jpg" alt="StockWhisk Dashboard Mockup" sx={{ width: "100%", display: "block" }} />
                   </Box>
                 </Box>
               )}
@@ -206,7 +206,7 @@ export default function LandingPage() {
                       {t('bento_inv_desc')}
                     </Typography>
                     <Box sx={{ height: 160, borderRadius: "12px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
-                      <Box component="img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsC9jhBbOcraVxXq5vDD7xm6CNg1RFmeeVjqNufP6BvGPev1y2J-bwO5JoSbOnpO33GsUXhhJ8Z-gzZCyXwxbybfFmY2MD8SeniLdIvu-3M0TeCHWAY6KkGvu_exySL4BMKTK7IjWUzd5t2COeKaf9yCeUccUWUZTumNVzLDO3UZQEfix0arAehxvtCUuyNJyvqav2PfqJuBUH0S59JXsija-OwE7UOB1RjiqBdaY0TSMHFvq9IFcA" alt="Inventory illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }} />
+                      <Box component="img" src="/images/inventory_illustration.jpg" alt="Inventory illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }} />
                     </Box>
                   </Box>
                 </Grid>
@@ -365,7 +365,7 @@ export default function LandingPage() {
               )}
 
               <Box sx={{ borderRadius: "24px", border: `1px solid ${C.outlineVariant}4D`, boxShadow: `0 12px 40px ${C.primary}1A`, overflow: "hidden", bgcolor: C.surface, maxWidth: 1024, mx: "auto" }}>
-                <Box component="img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCX8MVbI7cy9oyCsyCoMNnZ-AXZa1mmb6AtVS_5R5oIVib7fDYrXRWuUtqRw19vfduFD2-XdtUXVzU9LXVw6W0s7yNpHLw8SNXYfMlY6z8QF_vVqQQK9M_DZz5eGFxakVDTMe1XrMFKW5mNILsR8ivt_CkiSJL8sq8iNpSmHOjCtG1p9LAiNX8MDnCz4BjYoe3cW80bRmCkNosNB-rMng7fukbiX18kwParKaywJyYNEvh0IPreDVG0" alt="Full Dashboard" sx={{ width: "100%", display: "block" }} />
+                <Box component="img" src="/images/full_dashboard.jpg" alt="Full Dashboard" sx={{ width: "100%", display: "block" }} />
               </Box>
             </Container>
           </Box>
@@ -378,7 +378,7 @@ export default function LandingPage() {
               <Grid container spacing={8} sx={{ alignItems: "center", mb: { xs: 8, md: 16 } }}>
                 <Grid size={{ xs: 12, md: 6 }} sx={{ order: { xs: 2, md: 1 } }}>
                   <Box sx={{ borderRadius: "24px", overflow: "hidden", boxShadow: `0 12px 40px ${C.primary}1A`, border: `1px solid ${C.outlineVariant}33`, bgcolor: C.surface }}>
-                    <Box component="img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC2-Hr_i7eBi5QI2Y285Nklwp4tnRtkEXl5R-NGSp6Y5hCI5fYQPCgK9A92qnieiWRbAHQSirp3Y0_JRbwoJPp3Fz5wV313ksyeuOLB2Mku5dWh3GoW0SKSpTuDHE2s40Nd35dLmYXYqn4vPWxU80wI2NxDeRvhpABmj_3V7oKtzaXkn4aWlx8495XfTLEli6f5E_QHwNsw5mK8MsCFOIXdRbLyBJ3mlMNQYya6itRKQrhpd7NRDeX" alt="Inventory UI" sx={{ width: "100%", display: "block" }} />
+                    <Box component="img" src="/images/inventory_ui.jpg" alt="Inventory UI" sx={{ width: "100%", display: "block" }} />
                   </Box>
                 </Grid>
                 <Grid size={{ xs: 12, md: 6 }} sx={{ order: { xs: 1, md: 2 } }}>
@@ -437,7 +437,7 @@ export default function LandingPage() {
                   </Grid>
                   <Grid size={{ xs: 12, md: 6 }}>
                     <Box sx={{ borderRadius: "24px", overflow: "hidden", boxShadow: `0 12px 40px ${C.primary}1A`, border: `1px solid ${C.outlineVariant}33`, bgcolor: C.surface }}>
-                      <Box component="img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuARZQi3fPGlafivXLK-3ZfImKPstbx0a95c6gWc5TxHoLRs1EWxECodoxJDsXlldw2MGyu5_qQv3JkfBzOUWZ59o52mlAKXFFL0QKc2fbhjH5k5O_GCALxkVyLsGcu-s-JcQwvjgWBPTT2bg52u3He_SwvWJ_AAbhJuyg-5WC1cjpy5lhHERwAFAEsYNXjl_GRlEeYMHFIXyC9-fVr6kOFfhPbgC15H3MFIASe9wCpborbR_KHM1xep" alt="POS UI" sx={{ width: "100%", display: "block" }} />
+                      <Box component="img" src="/images/pos_ui.jpg" alt="POS UI" sx={{ width: "100%", display: "block" }} />
                     </Box>
                   </Grid>
                 </Grid>
