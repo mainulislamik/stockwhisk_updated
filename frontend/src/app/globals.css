@@ -32,6 +32,7 @@
   --input-border: 1px solid rgba(255, 255, 255, 0.12);
   --pos-item-bg: rgba(22, 27, 34, 0.4);
   --table-border: rgba(255, 255, 255, 0.08);
+  --row-danger-bg: rgba(239, 68, 68, 0.18);
   --scrollbar-thumb: rgba(148,163,184,0.2);
   --scrollbar-thumb-hover: rgba(148,163,184,0.4);
   
@@ -75,6 +76,7 @@
   --input-border: 1px solid rgba(0, 0, 0, 0.15);
   --pos-item-bg: rgba(255, 255, 255, 0.6);
   --table-border: rgba(0, 0, 0, 0.06);
+  --row-danger-bg: rgba(239, 68, 68, 0.10);
   --scrollbar-thumb: rgba(148,163,184,0.3);
   --scrollbar-thumb-hover: rgba(148,163,184,0.5);
 
@@ -270,6 +272,19 @@ a:hover { color: var(--brand-400); }
   border-bottom: 1px solid var(--table-border) !important;
 }
 .table tbody tr { transition: background 0.15s ease; }
+
+/* Contextual "danger" rows (low stock, overdue, import errors). Our base cell
+   rule forces a transparent background, and Bootstrap's striped variant paints a
+   light-mode-only dark text colour that vanishes on a dark row. Give these rows a
+   theme-aware red tint and force readable text in both themes. */
+.table > :not(caption) > tr.table-danger > *,
+.table > tbody > tr.table-danger > *,
+.table-striped > tbody > tr.table-danger:nth-of-type(odd) > * {
+  background: var(--row-danger-bg) !important;
+  color: var(--text-main) !important;
+}
+/* Keep genuinely red cells (e.g. the low-stock quantity) red and legible. */
+.table tbody tr.table-danger .text-danger { color: #ef4444 !important; }
 
 /* Thead Colored Borders */
 .thead-1 th { border-top: 3px solid #3b82f6 !important; }
