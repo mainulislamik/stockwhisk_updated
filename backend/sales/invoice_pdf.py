@@ -155,6 +155,21 @@ def build_invoice_pdf(sale) -> bytes:
     if due > 0:
         total_row("Due", _money(due), bold=True)
 
+    # ── Signatures ──
+    sign_y = 36 * mm
+    sign_w = 55 * mm
+    c.setStrokeColor(BLACK)
+    c.setLineWidth(0.7)
+    c.line(left, sign_y, left + sign_w, sign_y)
+    c.line(right - sign_w, sign_y, right, sign_y)
+    c.setFont("Helvetica-Bold", 8)
+    c.setFillColor(GREY)
+    c.drawString(left, sign_y - 4 * mm, "Customer Signature")
+    auth_label = "Authorized Signature"
+    if shop.name:
+        auth_label += f" - {shop.name}"
+    c.drawRightString(right, sign_y - 4 * mm, auth_label[:60])
+
     # ── Footer ──
     c.setFillColor(LIGHTGREY)
     c.setFont("Helvetica-Oblique", 9)

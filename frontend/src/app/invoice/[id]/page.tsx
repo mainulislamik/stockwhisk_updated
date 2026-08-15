@@ -267,6 +267,18 @@ export default function InvoicePage() {
           </div>
         </div>
 
+        {/* ── Signatures ── */}
+        <div className="inv-signatures">
+          <div className="inv-sign-box">
+            <div className="inv-sign-line" />
+            <div className="inv-sign-label">Customer Signature</div>
+          </div>
+          <div className="inv-sign-box">
+            <div className="inv-sign-line" />
+            <div className="inv-sign-label">Authorized Signature{shopName ? ` — ${shopName}` : ""}</div>
+          </div>
+        </div>
+
         {/* Thank you line when there IS a note */}
         {sale.note && <div className="inv-thank-you">© Thank you for your business!</div>}
       </div>
@@ -405,6 +417,18 @@ export default function InvoicePage() {
           margin: 4px 0;
         }
 
+        /* ── Signatures ── */
+        .inv-signatures {
+          display: flex;
+          justify-content: space-between;
+          gap: 48px;
+          margin-top: 56px;
+        }
+        .inv-sign-box { flex: 1; max-width: 240px; text-align: center; }
+        .inv-sign-box:last-child { text-align: center; }
+        .inv-sign-line { border-top: 1.5px solid #0f172a; margin-bottom: 6px; }
+        .inv-sign-label { font-size: 9pt; color: #475569; font-weight: 600; }
+
         /* Thank you */
         .inv-thank-you {
           font-size: 9pt;
@@ -444,6 +468,7 @@ export default function InvoicePage() {
           /* Keep footer (totals + notes) together on same page */
           .inv-footer-row { page-break-inside: avoid; }
           .inv-thank-you { page-break-inside: avoid; }
+          .inv-signatures { page-break-inside: avoid; margin-top: 48px; }
         }
       `}</style>
     </>

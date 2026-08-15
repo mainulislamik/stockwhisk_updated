@@ -87,6 +87,18 @@
         <tr><td class="text-secondary">Payment method</td><td class="text-end">{% for p in sale.payments.all %}{{ p.get_method_display }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
       </table>
     </div>
+
+    <!-- SIGNATURES -->
+    <div style="display:flex;justify-content:space-between;gap:48px;margin-top:56px;page-break-inside:avoid">
+      <div style="flex:1;max-width:240px;text-align:center">
+        <div style="border-top:1.5px solid #0f172a;margin-bottom:6px"></div>
+        <div style="font-size:.8rem;color:#475569;font-weight:600">Customer Signature</div>
+      </div>
+      <div style="flex:1;max-width:240px;text-align:center">
+        <div style="border-top:1.5px solid #0f172a;margin-bottom:6px"></div>
+        <div style="font-size:.8rem;color:#475569;font-weight:600">Authorized Signature{% if shop.name %} — {{ shop.name }}{% endif %}</div>
+      </div>
+    </div>
   </main>
 
   <!-- FOOTER — pinned to the bottom (screen) / fixed to each page bottom (print) -->
