@@ -76,7 +76,7 @@ export default function InventoryPage() {
         body: {
           product: Number(adj.product),
           movement_type: adj.movement_type,
-          quantity: adj.quantity,
+          quantity: Math.max(0, Math.round(Number(adj.quantity) || 0)),
           unit_cost: adj.unit_cost || 0,
           note: adj.note,
           barcodes: parsedBarcodes,
@@ -158,7 +158,7 @@ export default function InventoryPage() {
               </div>
               <div className="col-md-1">
                 <label className="small">Quantity</label>
-                <input required type="number" step="0.01" className="form-control form-control-sm" value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} />
+                <input required type="number" step="1" min="1" className="form-control form-control-sm" value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} />
               </div>
               <div className="col-md-2">
                 <label className="small">Unit cost</label>

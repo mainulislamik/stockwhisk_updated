@@ -545,8 +545,8 @@ export default function PurchaseProductPage() {
                           )}
                         </td>
                         <td style={{ width: "4.5rem" }}>
-                          <input type="number" min={1} className="form-control form-control-sm" value={l.quantity}
-                            onChange={(e) => updateLine(l.product.id, "quantity", Number(e.target.value) || 1)} />
+                          <input type="number" min={1} step={1} className="form-control form-control-sm" value={l.quantity}
+                            onChange={(e) => updateLine(l.product.id, "quantity", Math.max(1, Math.round(Number(e.target.value) || 1)))} />
                         </td>
                         <td style={{ width: "5.5rem" }}>
                           <input type="number" min={0} step="0.01" className="form-control form-control-sm" value={l.unit_cost}
