@@ -21,6 +21,7 @@
     "react-barcode": "^1.6.1",
     "react-dom": "18.3.1",
     "react-hot-toast": "^2.6.0",
+    "react-quill": "^2.0.0",
     "sweetalert2": "^11.26.25",
     "sweetalert2-react-content": "^5.1.2",
     "swr": "^2.5.0"

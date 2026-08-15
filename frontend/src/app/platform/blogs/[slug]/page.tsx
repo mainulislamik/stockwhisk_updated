@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { Card, PageHeader, Spinner, ErrorState } from "@/components/ui";
 import toast from "react-hot-toast";
+import dynamic from "next/dynamic";
+import "react-quill/dist/quill.snow.css";
 
 export default function BlogEditorPage() {
   const params = useParams();
@@ -21,6 +23,21 @@ export default function BlogEditorPage() {
   const [excerpt, setExcerpt] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [isPublished, setIsPublished] = useState(false);
+
+  // Dynamically import ReactQuill to avoid Next.js SSR issues
+  const ReactQuill = useMemo(() => dynamic(() => import("react-quill"), { ssr: false }), []);
+
+  const modules = {
+    toolbar: [
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ color: [] }, { background: [] }],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ align: [] }],
+      ["link", "image", "video"],
+      ["clean"],
+    ],
+  };
 
   useEffect(() => {
     if (isNew) return;
@@ -133,15 +150,16 @@ export default function BlogEditorPage() {
             </div>
             
             <div className="col-12">
-              <label className="form-label">Content (Markdown supported)</label>
-              <textarea 
-                className="form-control font-monospace" 
-                rows={15}
-                required
-                value={content} 
-                onChange={(e) => setContent(e.target.value)} 
-                style={{ fontSize: '0.9rem' }}
-              />
+              <label className="form-label">Content (Rich Text)</label>
+              <div className="bg-white rounded overflow-hidden border">
+                <ReactQuill 
+                  theme="snow"
+                  value={content}
+                  onChange={setContent}
+                  modules={modules}
+                  style={{ height: '400px', paddingBottom: '42px' }} // 42px accounts for the toolbar height so text doesn't hide behind it
+                />
+              </div>
             </div>
 
             <div className="col-12">
