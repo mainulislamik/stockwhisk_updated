@@ -20,6 +20,12 @@ type BlogPost = {
   excerpt: string;
   published_at: string;
   cover_image_url: string;
+  category: string;
+  author_name: string;
+  author_role: string;
+  author_avatar_url: string;
+  read_time_minutes: number;
+  is_featured: boolean;
 };
 
 // Mock data to match the UI if backend is missing fields
@@ -56,38 +62,10 @@ export default function BlogListPage() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Use the first blog as featured, or mock if empty (just for visual matching)
-  const featuredPost = blogs.length > 0 ? blogs[0] : {
-    title: "The Future of Omnichannel Retail: Blending Physical and Digital Stock",
-    slug: "future-of-omnichannel",
-    excerpt: "Discover how the most successful modern retailers are seamlessly connecting their brick-and-mortar inventory with their online storefronts to reduce stockouts, optimize fulfillment, and deliver a unified shopping experience.",
-    published_at: new Date().toISOString(),
-    cover_image_url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200",
-  };
-
-  const latestPosts = blogs.length > 1 ? blogs.slice(1, 4) : [
-    {
-      title: "5 Key Features Every Modern POS System Must Have",
-      slug: "5-key-features-pos",
-      excerpt: "From mobile checkout capabilities to real-time inventory syncing, evaluate your current point-of-sale setup against these crucial...",
-      published_at: new Date().toISOString(),
-      cover_image_url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800",
-    },
-    {
-      title: "Scaling from Excel: When to Upgrade Your Inventory Software",
-      slug: "scaling-from-excel",
-      excerpt: "Spreadsheets are great for day one, but as your SKU count grows, they become a liability. Learn the warning signs that indicate it's time...",
-      published_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-      cover_image_url: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=800",
-    },
-    {
-      title: "Product Update: Q3 Release Notes",
-      slug: "q3-release-notes",
-      excerpt: "We've completely overhauled how you view inventory across multiple storefronts. Read about the new features rolling out to all Pro...",
-      published_at: new Date(Date.now() - 86400000 * 5).toISOString(),
-      cover_image_url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800",
-    }
-  ];
+  // Compute featured and latest posts based on active category
+  const filteredBlogs = blogs.filter(b => activeCategory === 'all' || b.category === activeCategory);
+  const featuredPost = filteredBlogs.find(b => b.is_featured) || (filteredBlogs.length > 0 ? filteredBlogs[0] : null);
+  const latestPosts = filteredBlogs.filter(b => b !== featuredPost).slice(0, 3);
 
   const fadeUp = {
     hidden: { opacity: 0, y: 30 },
@@ -172,6 +150,7 @@ export default function BlogListPage() {
             </Box>
 
             {/* Featured Insight */}
+            {featuredPost && (
             <Box sx={{ mb: { xs: 8, md: 10 } }}>
               <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: '1.75rem', mb: 3, color: '#0f172a' }}>
                 {t('blog_featured')}
@@ -181,15 +160,17 @@ export default function BlogListPage() {
                   <Box sx={{ width: { xs: '100%', md: '55%' }, height: { xs: 240, md: 'auto' }, position: 'relative' }}>
                     <CardMedia
                       component="img"
-                      image={featuredPost.cover_image_url}
+                      image={featuredPost.cover_image_url || "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200"}
                       alt={featuredPost.title}
                       sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
                     />
                   </Box>
                   <Box sx={{ width: { xs: '100%', md: '45%' }, p: { xs: 3, md: 5 }, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    {featuredPost.category && (
                     <Box sx={{ display: 'inline-block', bgcolor: '#eff6ff', color: '#2563eb', px: 1.5, py: 0.5, borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, mb: 2, alignSelf: 'flex-start' }}>
-                      {t('blog_cat_1')}
+                      {t(CATEGORIES.find(c => c.id === featuredPost.category)?.key || 'blog_cat_1')}
                     </Box>
+                    )}
                     <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: '1.5rem', md: '2rem' }, lineHeight: 1.2, mb: 2, color: '#0f172a' }}>
                       {featuredPost.title}
                     </Typography>
@@ -197,18 +178,20 @@ export default function BlogListPage() {
                       {featuredPost.excerpt}
                     </Typography>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
-                      <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" sx={{ width: 40, height: 40 }} />
+                      <Avatar src={featuredPost.author_avatar_url || "https://i.pravatar.cc/150?u=a042581f4e29026704d"} sx={{ width: 40, height: 40 }} />
                       <Box>
-                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>Elena Rodriguez</Typography>
-                        <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Retail Tech Analyst • 8 min read</Typography>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>{featuredPost.author_name || "StockWhisk Team"}</Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>{featuredPost.author_role || "Editorial Team"} • {featuredPost.read_time_minutes || 5} min read</Typography>
                       </Box>
                     </Box>
                   </Box>
                 </Card>
               </motion.div>
             </Box>
+            )}
 
             {/* Latest Articles */}
+            {latestPosts.length > 0 && (
             <Box sx={{ mb: { xs: 10, md: 12 } }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
                 <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: '1.75rem', color: '#0f172a' }}>
@@ -226,17 +209,19 @@ export default function BlogListPage() {
                     <motion.div key={post.slug} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} style={{ transitionDelay: `${index * 0.1}s` }}>
                       <Card sx={{ display: 'flex', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', bgcolor: '#ffffff', textDecoration: 'none' }} component={Link} href={`/blog/${post.slug}`}>
                         <Box sx={{ width: 120, height: 120, flexShrink: 0 }}>
-                          <CardMedia component="img" image={post.cover_image_url} alt={post.title} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          <CardMedia component="img" image={post.cover_image_url || "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800"} alt={post.title} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                         </Box>
                         <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          {post.category && (
                           <Typography sx={{ color: '#f59e0b', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', mb: 0.5, letterSpacing: '0.05em' }}>
-                            {t('blog_cat_2')}
+                            {t(CATEGORIES.find(c => c.id === post.category)?.key || 'blog_cat_2')}
                           </Typography>
+                          )}
                           <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: '1rem', lineHeight: 1.3, color: '#0f172a', mb: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                             {post.title}
                           </Typography>
                           <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
-                            {new Date(post.published_at).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric' })} • 5 min read
+                            {new Date(post.published_at).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric' })} • {post.read_time_minutes || 5} min read
                           </Typography>
                         </Box>
                       </Card>
@@ -250,14 +235,16 @@ export default function BlogListPage() {
                     <Grid size={{ xs: 12, md: 4 }} key={post.slug}>
                       <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} style={{ height: '100%' }}>
                         <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '24px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', bgcolor: '#ffffff', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 20px 40px rgba(0,0,0,0.06)' }, textDecoration: 'none' }} component={Link} href={`/blog/${post.slug}`}>
-                          <CardMedia component="img" height="200" image={post.cover_image_url} alt={post.title} />
+                          <CardMedia component="img" height="200" image={post.cover_image_url || "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800"} alt={post.title} />
                           <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
                             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                              {post.category && (
                               <Box sx={{ bgcolor: '#f1f5f9', color: '#475569', px: 1, py: 0.5, borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
-                                {t('blog_cat_4')}
+                                {t(CATEGORIES.find(c => c.id === post.category)?.key || 'blog_cat_4')}
                               </Box>
+                              )}
                               <Box sx={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '0.75rem' }}>
-                                <MaterialIcon icon="schedule" sx={{ fontSize: '1rem', mr: 0.5 }} /> 6 min
+                                <MaterialIcon icon="schedule" sx={{ fontSize: '1rem', mr: 0.5 }} /> {post.read_time_minutes || 5} min
                               </Box>
                             </Box>
                             <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: '1.25rem', lineHeight: 1.3, color: '#0f172a', mb: 1.5 }}>
@@ -267,7 +254,7 @@ export default function BlogListPage() {
                               {post.excerpt}
                             </Typography>
                             <Box sx={{ mt: 'auto', borderTop: '1px solid #e2e8f0', pt: 2 }}>
-                              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>By Sarah Jenkins</Typography>
+                              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>By {post.author_name || "StockWhisk Team"}</Typography>
                             </Box>
                           </Box>
                         </Card>
@@ -277,6 +264,7 @@ export default function BlogListPage() {
                 </Grid>
               )}
             </Box>
+            )}
 
             {/* Bottom CTA */}
             <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp}>

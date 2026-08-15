@@ -170,6 +170,14 @@ class BlogPost(TimeStampedModel):
     is_published = models.BooleanField(default=False, db_index=True)
     published_at = models.DateTimeField(null=True, blank=True)
     cover_image_url = models.URLField(blank=True, help_text="Optional absolute URL for a cover image")
+    
+    # New fields for modern blog UI
+    category = models.CharField(max_length=100, blank=True, help_text="e.g., 'inv', 'pos', 'retail', 'smallbiz', 'stockwhisk'")
+    author_name = models.CharField(max_length=100, blank=True, default="StockWhisk Team")
+    author_role = models.CharField(max_length=100, blank=True, default="Editorial Team")
+    author_avatar_url = models.URLField(blank=True, help_text="Optional URL for author avatar")
+    read_time_minutes = models.PositiveIntegerField(default=5)
+    is_featured = models.BooleanField(default=False, db_index=True)
 
     class Meta:
         ordering = ["-published_at", "-created_at"]
