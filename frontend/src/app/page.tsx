@@ -300,31 +300,37 @@ export default function LandingPage() {
                     <Grid container spacing={3} sx={{ height: "100%" }}>
                       <Grid size={{ xs: 12 }}>
                         <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                          <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.secondaryContainer}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+                          <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.secondaryContainer}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
                             <Box sx={{ width: 48, height: 48, borderRadius: "16px", bgcolor: `${C.secondaryContainer}33`, color: C.onSecondaryContainer, display: "flex", alignItems: "center", justifyContent: "center", mb: 2.5 }}>
                               <MaterialIcon icon="point_of_sale" sx={{ fontSize: "1.5rem" }} />
                             </Box>
                             <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>
                               {t('bento_pos_title')}
                             </Typography>
-                            <Typography sx={{ color: C.onSurfaceVariant, fontSize: "1.0625rem" }}>
+                            <Typography sx={{ color: C.onSurfaceVariant, flexGrow: 1, mb: 3, fontSize: "1.0625rem" }}>
                               {t('bento_pos_desc')}
                             </Typography>
+                            <Box sx={{ height: 120, borderRadius: "16px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
+                              <Box component="img" src="/images/pos_illustration.jpg" alt="POS illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 20%" }} />
+                            </Box>
                           </Box>
                         </motion.div>
                       </Grid>
                       <Grid size={{ xs: 12 }}>
                         <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                          <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.tertiaryContainer}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+                          <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.tertiaryContainer}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
                             <Box sx={{ width: 48, height: 48, borderRadius: "16px", bgcolor: `${C.tertiaryContainer}33`, color: C.onTertiaryContainer, display: "flex", alignItems: "center", justifyContent: "center", mb: 2.5 }}>
                               <MaterialIcon icon="bar_chart" sx={{ fontSize: "1.5rem" }} />
                             </Box>
                             <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>
                               {t('bento_rep_title')}
                             </Typography>
-                            <Typography sx={{ color: C.onSurfaceVariant, fontSize: "1.0625rem" }}>
+                            <Typography sx={{ color: C.onSurfaceVariant, flexGrow: 1, mb: 3, fontSize: "1.0625rem" }}>
                               {t('bento_rep_desc')}
                             </Typography>
+                            <Box sx={{ height: 120, borderRadius: "16px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
+                              <Box component="img" src="/images/reports_illustration.jpg" alt="Reports illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", objectPosition: "center 30%" }} />
+                            </Box>
                           </Box>
                         </motion.div>
                       </Grid>
