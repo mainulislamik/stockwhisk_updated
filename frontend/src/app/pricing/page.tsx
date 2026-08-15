@@ -316,16 +316,16 @@ export default function PricingPage() {
               <Box>
                 {/* Note: In a real implementation we would map through an array, but we'll hardcode some for now */}
                 <Box sx={{ mb: 2, p: 3, bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#fff', border: `1px solid ${COLORS.outlineVariant}`, borderRadius: '16px' }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>How does the 45-day trial work?</Typography>
-                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>You get full access to all features for 45 days. No credit card is required. You can upgrade to a paid plan at any time during or after the trial.</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>{t("faq_q1", { days: trialDays })}</Typography>
+                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>{t("faq_a1", { days: trialDays })}</Typography>
                 </Box>
                 <Box sx={{ mb: 2, p: 3, bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#fff', border: `1px solid ${COLORS.outlineVariant}`, borderRadius: '16px' }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>Can I change my plan later?</Typography>
-                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>Yes, you can upgrade or downgrade your plan at any time from your billing dashboard. Changes are prorated automatically.</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>{t("faq_q2")}</Typography>
+                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>{t("faq_a2")}</Typography>
                 </Box>
                 <Box sx={{ p: 3, bgcolor: mode === 'dark' ? 'rgba(255,255,255,0.02)' : '#fff', border: `1px solid ${COLORS.outlineVariant}`, borderRadius: '16px' }}>
-                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>What counts as a "product"?</Typography>
-                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>A product is a unique item in your inventory (SKU). Variations (like sizes or colors) may count as separate products depending on how you configure them.</Typography>
+                  <Typography sx={{ fontWeight: 700, fontSize: "1.05rem", mb: 1 }}>{t("faq_q3")}</Typography>
+                  <Typography sx={{ color: COLORS.onSurfaceVariant }}>{t("faq_a3")}</Typography>
                 </Box>
               </Box>
             </Container>

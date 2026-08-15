@@ -159,6 +159,15 @@ export const translations: Translations = {
     blog_loading: "Loading blogs...",
     blog_empty: "No blog posts found.",
 
+    // Pricing FAQ
+    faq_title: "Frequently Asked Questions",
+    faq_q1: "How does the {days}-day trial work?",
+    faq_a1: "You get full access to all features for {days} days. No credit card is required. You can upgrade to a paid plan at any time during or after the trial.",
+    faq_q2: "Can I change my plan later?",
+    faq_a2: "Yes, you can upgrade or downgrade your plan at any time from your billing dashboard. Changes are prorated automatically.",
+    faq_q3: "What counts as a \"product\"?",
+    faq_a3: "A product is a unique item in your inventory (SKU). Variations (like sizes or colors) may count as separate products depending on how you configure them.",
+
     // Footer
     footer_rights: "© {year} StockWhisk. All rights reserved.",
     footer_terms: "Terms & Conditions",
@@ -327,6 +336,15 @@ export const translations: Translations = {
     blog_read_article: "আর্টিকেলটি পড়ুন",
     blog_loading: "ব্লগ লোড হচ্ছে...",
     blog_empty: "কোনো ব্লগ পোস্ট পাওয়া যায়নি।",
+
+    // Pricing FAQ
+    faq_title: "সচরাচর জিজ্ঞাসিত প্রশ্নাবলী (FAQ)",
+    faq_q1: "{days}-দিনের ফ্রি ট্রায়াল কীভাবে কাজ করে?",
+    faq_a1: "আপনি {days} দিনের জন্য সমস্ত ফিচারের সম্পূর্ণ অ্যাক্সেস পাবেন। কোনো ক্রেডিট কার্ডের প্রয়োজন নেই। আপনি ট্রায়াল চলাকালীন বা ট্রায়ালের পরে যেকোনো সময় একটি পেইড প্ল্যানে আপগ্রেড করতে পারবেন।",
+    faq_q2: "আমি কি পরে আমার প্ল্যান পরিবর্তন করতে পারব?",
+    faq_a2: "হ্যাঁ, আপনি আপনার বিলিং ড্যাশবোর্ড থেকে যেকোনো সময় আপনার প্ল্যান আপগ্রেড বা ডাউনগ্রেড করতে পারেন। পরিবর্তনগুলো স্বয়ংক্রিয়ভাবে সমন্বয় করা হবে।",
+    faq_q3: "একটি \"প্রোডাক্ট\" বা পণ্য হিসাবে কী গণনা করা হয়?",
+    faq_a3: "একটি প্রোডাক্ট হলো আপনার ইনভেন্টরির একটি অনন্য আইটেম (SKU)। রঙের বা সাইজের মতো ভ্যারিয়েশনগুলো আলাদা প্রোডাক্ট হিসেবে গণনা করা হতে পারে, যা আপনার কনফিগারেশনের ওপর নির্ভর করে।",
 
     // Footer
     footer_rights: "© {year} StockWhisk. সর্বস্বত্ব সংরক্ষিত。",
