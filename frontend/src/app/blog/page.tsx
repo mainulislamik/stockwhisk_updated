@@ -2,40 +2,17 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Box, Typography, Button, Container, Stack, Grid, Card, CardContent, CardMedia, Chip } from '@mui/material';
+import { Box, Typography, Button, Container, Grid, Card, CardMedia, Chip, Avatar, useMediaQuery, useTheme } from '@mui/material';
 import MarketingNav from '@/components/MarketingNav';
 import MarketingFooter from '@/components/MarketingFooter';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { motion } from "framer-motion";
+import { Hanken_Grotesk, Manrope } from "next/font/google";
 
-const LIGHT_COLORS = {
-  surface: '#f8fafc',
-  onSurface: '#0f172a',
-  onSurfaceVariant: '#475569',
-  primary: '#2563eb',
-  onPrimary: '#ffffff',
-  surfaceTint: '#1d4ed8',
-  surfaceContainerLowest: '#ffffff',
-  surfaceContainer: '#e5eeff',
-  surfaceContainerLow: '#eff4ff',
-  outlineVariant: '#c3c6d7',
-  outline: '#737686',
-};
-
-const DARK_COLORS = {
-  surface: '#0f172a',
-  onSurface: '#f8fafc',
-  onSurfaceVariant: '#cbd5e1',
-  primary: '#38bdf8',
-  onPrimary: '#020617',
-  surfaceTint: '#7dd3fc',
-  surfaceContainerLowest: '#020617',
-  surfaceContainer: '#1e293b',
-  surfaceContainerLow: '#0f172a',
-  outlineVariant: '#334155',
-  outline: '#475569',
-};
+const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "700", "800"] });
+const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
 
 type BlogPost = {
   title: string;
@@ -45,19 +22,32 @@ type BlogPost = {
   cover_image_url: string;
 };
 
+// Mock data to match the UI if backend is missing fields
+const CATEGORIES = [
+  { id: 'inv', key: 'blog_cat_1', icon: 'inventory_2' },
+  { id: 'pos', key: 'blog_cat_2', icon: 'point_of_sale' },
+  { id: 'retail', key: 'blog_cat_3', icon: 'storefront' },
+  { id: 'smallbiz', key: 'blog_cat_4', icon: 'work' },
+  { id: 'stockwhisk', key: 'blog_cat_5', icon: 'campaign' },
+];
+
+function MaterialIcon({ icon, sx = {} }: { icon: string, sx?: any }) {
+  return (
+    <Box component="span" className="material-symbols-outlined" sx={{ fontVariationSettings: "'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24", ...sx }}>
+      {icon}
+    </Box>
+  );
+}
+
 export default function BlogListPage() {
-  const { t } = useLanguage();
-  const mode: string = "light";
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const { lang, t } = useLanguage();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
-
-  const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
+  const [activeCategory, setActiveCategory] = useState<string>('all');
 
   useEffect(() => {
-    setMounted(true);
-    setIsLoggedIn(!!getAccess());
     api<any>("/platform/public/blogs/")
       .then((data) => {
         setBlogs(unwrap(data));
@@ -66,142 +56,289 @@ export default function BlogListPage() {
       .finally(() => setLoading(false));
   }, []);
 
+  // Use the first blog as featured, or mock if empty (just for visual matching)
+  const featuredPost = blogs.length > 0 ? blogs[0] : {
+    title: "The Future of Omnichannel Retail: Blending Physical and Digital Stock",
+    slug: "future-of-omnichannel",
+    excerpt: "Discover how the most successful modern retailers are seamlessly connecting their brick-and-mortar inventory with their online storefronts to reduce stockouts, optimize fulfillment, and deliver a unified shopping experience.",
+    published_at: new Date().toISOString(),
+    cover_image_url: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&q=80&w=1200",
+  };
+
+  const latestPosts = blogs.length > 1 ? blogs.slice(1, 4) : [
+    {
+      title: "5 Key Features Every Modern POS System Must Have",
+      slug: "5-key-features-pos",
+      excerpt: "From mobile checkout capabilities to real-time inventory syncing, evaluate your current point-of-sale setup against these crucial...",
+      published_at: new Date().toISOString(),
+      cover_image_url: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&q=80&w=800",
+    },
+    {
+      title: "Scaling from Excel: When to Upgrade Your Inventory Software",
+      slug: "scaling-from-excel",
+      excerpt: "Spreadsheets are great for day one, but as your SKU count grows, they become a liability. Learn the warning signs that indicate it's time...",
+      published_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      cover_image_url: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?auto=format&fit=crop&q=80&w=800",
+    },
+    {
+      title: "Product Update: Q3 Release Notes",
+      slug: "q3-release-notes",
+      excerpt: "We've completely overhauled how you view inventory across multiple storefronts. Read about the new features rolling out to all Pro...",
+      published_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+      cover_image_url: "https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&q=80&w=800",
+    }
+  ];
+
+  const fadeUp = {
+    hidden: { opacity: 0, y: 30 },
+    show: { opacity: 1, y: 0, transition: { type: "spring" as const, stiffness: 80, damping: 20 } }
+  };
+
   return (
     <PublicThemeProvider>
-    <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
-      
-      {/* Navigation */}
-      <MarketingNav />
+      <style dangerouslySetInnerHTML={{ __html: `
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+      `}} />
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: '#FAFBFC', color: '#0f172a', fontFamily: manrope.style.fontFamily }}>
+        <MarketingNav />
 
-      {/* Main Content */}
-      <Box component="main" sx={{ flexGrow: 1, py: { xs: 4, md: 8 }, px: { xs: 2, md: 0 } }}>
-        <Container maxWidth="lg">
-          {/* Hero Section */}
-          <Box sx={{ 
-            position: 'relative',
-            textAlign: 'center', 
-            mb: 8,
-            py: { xs: 6, md: 10 },
-            px: { xs: 3, md: 6 },
-            borderRadius: '32px',
-            background: mounted && mode === 'dark' 
-              ? 'linear-gradient(145deg, rgba(30,41,59,0.6) 0%, rgba(15,23,42,0.9) 100%)' 
-              : 'linear-gradient(145deg, #f0f5ff 0%, #ffffff 100%)',
-            border: `1px solid ${COLORS.outlineVariant}`,
-            boxShadow: mounted && mode === 'dark' ? '0 10px 40px -10px rgba(0,0,0,0.5)' : '0 10px 40px -10px rgba(0,0,0,0.05)',
-            overflow: 'hidden'
-          }}>
-            {/* Decorative blobs */}
-            <Box sx={{
-              position: 'absolute', top: '-50%', left: '-10%', width: { xs: '300px', md: '500px' }, height: { xs: '300px', md: '500px' },
-              background: mounted && mode === 'dark' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(0, 74, 198, 0.08)', 
-              filter: 'blur(80px)', borderRadius: '50%', zIndex: 0
-            }} />
-            <Box sx={{
-              position: 'absolute', bottom: '-50%', right: '-10%', width: { xs: '250px', md: '400px' }, height: { xs: '250px', md: '400px' },
-              background: mounted && mode === 'dark' ? 'rgba(129, 140, 248, 0.15)' : 'rgba(67, 56, 202, 0.08)', 
-              filter: 'blur(80px)', borderRadius: '50%', zIndex: 0
-            }} />
-
-            <Box sx={{ position: 'relative', zIndex: 1 }}>
-              <Chip 
-                label={t("nav_blog")} 
-                sx={{ mb: 3, fontWeight: 700, bgcolor: COLORS.surfaceContainer, color: COLORS.primary, fontFamily: 'Outfit, sans-serif' }} 
-              />
-              <Typography variant="h2" sx={{ 
-                fontWeight: 800, mb: 3, fontFamily: 'Outfit, sans-serif', letterSpacing: '-0.03em', fontSize: { xs: '2.75rem', md: '4.5rem' },
-                background: mounted && mode === 'dark' ? 'linear-gradient(to right, #38bdf8, #818cf8)' : 'linear-gradient(to right, #004ac6, #4338ca)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
-              }}>
+        <Box component="main" sx={{ flexGrow: 1, pt: { xs: 8, md: 12 }, pb: { xs: 8, md: 12 } }}>
+          
+          {/* Header */}
+          <Container maxWidth="lg" sx={{ textAlign: "center", mb: { xs: 6, md: 8 } }}>
+            <motion.div initial="hidden" animate="show" variants={fadeUp}>
+              <Typography component="h1" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: '2.5rem', md: '3.5rem' }, mb: 2, color: '#0f172a' }}>
                 {t("blog_title")}
               </Typography>
-              <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, maxWidth: '650px', mx: 'auto', fontFamily: 'Outfit, sans-serif', fontSize: { xs: '1.1rem', md: '1.25rem' }, lineHeight: 1.6 }}>
+              <Typography sx={{ fontSize: { xs: '1rem', md: '1.15rem' }, color: '#64748b', maxWidth: '600px', mx: 'auto', lineHeight: 1.6 }}>
                 {t("blog_subtitle")}
               </Typography>
-            </Box>
-          </Box>
+            </motion.div>
+          </Container>
 
-          {loading ? (
-            <Box sx={{ textAlign: 'center', py: 10 }}>
-              <Typography sx={{ color: COLORS.onSurfaceVariant, fontWeight: 500, fontSize: '1.1rem' }}>{t("blog_loading")}</Typography>
+          <Container maxWidth="lg">
+            
+            {/* Categories */}
+            <Box sx={{ mb: { xs: 6, md: 8 } }}>
+              {isMobile ? (
+                // Mobile: Scrollable Pills
+                <Box sx={{ display: 'flex', gap: 1.5, overflowX: 'auto', pb: 2, '::-webkit-scrollbar': { display: 'none' }, msOverflowStyle: 'none', scrollbarWidth: 'none' }}>
+                  <Button 
+                    onClick={() => setActiveCategory('all')}
+                    sx={{ flexShrink: 0, borderRadius: 999, px: 3, py: 1, textTransform: 'none', fontWeight: 600, fontSize: '0.85rem',
+                          bgcolor: activeCategory === 'all' ? '#2563eb' : 'transparent', color: activeCategory === 'all' ? '#fff' : '#64748b',
+                          border: `1px solid ${activeCategory === 'all' ? '#2563eb' : '#e2e8f0'}`, '&:hover': { bgcolor: activeCategory === 'all' ? '#1d4ed8' : '#f1f5f9' }
+                    }}>
+                    {t('blog_all_topics')}
+                  </Button>
+                  {CATEGORIES.map(cat => (
+                    <Button 
+                      key={cat.id} onClick={() => setActiveCategory(cat.id)}
+                      sx={{ flexShrink: 0, borderRadius: 999, px: 3, py: 1, textTransform: 'none', fontWeight: 600, fontSize: '0.85rem',
+                            bgcolor: activeCategory === cat.id ? '#2563eb' : 'transparent', color: activeCategory === cat.id ? '#fff' : '#64748b',
+                            border: `1px solid ${activeCategory === cat.id ? '#2563eb' : '#e2e8f0'}`, '&:hover': { bgcolor: activeCategory === cat.id ? '#1d4ed8' : '#f1f5f9' }
+                      }}>
+                      {t(cat.key)}
+                    </Button>
+                  ))}
+                </Box>
+              ) : (
+                // Desktop: 5 Cards Grid
+                <Grid container spacing={2}>
+                  {CATEGORIES.map((cat, i) => (
+                    <Grid size={{ xs: 12, sm: 2.4 }} key={cat.id}>
+                      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
+                        <Box 
+                          onClick={() => setActiveCategory(cat.id)}
+                          sx={{ 
+                            bgcolor: '#ffffff', borderRadius: '16px', p: 3, border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.2s', height: '100%',
+                            boxShadow: activeCategory === cat.id ? '0 10px 25px rgba(37,99,235,0.1)' : 'none',
+                            borderColor: activeCategory === cat.id ? '#2563eb' : '#e2e8f0',
+                            '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 10px 25px rgba(0,0,0,0.05)' }
+                          }}
+                        >
+                          <Box sx={{ width: 48, height: 48, borderRadius: '50%', bgcolor: activeCategory === cat.id ? '#eff6ff' : '#f1f5f9', color: activeCategory === cat.id ? '#2563eb' : '#64748b', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 2 }}>
+                            <MaterialIcon icon={cat.icon} sx={{ fontSize: '1.5rem' }} />
+                          </Box>
+                          <Typography sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: '0.9rem', color: activeCategory === cat.id ? '#0f172a' : '#475569', textAlign: 'center' }}>
+                            {t(cat.key)}
+                          </Typography>
+                        </Box>
+                      </motion.div>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
             </Box>
-          ) : blogs.length === 0 ? (
-            <Box sx={{ textAlign: 'center', py: 10, bgcolor: COLORS.surfaceContainerLowest, borderRadius: 4, border: `1px solid ${COLORS.outlineVariant}` }}>
-              <Typography sx={{ color: COLORS.onSurfaceVariant, fontSize: '1.1rem' }}>{t("blog_empty")}</Typography>
+
+            {/* Featured Insight */}
+            <Box sx={{ mb: { xs: 8, md: 10 } }}>
+              <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: '1.75rem', mb: 3, color: '#0f172a' }}>
+                {t('blog_featured')}
+              </Typography>
+              <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp}>
+                <Card sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, borderRadius: '24px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 40px rgba(0,0,0,0.03)', bgcolor: '#ffffff', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-4px)', boxShadow: '0 20px 50px rgba(0,0,0,0.06)' }, textDecoration: 'none' }} component={Link} href={`/blog/${featuredPost.slug}`}>
+                  <Box sx={{ width: { xs: '100%', md: '55%' }, height: { xs: 240, md: 'auto' }, position: 'relative' }}>
+                    <CardMedia
+                      component="img"
+                      image={featuredPost.cover_image_url}
+                      alt={featuredPost.title}
+                      sx={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  </Box>
+                  <Box sx={{ width: { xs: '100%', md: '45%' }, p: { xs: 3, md: 5 }, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                    <Box sx={{ display: 'inline-block', bgcolor: '#eff6ff', color: '#2563eb', px: 1.5, py: 0.5, borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, mb: 2, alignSelf: 'flex-start' }}>
+                      {t('blog_cat_1')}
+                    </Box>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: '1.5rem', md: '2rem' }, lineHeight: 1.2, mb: 2, color: '#0f172a' }}>
+                      {featuredPost.title}
+                    </Typography>
+                    <Typography sx={{ color: '#475569', fontSize: '1rem', lineHeight: 1.6, mb: 4, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {featuredPost.excerpt}
+                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 'auto' }}>
+                      <Avatar src="https://i.pravatar.cc/150?u=a042581f4e29026704d" sx={{ width: 40, height: 40 }} />
+                      <Box>
+                        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: '#0f172a' }}>Elena Rodriguez</Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>Retail Tech Analyst • 8 min read</Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                </Card>
+              </motion.div>
             </Box>
-          ) : (
-            <Grid container spacing={4}>
-              {blogs.map((blog) => (
-                <Grid size={{ xs: 12, md: 6, lg: 4 }} key={blog.slug}>
-                  <Card 
-                    elevation={0}
+
+            {/* Latest Articles */}
+            <Box sx={{ mb: { xs: 10, md: 12 } }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 4 }}>
+                <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: '1.75rem', color: '#0f172a' }}>
+                  {t('blog_latest')}
+                </Typography>
+                <Link href="/blog" style={{ display: 'flex', alignItems: 'center', color: '#2563eb', fontWeight: 700, textDecoration: 'none', fontSize: '0.9rem' }}>
+                  {t('blog_view_all')} <MaterialIcon icon="arrow_forward" sx={{ fontSize: '1.1rem', ml: 0.5 }} />
+                </Link>
+              </Box>
+
+              {isMobile ? (
+                // Mobile: Vertical list of horizontal cards
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {latestPosts.map((post, index) => (
+                    <motion.div key={post.slug} initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} style={{ transitionDelay: `${index * 0.1}s` }}>
+                      <Card sx={{ display: 'flex', borderRadius: '16px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px rgba(0,0,0,0.02)', bgcolor: '#ffffff', textDecoration: 'none' }} component={Link} href={`/blog/${post.slug}`}>
+                        <Box sx={{ width: 120, height: 120, flexShrink: 0 }}>
+                          <CardMedia component="img" image={post.cover_image_url} alt={post.title} sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </Box>
+                        <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                          <Typography sx={{ color: '#f59e0b', fontSize: '0.65rem', fontWeight: 800, textTransform: 'uppercase', mb: 0.5, letterSpacing: '0.05em' }}>
+                            {t('blog_cat_2')}
+                          </Typography>
+                          <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: '1rem', lineHeight: 1.3, color: '#0f172a', mb: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {post.title}
+                          </Typography>
+                          <Typography sx={{ fontSize: '0.75rem', color: '#64748b' }}>
+                            {new Date(post.published_at).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', day: 'numeric' })} • 5 min read
+                          </Typography>
+                        </Box>
+                      </Card>
+                    </motion.div>
+                  ))}
+                </Box>
+              ) : (
+                // Desktop: 3 Column Grid
+                <Grid container spacing={4}>
+                  {latestPosts.map((post, index) => (
+                    <Grid size={{ xs: 12, md: 4 }} key={post.slug}>
+                      <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp} style={{ height: '100%' }}>
+                        <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column', borderRadius: '24px', overflow: 'hidden', border: '1px solid #e2e8f0', boxShadow: '0 10px 30px rgba(0,0,0,0.02)', bgcolor: '#ffffff', transition: 'transform 0.3s', '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 20px 40px rgba(0,0,0,0.06)' }, textDecoration: 'none' }} component={Link} href={`/blog/${post.slug}`}>
+                          <CardMedia component="img" height="200" image={post.cover_image_url} alt={post.title} />
+                          <Box sx={{ p: 3, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                              <Box sx={{ bgcolor: '#f1f5f9', color: '#475569', px: 1, py: 0.5, borderRadius: '4px', fontSize: '0.7rem', fontWeight: 700 }}>
+                                {t('blog_cat_4')}
+                              </Box>
+                              <Box sx={{ display: 'flex', alignItems: 'center', color: '#64748b', fontSize: '0.75rem' }}>
+                                <MaterialIcon icon="schedule" sx={{ fontSize: '1rem', mr: 0.5 }} /> 6 min
+                              </Box>
+                            </Box>
+                            <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: '1.25rem', lineHeight: 1.3, color: '#0f172a', mb: 1.5 }}>
+                              {post.title}
+                            </Typography>
+                            <Typography sx={{ color: '#475569', fontSize: '0.9rem', lineHeight: 1.5, mb: 3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                              {post.excerpt}
+                            </Typography>
+                            <Box sx={{ mt: 'auto', borderTop: '1px solid #e2e8f0', pt: 2 }}>
+                              <Typography sx={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 600 }}>By Sarah Jenkins</Typography>
+                            </Box>
+                          </Box>
+                        </Card>
+                      </motion.div>
+                    </Grid>
+                  ))}
+                </Grid>
+              )}
+            </Box>
+
+            {/* Bottom CTA */}
+            <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-50px" }} variants={fadeUp}>
+              <Box sx={{ 
+                bgcolor: '#0a40a8', 
+                background: 'linear-gradient(135deg, #0a40a8 0%, #1d4ed8 100%)',
+                borderRadius: '32px', 
+                p: { xs: 4, md: 8 }, 
+                display: 'flex', 
+                flexDirection: { xs: 'column', md: 'row' }, 
+                alignItems: 'center', 
+                justifyContent: 'space-between',
+                position: 'relative',
+                overflow: 'hidden',
+                boxShadow: '0 24px 60px rgba(29, 78, 216, 0.3)'
+              }}>
+                {/* Decorative Blur Circles */}
+                <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, bgcolor: '#3b82f6', borderRadius: '50%', filter: 'blur(60px)', opacity: 0.6 }} />
+                <Box sx={{ position: 'absolute', bottom: -50, left: 100, width: 150, height: 150, bgcolor: '#60a5fa', borderRadius: '50%', filter: 'blur(50px)', opacity: 0.4 }} />
+
+                <Box sx={{ flex: 1, pr: { md: 6 }, position: 'relative', zIndex: 1, textAlign: { xs: 'center', md: 'left' }, mb: { xs: 4, md: 0 } }}>
+                  {isMobile && (
+                    <Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: 'rgba(255,255,255,0.1)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 3, mx: 'auto' }}>
+                      <MaterialIcon icon="inventory_2" sx={{ fontSize: '2rem' }} />
+                    </Box>
+                  )}
+                  <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: '2rem', md: '2.5rem' }, color: '#ffffff', mb: 2, lineHeight: 1.1 }}>
+                    {t('blog_cta_title')}
+                  </Typography>
+                  <Typography sx={{ color: 'rgba(255,255,255,0.8)', fontSize: { xs: '1rem', md: '1.1rem' }, lineHeight: 1.6, maxWidth: { md: 500 } }}>
+                    {t('blog_cta_subtitle')}
+                  </Typography>
+                </Box>
+
+                <Box sx={{ position: 'relative', zIndex: 1, width: { xs: '100%', md: 'auto' } }}>
+                  <Button 
+                    component={Link} 
+                    href="/register" 
                     sx={{ 
-                      height: '100%', 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      bgcolor: mounted && mode === 'dark' ? 'rgba(30,41,59,0.4)' : '#ffffff',
-                      backdropFilter: 'blur(12px)',
-                      border: `1px solid ${COLORS.outlineVariant}`,
-                      borderRadius: '24px',
-                      overflow: 'hidden',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      '&:hover': {
-                        transform: 'translateY(-8px)',
-                        boxShadow: mounted && mode === 'dark' 
-                          ? '0 20px 40px -10px rgba(0,0,0,0.5), 0 0 20px 0 rgba(56,189,248,0.1)'
-                          : '0 20px 40px -10px rgba(0,0,0,0.1), 0 0 20px 0 rgba(0,74,198,0.05)',
-                        borderColor: COLORS.primary,
-                        '& .blog-image': {
-                          transform: 'scale(1.05)'
-                        }
-                      }
+                      bgcolor: '#ffffff', color: '#1d4ed8', fontWeight: 800, borderRadius: 999, px: 4, py: 2, fontSize: '1.05rem', textTransform: 'none', 
+                      width: { xs: '100%', md: 'auto' },
+                      display: 'flex', alignItems: 'center', gap: 1,
+                      boxShadow: '0 10px 20px rgba(0,0,0,0.1)', transition: 'all 0.3s ease', 
+                      '&:hover': { bgcolor: '#f1f5f9', transform: 'translateY(-2px)', boxShadow: '0 15px 30px rgba(0,0,0,0.15)' }
                     }}
                   >
-                    <Link href={`/blog/${blog.slug}`} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', flexDirection: 'column', height: '100%' }}>
-                      <Box sx={{ position: 'relative', overflow: 'hidden' }}>
-                        <CardMedia
-                          className="blog-image"
-                          component="img"
-                          height="240"
-                          image={blog.cover_image_url || 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80'}
-                          alt={blog.title}
-                          sx={{ 
-                            borderBottom: `1px solid ${COLORS.outlineVariant}`,
-                            transition: 'transform 0.5s ease',
-                          }}
-                        />
-                        <Chip 
-                          label="Article" 
-                          size="small" 
-                          sx={{ 
-                            position: 'absolute', top: 16, right: 16, 
-                            bgcolor: 'rgba(0,0,0,0.6)', color: '#fff', backdropFilter: 'blur(4px)', fontWeight: 600, fontFamily: 'Outfit, sans-serif'
-                          }} 
-                        />
-                      </Box>
-                      <CardContent sx={{ flexGrow: 1, p: { xs: 3, md: 4 }, display: 'flex', flexDirection: 'column' }}>
-                        <Typography sx={{ fontSize: '0.85rem', color: COLORS.primary, fontWeight: 700, mb: 1.5, fontFamily: 'Outfit, sans-serif', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                          {new Date(blog.published_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                        </Typography>
-                        <Typography variant="h5" sx={{ fontWeight: 800, mb: 2, fontFamily: 'Outfit, sans-serif', lineHeight: 1.3, fontSize: '1.5rem', color: COLORS.onSurface, flexGrow: 1 }}>
-                          {blog.title}
-                        </Typography>
-                        
-                        <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', color: COLORS.primary, fontWeight: 600, fontSize: '0.9rem', fontFamily: 'Outfit, sans-serif' }}>
-                          {t("blog_read_article")} <Box component="span" sx={{ ml: 1, transition: 'transform 0.2s', '.MuiCard-root:hover &': { transform: 'translateX(4px)' } }}>→</Box>
-                        </Box>
-                      </CardContent>
-                    </Link>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          )}
-        </Container>
-      </Box>
+                    {t('blog_cta_btn')} <MaterialIcon icon="arrow_forward" sx={{ fontSize: '1.1rem' }} />
+                  </Button>
+                  {isMobile && (
+                    <Typography sx={{ textAlign: 'center', color: 'rgba(255,255,255,0.6)', fontSize: '0.75rem', mt: 2 }}>
+                      14-day free trial. No credit card required.
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+            </motion.div>
 
-      <MarketingFooter />
-    </Box>
+          </Container>
+        </Box>
+
+        <MarketingFooter />
+      </Box>
     </PublicThemeProvider>
   );
 }

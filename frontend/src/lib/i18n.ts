@@ -152,12 +152,24 @@ export const translations: Translations = {
     feat_multi_branch: "Multiple Branches",
     feat_api_access: "API Access",
 
-    // Blog Page
-    blog_title: "StockWhisk Updates & Insights",
-    blog_subtitle: "The latest product news, industry trends, and practical guides to help you scale your retail business.",
+    // Blog
+    blog_title: "StockWhisk Insights",
+    blog_subtitle: "Practical guides, retail management strategies, inventory tips and business insights for growing retailers.",
     blog_read_article: "Read Article",
     blog_loading: "Loading blogs...",
     blog_empty: "No blog posts found.",
+    blog_all_topics: "All Topics",
+    blog_cat_1: "Inventory Management",
+    blog_cat_2: "POS & Sales",
+    blog_cat_3: "Retail Business",
+    blog_cat_4: "Small Business",
+    blog_cat_5: "StockWhisk",
+    blog_featured: "Featured Insight",
+    blog_latest: "Latest Articles",
+    blog_view_all: "View all",
+    blog_cta_title: "Manage Your Inventory With StockWhisk",
+    blog_cta_subtitle: "Stop wrestling with spreadsheets. Gain real-time visibility into your stock, automate ordering, and focus on growing your retail business.",
+    blog_cta_btn: "Start Free Trial",
 
     // Pricing FAQ
     faq_title: "Frequently Asked Questions",
@@ -330,12 +342,24 @@ export const translations: Translations = {
     feat_multi_branch: "একাধিক ব্রাঞ্চ",
     feat_api_access: "এপিআই অ্যাক্সেস",
 
-    // Blog Page
-    blog_title: "স্টকহিস্ক আপডেট এবং ইনসাইট",
-    blog_subtitle: "সর্বশেষ প্রোডাক্ট নিউজ, ইন্ডাস্ট্রির ট্রেন্ড এবং আপনার রিটেইল ব্যবসা বাড়াতে প্র্যাক্টিকাল গাইড।",
-    blog_read_article: "আর্টিকেলটি পড়ুন",
+    // Blog
+    blog_title: "স্টকহুইস্ক ইনসাইটস",
+    blog_subtitle: "ক্রমবর্ধমান খুচরা বিক্রেতাদের জন্য ব্যবহারিক গাইড, খুচরা ব্যবস্থাপনা কৌশল, ইনভেন্টরি টিপস এবং ব্যবসায়িক অন্তর্দৃষ্টি।",
+    blog_read_article: "আর্টিকেল পড়ুন",
     blog_loading: "ব্লগ লোড হচ্ছে...",
     blog_empty: "কোনো ব্লগ পোস্ট পাওয়া যায়নি।",
+    blog_all_topics: "সব বিষয়",
+    blog_cat_1: "ইনভেন্টরি ম্যানেজমেন্ট",
+    blog_cat_2: "পিওএস এবং সেলস",
+    blog_cat_3: "রিটেইল বিজনেস",
+    blog_cat_4: "ক্ষুদ্র ব্যবসা",
+    blog_cat_5: "স্টকহুইস্ক",
+    blog_featured: "ফিচার্ড ইনসাইট",
+    blog_latest: "সর্বশেষ আর্টিকেল",
+    blog_view_all: "সবগুলো দেখুন",
+    blog_cta_title: "স্টকহুইস্ক দিয়ে আপনার ইনভেন্টরি পরিচালনা করুন",
+    blog_cta_subtitle: "স্প্রেডশিটের ঝামেলা থেকে মুক্তি পান। আপনার স্টকের রিয়েল-টাইম তথ্য পান, অর্ডারিং স্বয়ংক্রিয় করুন এবং আপনার রিটেইল ব্যবসা বাড়ানোর দিকে মনোযোগ দিন।",
+    blog_cta_btn: "ফ্রি ট্রায়াল শুরু করুন",
 
     // Pricing FAQ
     faq_title: "সচরাচর জিজ্ঞাসিত প্রশ্নাবলী (FAQ)",
