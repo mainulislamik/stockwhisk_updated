@@ -77,7 +77,7 @@ export default function ProductsPage() {
           brand: form.brand || null,
           cost_price: form.cost_price || 0,
           selling_price: form.selling_price || 0,
-          reorder_level: form.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
+          reorder_level: form.reorder_level === "" ? 1 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
           warranty_months: form.warranty_months || 0,
           replacement_guarantee_days: form.replacement_guarantee_days || 0,
         },
@@ -199,7 +199,7 @@ export default function ProductsPage() {
               </div>
               <div className="col-md-3">
                 <label className="small">Reorder level</label>
-                <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="5" />
+                <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="1" />
               </div>
               <div className="col-md-2">
                 <label className="small">Warranty (months)</label>

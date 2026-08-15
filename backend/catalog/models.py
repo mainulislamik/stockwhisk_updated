@@ -94,7 +94,7 @@ class Product(TenantScopedModel):
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
     track_inventory = models.BooleanField(default=True)
-    reorder_level = models.PositiveIntegerField(default=5)
+    reorder_level = models.PositiveIntegerField(default=1)
     current_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
 
     is_active = models.BooleanField(default=True)
