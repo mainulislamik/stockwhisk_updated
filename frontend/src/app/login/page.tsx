@@ -28,9 +28,11 @@ export default function LoginPage() {
     setBusy(true);
     try {
       await login(email, password);
+      const me = await api<{ is_staff: boolean; is_reseller?: boolean; shop: number | null }>("/auth/me/").catch(() => null);
       // Platform staff land on the admin dashboard.
-      const me = await api<{ is_staff: boolean }>("/auth/me/").catch(() => null);
       if (me?.is_staff) { router.push("/platform"); return; }
+      // Resellers (no shop) belong in the reseller portal, not the shop app.
+      if (me?.is_reseller) { router.push("/reseller/dashboard"); return; }
       // Shop users: resolve the first page their permissions actually allow, so
       // roles without `view_reports` don't get dropped on the protected dashboard.
       const p = await api<{ role: string; permissions: string[] }>("/auth/my-permissions/")

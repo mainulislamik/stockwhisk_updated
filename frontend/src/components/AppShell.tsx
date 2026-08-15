@@ -64,6 +64,8 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     if (loading) return;
     if (!user) {
       router.replace("/login");
+    } else if (user.is_reseller && !user.shop) {
+      router.replace("/reseller/dashboard");
     } else if (user.is_staff && !user.shop) {
       router.replace("/platform");
     }

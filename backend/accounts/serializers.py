@@ -55,6 +55,9 @@ class UserSerializer(serializers.ModelSerializer):
     shop_whatsapp_enabled = serializers.BooleanField(source="shop.whatsapp_invoice_enabled", read_only=True, default=True)
     shop_is_demo = serializers.BooleanField(source="shop.is_demo", read_only=True, default=False)
     shop_barcode_prefix = serializers.CharField(source="shop.effective_barcode_prefix", read_only=True, default="")
+    # True when this user is an approved (active) reseller — lets the normal login
+    # panel route them to the reseller portal instead of the (shop-less) app.
+    is_reseller = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -62,8 +65,13 @@ class UserSerializer(serializers.ModelSerializer):
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
             "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff",
+            "is_reseller",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff", "is_reseller"]
+
+    def get_is_reseller(self, obj):
+        profile = getattr(obj, "reseller_profile", None)
+        return bool(profile and profile.status == "active")
 
     def get_shop_logo(self, obj):
         if obj.shop and obj.shop.logo:

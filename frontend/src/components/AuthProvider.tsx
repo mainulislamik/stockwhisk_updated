@@ -22,6 +22,7 @@ export type User = {
   shop_barcode_prefix?: string;
   branch: number | null;
   is_staff: boolean;
+  is_reseller?: boolean;
 };
 
 export type BillingStatus = {
