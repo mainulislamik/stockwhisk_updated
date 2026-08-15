@@ -35,7 +35,7 @@ export default function TicketsPage() {
   const canManage = isOwner || can("manage_service");
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ customer: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
+  const [form, setForm] = useState({ customer: "", customer_name: "", customer_phone: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
   const [saving, setSaving] = useState(false);
 
   const PAGE_SIZE = 20;
@@ -55,13 +55,16 @@ export default function TicketsPage() {
         method: "POST",
         body: {
           customer: form.customer ? Number(form.customer) : null,
+          // Walk-in identity is only sent when no existing customer is chosen.
+          customer_name: form.customer ? "" : form.customer_name.trim(),
+          customer_phone: form.customer ? "" : form.customer_phone.trim(),
           device_description: form.device_description,
           complaint: form.complaint,
           service_charge: form.service_charge || 0,
           estimated_delivery: form.estimated_delivery || null,
         },
       });
-      setForm({ customer: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
+      setForm({ customer: "", customer_name: "", customer_phone: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
       setShowAdd(false);
       setPage(1);
       mutate();
@@ -100,6 +103,20 @@ export default function TicketsPage() {
                   ))}
                 </select>
               </div>
+              {!form.customer && (
+                <>
+                  <div className="col-md-4">
+                    <label className="small">Walk-in name</label>
+                    <input className="form-control form-control-sm" placeholder="Customer name"
+                      value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} />
+                  </div>
+                  <div className="col-md-4">
+                    <label className="small">Walk-in phone</label>
+                    <input className="form-control form-control-sm" placeholder="Phone number"
+                      value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
+                  </div>
+                </>
+              )}
               <div className="col-md-4">
                 <label className="small">Device</label>
                 <input required className="form-control form-control-sm" value={form.device_description} onChange={(e) => setForm({ ...form, device_description: e.target.value })} />

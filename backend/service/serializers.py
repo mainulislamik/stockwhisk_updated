@@ -53,7 +53,8 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceTicket
         fields = [
-            "id", "ticket_no", "branch", "customer", "device_description", "complaint",
+            "id", "ticket_no", "branch", "customer", "customer_name", "customer_phone",
+            "device_description", "complaint",
             "received_at", "technician", "status", "service_charge", "estimated_delivery",
             "actual_delivery", "is_overdue", "parts", "history", "created_at",
         ]
@@ -62,6 +63,9 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
 
 class TicketCreateSerializer(serializers.Serializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects, required=False, allow_null=True)
+    # Walk-in identity captured directly on the ticket when no Customer record is used.
+    customer_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
+    customer_phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
     device_description = serializers.CharField(max_length=200)
     complaint = serializers.CharField()
     service_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)

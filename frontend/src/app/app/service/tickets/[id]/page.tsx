@@ -20,6 +20,8 @@ type Ticket = {
   received_at: string;
   estimated_delivery: string | null;
   is_overdue: boolean;
+  customer_name?: string;
+  customer_phone?: string;
   parts: Part[];
   history: History[];
 };
@@ -81,6 +83,13 @@ export default function TicketDetailPage() {
         <div className="col-lg-7">
           <div className="card shadow-sm">
             <div className="card-body">
+              {(ticket.customer_name || ticket.customer_phone) && (
+                <div className="mb-3">
+                  <div className="fw-semibold mb-1">Customer</div>
+                  <div>{ticket.customer_name || "Walk-in"}</div>
+                  {ticket.customer_phone && <div className="text-secondary small">📞 {ticket.customer_phone}</div>}
+                </div>
+              )}
               <div className="fw-semibold mb-2">Complaint</div>
               <p className="mb-3">{ticket.complaint}</p>
               <div className="fw-semibold mb-2">Parts used</div>
