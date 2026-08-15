@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Box, Container, Stack, Button, Typography, IconButton, Menu, MenuItem } from "@mui/material";
 import { getAccess } from "@/lib/api";
@@ -11,6 +12,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 /** Shared top navigation for the public pages (home, pricing, blog, contact, login, register). */
 export default function MarketingNav() {
+  const pathname = usePathname();
   const branding = useBranding();
   const { t } = useLanguage();
   const [mounted, setMounted] = useState(false);
@@ -25,11 +27,15 @@ export default function MarketingNav() {
     setIsLoggedIn(!!getAccess());
   }, []);
 
-  const link = {
-    color: M.textMuted, fontWeight: 600, textTransform: "none" as const,
-    borderRadius: "8px", px: 1.5,
-    "&:hover": { color: M.primary, bgcolor: M.surfaceTint },
-  };
+  const getLinkStyle = (isActive: boolean) => ({
+    color: isActive ? M.primary : M.textMuted, 
+    fontWeight: isActive ? 700 : 600, 
+    textTransform: "none" as const,
+    borderRadius: "8px", 
+    px: 1.5,
+    bgcolor: isActive ? "rgba(37, 99, 235, 0.08)" : "transparent",
+    "&:hover": { color: M.primary, bgcolor: "rgba(37, 99, 235, 0.08)" },
+  });
   const cta = {
     bgcolor: M.primary, color: M.onPrimary, fontWeight: 700, textTransform: "none" as const,
     borderRadius: "10px", px: 3, boxShadow: "0 6px 16px -6px rgba(37,99,235,.6)",
@@ -77,9 +83,14 @@ export default function MarketingNav() {
 
           {/* Desktop nav */}
           <Stack direction="row" spacing={1} sx={{ alignItems: "center", display: { xs: "none", md: "flex" } }}>
-            {navLinks.map((l) => (
-              <Button key={l.href} component={Link} href={l.href} sx={link}>{l.label}</Button>
-            ))}
+            {navLinks.map((l) => {
+              const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              return (
+                <Button key={l.href} component={Link} href={l.href} sx={getLinkStyle(isActive)}>
+                  {l.label}
+                </Button>
+              );
+            })}
             {mounted && isLoggedIn ? (
               <Button component={Link} href="/app" sx={cta}>{t("nav_dashboard")}</Button>
             ) : (
@@ -114,12 +125,20 @@ export default function MarketingNav() {
               transformOrigin={{ vertical: "top", horizontal: "right" }}
               slotProps={{ paper: { sx: { mt: 1, minWidth: 180, borderRadius: 3, boxShadow: "0 12px 32px -12px rgba(15,23,42,.3)" } } }}
             >
-              {navLinks.map((l) => (
-                <MenuItem key={l.href} component={Link} href={l.href} onClick={closeMenu}
-                  sx={{ fontWeight: 600, color: M.text, py: 1.2 }}>
-                  {l.label}
-                </MenuItem>
-              ))}
+              {navLinks.map((l) => {
+                const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+                return (
+                  <MenuItem key={l.href} component={Link} href={l.href} onClick={closeMenu}
+                    sx={{ 
+                      fontWeight: isActive ? 700 : 600, 
+                      color: isActive ? M.primary : M.text, 
+                      bgcolor: isActive ? "rgba(37, 99, 235, 0.05)" : "transparent",
+                      py: 1.2 
+                    }}>
+                    {l.label}
+                  </MenuItem>
+                );
+              })}
               {!(mounted && isLoggedIn) && (
                 <MenuItem component={Link} href="/login" onClick={closeMenu}
                   sx={{ fontWeight: 600, color: M.primary, py: 1.2 }}>
