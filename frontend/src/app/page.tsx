@@ -5,6 +5,7 @@ import { Box, Typography, Button, Container, Grid, useTheme, useMediaQuery } fro
 import MarketingNav from "@/components/MarketingNav";
 import MarketingFooter from "@/components/MarketingFooter";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Hanken_Grotesk, Manrope, JetBrains_Mono } from "next/font/google";
 
 const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "700", "800"] });
@@ -64,6 +65,7 @@ function MaterialIcon({ icon, filled = false, sx = {} }: { icon: string, filled?
 export default function LandingPage() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const { t } = useLanguage();
 
   return (
     <PublicThemeProvider>
@@ -82,45 +84,45 @@ export default function LandingPage() {
             <Box sx={{ position: "absolute", top: 0, left: "50%", transform: "translateX(-50%)", width: 800, height: 800, bgcolor: `${C.primary}0D`, borderRadius: "50%", filter: "blur(80px)", zIndex: 0, pointerEvents: "none" }} />
             <Box sx={{ position: "absolute", top: 160, right: 0, width: 400, height: 400, bgcolor: `${C.secondaryContainer}1A`, borderRadius: "50%", filter: "blur(80px)", zIndex: 0, pointerEvents: "none" }} />
             
-            <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDir: "column", alignItems: "center" }}>
+            <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1, textAlign: "center", display: "flex", flexDirection: "column", alignItems: "center" }}>
               <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, bgcolor: C.surfaceContainerLow, border: `1px solid ${C.outlineVariant}`, borderRadius: 999, px: 2, py: 1, mb: 4 }}>
                 <MaterialIcon icon="star" filled sx={{ color: C.secondaryContainer, fontSize: "1rem" }} />
                 <Typography sx={{ fontFamily: jetbrains.style.fontFamily, fontSize: "0.75rem", color: C.onSurfaceVariant, fontWeight: 500, letterSpacing: "0.05em", textTransform: "uppercase" }}>
-                  #1 CLOUD POS SOLUTION
+                  {t('hero_badge')}
                 </Typography>
               </Box>
 
               <Typography component="h1" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: "2.5rem", md: "4rem" }, lineHeight: 1.1, letterSpacing: "-0.02em", color: C.onBackground, mb: 3, maxWidth: 900, mx: "auto" }}>
                 {isMobile ? (
                   <>
-                    Run your store <br />
+                    {t('hero_title_mobile')} <br />
                     <Box component="span" sx={{ color: C.primary, position: "relative", display: "inline-block" }}>
-                      smarter
+                      {t('hero_title_mobile_highlight')}
                       <Box component="svg" viewBox="0 0 100 10" preserveAspectRatio="none" sx={{ position: "absolute", width: "100%", height: 12, bottom: -4, left: 0, color: C.primaryFixedDim }}>
                         <path d="M0 5 Q 50 10 100 5" fill="transparent" stroke="currentColor" strokeWidth="3" />
                       </Box>
                     </Box>{" "}
-                    with StockWhisk
+                    {t('hero_title_mobile_suffix')}
                   </>
                 ) : (
                   <>
-                    Inventory & POS Management <br />
-                    <Box component="span" sx={{ background: `linear-gradient(135deg, ${C.primary}, #0053db)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Software for Retail</Box>
+                    {t('hero_title_desktop')} <br />
+                    <Box component="span" sx={{ background: `linear-gradient(135deg, ${C.primary}, #0053db)`, WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>{t('hero_title_desktop_highlight')}</Box>
                   </>
                 )}
               </Typography>
 
               <Typography sx={{ fontSize: { xs: "1rem", md: "1.125rem" }, color: C.onSurfaceVariant, maxWidth: 680, mx: "auto", mb: 5, lineHeight: 1.6 }}>
-                Modern retail dashboard built for clarity, speed, and accuracy. Manage inventory, track sales, and grow your business without the hassle.
+                {t('hero_subtitle')}
               </Typography>
 
               <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2, width: { xs: "100%", sm: "auto" }, mb: { xs: 6, md: 10 }, mx: "auto" }}>
                 <Button component={Link} href="/register" sx={{ bgcolor: C.primary, color: C.onPrimary, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", boxShadow: `0 8px 24px ${C.primary}4D`, "&:hover": { bgcolor: C.onPrimaryFixedVariant, transform: "translateY(-2px)" }, transition: "all 0.2s" }}>
-                  Start Free Trial
+                  {t('hero_btn_trial')}
                 </Button>
                 <Button component={Link} href="/demo" sx={{ bgcolor: C.surface, color: C.primary, border: `1px solid ${C.primary}33`, fontWeight: 700, borderRadius: 999, px: 4, py: 2, fontSize: "1rem", textTransform: "none", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "translateY(-2px)" }, transition: "all 0.2s" }}>
                   <MaterialIcon icon="play_arrow" filled sx={{ mr: 1 }} />
-                  Explore Live Demo
+                  {t('hero_btn_demo')}
                 </Button>
               </Box>
 
@@ -138,19 +140,19 @@ export default function LandingPage() {
                     <Grid container spacing={1.5}>
                       <Grid size={{ xs: 6 }}>
                         <Box sx={{ bgcolor: C.primary, color: C.onPrimary, p: 2, borderRadius: "12px" }}>
-                          <Typography sx={{ fontSize: "0.75rem", opacity: 0.8, mb: 0.5 }}>Today's Sales</Typography>
+                          <Typography sx={{ fontSize: "0.75rem", opacity: 0.8, mb: 0.5 }}>{t('hero_sales_today')}</Typography>
                           <Typography sx={{ fontWeight: 700, fontSize: "1.125rem" }}>৳ 48,250</Typography>
                         </Box>
                       </Grid>
                       <Grid size={{ xs: 6 }}>
                         <Box sx={{ bgcolor: C.surfaceContainerLow, border: `1px solid ${C.surfaceVariant}`, p: 2, borderRadius: "12px" }}>
-                          <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 0.5 }}>Orders</Typography>
+                          <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 0.5 }}>{t('hero_orders')}</Typography>
                           <Typography sx={{ fontWeight: 700, fontSize: "1.125rem", color: C.onSurface }}>126</Typography>
                         </Box>
                       </Grid>
                     </Grid>
                     <Box sx={{ bgcolor: C.surfaceContainerLow, border: `1px solid ${C.surfaceVariant}`, borderRadius: "12px", mt: 1.5, p: 2, height: 130, position: "relative", overflow: "hidden" }}>
-                      <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 1 }}>Sales Trend</Typography>
+                      <Typography sx={{ fontSize: "0.75rem", color: C.onSurfaceVariant, mb: 1 }}>{t('hero_sales_trend')}</Typography>
                       <Box sx={{ position: "absolute", bottom: 0, left: 0, right: 0, height: 64, display: "flex", alignItems: "flex-end", justifyContent: "space-between", px: 2, pb: 1, opacity: 0.3 }}>
                         <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 16 }} />
                         <Box sx={{ width: 16, bgcolor: C.primary, borderRadius: "2px 2px 0 0", height: 32 }} />
@@ -183,10 +185,10 @@ export default function LandingPage() {
             <Container maxWidth="lg">
               <Box sx={{ textAlign: "center", mb: 8 }}>
                 <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: { xs: "1.75rem", md: "2.25rem" }, color: C.onBackground, mb: 2 }}>
-                  Everything You Need to Manage Your Retail Business
+                  {t('bento_title')}
                 </Typography>
                 <Typography sx={{ fontSize: "1rem", color: C.onSurfaceVariant, maxWidth: 680, mx: "auto" }}>
-                  A complete suite of tools designed to streamline your daily operations.
+                  {t('bento_subtitle')}
                 </Typography>
               </Box>
 
@@ -198,10 +200,10 @@ export default function LandingPage() {
                       <MaterialIcon icon="inventory_2" sx={{ fontSize: "2rem" }} />
                     </Box>
                     <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1.5 }}>
-                      Smart Inventory
+                      {t('bento_inv_title')}
                     </Typography>
                     <Typography sx={{ color: C.onSurfaceVariant, mb: 3, flexGrow: 1 }}>
-                      Track stock levels in real-time across multiple locations. Get automatic alerts when items run low.
+                      {t('bento_inv_desc')}
                     </Typography>
                     <Box sx={{ height: 160, borderRadius: "12px", bgcolor: C.surfaceContainerLowest, border: `1px solid ${C.outlineVariant}33`, overflow: "hidden", position: "relative" }}>
                       <Box component="img" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsC9jhBbOcraVxXq5vDD7xm6CNg1RFmeeVjqNufP6BvGPev1y2J-bwO5JoSbOnpO33GsUXhhJ8Z-gzZCyXwxbybfFmY2MD8SeniLdIvu-3M0TeCHWAY6KkGvu_exySL4BMKTK7IjWUzd5t2COeKaf9yCeUccUWUZTumNVzLDO3UZQEfix0arAehxvtCUuyNJyvqav2PfqJuBUH0S59JXsija-OwE7UOB1RjiqBdaY0TSMHFvq9IFcA" alt="Inventory illustration" sx={{ width: "100%", height: "100%", objectFit: "cover", opacity: 0.8 }} />
@@ -218,10 +220,10 @@ export default function LandingPage() {
                           <MaterialIcon icon="point_of_sale" sx={{ fontSize: "1.5rem" }} />
                         </Box>
                         <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>
-                          Fast POS
+                          {t('bento_pos_title')}
                         </Typography>
                         <Typography sx={{ color: C.onSurfaceVariant }}>
-                          Process transactions quickly with our intuitive checkout interface.
+                          {t('bento_pos_desc')}
                         </Typography>
                       </Box>
                     </Grid>
@@ -231,10 +233,10 @@ export default function LandingPage() {
                           <MaterialIcon icon="bar_chart" sx={{ fontSize: "1.5rem" }} />
                         </Box>
                         <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>
-                          Insightful Reports
+                          {t('bento_rep_title')}
                         </Typography>
                         <Typography sx={{ color: C.onSurfaceVariant }}>
-                          Understand your sales trends and profit margins with beautiful charts.
+                          {t('bento_rep_desc')}
                         </Typography>
                       </Box>
                     </Grid>
@@ -247,8 +249,8 @@ export default function LandingPage() {
                     <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: C.surfaceVariant, color: C.primary, display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
                       <MaterialIcon icon="shopping_cart" />
                     </Box>
-                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.125rem", color: C.onBackground, mb: 1 }}>Purchases</Typography>
-                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>Streamline ordering.</Typography>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.125rem", color: C.onBackground, mb: 1 }}>{t('bento_small_1_title')}</Typography>
+                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>{t('bento_small_1_desc')}</Typography>
                   </Box>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
@@ -256,8 +258,8 @@ export default function LandingPage() {
                     <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: C.surfaceVariant, color: C.primary, display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
                       <MaterialIcon icon="group" />
                     </Box>
-                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.125rem", color: C.onBackground, mb: 1 }}>Customers</Typography>
-                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>Build loyalty.</Typography>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.125rem", color: C.onBackground, mb: 1 }}>{t('bento_small_2_title')}</Typography>
+                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>{t('bento_small_2_desc')}</Typography>
                   </Box>
                 </Grid>
                 <Grid size={{ xs: 12, sm: 4 }}>
@@ -265,8 +267,8 @@ export default function LandingPage() {
                     <Box sx={{ width: 40, height: 40, borderRadius: "8px", bgcolor: C.surfaceVariant, color: C.primary, display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
                       <MaterialIcon icon="local_shipping" />
                     </Box>
-                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.125rem", color: C.onBackground, mb: 1 }}>Suppliers</Typography>
-                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>Manage vendors.</Typography>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.125rem", color: C.onBackground, mb: 1 }}>{t('bento_small_3_title')}</Typography>
+                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>{t('bento_small_3_desc')}</Typography>
                   </Box>
                 </Grid>
               </Grid>
@@ -279,13 +281,13 @@ export default function LandingPage() {
               <Grid container spacing={8} sx={{ alignItems: "center" }}>
                 <Grid size={{ xs: 12, md: 6 }}>
                   <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: { xs: "1.75rem", md: "2.25rem" }, color: C.onBackground, mb: 4 }}>
-                    Managing Your Shop Shouldn’t Be This Complicated
+                    {t('prob_title')}
                   </Typography>
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 3, mt: 4 }}>
                     {[
-                      { title: "Manual Stock Counting", text: "Wasting hours counting items and still getting it wrong." },
-                      { title: "Messy Paper Records", text: "Losing track of who bought what and who owes you money." },
-                      { title: "Guessing Profits", text: "Not knowing which products are actually making you money." }
+                      { title: t('prob_1_title'), text: t('prob_1_text') },
+                      { title: t('prob_2_title'), text: t('prob_2_text') },
+                      { title: t('prob_3_title'), text: t('prob_3_text') }
                     ].map((item, i) => (
                       <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 2, opacity: 0.7 }}>
                         <Box sx={{ width: 32, height: 32, borderRadius: "50%", bgcolor: C.errorContainer, color: C.onErrorContainer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, mt: 0.5 }}>
@@ -305,21 +307,21 @@ export default function LandingPage() {
                     <Box sx={{ position: "relative", zIndex: 1 }}>
                       <Box sx={{ display: "inline-flex", alignItems: "center", gap: 1, bgcolor: C.primaryContainer, color: C.onPrimaryContainer, px: 1.5, py: 0.5, borderRadius: 999, mb: 3 }}>
                         <MaterialIcon icon="check_circle" sx={{ fontSize: "0.875rem" }} />
-                        <Typography sx={{ fontFamily: jetbrains.style.fontFamily, fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>The StockWhisk Way</Typography>
+                        <Typography sx={{ fontFamily: jetbrains.style.fontFamily, fontWeight: 700, fontSize: "0.75rem", textTransform: "uppercase", letterSpacing: "0.05em" }}>{t('prob_sol_badge')}</Typography>
                       </Box>
                       <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: "2.25rem", color: C.onBackground, mb: 2 }}>
-                        Automate & Simplify
+                        {t('prob_sol_title')}
                       </Typography>
                       <Typography sx={{ color: C.onSurfaceVariant, mb: 4 }}>
-                        StockWhisk connects every part of your store. Make a sale, and inventory updates instantly. Buy stock, and supplier ledgers are adjusted. It just works.
+                        {t('prob_sol_text')}
                       </Typography>
                       <Box sx={{ display: "flex", alignItems: "center", gap: 2, bgcolor: C.surface, p: 2, borderRadius: "12px", boxShadow: "0 1px 2px rgba(0,0,0,0.05)", border: `1px solid ${C.outlineVariant}33` }}>
                         <Box sx={{ width: 48, height: 48, borderRadius: "50%", bgcolor: `${C.tertiaryContainer}33`, display: "flex", alignItems: "center", justifyContent: "center", color: C.tertiaryContainer }}>
                           <MaterialIcon icon="trending_up" />
                         </Box>
                         <Box>
-                          <Typography sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, color: C.onBackground }}>Save 10+ hours a week</Typography>
-                          <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>Focus on growing, not paperwork.</Typography>
+                          <Typography sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, color: C.onBackground }}>{t('prob_sol_stat_title')}</Typography>
+                          <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant }}>{t('prob_sol_stat_text')}</Typography>
                         </Box>
                       </Box>
                     </Box>
@@ -333,18 +335,18 @@ export default function LandingPage() {
           <Box id="how-it-works" sx={{ py: { xs: 8, md: 12 }, bgcolor: C.surfaceContainerLowest, borderTop: `1px solid ${C.outlineVariant}33`, borderBottom: `1px solid ${C.outlineVariant}33` }}>
             <Container maxWidth="lg" sx={{ textAlign: "center" }}>
               <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: { xs: "1.75rem", md: "2.25rem" }, color: C.onBackground, mb: 8 }}>
-                One Platform for Your Entire Retail Operation
+                {t('flow_title')}
               </Typography>
               
               {!isMobile && (
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", maxWidth: 900, mx: "auto", mb: 8, position: "relative" }}>
                   <Box sx={{ position: "absolute", top: "50%", left: 0, width: "100%", height: "2px", bgcolor: `${C.outlineVariant}4D`, zIndex: 0, transform: "translateY(-50%)" }} />
                   {[
-                    { icon: "category", label: "Products" },
-                    { icon: "shopping_cart", label: "Purchases" },
-                    { icon: "inventory_2", label: "Inventory", primary: true },
-                    { icon: "point_of_sale", label: "Sales" },
-                    { icon: "bar_chart", label: "Reports" }
+                    { icon: "category", label: t('flow_step_1') },
+                    { icon: "shopping_cart", label: t('flow_step_2') },
+                    { icon: "inventory_2", label: t('flow_step_3'), primary: true },
+                    { icon: "point_of_sale", label: t('flow_step_4') },
+                    { icon: "bar_chart", label: t('flow_step_5') }
                   ].map((item, i) => (
                     <Box key={i} sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, bgcolor: C.surfaceContainerLowest, p: 1, zIndex: 1 }}>
                       {item.primary ? (
@@ -384,16 +386,16 @@ export default function LandingPage() {
                     <MaterialIcon icon="inventory_2" sx={{ fontSize: "1.5rem" }} />
                   </Box>
                   <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: { xs: "1.75rem", md: "2.25rem" }, color: C.onBackground, mb: 2 }}>
-                    Powerful Inventory Management
+                    {t('feat_1_title')}
                   </Typography>
                   <Typography sx={{ color: C.onSurfaceVariant, fontSize: "1.125rem", mb: 3 }}>
-                    Keep your shelves stocked and your data accurate without manual counting.
+                    {t('feat_1_desc')}
                   </Typography>
                   <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mb: 4 }}>
                     {[
-                      "Organize by categories, brands, and variants (size/color).",
-                      "Track exact item movement history.",
-                      "Set low-stock thresholds and get notified automatically."
+                      t('feat_1_bullet_1'),
+                      t('feat_1_bullet_2'),
+                      t('feat_1_bullet_3')
                     ].map((t, i) => (
                       <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
                         <MaterialIcon icon="check" sx={{ color: C.primary, mt: 0.25 }} />
@@ -402,7 +404,7 @@ export default function LandingPage() {
                     ))}
                   </Box>
                   <Link href="/register" style={{ display: "inline-flex", alignItems: "center", gap: 8, color: C.primary, fontWeight: 700, textDecoration: "none" }}>
-                    Explore Inventory Features <MaterialIcon icon="arrow_forward" />
+                    {t('feat_1_link')} <MaterialIcon icon="arrow_forward" />
                   </Link>
                 </Grid>
               </Grid>
@@ -415,16 +417,16 @@ export default function LandingPage() {
                       <MaterialIcon icon="point_of_sale" sx={{ fontSize: "1.5rem" }} />
                     </Box>
                     <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: { xs: "1.75rem", md: "2.25rem" }, color: C.onBackground, mb: 2 }}>
-                      Fast & Simple POS for Everyday Sales
+                      {t('feat_2_title')}
                     </Typography>
                     <Typography sx={{ color: C.onSurfaceVariant, fontSize: "1.125rem", mb: 3 }}>
-                      A checkout experience designed for speed, ensuring your customers never wait in long lines.
+                      {t('feat_2_desc')}
                     </Typography>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                       {[
-                        "Barcode scanner integration for lightning-fast checkout.",
-                        "Accept multiple payment methods (Cash, Card, Mobile).",
-                        "Inventory updates instantly the moment a sale is completed."
+                        t('feat_2_bullet_1'),
+                        t('feat_2_bullet_2'),
+                        t('feat_2_bullet_3')
                       ].map((t, i) => (
                         <Box key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
                           <MaterialIcon icon="check" sx={{ color: C.secondaryContainer, mt: 0.25 }} />
@@ -449,10 +451,10 @@ export default function LandingPage() {
             <Container maxWidth="lg">
               <Box sx={{ textAlign: "center", mb: 8 }}>
                 <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 700, fontSize: { xs: "1.75rem", md: "2.25rem" }, color: C.onBackground, mb: 2 }}>
-                  Simple Pricing, No Surprises
+                  {t('price_teaser_title')}
                 </Typography>
                 <Typography sx={{ fontSize: "1rem", color: C.onSurfaceVariant, maxWidth: 680, mx: "auto" }}>
-                  Start for free, upgrade when you need to grow.
+                  {t('price_teaser_subtitle')}
                 </Typography>
               </Box>
 
@@ -461,22 +463,22 @@ export default function LandingPage() {
                 {/* Starter Plan */}
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Box sx={{ bgcolor: C.surface, borderRadius: "32px", p: 4, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", height: "100%" }}>
-                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>Starter</Typography>
-                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, mb: 3 }}>Perfect for small, single-location shops.</Typography>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>{t('price_card_1_title')}</Typography>
+                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, mb: 3 }}>{t('price_card_1_desc')}</Typography>
                     <Box sx={{ mb: 4 }}>
-                      <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.25rem", color: C.onBackground }}>Free</Typography>
-                      <Typography component="span" sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, ml: 1 }}>/forever</Typography>
+                      <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.25rem", color: C.onBackground }}>{t('price_card_1_price')}</Typography>
+                      <Typography component="span" sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, ml: 1 }}>{t('price_card_1_period')}</Typography>
                     </Box>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                      {["Up to 500 Products", "Basic POS", "1 User"].map((t, i) => (
+                      {[t('price_card_1_bullet_1'), t('price_card_1_bullet_2'), t('price_card_1_bullet_3')].map((text, i) => (
                         <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <MaterialIcon icon="check" sx={{ color: C.primary, fontSize: "0.875rem" }} />
-                          <Typography sx={{ fontSize: "0.875rem", color: C.onSurface }}>{t}</Typography>
+                          <Typography sx={{ fontSize: "0.875rem", color: C.onSurface }}>{text}</Typography>
                         </Box>
                       ))}
                     </Box>
                     <Button component={Link} href="/register" sx={{ width: "100%", py: 1.5, borderRadius: 999, border: `1px solid ${C.primary}`, color: C.primary, fontWeight: 700, textTransform: "none", "&:hover": { bgcolor: C.surfaceContainer } }}>
-                      Get Started
+                      {t('price_card_1_btn')}
                     </Button>
                   </Box>
                 </Grid>
@@ -485,24 +487,24 @@ export default function LandingPage() {
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Box sx={{ bgcolor: C.primary, color: C.onPrimary, borderRadius: "32px", p: 4, boxShadow: "0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)", display: "flex", flexDirection: "column", height: "100%", position: "relative", transform: { md: "translateY(-16px)" } }}>
                     <Box sx={{ position: "absolute", top: 0, right: 0, bgcolor: C.secondaryContainer, color: C.onSecondaryContainer, fontSize: "0.75rem", fontWeight: 700, px: 1.5, py: 0.5, borderBottomLeftRadius: "12px", borderTopRightRadius: "32px", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                      Most Popular
+                      {t('price_card_2_badge')}
                     </Box>
-                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onPrimary, mb: 1 }}>Professional</Typography>
-                    <Typography sx={{ fontSize: "0.875rem", color: C.primaryFixedDim, mb: 3 }}>For growing businesses needing more power.</Typography>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onPrimary, mb: 1 }}>{t('price_card_2_title')}</Typography>
+                    <Typography sx={{ fontSize: "0.875rem", color: C.primaryFixedDim, mb: 3 }}>{t('price_card_2_desc')}</Typography>
                     <Box sx={{ mb: 4 }}>
-                      <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.25rem", color: C.onPrimary }}>$29</Typography>
-                      <Typography component="span" sx={{ fontSize: "0.875rem", color: C.primaryFixedDim, ml: 1 }}>/month</Typography>
+                      <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.25rem", color: C.onPrimary }}>{t('price_card_2_price')}</Typography>
+                      <Typography component="span" sx={{ fontSize: "0.875rem", color: C.primaryFixedDim, ml: 1 }}>{t('price_card_2_period')}</Typography>
                     </Box>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                      {["Unlimited Products", "Advanced POS & Barcodes", "3 Users", "Detailed Reports"].map((t, i) => (
+                      {[t('price_card_2_bullet_1'), t('price_card_2_bullet_2'), t('price_card_2_bullet_3'), t('price_card_2_bullet_4')].map((text, i) => (
                         <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <MaterialIcon icon="check" sx={{ color: C.tertiaryFixedDim, fontSize: "0.875rem" }} />
-                          <Typography sx={{ fontSize: "0.875rem", color: C.onPrimary }}>{t}</Typography>
+                          <Typography sx={{ fontSize: "0.875rem", color: C.onPrimary }}>{text}</Typography>
                         </Box>
                       ))}
                     </Box>
                     <Button component={Link} href="/register" sx={{ width: "100%", py: 1.5, borderRadius: 999, bgcolor: C.surface, color: C.primary, fontWeight: 700, textTransform: "none", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)", "&:hover": { bgcolor: C.surfaceContainerLow } }}>
-                      Start 14-Day Free Trial
+                      {t('price_card_2_btn')}
                     </Button>
                   </Box>
                 </Grid>
@@ -510,22 +512,22 @@ export default function LandingPage() {
                 {/* Enterprise Plan */}
                 <Grid size={{ xs: 12, md: 4 }}>
                   <Box sx={{ bgcolor: C.surface, borderRadius: "32px", p: 4, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 1px 2px rgba(0,0,0,0.05)", display: "flex", flexDirection: "column", height: "100%" }}>
-                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>Enterprise</Typography>
-                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, mb: 3 }}>Multi-store management and priority support.</Typography>
+                    <Typography component="h3" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 600, fontSize: "1.25rem", color: C.onBackground, mb: 1 }}>{t('price_card_3_title')}</Typography>
+                    <Typography sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, mb: 3 }}>{t('price_card_3_desc')}</Typography>
                     <Box sx={{ mb: 4 }}>
-                      <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.25rem", color: C.onBackground }}>$79</Typography>
-                      <Typography component="span" sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, ml: 1 }}>/month</Typography>
+                      <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.25rem", color: C.onBackground }}>{t('price_card_3_price')}</Typography>
+                      <Typography component="span" sx={{ fontSize: "0.875rem", color: C.onSurfaceVariant, ml: 1 }}>{t('price_card_3_period')}</Typography>
                     </Box>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                      {["Multiple Locations", "Unlimited Users", "API Access"].map((t, i) => (
+                      {[t('price_card_3_bullet_1'), t('price_card_3_bullet_2'), t('price_card_3_bullet_3')].map((text, i) => (
                         <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                           <MaterialIcon icon="check" sx={{ color: C.primary, fontSize: "0.875rem" }} />
-                          <Typography sx={{ fontSize: "0.875rem", color: C.onSurface }}>{t}</Typography>
+                          <Typography sx={{ fontSize: "0.875rem", color: C.onSurface }}>{text}</Typography>
                         </Box>
                       ))}
                     </Box>
                     <Button component={Link} href="/contact" sx={{ width: "100%", py: 1.5, borderRadius: 999, border: `1px solid ${C.outlineVariant}`, color: C.onSurface, fontWeight: 700, textTransform: "none", "&:hover": { bgcolor: C.surfaceContainer } }}>
-                      Contact Sales
+                      {t('price_card_3_btn')}
                     </Button>
                   </Box>
                 </Grid>
@@ -533,7 +535,7 @@ export default function LandingPage() {
               </Grid>
               <Box sx={{ textAlign: "center", mt: 4 }}>
                 <Link href="/pricing" style={{ color: C.primary, fontWeight: 700, textDecoration: "none" }}>
-                  View Full Feature Comparison
+                  {t('price_view_full')}
                 </Link>
               </Box>
             </Container>
@@ -544,21 +546,21 @@ export default function LandingPage() {
             <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom right, ${C.primary}, #003ea8, #00174b)`, zIndex: 0 }} />
             <Container maxWidth="md" sx={{ position: "relative", zIndex: 1, textAlign: "center" }}>
               <Typography component="h2" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: { xs: "2rem", md: "3rem" }, mb: 3 }}>
-                Ready to Manage Your Shop Smarter?
+                {t('final_cta_title')}
               </Typography>
               <Typography sx={{ fontSize: "1.125rem", color: C.primaryFixedDim, mb: 5, maxWidth: 680, mx: "auto" }}>
-                Join thousands of retailers who have simplified their operations, reduced errors, and grown their profits with StockWhisk.
+                {t('final_cta_subtitle')}
               </Typography>
               <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "center", gap: 2 }}>
                 <Button component={Link} href="/register" sx={{ bgcolor: C.surface, color: C.primary, fontWeight: 700, borderRadius: 999, px: 5, py: 2, fontSize: "1rem", textTransform: "none", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "scale(1.05)" }, transition: "all 0.2s" }}>
-                  Start Your Free Trial
+                  {t('final_cta_btn_1')}
                 </Button>
                 <Button component={Link} href="/contact" sx={{ bgcolor: "transparent", border: `1px solid ${C.primaryFixedDim}`, color: C.onPrimary, fontWeight: 700, borderRadius: 999, px: 5, py: 2, fontSize: "1rem", textTransform: "none", "&:hover": { bgcolor: `${C.primaryFixedDim}1A` }, transition: "all 0.2s" }}>
-                  Talk to Sales
+                  {t('final_cta_btn_2')}
                 </Button>
               </Box>
               <Typography sx={{ fontSize: "0.875rem", color: C.primaryFixedDim, mt: 3 }}>
-                No credit card required. Setup takes 5 minutes.
+                {t('final_cta_note')}
               </Typography>
             </Container>
           </Box>
