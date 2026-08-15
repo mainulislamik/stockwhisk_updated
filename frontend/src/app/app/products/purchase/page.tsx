@@ -37,6 +37,10 @@ export default function PurchaseProductPage() {
   const [barcodeText, setBarcodeText] = useState("");
   const [digitsPerCode, setDigitsPerCode] = useState(13);
   const [showScanner, setShowScanner] = useState(false);
+  // Quantity for the selected product: how many units to receive. Barcodes are
+  // optional and capped at this number — the rest are received without a barcode
+  // (for products with no barcode on the packet).
+  const [bulkQty, setBulkQty] = useState("");
 
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);
@@ -95,6 +99,7 @@ export default function PurchaseProductPage() {
     setSearchName("");
     setSearchBarcode("");
     setBarcodeText("");
+    setBulkQty("");
   }
 
   // ─── New product creation ────────────────────────────────────────────────
@@ -142,9 +147,20 @@ export default function PurchaseProductPage() {
 
   // ─── Bulk barcode scan helpers ────────────────────────────────────────────
   const parsedBarcodes = barcodeText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
+  // A quantity is only meaningful when a single product is selected. When set,
+  // it decides how many units to receive; barcodes may be fewer (or none).
+  const hasBulkQty = !!selected && bulkQty.trim() !== "";
+  const effQty = hasBulkQty ? Math.max(1, Math.round(Number(bulkQty) || 0)) : parsedBarcodes.length;
+  const tooManyBarcodes = hasBulkQty && parsedBarcodes.length > effQty;
 
   async function addScannedUnits() {
-    if (parsedBarcodes.length === 0) return;
+    // Allow adding barcode-less units when a product is selected and a quantity
+    // is given (product has no barcode on the packet).
+    if (parsedBarcodes.length === 0 && !hasBulkQty) return;
+    if (tooManyBarcodes) {
+      setError(`You scanned ${parsedBarcodes.length} barcodes but quantity is ${effQty}. Increase the quantity or remove extra barcodes.`);
+      return;
+    }
     setBusy(true);
     setError("");
 
@@ -153,14 +169,15 @@ export default function PurchaseProductPage() {
       for (const b of parsedBarcodes) {
         counts[b] = (counts[b] || 0) + 1;
       }
-      
+
       const newLines = [...lines];
       const notFound: string[] = [];
 
       if (selected) {
-        const qty = parsedBarcodes.length;
+        // Quantity field wins when set; otherwise one unit per scanned barcode.
+        const qty = hasBulkQty ? effQty : parsedBarcodes.length;
         const existing = newLines.find(l => l.product.id === selected.id);
-        
+
         if (existing) {
           existing.quantity += qty;
           existing.barcodes = [...existing.barcodes, ...parsedBarcodes];
@@ -213,6 +230,7 @@ export default function PurchaseProductPage() {
         setBarcodeText(remainingText);
       } else {
         setBarcodeText("");
+        setBulkQty("");
       }
     } catch (e: any) {
       setError(e?.message || "Error looking up barcodes");
@@ -493,24 +511,41 @@ export default function PurchaseProductPage() {
                 />
               </div>
               <div className="col-md-5">
-                <div className="border rounded p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-2">
-                  <div className="fs-3">🖨️</div>
-                  <div className="fw-semibold small">Continuous Scan Mode</div>
-                  <div className="text-secondary small">Focus the cursor in the field to start scanning</div>
-                  <div className="d-flex align-items-center gap-2 mt-2">
+                <div className="border rounded p-3 h-100 d-flex flex-column gap-2">
+                  {/* Quantity — units to receive for the selected product. Barcodes
+                      are optional and capped at this number. */}
+                  <label className="small fw-semibold mb-0">Quantity (units to receive)</label>
+                  <input
+                    type="number" min={1} step={1}
+                    className={`form-control form-control-sm ${tooManyBarcodes ? "is-invalid" : ""}`}
+                    placeholder={selected ? "e.g. 10" : "Select a product first"}
+                    value={bulkQty}
+                    disabled={!selected}
+                    onChange={(e) => setBulkQty(e.target.value)}
+                  />
+                  {selected ? (
+                    <div className={`small ${tooManyBarcodes ? "text-danger" : "text-secondary"}`}>
+                      {hasBulkQty
+                        ? `${parsedBarcodes.length} / ${effQty} barcodes scanned` + (tooManyBarcodes ? " — too many!" : (parsedBarcodes.length < effQty ? ` · ${effQty - parsedBarcodes.length} without barcode` : ""))
+                        : "Leave blank to receive one unit per scanned barcode."}
+                    </div>
+                  ) : (
+                    <div className="small text-secondary">Pick a product above to set a quantity.</div>
+                  )}
+                  <div className="d-flex align-items-center gap-2 mt-1">
                     <span className="small">Digits/code</span>
                     <input type="number" className="form-control form-control-sm" style={{ width: "5rem" }} value={digitsPerCode} min={8} max={20} onChange={(e) => setDigitsPerCode(Number(e.target.value) || 13)} />
                   </div>
-                  <button className="btn btn-outline-primary btn-sm w-100 mt-1 d-md-none" onClick={() => setShowScanner(true)}>
+                  <button className="btn btn-outline-primary btn-sm w-100 d-md-none" onClick={() => setShowScanner(true)}>
                     📷 Scan with Camera
                   </button>
-                  <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => setBarcodeText("")}>Clear List</button>
+                  <button className="btn btn-outline-secondary btn-sm w-100" onClick={() => { setBarcodeText(""); setBulkQty(""); }}>Clear List</button>
                 </div>
               </div>
             </div>
             <div className="mt-3">
-              <button className="btn btn-brand w-100" disabled={busy || parsedBarcodes.length === 0} onClick={addScannedUnits}>
-                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "+ "}Add {parsedBarcodes.length} unit(s) to receive
+              <button className="btn btn-brand w-100" disabled={busy || tooManyBarcodes || (parsedBarcodes.length === 0 && !hasBulkQty)} onClick={addScannedUnits}>
+                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "+ "}Add {effQty} unit(s) to receive
               </button>
             </div>
           </div>
