@@ -120,7 +120,8 @@ class ServiceTicketViewSet(TenantScopedViewSet):
         d = ser.validated_data
         add_ticket_part(
             ticket=ticket, product=d["product"], quantity=d["quantity"],
-            unit_cost=d.get("unit_cost"), from_stock=d["from_stock"], created_by=request.user,
+            unit_cost=d.get("unit_cost"), unit_price=d.get("unit_price"),
+            from_stock=d["from_stock"], created_by=request.user,
         )
         fresh = self.get_queryset().get(pk=ticket.pk)
         return Response(ServiceTicketSerializer(fresh).data, status=status.HTTP_201_CREATED)

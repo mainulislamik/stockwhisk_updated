@@ -8,7 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
-type Part = { id: number; product_name: string; quantity: string; unit_cost: string };
+type Part = { id: number; product_name: string; quantity: string; unit_cost: string; unit_price: string; line_total: string };
 type History = { id: number; from_status: string; to_status: string; note: string; created_at: string };
 type Ticket = {
   id: number;
@@ -22,9 +22,14 @@ type Ticket = {
   is_overdue: boolean;
   customer_name?: string;
   customer_phone?: string;
+  paid: string;
+  parts_total: string;
+  bill_total: string;
+  due: string;
   parts: Part[];
   history: History[];
 };
+type ProductHit = { id: number; name: string; sku: string; selling_price: string };
 
 const STATUSES = ["received", "diagnosing", "awaiting_parts", "in_repair", "ready_for_pickup", "delivered", "cancelled"];
 
@@ -36,6 +41,50 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+
+  // Add-product-to-ticket state
+  const [prodSearch, setProdSearch] = useState("");
+  const [prodHits, setProdHits] = useState<ProductHit[]>([]);
+  const [picked, setPicked] = useState<ProductHit | null>(null);
+  const [qty, setQty] = useState("1");
+  const [price, setPrice] = useState("");
+  const [addingPart, setAddingPart] = useState(false);
+
+  useEffect(() => {
+    if (picked || prodSearch.trim().length < 1) { setProdHits([]); return; }
+    let active = true;
+    const t = setTimeout(async () => {
+      try {
+        const d = await api<{ results: ProductHit[] }>(`/catalog/products/`, { params: { search: prodSearch.trim(), page_size: 8, light: 1 } });
+        if (active) setProdHits(d.results || []);
+      } catch { if (active) setProdHits([]); }
+    }, 250);
+    return () => { active = false; clearTimeout(t); };
+  }, [prodSearch, picked]);
+
+  async function addPart(e: React.FormEvent) {
+    e.preventDefault();
+    if (!picked) { toast.error("Pick a product first"); return; }
+    setAddingPart(true);
+    try {
+      await api(`/service/tickets/${id}/add_part/`, {
+        method: "POST",
+        body: {
+          product: picked.id,
+          quantity: Math.max(1, Math.round(Number(qty) || 1)),
+          unit_price: price === "" ? undefined : Math.max(0, Number(price)),
+          from_stock: true,
+        },
+      });
+      setPicked(null); setProdSearch(""); setProdHits([]); setQty("1"); setPrice("");
+      await load();
+      toast.success("Product added to ticket");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not add product");
+    } finally {
+      setAddingPart(false);
+    }
+  }
 
   async function load() {
     try {
@@ -92,21 +141,74 @@ export default function TicketDetailPage() {
               )}
               <div className="fw-semibold mb-2">Complaint</div>
               <p className="mb-3">{ticket.complaint}</p>
-              <div className="fw-semibold mb-2">Parts used</div>
+              <div className="fw-semibold mb-2">Products &amp; parts</div>
               {ticket.parts.length === 0 ? (
-                <div className="text-secondary small">No parts.</div>
+                <div className="text-secondary small mb-2">No products added.</div>
               ) : (
-                <table className="table table-sm mb-0">
+                <table className="table table-sm mb-2">
+                  <thead>
+                    <tr className="text-secondary small">
+                      <th>Product</th>
+                      <th className="text-end">Qty</th>
+                      <th className="text-end">Price</th>
+                      <th className="text-end">Total</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {ticket.parts.map((p) => (
                       <tr key={p.id}>
                         <td>{p.product_name}</td>
                         <td className="text-end">{p.quantity}</td>
-                        <td className="text-end">{money(p.unit_cost)}</td>
+                        <td className="text-end">{money(p.unit_price)}</td>
+                        <td className="text-end">{money(p.line_total)}</td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+              )}
+
+              {canManage && (
+                <form onSubmit={addPart} className="border-top pt-3 mt-2">
+                  <div className="fw-semibold small mb-2">Sell a product to this customer</div>
+                  <div className="position-relative mb-2">
+                    {picked ? (
+                      <div className="d-flex align-items-center justify-content-between border rounded px-2 py-1">
+                        <span className="small"><b>{picked.name}</b> {picked.sku && <span className="text-secondary">· {picked.sku}</span>}</span>
+                        <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => { setPicked(null); setPrice(""); }}>Change</button>
+                      </div>
+                    ) : (
+                      <>
+                        <input className="form-control form-control-sm" placeholder="Search product by name / SKU…"
+                          value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} />
+                        {prodHits.length > 0 && (
+                          <div className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}>
+                            {prodHits.map((h) => (
+                              <button type="button" key={h.id} className="list-group-item list-group-item-action py-1 small"
+                                onClick={() => { setPicked(h); setPrice(String(h.selling_price ?? "")); setProdHits([]); setProdSearch(""); }}>
+                                <b>{h.name}</b> {h.sku && <span className="text-secondary">· {h.sku}</span>} <span className="float-end">{money(h.selling_price)}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                  <div className="row g-2 align-items-end">
+                    <div className="col-4">
+                      <label className="small">Qty</label>
+                      <input type="number" step="1" min="1" className="form-control form-control-sm" value={qty} onChange={(e) => setQty(e.target.value)} />
+                    </div>
+                    <div className="col-4">
+                      <label className="small">Sell price</label>
+                      <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={price} onChange={(e) => setPrice(e.target.value)} />
+                    </div>
+                    <div className="col-4">
+                      <button className="btn btn-brand btn-sm w-100" disabled={addingPart || !picked}>
+                        {addingPart ? "Adding…" : "Add product"}
+                      </button>
+                    </div>
+                  </div>
+                </form>
               )}
             </div>
           </div>
@@ -136,6 +238,22 @@ export default function TicketDetailPage() {
                 <span>{money(ticket.service_charge)}</span>
               </div>
               <div className="d-flex justify-content-between">
+                <span className="text-secondary">Products &amp; parts</span>
+                <span>{money(ticket.parts_total)}</span>
+              </div>
+              <div className="d-flex justify-content-between fw-semibold border-top pt-1 mt-1">
+                <span>Bill total</span>
+                <span>{money(ticket.bill_total)}</span>
+              </div>
+              <div className="d-flex justify-content-between">
+                <span className="text-secondary">Paid</span>
+                <span>{money(ticket.paid)}</span>
+              </div>
+              <div className="d-flex justify-content-between fw-semibold">
+                <span>Due</span>
+                <span className={Number(ticket.due) > 0 ? "text-danger" : "text-success"}>{money(ticket.due)}</span>
+              </div>
+              <div className="d-flex justify-content-between mt-1">
                 <span className="text-secondary">Est. delivery</span>
                 <span>{fmtDate(ticket.estimated_delivery)}</span>
               </div>

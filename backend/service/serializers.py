@@ -33,10 +33,11 @@ class WarrantyClaimSerializer(serializers.ModelSerializer):
 
 class TicketPartSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
+    line_total = serializers.ReadOnlyField()
 
     class Meta:
         model = ServiceTicketPart
-        fields = ["id", "product", "product_name", "quantity", "unit_cost", "from_stock"]
+        fields = ["id", "product", "product_name", "quantity", "unit_cost", "unit_price", "line_total", "from_stock"]
 
 
 class TicketHistorySerializer(serializers.ModelSerializer):
@@ -49,6 +50,9 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
     parts = TicketPartSerializer(many=True, read_only=True)
     history = TicketHistorySerializer(many=True, read_only=True)
     is_overdue = serializers.BooleanField(read_only=True)
+    parts_total = serializers.ReadOnlyField()
+    bill_total = serializers.ReadOnlyField()
+    due = serializers.ReadOnlyField()
 
     class Meta:
         model = ServiceTicket
@@ -57,6 +61,7 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
             "device_description", "complaint",
             "received_at", "technician", "status", "service_charge", "estimated_delivery",
             "actual_delivery", "is_overdue", "parts", "history", "created_at",
+            "paid", "parts_total", "bill_total", "due",
         ]
         read_only_fields = ["ticket_no", "actual_delivery", "status"]
 
@@ -76,4 +81,6 @@ class TicketPartInputSerializer(serializers.Serializer):
     product = serializers.PrimaryKeyRelatedField(queryset=Product.objects)
     quantity = serializers.DecimalField(max_digits=12, decimal_places=2, default=1)
     unit_cost = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    # Customer sell price; defaults to the product's selling price when omitted.
+    unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     from_stock = serializers.BooleanField(default=True)
