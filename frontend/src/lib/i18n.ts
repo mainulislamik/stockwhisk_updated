@@ -161,6 +161,7 @@ export const translations: Translations = {
 
     // Footer
     footer_rights: "© {year} StockWhisk. All rights reserved.",
+    footer_terms: "Terms & Conditions",
 
     // Reseller Page
     reseller_eyebrow: "🤝 StockWhisk Partner Program",
@@ -329,6 +330,7 @@ export const translations: Translations = {
 
     // Footer
     footer_rights: "© {year} StockWhisk. সর্বস্বত্ব সংরক্ষিত。",
+    footer_terms: "শর্তাবলী ও নীতিমালা",
 
     // Reseller Page
     reseller_eyebrow: "🤝 স্টকহিস্ক পার্টনার প্রোগ্রাম",

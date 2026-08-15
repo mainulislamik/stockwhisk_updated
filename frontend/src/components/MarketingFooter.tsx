@@ -35,9 +35,16 @@ export default function MarketingFooter() {
             </Stack>
           </Grid>
         </Grid>
-        <Typography variant="body2" sx={{ mt: 5, pt: 3, borderTop: `1px solid rgba(255,255,255,.1)`, fontSize: ".85rem" }}>
-          {t("footer_rights").replace("{year}", String(new Date().getFullYear()))}
-        </Typography>
+        <Box sx={{ mt: 5, pt: 3, borderTop: `1px solid rgba(255,255,255,.1)`, display: "flex", flexDirection: { xs: "column", sm: "row" }, justifyContent: "space-between", alignItems: { xs: "center", sm: "flex-start" }, gap: 2 }}>
+          <Typography variant="body2" sx={{ fontSize: ".85rem" }}>
+            {t("footer_rights").replace("{year}", String(new Date().getFullYear()))}
+          </Typography>
+          <Box sx={{ display: "flex", gap: 3 }}>
+            <Link href="/terms" style={{ color: "rgba(255,255,255,0.7)", textDecoration: "none", fontSize: ".85rem", transition: "color 0.2s" }} onMouseOver={(e) => e.currentTarget.style.color = "#fff"} onMouseOut={(e) => e.currentTarget.style.color = "rgba(255,255,255,0.7)"}>
+              {t("footer_terms")}
+            </Link>
+          </Box>
+        </Box>
       </Container>
     </Box>
   );
