@@ -930,13 +930,23 @@ class PlatformResellerActionView(APIView):
             profile.status = ResellerProfile.Status.SUSPENDED
         else:
             return Response({"detail": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
-            
-        profile.save()
 
-        # Send email if status transitioned to Active or Rejected
+        try:
+            profile.save()
+        except Exception as exc:
+            import logging
+            logging.getLogger("django").exception("Reseller %s action '%s' failed", pk, action)
+            return Response({"detail": f"Could not {action} reseller: {exc}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Notifying the reseller by email must never break the approval itself —
+        # an SMTP/config hiccup should not 500 the action.
         if old_status != profile.status and profile.status in [ResellerProfile.Status.ACTIVE, ResellerProfile.Status.REJECTED]:
-            self._send_status_email(profile, profile.status)
-            
+            try:
+                self._send_status_email(profile, profile.status)
+            except Exception:
+                import logging
+                logging.getLogger("django").exception("Reseller status email failed for %s", profile.pk)
+
         return Response({"status": profile.status})
 
     DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
