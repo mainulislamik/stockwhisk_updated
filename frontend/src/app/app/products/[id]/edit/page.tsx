@@ -51,7 +51,7 @@ export default function ProductEditPage() {
           brand: form.brand || null,
           cost_price: form.cost_price,
           selling_price: form.selling_price,
-          reorder_level: form.reorder_level,
+          reorder_level: form.reorder_level === "" || form.reorder_level == null ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
           warranty_months: form.warranty_months,
           description: form.description,
           is_active: form.is_active,
@@ -116,7 +116,7 @@ export default function ProductEditPage() {
             </div>
             <div className="col-md-3">
               <label className="small">Reorder level</label>
-              <input type="number" step="0.01" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
+              <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
             </div>
             <div className="col-md-3">
               <label className="small">Warranty (months)</label>

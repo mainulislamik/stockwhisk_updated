@@ -110,7 +110,7 @@ export default function PurchaseProductPage() {
           sku: newProd.sku.trim() || "",
           cost_price: newProd.cost_price || 0,
           selling_price: newProd.selling_price || 0,
-          reorder_level: newProd.reorder_level || 5,
+          reorder_level: newProd.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
           track_inventory: true,
         },
       });
@@ -343,7 +343,7 @@ export default function PurchaseProductPage() {
                 </div>
                 <div className="col-md-3">
                   <label className="small fw-medium">Reorder level</label>
-                  <input type="number" step="0.01" className="form-control form-control-sm" value={newProd.reorder_level} onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })} />
+                  <input type="number" step="1" min="0" className="form-control form-control-sm" value={newProd.reorder_level} onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })} />
                 </div>
                 <div className="col-md-3 d-flex align-items-end gap-2">
                   <button className="btn btn-brand btn-sm" disabled={savingProd}>{savingProd ? "Creating…" : "Create & add"}</button>

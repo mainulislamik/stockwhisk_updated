@@ -626,7 +626,7 @@ def products(request):
             barcode=_clip(barcode, 60),
             cost_price=_dec_nn(request.POST.get("cost_price")),
             selling_price=_dec_nn(request.POST.get("selling_price")),
-            reorder_level=_dec_nn(request.POST.get("reorder_level")),
+            reorder_level=int(round(_dec_nn(request.POST.get("reorder_level")))),
             category_id=category_id,
             brand_id=brand_id,
             supplier_id=supplier_id,
@@ -817,7 +817,7 @@ def product_edit(request, pk):
         product.barcode = _clip(new_barcode, 60)
         product.cost_price = _dec_nn(request.POST.get("cost_price"))
         product.selling_price = _dec_nn(request.POST.get("selling_price"))
-        product.reorder_level = _dec_nn(request.POST.get("reorder_level"))
+        product.reorder_level = int(round(_dec_nn(request.POST.get("reorder_level"))))
         product.is_active = request.POST.get("is_active") == "on"
         # Category: prefer the chosen subcategory, else the parent category.
         category_raw = request.POST.get("subcategory") or request.POST.get("category") or None
