@@ -164,7 +164,7 @@ export default function Home() {
             <Box
               component={motion.div}
               animate={{ 
-                scale: [1, 1.2, 1],
+                scale: [1, 1.3, 1], rotate: [0, 90, 0],
                 opacity: [0.3, 0.6, 0.3],
                 x: [0, -30, 0],
                 y: [0, 30, 0]
@@ -308,7 +308,7 @@ export default function Home() {
                   {/* Inventory (Large) */}
                   <Grid size={{ xs: 12, md: 6 }}>
                     <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.primary}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", display: "flex", flexDirection: "column", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
+                      <Box component={motion.div} whileHover={{ y: -12, scale: 1.01, boxShadow: `0 24px 48px ${C.primary}33` }} transition={{ type: "spring", stiffness: 300, damping: 20 }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", display: "flex", flexDirection: "column", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)" }}>
                         <Box sx={{ width: 56, height: 56, borderRadius: "16px", bgcolor: C.primaryContainer, color: C.onPrimaryContainer, display: "flex", alignItems: "center", justifyContent: "center", mb: 3 }}>
                           <MaterialIcon icon="inventory_2" sx={{ fontSize: "2rem" }} />
                         </Box>
@@ -330,7 +330,7 @@ export default function Home() {
                     <Grid container spacing={3} sx={{ height: "100%" }}>
                       <Grid size={{ xs: 12 }}>
                         <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                          <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.secondaryContainer}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
+                          <Box component={motion.div} whileHover={{ y: -12, scale: 1.02, boxShadow: `0 24px 48px ${C.secondaryContainer}33` }} transition={{ type: "spring", stiffness: 300, damping: 20 }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
                             <Box sx={{ width: 48, height: 48, borderRadius: "16px", bgcolor: `${C.secondaryContainer}33`, color: C.onSecondaryContainer, display: "flex", alignItems: "center", justifyContent: "center", mb: 2.5 }}>
                               <MaterialIcon icon="point_of_sale" sx={{ fontSize: "1.5rem" }} />
                             </Box>
@@ -348,7 +348,7 @@ export default function Home() {
                       </Grid>
                       <Grid size={{ xs: 12 }}>
                         <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                          <Box component={motion.div} whileHover={{ y: -8, boxShadow: `0 20px 40px ${C.tertiaryContainer}26` }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
+                          <Box component={motion.div} whileHover={{ y: -12, scale: 1.02, boxShadow: `0 24px 48px ${C.tertiaryContainer}33` }} transition={{ type: "spring", stiffness: 300, damping: 20 }} sx={{ bgcolor: `${C.surface}CC`, backdropFilter: "blur(12px)", borderRadius: "32px", p: { xs: 4, md: 5 }, border: `1px solid ${C.outlineVariant}66`, boxShadow: "0 4px 6px rgba(0,0,0,0.02)", height: "100%", transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)", display: "flex", flexDirection: "column" }}>
                             <Box sx={{ width: 48, height: 48, borderRadius: "16px", bgcolor: `${C.tertiaryContainer}33`, color: C.onTertiaryContainer, display: "flex", alignItems: "center", justifyContent: "center", mb: 2.5 }}>
                               <MaterialIcon icon="bar_chart" sx={{ fontSize: "1.5rem" }} />
                             </Box>
@@ -370,7 +370,7 @@ export default function Home() {
                   {/* Small Cards */}
                   <Grid size={{ xs: 12, sm: 4 }}>
                     <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -4, scale: 1.02 }} sx={{ bgcolor: C.surface, borderRadius: "24px", p: 3.5, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 2px 4px rgba(0,0,0,0.02)", height: "100%" }}>
+                      <Box component={motion.div} whileHover={{ y: -8, scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} sx={{ bgcolor: C.surface, borderRadius: "24px", p: 3.5, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 2px 4px rgba(0,0,0,0.02)", height: "100%", transition: "box-shadow 0.3s ease", "&:hover": { boxShadow: "0 16px 32px rgba(0,0,0,0.08)" } }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: C.surfaceVariant, color: C.primary, display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
                           <MaterialIcon icon="shopping_cart" />
                         </Box>
@@ -381,7 +381,7 @@ export default function Home() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 4 }}>
                     <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -4, scale: 1.02 }} sx={{ bgcolor: C.surface, borderRadius: "24px", p: 3.5, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 2px 4px rgba(0,0,0,0.02)", height: "100%" }}>
+                      <Box component={motion.div} whileHover={{ y: -8, scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} sx={{ bgcolor: C.surface, borderRadius: "24px", p: 3.5, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 2px 4px rgba(0,0,0,0.02)", height: "100%", transition: "box-shadow 0.3s ease", "&:hover": { boxShadow: "0 16px 32px rgba(0,0,0,0.08)" } }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: C.surfaceVariant, color: C.primary, display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
                           <MaterialIcon icon="group" />
                         </Box>
@@ -392,7 +392,7 @@ export default function Home() {
                   </Grid>
                   <Grid size={{ xs: 12, sm: 4 }}>
                     <motion.div variants={fadeUp} style={{ height: '100%' }}>
-                      <Box component={motion.div} whileHover={{ y: -4, scale: 1.02 }} sx={{ bgcolor: C.surface, borderRadius: "24px", p: 3.5, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 2px 4px rgba(0,0,0,0.02)", height: "100%" }}>
+                      <Box component={motion.div} whileHover={{ y: -8, scale: 1.03 }} transition={{ type: "spring", stiffness: 300, damping: 20 }} sx={{ bgcolor: C.surface, borderRadius: "24px", p: 3.5, border: `1px solid ${C.outlineVariant}4D`, boxShadow: "0 2px 4px rgba(0,0,0,0.02)", height: "100%", transition: "box-shadow 0.3s ease", "&:hover": { boxShadow: "0 16px 32px rgba(0,0,0,0.08)" } }}>
                         <Box sx={{ width: 40, height: 40, borderRadius: "10px", bgcolor: C.surfaceVariant, color: C.primary, display: "flex", alignItems: "center", justifyContent: "center", mb: 2 }}>
                           <MaterialIcon icon="local_shipping" />
                         </Box>
@@ -421,7 +421,7 @@ export default function Home() {
                         { title: t('prob_2_title'), text: t('prob_2_text') },
                         { title: t('prob_3_title'), text: t('prob_3_text') }
                       ].map((item, i) => (
-                        <Box component={motion.div} whileHover={{ x: 10 }} transition={{ type: "spring", stiffness: 300 }} key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 2, p: 2, borderRadius: "16px", "&:hover": { bgcolor: `${C.errorContainer}33` } }}>
+                        <Box component={motion.div} whileHover={{ x: 12, scale: 1.02 }} transition={{ type: "spring", stiffness: 300 }} key={i} sx={{ display: "flex", alignItems: "flex-start", gap: 2, p: 2, borderRadius: "16px", "&:hover": { bgcolor: `${C.errorContainer}33` } }}>
                           <Box sx={{ width: 36, height: 36, borderRadius: "50%", bgcolor: C.errorContainer, color: C.onErrorContainer, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0, mt: 0.5 }}>
                             <MaterialIcon icon="close" sx={{ fontSize: "1.25rem" }} />
                           </Box>
