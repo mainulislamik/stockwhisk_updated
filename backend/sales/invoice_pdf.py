@@ -155,6 +155,48 @@ def build_invoice_pdf(sale) -> bytes:
     if due > 0:
         total_row("Due", _money(due), bold=True)
 
+    # ── EMI Schedule ──
+    from .models import EMISchedule, EMIInstallment
+    emi = EMISchedule.all_objects.filter(sale_id=sale.id).first()
+    if emi:
+        y -= 5 * mm
+        if y < 70 * mm:
+            c.showPage(); y = h - 30 * mm
+        
+        c.setFillColor(BRAND)
+        c.setFont("Helvetica-Bold", 10)
+        c.drawString(left, y, "EMI SCHEDULE SUMMARY")
+        y -= 5 * mm
+        
+        c.setFillColor(BLACK)
+        c.setFont("Helvetica", 9)
+        c.drawString(left, y, f"Principal: {_money(emi.principal)}")
+        c.drawString(left + 45*mm, y, f"Interest: {emi.interest_percent}%")
+        c.drawString(left + 90*mm, y, f"Total EMI: {_money(emi.total_emi_amount)}")
+        y -= 4.5 * mm
+        c.drawString(left, y, f"Duration: {emi.total_months} Months")
+        c.drawString(left + 45*mm, y, f"Monthly: {_money(emi.monthly_installment)}")
+        y -= 8 * mm
+
+        installments = EMIInstallment.all_objects.filter(schedule_id=emi.id).order_by('installment_number')
+        if installments:
+            c.setFont("Helvetica-Bold", 8)
+            c.drawString(left, y, "Inst #")
+            c.drawString(left + 20*mm, y, "Due Date")
+            c.drawRightString(left + 70*mm, y, "Amount")
+            c.setFont("Helvetica", 8)
+            y -= 1 * mm
+            c.line(left, y, left + 70*mm, y)
+            y -= 4 * mm
+            for inst in installments:
+                if y < 45 * mm:
+                    c.showPage(); y = h - 30 * mm
+                c.drawString(left, y, str(inst.installment_number))
+                c.drawString(left + 20*mm, y, inst.due_date.strftime("%d %b %Y"))
+                c.drawRightString(left + 70*mm, y, _money(inst.amount))
+                y -= 4 * mm
+        y -= 5 * mm
+
     # ── Signatures ──
     sign_y = 36 * mm
     sign_w = 55 * mm
