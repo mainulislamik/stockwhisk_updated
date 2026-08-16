@@ -198,13 +198,15 @@ class EMIScheduleSerializer(serializers.ModelSerializer):
     installments = EMIInstallmentSerializer(many=True, read_only=True)
     customer_name = serializers.CharField(source="customer.name", read_only=True)
     customer_phone = serializers.CharField(source="customer.phone", read_only=True)
-    invoice_no = serializers.CharField(source="sale.invoice_no", read_only=True)
+    sale_invoice_no = serializers.CharField(source="sale.invoice_no", read_only=True)
+    total_principal = serializers.DecimalField(source="principal", max_digits=14, decimal_places=2, read_only=True)
+    months = serializers.IntegerField(source="total_months", read_only=True)
 
     class Meta:
         from .models import EMISchedule
         model = EMISchedule
         fields = [
-            "id", "sale", "invoice_no", "customer", "customer_name", "customer_phone",
-            "total_emi_amount", "down_payment", "interest_percent", "total_months", "monthly_installment",
-            "status", "total_paid", "total_due", "installments"
+            "id", "sale", "sale_invoice_no", "customer", "customer_name", "customer_phone",
+            "total_emi_amount", "down_payment", "interest_percent", "months", "monthly_installment",
+            "status", "total_paid", "total_due", "total_principal", "installments", "created_at"
         ]
