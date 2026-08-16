@@ -277,6 +277,9 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
         start, end = day.replace(month=1, day=1), now
         py = start - relativedelta(years=1)
         prev_start, prev_end = py, py + (now - start)
+    elif key == "all_time":
+        start, end = None, now
+        prev_start, prev_end = None, None
     elif key == "custom":
         from datetime import datetime as _dt, time as _time
         from django.utils.dateparse import parse_date, parse_datetime
@@ -294,13 +297,19 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
 
         start = _to_dt(custom_start) or (now - timedelta(days=30))
         end = _to_dt(custom_end, end_of_day=True) or now
-        dur = end - start
-        prev_start, prev_end = start - dur, start - us
+        if start:
+            dur = end - start
+            prev_start, prev_end = start - dur, start - us
+        else:
+            prev_start, prev_end = None, None
     else:
         start, end = now - timedelta(days=30), now
         prev_start, prev_end = now - timedelta(days=60), now - timedelta(days=30)
 
-    bucket = "month" if (end - start).days > 92 else "day"
+    if start is None:
+        bucket = "month"
+    else:
+        bucket = "month" if (end - start).days > 92 else "day"
     return start, end, prev_start, prev_end, bucket
 
 

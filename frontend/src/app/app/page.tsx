@@ -119,6 +119,8 @@ export default function DashboardPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [sub, setSub] = useState<SubStatus | null>(null);
+  const [topFilter, setTopFilter] = useState("today");
+  const [topData, setTopData] = useState<any>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInst = useRef<any>(null);
 
@@ -148,6 +150,13 @@ export default function DashboardPage() {
   useEffect(() => {
     api<SubStatus>("/billing/status/").then(setSub).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!canDashboard) return;
+    api(`/analytics/profit-overview/`, { params: { range: topFilter } })
+      .then(setTopData)
+      .catch(() => {});
+  }, [canDashboard, topFilter]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -180,32 +189,68 @@ export default function DashboardPage() {
   if (error) return <ErrorState error={error} />;
   if (!data) return null;
 
+  const filterPrefix =
+    topFilter === "today" ? "Today" :
+    topFilter === "7d" ? "Weekly" :
+    topFilter === "30d" ? "Monthly" :
+    topFilter === "this_year" ? "Yearly" : "Lifetime";
+
   return (
     <div>
       <SubscriptionBanner sub={sub} />
-      <h1 className="h4 fw-bold text-brand mb-3">Dashboard</h1>
+      
+      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h1 className="h4 fw-bold text-brand mb-0">Dashboard</h1>
+        <select
+          className="form-select form-select-sm w-auto fw-semibold rounded-pill bg-light"
+          value={topFilter}
+          onChange={(e) => setTopFilter(e.target.value)}
+        >
+          <option value="today">Daily</option>
+          <option value="7d">Weekly</option>
+          <option value="30d">Monthly</option>
+          <option value="this_year">Yearly</option>
+          <option value="all_time">Lifetime</option>
+        </select>
+      </div>
 
       <div className="row g-3 mb-4">
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Today revenue</div>
-            <div className="fs-4 fw-bold">{money(data.today.revenue)}</div>
+            <div className="small text-secondary">{filterPrefix} Sale Money</div>
+            <div className="fs-4 fw-bold text-brand">
+              {topData ? money(topData.summary.revenue) : <Spinner size="sm" />}
+            </div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{filterPrefix} Total Order</div>
+            <div className="fs-4 fw-bold text-primary">
+              {topData ? topData.summary.completed_orders : <Spinner size="sm" />}
+            </div>
           </Card>
         </div>
         {canProfit && (
           <div className="col-6 col-lg-3">
             <Card>
-              <div className="small text-secondary">Today net profit</div>
-              <div className="fs-4 fw-bold text-success">{money(data.today.net_profit)}</div>
+              <div className="small text-secondary">{filterPrefix} Gross Profit</div>
+              <div className="fs-4 fw-bold text-success">
+                {topData ? money(topData.summary.gross_profit) : <Spinner size="sm" />}
+              </div>
             </Card>
           </div>
         )}
-        <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">Stock value</div>
-            <div className="fs-4 fw-bold">{money(data.stock_value)}</div>
-          </Card>
-        </div>
+        {canProfit && (
+          <div className="col-6 col-lg-3">
+            <Card>
+              <div className="small text-secondary">{filterPrefix} Profit Margin</div>
+              <div className="fs-4 fw-bold text-info">
+                {topData ? `${topData.summary.profit_margin.toFixed(2)}%` : <Spinner size="sm" />}
+              </div>
+            </Card>
+          </div>
+        )}
         <div className="col-6 col-lg-3">
           <Card>
             <div className="small text-secondary">Out / Low stock</div>
