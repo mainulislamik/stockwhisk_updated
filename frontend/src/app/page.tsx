@@ -680,7 +680,7 @@ export default function Home() {
                               </Box>
                               
                               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
-                                {features.slice(0, 4).map((text, i) => (
+                                {features.map((text, i) => (
                                   <Box key={i} sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                                     <MaterialIcon icon="check" sx={{ color: isPopular ? C.tertiaryFixedDim : C.primary, fontSize: "1.25rem" }} />
                                     <Typography sx={{ fontSize: "0.9375rem", color: isPopular ? C.onPrimary : C.onSurface }}>{text}</Typography>
