@@ -28,6 +28,17 @@ type SaleItem = {
   unit_warranties?: number[];
   unit_replacement_guarantees?: number[];
 };
+type EMISchedule = {
+  total_emi_amount: string;
+  down_payment: string;
+  interest_percent: string;
+  total_months: number;
+  monthly_installment: string;
+  status: string;
+  principal: string;
+  interest_amount: string;
+};
+
 type Payment = { id: number; amount: string; method: string };
 type Sale = {
   id: number;
@@ -46,6 +57,7 @@ type Sale = {
   note: string;
   items: SaleItem[];
   payments: Payment[];
+  emi_schedule?: EMISchedule;
 };
 
 const METHOD_LABEL: Record<string, string> = {
@@ -230,6 +242,21 @@ export default function InvoicePage() {
               </>
             ) : (
               <div className="inv-thank-you">© Thank you for your business!</div>
+            )}
+            
+            {sale.emi_schedule && (
+              <div className="mt-4 p-3 bg-light rounded border border-light-subtle">
+                <div className="inv-section-label mb-2 text-dark fw-bold">EMI SCHEDULE SUMMARY</div>
+                <div className="d-flex justify-content-between" style={{ fontSize: '9pt', color: '#475569' }}>
+                  <span>Principal: {fmt(sale.emi_schedule.principal)}</span>
+                  <span>Interest: {sale.emi_schedule.interest_percent}%</span>
+                  <span className="fw-semibold text-dark">Total EMI: {fmt(sale.emi_schedule.total_emi_amount)}</span>
+                </div>
+                <div className="d-flex justify-content-between mt-1 mb-2" style={{ fontSize: '9pt', color: '#475569' }}>
+                  <span>Duration: {sale.emi_schedule.total_months} Months</span>
+                  <span className="fw-semibold text-dark">Monthly: {fmt(sale.emi_schedule.monthly_installment)}</span>
+                </div>
+              </div>
             )}
           </div>
 
