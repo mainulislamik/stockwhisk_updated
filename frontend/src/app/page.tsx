@@ -689,15 +689,13 @@ export default function Home() {
                               </Box>
                               
                               <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                <Button component={Link} href={plan.tier === 'enterprise' ? "/contact" : "/register"} sx={isPopular 
+                                <Button component={Link} href="/register" sx={isPopular 
                                   ? { width: "100%", py: 1.5, borderRadius: 999, bgcolor: C.surface, color: C.primary, fontWeight: 800, textTransform: "none", fontSize: "1.05rem", boxShadow: "0 8px 24px rgba(0, 0, 0, 0.15)", transition: "all 0.3s ease", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "translateY(-2px)", boxShadow: "0 12px 32px rgba(0, 0, 0, 0.2)" } }
                                   : { width: "100%", py: 1.5, borderRadius: 999, border: `2px solid ${plan.tier === 'starter' ? C.primary : C.outlineVariant}`, color: plan.tier === 'starter' ? C.primary : C.onSurface, fontWeight: 800, textTransform: "none", fontSize: "1.05rem", transition: "all 0.3s ease", "&:hover": { bgcolor: C.surfaceContainerLow, transform: "translateY(-2px)" } }
                                 }>
                                   {plan.tier === 'starter' 
                                     ? t('price_card_1_btn') 
-                                    : plan.tier === 'enterprise' 
-                                      ? t('price_card_3_btn') 
-                                      : (lang === 'bn' ? `${toBnNum(trialDays)}-দিনের ফ্রি ট্রায়াল শুরু করুন` : `Start ${trialDays}-Day Free Trial`)}
+                                    : (lang === 'bn' ? `${toBnNum(trialDays)}-দিনের ফ্রি ট্রায়াল শুরু করুন` : `Start ${trialDays}-Day Free Trial`)}
                                 </Button>
                               </motion.div>
                             </Box>
