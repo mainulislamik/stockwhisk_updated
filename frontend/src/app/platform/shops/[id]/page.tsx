@@ -19,6 +19,7 @@ type Shop = {
   plan_tier: string | null;
   is_active: boolean;
   is_test?: boolean;
+  is_free?: boolean;
   user_count: number;
   owner_email: string | null;
   owner_full_name: string | null;
@@ -126,6 +127,20 @@ export default function ShopDetailsPage() {
       setBusy(false);
     }
   }, [shop, load]);
+
+  const toggleFree = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      await api(`/platform/shops/${shop.id}/toggle-free/`, { method: "POST" });
+      await load();
+      toast.success(shop.is_free ? "Free access removed — shop must pay now." : "Shop granted lifetime-free access.");
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop]);
 
   const toggleTest = useCallback(async () => {
     if (!shop) return;
@@ -319,6 +334,14 @@ export default function ShopDetailsPage() {
               <hr className="border-secondary my-3 opacity-25" />
 
               {/* Manage plan */}
+              {shop.is_free ? (
+              <div className="p-3 rounded-3 text-center" style={{ background: "rgba(34,197,94,.12)" }}>
+                <div className="fs-4">🎁</div>
+                <div className="fw-semibold text-success">Lifetime-free shop</div>
+                <div className="small text-secondary">Paid plans and billing don’t apply. Remove free access below to start charging this shop.</div>
+              </div>
+              ) : (
+              <>
               <p className="text-secondary small mb-2 fw-semibold"><i className="bi bi-gear me-1"></i>Activate / Renew Plan</p>
               <p className="text-secondary small mb-2" style={{ fontSize: "0.72rem" }}>
                 Renewing before expiry <b>adds</b> the days on top of the remaining time. An invoice is emailed to the owner.
@@ -354,6 +377,8 @@ export default function ShopDetailsPage() {
                 {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-check2-circle me-2" />}
                 {shop.subscription?.state === "paid" ? "Renew / Extend" : "Activate Plan"}
               </button>
+              </>
+              )}
             </div>
           </div>
 
@@ -376,6 +401,19 @@ export default function ShopDetailsPage() {
                     <i className={`bi ${shop.is_active ? 'bi-pause-circle' : 'bi-play-circle'} me-2`}></i> 
                     {shop.is_active ? "Suspend Shop Access" : "Activate Shop Access"}
                   </span>
+                </button>
+
+                <button
+                  className={`btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between ${shop.is_free ? "btn-success" : "btn-outline-success"}`}
+                  onClick={toggleFree}
+                  disabled={busy}
+                  title="Free shops bypass billing while active and add no platform revenue"
+                >
+                  <span>
+                    <i className="bi bi-gift me-2"></i>
+                    {shop.is_free ? "Remove Free Access (start charging)" : "Grant Lifetime-Free Access"}
+                  </span>
+                  {shop.is_free && <span className="badge bg-light text-success">FREE</span>}
                 </button>
 
                 <button

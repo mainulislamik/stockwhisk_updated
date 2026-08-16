@@ -64,11 +64,11 @@ class ShopAdminSerializer(serializers.ModelSerializer):
         model = Shop
         fields = [
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
-            "plan", "plan_tier", "is_active", "is_test", "trial_ends_at", "suspended_at",
+            "plan", "plan_tier", "is_active", "is_test", "is_free", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
             "created_at", "owner_name", "owner_password", "subscription_info"
         ]
-        read_only_fields = ["id", "slug", "created_at", "suspended_at"]
+        read_only_fields = ["id", "slug", "created_at", "suspended_at", "is_free"]
 
     def get_owner_email(self, obj):
         owner = User.objects.filter(shop_id=obj.id, role=RoleType.OWNER).first()
@@ -364,6 +364,11 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         from billing.services import grant_or_extend_plan
 
         shop = self.get_object()
+        if shop.is_free:
+            return Response(
+                {"detail": "This is a lifetime-free shop. Turn off free access first before assigning a paid plan."},
+                status=400,
+            )
         plan = SubscriptionPlan.objects.filter(pk=request.data.get("plan")).first() or shop.plan
         if plan is None:
             return Response({"detail": "Select a plan to activate."}, status=400)
@@ -404,6 +409,20 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
                description=f"Shop marked as {'test' if shop.is_test else 'live'} by platform admin")
         return Response({"status": "ok", "is_test": shop.is_test})
+
+    @action(detail=True, methods=["post"], url_path="toggle-free")
+    def toggle_free(self, request, pk=None):
+        """Turn lifetime-free access on/off for a shop. Turning it off makes the
+        shop start paying (subscription/trial applies again); the shop is never
+        deleted. Turning it on skips billing while its reseller stays active."""
+        shop = self.get_object()
+        shop.is_free = not shop.is_free
+        shop.save(update_fields=["is_free"])
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
+               description=f"Shop {'granted lifetime-free' if shop.is_free else 'free access removed'} by platform admin")
+        data = self.get_serializer(shop).data
+        data["subscription"] = shop_subscription_info(shop)
+        return Response(data)
 
     @action(detail=True, methods=["post"])
     def suspend(self, request, pk=None):

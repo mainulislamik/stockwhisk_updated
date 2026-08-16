@@ -14,13 +14,14 @@ type Shop = {
   business_type: string;
   plan_tier: string | null;
   is_active: boolean;
+  is_free?: boolean;
   user_count: number;
   owner_email: string | null;
   can_delete: boolean;
   days_suspended: number;
   created_at: string;
   subscription_info?: {
-    state: "trial" | "paid" | "expired" | "none";
+    state: "trial" | "paid" | "expired" | "none" | "free";
     plan_tier: string | null;
     ends_at: string | null;
     days_left: number;
@@ -137,6 +138,12 @@ export default function ShopsPage() {
                           <span className="fw-semibold text-capitalize text-body">
                             {s.subscription_info.plan_tier || "—"}
                           </span>
+                          {s.subscription_info.state === "free" && (
+                            <span className="badge bg-success" style={{ fontSize: '0.7rem' }}>🎁 Free for life</span>
+                          )}
+                          {s.is_free && s.subscription_info.state !== "free" && (
+                            <span className="badge bg-secondary" style={{ fontSize: '0.7rem' }} title="Free grant is paused because the reseller is inactive — shop must pay">🎁 Free (paused)</span>
+                          )}
                           {s.subscription_info.state === "trial" && (
                             <span className="badge bg-warning text-dark" style={{ fontSize: '0.7rem' }}>Trial</span>
                           )}
