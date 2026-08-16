@@ -29,6 +29,14 @@ type ProfitOverview = {
   range: { key: string; start: string; end: string; bucket: string };
 };
 
+type PerfProduct = { product_id: number; product_name: string; sku: string; revenue: number; cost: number; profit: number; units_sold: number; margin: number; loss?: number };
+type Profitability = {
+  range: { key: string; start: string; end: string };
+  top_profitable_products: PerfProduct[];
+  top_loss_products: PerfProduct[];
+  lowest_margin_products: PerfProduct[];
+};
+
 const PROFIT_RANGES: { key: string; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
@@ -69,6 +77,16 @@ export default function ReportsPage() {
   const pBarRef = useRef<HTMLCanvasElement>(null); const pBarInst = useRef<any>(null);
   const pMarginRef = useRef<HTMLCanvasElement>(null); const pMarginInst = useRef<any>(null);
   const pAvgRef = useRef<HTMLCanvasElement>(null); const pAvgInst = useRef<any>(null);
+
+  // Profitability Performance (own date range)
+  const [perfRange, setPerfRange] = useState("30d");
+  const [perf, setPerf] = useState<Profitability | null>(null);
+  const [perfLoading, setPerfLoading] = useState(true);
+  const [perfError, setPerfError] = useState("");
+  const [perfReload, setPerfReload] = useState(0);
+  const profRef = useRef<HTMLCanvasElement>(null); const profInst = useRef<any>(null);
+  const lossRef = useRef<HTMLCanvasElement>(null); const lossInst = useRef<any>(null);
+  const marginRef = useRef<HTMLCanvasElement>(null); const marginInst = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [invPage, setInvPage] = useState(1);
@@ -190,6 +208,64 @@ export default function ReportsPage() {
       pMarginInst.current?.destroy(); pAvgInst.current?.destroy();
     };
   }, [profit]);
+
+  // Profitability Performance: refetch on range change.
+  useEffect(() => {
+    let active = true;
+    setPerfLoading(true); setPerfError("");
+    api<Profitability>("/analytics/profitability-performance/", { params: { range: perfRange } })
+      .then((d) => { if (active) setPerf(d); })
+      .catch(() => { if (active) setPerfError("Unable to load profitability data. Please try again."); })
+      .finally(() => { if (active) setPerfLoading(false); });
+    return () => { active = false; };
+  }, [perfRange, perfReload]);
+
+  // Build the 3 horizontal-bar profitability charts.
+  useEffect(() => {
+    const Chart = (window as any).Chart;
+    if (!Chart || !perf) return;
+    const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const trunc = (s: string) => (s && s.length > 22 ? s.slice(0, 21) + "…" : s || "—");
+    const hbar = (ref: any, inst: any, rows: PerfProduct[], color: string | string[], valueKey: (p: PerfProduct) => number, tip: (p: PerfProduct) => string[], isPct = false) => {
+      if (!ref.current) return;
+      inst.current?.destroy();
+      if (rows.length === 0) { inst.current = null; return; }
+      inst.current = new Chart(ref.current, {
+        type: "bar",
+        data: {
+          labels: rows.map((p, i) => `#${i + 1} ${trunc(p.product_name)}`),
+          datasets: [{ data: rows.map(valueKey), backgroundColor: color, borderRadius: 4 }],
+        },
+        options: {
+          indexAxis: "y", responsive: true, maintainAspectRatio: false,
+          scales: { x: { ticks: { callback: (v: any) => (isPct ? v + "%" : tk(v)) } } },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: {
+              title: (items: any) => rows[items[0].dataIndex]?.product_name || "",
+              label: () => "",
+              afterBody: (items: any) => tip(rows[items[0].dataIndex]),
+            } },
+          },
+        },
+      });
+    };
+
+    hbar(profRef, profInst, perf.top_profitable_products, "#008c54", (p) => p.profit, (p) => [
+      `Profit: ${tk(p.profit)}`, `Revenue: ${tk(p.revenue)}`, `Cost: ${tk(p.cost)}`,
+      `Units Sold: ${p.units_sold}`, `Margin: ${p.margin.toFixed(2)}%`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+    ]);
+    hbar(lossRef, lossInst, perf.top_loss_products, "#d64550", (p) => p.loss ?? -p.profit, (p) => [
+      `Loss: ${tk(p.loss ?? -p.profit)}`, `Revenue: ${tk(p.revenue)}`, `Cost: ${tk(p.cost)}`,
+      `Units Sold: ${p.units_sold}`, `Margin: ${p.margin.toFixed(2)}%`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+    ]);
+    hbar(marginRef, marginInst, perf.lowest_margin_products, perf.lowest_margin_products.map((p) => (p.margin < 0 ? "#d64550" : "#ffa600")), (p) => p.margin, (p) => [
+      `Profit Margin: ${p.margin.toFixed(2)}%`, `Profit: ${tk(p.profit)}`, `Revenue: ${tk(p.revenue)}`,
+      `Cost: ${tk(p.cost)}`, `Units Sold: ${p.units_sold}`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+    ], true);
+
+    return () => { profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy(); };
+  }, [perf]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -487,6 +563,90 @@ export default function ReportsPage() {
                 </div>
               </>
             )}
+          </div>
+        )}
+      </section>
+
+      {/* Profitability Performance — per-product profit / loss / margin */}
+      <section aria-labelledby="profitability-heading">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 id="profitability-heading" className="h5 fw-bold mb-0">Profitability Performance</h2>
+            <div className="small text-secondary">Identify your most profitable products, biggest loss-making products, and products with the lowest profit margins.</div>
+          </div>
+          <select className="form-select form-select-sm" style={{ width: "auto" }} value={perfRange}
+            onChange={(e) => setPerfRange(e.target.value)} aria-label="Profitability date range">
+            {PROFIT_RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+          </select>
+        </div>
+
+        {perfError ? (
+          <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
+            <span>{perfError}</span>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPerfReload((x) => x + 1)}>Retry</button>
+          </div>
+        ) : !perf ? (
+          <div className="text-center py-5"><span className="spinner-border" /></div>
+        ) : (
+          <div className={`vstack gap-3 ${perfLoading ? "opacity-50" : ""}`} aria-busy={perfLoading}>
+            <div className="row g-3">
+              {/* Top Profitable */}
+              <div className="col-12 col-lg-6">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-body">
+                    <div className="fw-semibold">Top Profitable Products</div>
+                    <div className="small text-secondary mb-3">Highest profit-generating products</div>
+                    {perf.top_profitable_products.length === 0 ? (
+                      <div className="text-secondary small py-4 text-center">No profitability data available for this period.</div>
+                    ) : (
+                      <>
+                        <div style={{ height: 240 }}><canvas ref={profRef} /></div>
+                        <div className="small text-secondary mt-2">
+                          <b>{perf.top_profitable_products[0].product_name}</b> generated {money(String(perf.top_profitable_products[0].profit))} profit.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Top Loss */}
+              <div className="col-12 col-lg-6">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-body">
+                    <div className="fw-semibold">Top Loss Products</div>
+                    <div className="small text-secondary mb-3">Products generating the highest losses</div>
+                    {perf.top_loss_products.length === 0 ? (
+                      <div className="text-secondary small py-4 text-center">No loss-making products found for this period.</div>
+                    ) : (
+                      <>
+                        <div style={{ height: 240 }}><canvas ref={lossRef} /></div>
+                        <div className="small text-danger mt-2">
+                          <b>{perf.top_loss_products[0].product_name}</b> had the highest loss of {money(String(perf.top_loss_products[0].loss ?? -perf.top_loss_products[0].profit))}.
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lowest Margin */}
+            <div className="card border-0 shadow-sm">
+              <div className="card-body">
+                <div className="fw-semibold">Lowest Margin Products</div>
+                <div className="small text-secondary mb-3">Products with the weakest profit margins</div>
+                {perf.lowest_margin_products.length === 0 ? (
+                  <div className="text-secondary small py-4 text-center">No profitability data available for this period.</div>
+                ) : (
+                  <>
+                    <div style={{ height: 260 }}><canvas ref={marginRef} /></div>
+                    <div className="small text-secondary mt-2">
+                      <b>{perf.lowest_margin_products[0].product_name}</b> has the lowest margin at {perf.lowest_margin_products[0].margin.toFixed(2)}%.
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </section>

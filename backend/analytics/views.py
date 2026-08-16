@@ -58,6 +58,18 @@ class ProfitOverviewView(_AnalyticsBase):
         ))
 
 
+class ProfitabilityPerformanceView(_AnalyticsBase):
+    """Top profitable / top loss / lowest margin products. Shop-scoped."""
+    def get(self, request):
+        p = request.query_params
+        return Response(services.profitability_performance(
+            self.shop,
+            range_key=p.get("range", "30d"),
+            custom_start=p.get("start"),
+            custom_end=p.get("end"),
+        ))
+
+
 class InventoryAnalyticsView(_AnalyticsBase):
     required_perm = "view_inventory"
 

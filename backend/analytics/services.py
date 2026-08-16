@@ -391,6 +391,80 @@ def profit_overview(shop, range_key="30d", custom_start=None, custom_end=None):
     }
 
 
+def profitability_performance(shop, range_key="30d", custom_start=None, custom_end=None):
+    """Per-product profitability for the report page: top-5 profitable, top-5
+    loss, and lowest-5 margin products over a date range.
+
+    Product profit uses the SNAPSHOTTED item cost (``SaleItem.unit_cost``) so
+    historical margins stay honest. Returns are netted the same way as
+    ``accounting.profit_summary``: every refund reduces the product's revenue,
+    and restocked returns credit their cost back (non-restocked keep the cost as
+    a loss). Cancelled sales are excluded. All queries are shop-scoped.
+    """
+    from sales.models import SaleReturnItem
+
+    now = timezone.now()
+    start, end, _ps, _pe, _bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+
+    # One aggregated row per product from the sale items (not per transaction).
+    sales_rows = (
+        _sale_items(shop, start, end)
+        .values("product_id", "product__name", "product__sku")
+        .annotate(
+            gross_revenue=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC),
+            gross_cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
+            gross_qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
+        )
+    )
+
+    ret_base = SaleReturnItem.all_objects.filter(shop_id=shop.id)
+    if start is not None:
+        ret_base = ret_base.filter(sale_return__created_at__gte=start)
+    if end is not None:
+        ret_base = ret_base.filter(sale_return__created_at__lte=end)
+
+    ret_rev = ret_base.values("sale_item__product_id").annotate(
+        r_revenue=Coalesce(Sum("refund_amount", output_field=_DEC), ZERO, output_field=_DEC),
+        r_qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
+    )
+    ret_cost = ret_base.filter(sale_return__restocked=True).values("sale_item__product_id").annotate(
+        r_cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("sale_item__unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
+    )
+    ret_rev_map = {r["sale_item__product_id"]: r for r in ret_rev}
+    ret_cost_map = {r["sale_item__product_id"]: float(r["r_cost"]) for r in ret_cost}
+
+    products = []
+    for s in sales_rows:
+        pid = s["product_id"]
+        rr = ret_rev_map.get(pid, {})
+        revenue = float(s["gross_revenue"]) - float(rr.get("r_revenue", 0) or 0)
+        cost = float(s["gross_cost"]) - ret_cost_map.get(pid, 0.0)
+        qty = float(s["gross_qty"]) - float(rr.get("r_qty", 0) or 0)
+        profit = revenue - cost
+        products.append({
+            "product_id": pid,
+            "product_name": s["product__name"],
+            "sku": s["product__sku"] or "",
+            "revenue": round(revenue, 2),
+            "cost": round(cost, 2),
+            "profit": round(profit, 2),
+            "units_sold": round(qty, 2),
+            "margin": round((profit / revenue * 100) if revenue else 0.0, 2),
+        })
+
+    top_profitable = sorted((p for p in products if p["profit"] > 0), key=lambda p: p["profit"], reverse=True)[:5]
+    losses = sorted((p for p in products if p["profit"] < 0), key=lambda p: p["profit"])[:5]
+    top_loss = [{**p, "loss": round(-p["profit"], 2)} for p in losses]
+    lowest_margin = sorted((p for p in products if p["revenue"] > 0), key=lambda p: p["margin"])[:5]
+
+    return {
+        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat()},
+        "top_profitable_products": top_profitable,
+        "top_loss_products": top_loss,
+        "lowest_margin_products": lowest_margin,
+    }
+
+
 def weekly_sales_trend(shop, weeks=12):
     start = timezone.now() - timedelta(weeks=weeks)
     return list(
