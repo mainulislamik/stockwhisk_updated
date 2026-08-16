@@ -211,6 +211,14 @@ class EMISchedule(TenantScopedModel):
     def total_due(self):
         return self.total_emi_amount - self.total_paid
 
+    @property
+    def principal(self):
+        return self.sale.total - self.down_payment
+
+    @property
+    def interest_amount(self):
+        return self.total_emi_amount - self.principal
+
 
 class EMIInstallment(TenantScopedModel):
     """

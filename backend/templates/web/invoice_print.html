@@ -88,6 +88,37 @@
       </table>
     </div>
 
+    {% if sale.emi_schedule %}
+    <div class="mt-4 p-3 bg-light rounded" style="border: 1px solid #dee2e6;">
+      <h6 class="fw-bold mb-3" style="color: #1B3C53;">EMI Schedule Summary</h6>
+      <div class="row small mb-3">
+        <div class="col-6">
+          <div class="d-flex justify-content-between mb-1"><span class="text-secondary">EMI Principal:</span> <span>{{ shop.currency }} {{ sale.emi_schedule.principal }}</span></div>
+          <div class="d-flex justify-content-between mb-1"><span class="text-secondary">Interest:</span> <span>{{ sale.emi_schedule.interest_percent }}% ({{ shop.currency }} {{ sale.emi_schedule.interest_amount }})</span></div>
+          <div class="d-flex justify-content-between mb-1"><span class="text-secondary">Total EMI:</span> <span class="fw-semibold">{{ shop.currency }} {{ sale.emi_schedule.total_emi_amount }}</span></div>
+        </div>
+        <div class="col-6">
+          <div class="d-flex justify-content-between mb-1"><span class="text-secondary">Duration:</span> <span>{{ sale.emi_schedule.total_months }} Months</span></div>
+          <div class="d-flex justify-content-between mb-1"><span class="text-secondary">Monthly Installment:</span> <span class="fw-semibold">{{ shop.currency }} {{ sale.emi_schedule.monthly_installment }}</span></div>
+        </div>
+      </div>
+      <table class="table table-sm table-bordered mb-0" style="background: white;">
+        <thead class="bg-white">
+          <tr><th class="small text-secondary">Installment</th><th class="small text-secondary">Due Date</th><th class="small text-secondary text-end">Amount</th></tr>
+        </thead>
+        <tbody>
+          {% for inst in sale.emi_schedule.installments.all %}
+          <tr>
+            <td class="small">{{ inst.installment_number }}</td>
+            <td class="small">{{ inst.due_date|date:"d M Y" }}</td>
+            <td class="small text-end">{{ shop.currency }} {{ inst.amount }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
     <!-- SIGNATURES -->
     <div style="display:flex;justify-content:space-between;gap:48px;margin-top:56px;page-break-inside:avoid">
       <div style="flex:1;max-width:240px;text-align:center">

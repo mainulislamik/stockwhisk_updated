@@ -221,9 +221,9 @@ def create_sale(
             monthly_installment=monthly_installment,
         )
         
-        # Trigger welcome email asynchronously
+        # Trigger welcome email asynchronously after transaction commits
         from .tasks import send_emi_welcome_email
-        send_emi_welcome_email.delay(schedule.id)
+        transaction.on_commit(lambda: send_emi_welcome_email.delay(schedule.id))
         
         installments = []
         for i in range(emi_months):
