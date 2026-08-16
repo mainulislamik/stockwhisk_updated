@@ -34,6 +34,15 @@ export default function PosCustomerPage() {
   const [walkEmail, setWalkEmail] = useState("");
   const [walkAddress, setWalkAddress] = useState("");
   const [matchedId, setMatchedId] = useState<number | null>(null);
+  const [existingEmail, setExistingEmail] = useState("");
+
+  // Sync existing email when customer changes
+  useEffect(() => {
+    if (customerMode === "existing" && customerId) {
+      const c = customers.find(c => c.id === Number(customerId));
+      setExistingEmail(c?.email || "");
+    }
+  }, [customerMode, customerId, customers]);
 
   // Typing a phone that matches an existing customer auto-fills their details
   // (and links the sale to that customer instead of creating a duplicate).
@@ -89,7 +98,9 @@ export default function PosCustomerPage() {
         return;
       }
       const selectedCustomer = customers.find(c => c.id === Number(customerId));
-      if (!selectedCustomer?.email || !selectedCustomer?.phone) {
+      const finalEmail = customerMode === "existing" ? existingEmail.trim() : walkEmail.trim();
+      const finalPhone = customerMode === "existing" ? selectedCustomer?.phone : walkPhone.trim();
+      if (!finalEmail || !finalPhone) {
         await showError("Validation Error", t("pos_err_emi_req_contact"));
         return;
       }
@@ -102,6 +113,14 @@ export default function PosCustomerPage() {
     setBusy(true);
     try {
       let customerId2: number | null = customerMode === "existing" && customerId ? Number(customerId) : null;
+
+      // Update existing customer email if it was changed
+      if (customerMode === "existing" && customerId2) {
+        const selectedCustomer = customers.find(c => c.id === customerId2);
+        if (selectedCustomer && selectedCustomer.email !== existingEmail.trim()) {
+          await api(`/crm/customers/${customerId2}/`, { method: "PATCH", body: { email: existingEmail.trim() } }).catch(console.error);
+        }
+      }
 
       // Walk-in: reuse the matched existing customer, else create a new one.
       if (customerMode === "walkin") {
@@ -219,6 +238,20 @@ export default function PosCustomerPage() {
               </select>
               <label htmlFor="customerMode">{t("pos_checkout_select_cust")}</label>
             </div>
+
+            {customerMode === "existing" && customerId && (
+              <div className="p-3 bg-light rounded-3 border vstack gap-2">
+                 <div className="form-floating">
+                   <input id="existingEmail" type="email" className="form-control shadow-sm" value={existingEmail} onChange={(e) => setExistingEmail(e.target.value)} placeholder="Enter email…" />
+                   <label htmlFor="existingEmail">{t("pos_checkout_email_opt")}</label>
+                 </div>
+                 {!existingEmail && isEmi && (
+                   <div className="text-danger small mt-n1 fw-medium">
+                     <i className="bi bi-exclamation-triangle-fill me-1"></i> {t("pos_err_emi_req_contact")}
+                   </div>
+                 )}
+              </div>
+            )}
 
             {customerMode === "walkin" && (
               <div className="p-3 bg-light rounded-3 border vstack gap-3">
