@@ -465,6 +465,97 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
     }
 
 
+def product_performance(shop, range_key="30d", custom_start=None, custom_end=None):
+    """Product Performance for the report page: most-sold (date-sensitive,
+    returns-adjusted), low-stock and out-of-stock (current inventory state).
+
+    Most-sold units net out returned quantity. Low/out-of-stock reuse the
+    project's existing thresholds (Product.reorder_level, the same condition as
+    low_stock_list/out_of_stock_list) and reflect *current* stock — never
+    reconstructed from the date range. Out-of-stock is ordered by the highest
+    recent (in-range) sales so a hot seller that's empty surfaces first.
+    """
+    from django.db.models import Q
+    from sales.models import SaleReturnItem
+
+    now = timezone.now()
+    start, end, _ps, _pe, _bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+
+    # --- Most sold (date range, minus returned quantity) ---
+    sales_rows = (
+        _sale_items(shop, start, end)
+        .values("product_id", "product__name", "product__sku", "product__current_stock")
+        .annotate(
+            gross_qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
+            revenue=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC),
+            orders=Count("sale_id", distinct=True),
+        )
+    )
+    ret_base = SaleReturnItem.all_objects.filter(shop_id=shop.id)
+    if start is not None:
+        ret_base = ret_base.filter(sale_return__created_at__gte=start)
+    if end is not None:
+        ret_base = ret_base.filter(sale_return__created_at__lte=end)
+    ret_qty = {
+        r["sale_item__product_id"]: float(r["q"])
+        for r in ret_base.values("sale_item__product_id").annotate(q=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC))
+    }
+
+    most_sold_all = []
+    for s in sales_rows:
+        units = float(s["gross_qty"]) - ret_qty.get(s["product_id"], 0.0)
+        if units <= 0:
+            continue
+        most_sold_all.append({
+            "product_id": s["product_id"], "product_name": s["product__name"], "sku": s["product__sku"] or "",
+            "units_sold": round(units, 2), "revenue": round(float(s["revenue"]), 2),
+            "orders": s["orders"], "current_stock": float(s["product__current_stock"] or 0),
+        })
+    most_sold = sorted(most_sold_all, key=lambda p: p["units_sold"], reverse=True)[:5]
+
+    # --- Low stock (CURRENT state; same threshold as low_stock_list) ---
+    low_rows = (
+        Product.all_objects.filter(
+            Q(current_stock__lte=F("reorder_level")) | Q(current_stock__lte=5),
+            shop_id=shop.id, track_inventory=True, is_active=True, current_stock__gt=0,
+        ).values("id", "name", "sku", "current_stock", "reorder_level", "category__name")
+        .order_by("current_stock")[:5]
+    )
+    low_stock = [{
+        "product_id": p["id"], "product_name": p["name"], "sku": p["sku"] or "",
+        "current_stock": float(p["current_stock"] or 0), "minimum_stock": float(p["reorder_level"] or 0),
+        "deficit": round(max(0.0, float(p["reorder_level"] or 0) - float(p["current_stock"] or 0)), 2),
+        "category": p["category__name"] or "",
+    } for p in low_rows]
+
+    # --- Out of stock (CURRENT state; ranked by recent in-range sales) ---
+    oos_rows = list(Product.all_objects.filter(
+        shop_id=shop.id, track_inventory=True, is_active=True, current_stock__lte=0,
+    ).values("id", "name", "sku", "current_stock"))
+    oos_ids = [p["id"] for p in oos_rows]
+    recent = {}
+    if oos_ids:
+        for r in (_sale_items(shop, start, end).filter(product_id__in=oos_ids)
+                  .values("product_id")
+                  .annotate(q=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
+                            rev=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC))):
+            recent[r["product_id"]] = (float(r["q"]), float(r["rev"]))
+    out_of_stock_all = [{
+        "product_id": p["id"], "product_name": p["name"], "sku": p["sku"] or "",
+        "current_stock": float(p["current_stock"] or 0),
+        "recent_units_sold": round(recent.get(p["id"], (0.0, 0.0))[0], 2),
+        "recent_revenue": round(recent.get(p["id"], (0.0, 0.0))[1], 2),
+    } for p in oos_rows]
+    out_of_stock = sorted(out_of_stock_all, key=lambda p: (p["recent_units_sold"], p["recent_revenue"]), reverse=True)[:5]
+
+    return {
+        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat()},
+        "most_sold_products": most_sold,
+        "low_stock_products": low_stock,
+        "out_of_stock_products": out_of_stock,
+    }
+
+
 def weekly_sales_trend(shop, weeks=12):
     start = timezone.now() - timedelta(weeks=weeks)
     return list(

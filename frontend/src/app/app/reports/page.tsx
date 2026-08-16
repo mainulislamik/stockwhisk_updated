@@ -37,6 +37,16 @@ type Profitability = {
   lowest_margin_products: PerfProduct[];
 };
 
+type PPMostSold = { product_id: number; product_name: string; sku: string; units_sold: number; revenue: number; orders: number; current_stock: number };
+type PPLowStock = { product_id: number; product_name: string; sku: string; current_stock: number; minimum_stock: number; deficit: number; category: string };
+type PPOutOfStock = { product_id: number; product_name: string; sku: string; current_stock: number; recent_units_sold: number; recent_revenue: number };
+type ProductPerf = {
+  range: { key: string; start: string; end: string };
+  most_sold_products: PPMostSold[];
+  low_stock_products: PPLowStock[];
+  out_of_stock_products: PPOutOfStock[];
+};
+
 const PROFIT_RANGES: { key: string; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
@@ -87,6 +97,14 @@ export default function ReportsPage() {
   const profRef = useRef<HTMLCanvasElement>(null); const profInst = useRef<any>(null);
   const lossRef = useRef<HTMLCanvasElement>(null); const lossInst = useRef<any>(null);
   const marginRef = useRef<HTMLCanvasElement>(null); const marginInst = useRef<any>(null);
+
+  // Product Performance (own date range)
+  const [ppRange, setPpRange] = useState("30d");
+  const [pp, setPp] = useState<ProductPerf | null>(null);
+  const [ppLoading, setPpLoading] = useState(true);
+  const [ppError, setPpError] = useState("");
+  const [ppReload, setPpReload] = useState(0);
+  const mostSoldRef = useRef<HTMLCanvasElement>(null); const mostSoldInst = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [invPage, setInvPage] = useState(1);
@@ -266,6 +284,47 @@ export default function ReportsPage() {
 
     return () => { profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy(); };
   }, [perf]);
+
+  // Product Performance: refetch on range change.
+  useEffect(() => {
+    let active = true;
+    setPpLoading(true); setPpError("");
+    api<ProductPerf>("/analytics/product-performance-overview/", { params: { range: ppRange } })
+      .then((d) => { if (active) setPp(d); })
+      .catch(() => { if (active) setPpError("Unable to load product performance data. Please try again."); })
+      .finally(() => { if (active) setPpLoading(false); });
+    return () => { active = false; };
+  }, [ppRange, ppReload]);
+
+  // Most Sold horizontal-bar chart.
+  useEffect(() => {
+    const Chart = (window as any).Chart;
+    if (!Chart || !pp) return;
+    const rows = pp.most_sold_products;
+    const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const trunc = (s: string) => (s && s.length > 22 ? s.slice(0, 21) + "…" : s || "—");
+    if (mostSoldRef.current) {
+      mostSoldInst.current?.destroy();
+      if (rows.length > 0) {
+        mostSoldInst.current = new Chart(mostSoldRef.current, {
+          type: "bar",
+          data: { labels: rows.map((p, i) => `#${i + 1} ${trunc(p.product_name)}`), datasets: [{ data: rows.map((p) => p.units_sold), backgroundColor: "#2f4b7c", borderRadius: 4 }] },
+          options: {
+            indexAxis: "y", responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+              title: (items: any) => rows[items[0].dataIndex]?.product_name || "",
+              label: () => "",
+              afterBody: (items: any) => { const p = rows[items[0].dataIndex]; return [
+                `Units Sold: ${p.units_sold}`, `Revenue: ${tk(p.revenue)}`, `Orders: ${p.orders}`,
+                `Current Stock: ${p.current_stock}`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+              ]; },
+            } } },
+          },
+        });
+      } else { mostSoldInst.current = null; }
+    }
+    return () => { mostSoldInst.current?.destroy(); };
+  }, [pp]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -644,6 +703,106 @@ export default function ReportsPage() {
                       <b>{perf.lowest_margin_products[0].product_name}</b> has the lowest margin at {perf.lowest_margin_products[0].margin.toFixed(2)}%.
                     </div>
                   </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Product Performance — most sold / low stock / out of stock */}
+      <section aria-labelledby="product-performance-heading">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 id="product-performance-heading" className="h5 fw-bold mb-0">Product Performance</h2>
+            <div className="small text-secondary">Track your best-selling products and identify products that need immediate inventory attention.</div>
+          </div>
+          <select className="form-select form-select-sm" style={{ width: "auto" }} value={ppRange}
+            onChange={(e) => setPpRange(e.target.value)} aria-label="Product performance date range">
+            {PROFIT_RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+          </select>
+        </div>
+
+        {ppError ? (
+          <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
+            <span>{ppError}</span>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPpReload((x) => x + 1)}>Retry</button>
+          </div>
+        ) : !pp ? (
+          <div className="text-center py-5"><span className="spinner-border" /></div>
+        ) : (
+          <div className={`vstack gap-3 ${ppLoading ? "opacity-50" : ""}`} aria-busy={ppLoading}>
+            <div className="row g-3">
+              {/* Most Sold */}
+              <div className="col-12 col-lg-6">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-body">
+                    <div className="fw-semibold">Most Sold Products</div>
+                    <div className="small text-secondary mb-3">Highest sales quantity during the selected period</div>
+                    {pp.most_sold_products.length === 0 ? (
+                      <div className="text-secondary small py-4 text-center">No sales data available for this period.</div>
+                    ) : (
+                      <div style={{ height: 240 }}><canvas ref={mostSoldRef} /></div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {/* Low Stock */}
+              <div className="col-12 col-lg-6">
+                <div className="card border-0 shadow-sm h-100">
+                  <div className="card-body">
+                    <div className="fw-semibold">Low Stock Products</div>
+                    <div className="small text-secondary mb-3">Approaching their minimum stock level (current inventory)</div>
+                    {pp.low_stock_products.length === 0 ? (
+                      <div className="text-secondary small py-4 text-center">No low-stock products found.</div>
+                    ) : (
+                      <div className="vstack gap-2">
+                        {pp.low_stock_products.map((p) => {
+                          const min = p.minimum_stock || 1;
+                          const ratio = Math.min(1, p.current_stock / min);
+                          const critical = ratio <= 0.34;
+                          return (
+                            <div key={p.product_id}>
+                              <div className="d-flex justify-content-between small">
+                                <span className="text-truncate fw-medium" title={p.product_name}>{p.product_name}</span>
+                                <span className="text-secondary flex-shrink-0 ms-2">{p.current_stock} / {p.minimum_stock}</span>
+                              </div>
+                              <div className="progress mt-1" style={{ height: 8 }} role="progressbar" aria-valuenow={p.current_stock} aria-valuemin={0} aria-valuemax={p.minimum_stock}>
+                                <div className={`progress-bar ${critical ? "bg-danger" : "bg-warning"}`} style={{ width: `${Math.max(6, ratio * 100)}%` }} />
+                              </div>
+                              <div className={`small ${critical ? "text-danger" : "text-warning"}`}>{critical ? "Critical" : "Needs reorder"}{p.sku ? ` · ${p.sku}` : ""}</div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Out of Stock */}
+            <div className="card border-0 shadow-sm">
+              <div className="card-body">
+                <div className="fw-semibold">Out of Stock Products</div>
+                <div className="small text-secondary mb-3">No available inventory — ranked by recent sales</div>
+                {pp.out_of_stock_products.length === 0 ? (
+                  <div className="text-secondary small py-4 text-center">All products are currently in stock.</div>
+                ) : (
+                  <div className="row g-2">
+                    {pp.out_of_stock_products.map((p) => (
+                      <div key={p.product_id} className="col-12 col-md-6 col-xl-4">
+                        <div className="border rounded-3 p-2 h-100 d-flex justify-content-between align-items-start gap-2">
+                          <div style={{ minWidth: 0 }}>
+                            <div className="fw-medium text-truncate" title={p.product_name}>{p.product_name}</div>
+                            {p.sku && <div className="small text-secondary">SKU: {p.sku}</div>}
+                            <div className="small text-secondary">Recent sales: {p.recent_units_sold} units · {money(String(p.recent_revenue))}</div>
+                          </div>
+                          <span className="badge text-bg-danger flex-shrink-0">OUT</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             </div>
