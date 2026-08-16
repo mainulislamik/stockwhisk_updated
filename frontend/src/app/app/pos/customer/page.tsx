@@ -93,14 +93,15 @@ export default function PosCustomerPage() {
     if (customerMode === "walkin" && !walkName.trim()) { await showError("Validation Error", t("pos_err_req_name")); return; }
     if (customerMode === "walkin" && !walkPhone.trim()) { await showError("Validation Error", t("pos_err_req_phone")); return; }
     if (isEmi) {
-      if (customerMode === "walkin") {
-        await showError("Validation Error", t("pos_err_emi_req_existing"));
-        return;
-      }
+      // EMI requires email — validate for both modes
       const selectedCustomer = customers.find(c => c.id === Number(customerId));
       const finalEmail = customerMode === "existing" ? existingEmail.trim() : walkEmail.trim();
       const finalPhone = customerMode === "existing" ? selectedCustomer?.phone : walkPhone.trim();
-      if (!finalEmail || !finalPhone) {
+      if (!finalEmail) {
+        await showError("Validation Error", "EMI সেলের জন্য কাস্টমারের Email আবশ্যক। অনুগ্রহ করে Email দিন।");
+        return;
+      }
+      if (!finalPhone) {
         await showError("Validation Error", t("pos_err_emi_req_contact"));
         return;
       }
@@ -114,6 +115,7 @@ export default function PosCustomerPage() {
     try {
       let customerId2: number | null = customerMode === "existing" && customerId ? Number(customerId) : null;
 
+      // Walk-in with a phone match: link to the existing customer record
       if (customerMode === "walkin" && matchedId) {
         customerId2 = matchedId;
       }
@@ -234,12 +236,17 @@ export default function PosCustomerPage() {
             {customerMode === "existing" && customerId && (
               <div className="p-3 bg-light rounded-3 border vstack gap-2">
                  <div className="form-floating">
-                   <input id="existingEmail" type="email" className="form-control shadow-sm" value={existingEmail} onChange={(e) => setExistingEmail(e.target.value)} placeholder="Enter email…" />
-                   <label htmlFor="existingEmail">{t("pos_checkout_email_opt")}</label>
+                   <input id="existingEmail" type="email"
+                     className={`form-control shadow-sm${isEmi && !existingEmail ? " is-invalid" : ""}`}
+                     value={existingEmail} onChange={(e) => setExistingEmail(e.target.value)}
+                     placeholder="Enter email…" required={isEmi} />
+                   <label htmlFor="existingEmail">
+                     {isEmi ? "📧 Email (Required for EMI)" : t("pos_checkout_email_opt")}
+                   </label>
                  </div>
                  {!existingEmail && isEmi && (
                    <div className="text-danger small mt-n1 fw-medium">
-                     <i className="bi bi-exclamation-triangle-fill me-1"></i> {t("pos_err_emi_req_contact")}
+                     <i className="bi bi-exclamation-triangle-fill me-1"></i> EMI-র জন্য Email আবশ্যক
                    </div>
                  )}
               </div>
@@ -261,8 +268,18 @@ export default function PosCustomerPage() {
                   <label htmlFor="walkName">{t("pos_checkout_cust_name")}</label>
                 </div>
                 <div className="form-floating">
-                  <input id="walkEmail" type="email" className="form-control shadow-sm" value={walkEmail} onChange={(e) => setWalkEmail(e.target.value)} placeholder="Enter email…" />
-                  <label htmlFor="walkEmail">{t("pos_checkout_email_opt")}</label>
+                  <input id="walkEmail" type="email"
+                    className={`form-control shadow-sm${isEmi && !walkEmail ? " is-invalid" : ""}`}
+                    value={walkEmail} onChange={(e) => setWalkEmail(e.target.value)}
+                    placeholder="Enter email…" required={isEmi} />
+                  <label htmlFor="walkEmail">
+                    {isEmi ? "📧 Email (Required for EMI)" : t("pos_checkout_email_opt")}
+                  </label>
+                  {isEmi && !walkEmail && (
+                    <div className="text-danger small mt-1 fw-medium">
+                      <i className="bi bi-exclamation-triangle-fill me-1"></i> EMI-র জন্য Email আবশ্যক
+                    </div>
+                  )}
                 </div>
                 <div className="form-floating">
                   <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
