@@ -638,8 +638,8 @@ export default function Home() {
                       const isPopular = plan.tier === 'professional';
                       const monthly = parseFloat(plan.price_monthly) || 0;
                       
-                      let priceStr = monthly > 0 ? `$${monthly}` : t('price_card_1_price');
-                      if (lang === 'bn' && monthly > 0) priceStr = `$${toBnNum(monthly)}`;
+                      let priceStr = monthly > 0 ? `৳${monthly}` : t('price_card_1_price');
+                      if (lang === 'bn' && monthly > 0) priceStr = `৳${toBnNum(monthly)}`;
                       const periodStr = monthly > 0 ? t('price_card_2_period') : t('price_card_1_period');
                       
                       const features = plan.highlights && plan.highlights.length > 0
