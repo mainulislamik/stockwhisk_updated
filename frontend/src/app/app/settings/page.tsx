@@ -6,9 +6,11 @@ import { fmtDate } from "@/components/ui";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function SettingsPage() {
   const { user, billing, isOwner, reload } = useAuth();
+  const { t } = useLanguage();
   
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", phone: "" });
   const [profileBusy, setProfileBusy] = useState(false);
@@ -60,7 +62,7 @@ export default function SettingsPage() {
       await reload();
       setTimeout(() => setProfileSuccess(false), 3000);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update profile");
+      toast.error(err?.message || t("settings_err_prof"));
     } finally {
       setProfileBusy(false);
     }
@@ -98,7 +100,7 @@ export default function SettingsPage() {
       await reload(); // reload user to get updated shop name
       setTimeout(() => setShopSuccess(false), 3000);
     } catch (err: any) {
-      toast.error(err?.message || "Failed to update shop settings");
+      toast.error(err?.message || t("settings_err_shop"));
     } finally {
       setShopBusy(false);
     }
@@ -114,35 +116,35 @@ export default function SettingsPage() {
 
   return (
     <div className="vstack gap-4" style={{ maxWidth: "48rem" }}>
-      <h1 className="h4 fw-bold text-brand mb-0">Settings</h1>
+      <h1 className="h4 fw-bold text-brand mb-0">{t("settings_title")}</h1>
 
       <div className="card shadow-sm">
-        <div className="card-header fw-semibold">Your Profile</div>
+        <div className="card-header fw-semibold">{t("settings_profile")}</div>
         <div className="card-body">
           <form onSubmit={updateProfile} className="vstack gap-3">
             <div className="row g-3">
               <div className="col-md-6">
-                <label className="form-label small fw-medium">First Name</label>
+                <label className="form-label small fw-medium">{t("settings_fname")}</label>
                 <input className="form-control form-control-sm" value={profileForm.first_name} onChange={e => setProfileForm({...profileForm, first_name: e.target.value})} />
               </div>
               <div className="col-md-6">
-                <label className="form-label small fw-medium">Last Name</label>
+                <label className="form-label small fw-medium">{t("settings_lname")}</label>
                 <input className="form-control form-control-sm" value={profileForm.last_name} onChange={e => setProfileForm({...profileForm, last_name: e.target.value})} />
               </div>
               <div className="col-md-6">
-                <label className="form-label small fw-medium">Phone</label>
+                <label className="form-label small fw-medium">{t("settings_phone")}</label>
                 <input className="form-control form-control-sm" value={profileForm.phone} onChange={e => setProfileForm({...profileForm, phone: e.target.value})} />
               </div>
               <div className="col-md-6">
-                <label className="form-label small fw-medium">Email (Read-only)</label>
+                <label className="form-label small fw-medium">{t("settings_email")}</label>
                 <input className="form-control form-control-sm" value={user?.email || ""} readOnly disabled />
               </div>
             </div>
             <div className="d-flex align-items-center gap-3 mt-2">
               <button type="submit" className="btn btn-primary btn-sm px-4" disabled={profileBusy}>
-                {profileBusy ? "Saving..." : "Save Profile"}
+                {profileBusy ? t("settings_saving") : t("settings_save_prof")}
               </button>
-              {profileSuccess && <span className="text-success small"><i className="bi bi-check-circle me-1"></i>Saved</span>}
+              {profileSuccess && <span className="text-success small"><i className="bi bi-check-circle me-1"></i>{t("settings_saved")}</span>}
             </div>
           </form>
         </div>
@@ -151,10 +153,10 @@ export default function SettingsPage() {
       {isOwner && (
         <div className="card shadow-sm">
           <div className="card-header fw-semibold d-flex align-items-center justify-content-between">
-            <span>Shop Settings & Profile</span>
+            <span>{t("settings_shop")}</span>
             {(user?.shop_code || user?.shop) && (
               <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 font-monospace px-3 py-1">
-                Unique Shop ID: {user?.shop_code || `SW-${1000 + (user?.shop || 0)}`}
+                {t("settings_shop_uid")}: {user?.shop_code || `SW-${1000 + (user?.shop || 0)}`}
               </span>
             )}
           </div>
@@ -162,7 +164,7 @@ export default function SettingsPage() {
             <form onSubmit={updateShop} className="vstack gap-3">
               <div className="row g-3">
                 <div className="col-md-12">
-                  <label className="form-label small fw-medium">Unique Shop ID (Code)</label>
+                  <label className="form-label small fw-medium">{t("settings_shop_uid")}</label>
                   <input 
                     className="form-control form-control-sm font-monospace fw-bold text-brand bg-body-tertiary" 
                     readOnly 
@@ -170,12 +172,12 @@ export default function SettingsPage() {
                     value={user?.shop_code || `SW-${1000 + (user?.shop || 0)}`} 
                   />
                   <div className="form-text" style={{ fontSize: "0.75rem" }}>
-                    Your shop's unique identifier for platform support and queries.
+                    {t("settings_shop_uid_help")}
                   </div>
                 </div>
 
                 <div className="col-12 mb-3">
-                  <label className="form-label small fw-medium d-block">Shop Logo</label>
+                  <label className="form-label small fw-medium d-block">{t("settings_shop_logo")}</label>
                   <div className="d-flex align-items-center gap-3">
                     <div 
                       className="border rounded d-flex align-items-center justify-content-center bg-body-tertiary shadow-sm"
@@ -193,10 +195,10 @@ export default function SettingsPage() {
                         className="btn btn-outline-secondary btn-sm mb-1"
                         onClick={() => logoInputRef.current?.click()}
                       >
-                        Choose Image
+                        {t("settings_shop_logo_btn")}
                       </button>
                       <div className="small text-secondary" style={{ fontSize: "0.75rem" }}>
-                        Recommended size: 200x50px. Max 2MB.
+                        {t("settings_shop_logo_help")}
                       </div>
                       <input 
                         type="file" 
@@ -210,38 +212,38 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="col-md-12">
-                  <label className="form-label small fw-medium">Shop Name</label>
+                  <label className="form-label small fw-medium">{t("settings_shop_name")}</label>
                   <input className="form-control form-control-sm" required value={shopForm.name} onChange={e => setShopForm({...shopForm, name: e.target.value})} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label small fw-medium">Shop Phone</label>
+                  <label className="form-label small fw-medium">{t("settings_shop_phone")}</label>
                   <input className="form-control form-control-sm" value={shopForm.phone} onChange={e => setShopForm({...shopForm, phone: e.target.value})} />
                 </div>
                 <div className="col-md-6">
-                  <label className="form-label small fw-medium">Currency</label>
+                  <label className="form-label small fw-medium">{t("settings_currency")}</label>
                   <input className="form-control form-control-sm" required value={shopForm.currency} onChange={e => setShopForm({...shopForm, currency: e.target.value})} />
                 </div>
                 <div className="col-md-12">
-                  <label className="form-label small fw-medium">Address</label>
+                  <label className="form-label small fw-medium">{t("settings_address")}</label>
                   <textarea className="form-control form-control-sm" rows={2} value={shopForm.address} onChange={e => setShopForm({...shopForm, address: e.target.value})}></textarea>
                 </div>
                 
-                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">Tax / VAT Settings</div>
+                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">{t("settings_tax_title")}</div>
                 <div className="col-md-12">
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" role="switch" id="vatSwitch" checked={shopForm.vat_enabled} onChange={e => setShopForm({...shopForm, vat_enabled: e.target.checked})} />
-                    <label className="form-check-label small" htmlFor="vatSwitch">Enable VAT</label>
+                    <label className="form-check-label small" htmlFor="vatSwitch">{t("settings_vat_en")}</label>
                   </div>
                 </div>
                 {shopForm.vat_enabled && (
                   <div className="col-md-6">
-                    <label className="form-label small fw-medium">VAT Percentage (%)</label>
+                    <label className="form-label small fw-medium">{t("settings_vat_pct")}</label>
                     <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={shopForm.vat_percent} onChange={e => setShopForm({...shopForm, vat_percent: parseFloat(e.target.value) || 0})} />
                   </div>
                 )}
                 
                 <div className="col-md-6">
-                  <label className="form-label small fw-medium">Barcode Prefix</label>
+                  <label className="form-label small fw-medium">{t("settings_barcode_prefix")}</label>
                   <input
                     type="text"
                     className="form-control form-control-sm text-uppercase font-monospace"
@@ -250,30 +252,30 @@ export default function SettingsPage() {
                     value={shopForm.barcode_prefix}
                     onChange={e => setShopForm({...shopForm, barcode_prefix: e.target.value.replace(/[^A-Za-z0-9]/g, "").toUpperCase().slice(0, 5)})}
                   />
-                  <div className="form-text small">2–5 letters/digits prefixed to generated barcodes (uniqueness across shops). Leave blank to auto-generate from your shop name.</div>
+                  <div className="form-text small">{t("settings_barcode_help")}</div>
                 </div>
 
-                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">Feature Flags</div>
+                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">{t("settings_flags_title")}</div>
                 <div className="col-md-12">
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={shopForm.emi_enabled} onChange={e => setShopForm({...shopForm, emi_enabled: e.target.checked})} />
-                    <label className="form-check-label small" htmlFor="emiSwitch">Enable EMI (Installments)</label>
+                    <label className="form-check-label small" htmlFor="emiSwitch">{t("settings_emi_en")}</label>
                   </div>
                   <div className="form-check form-switch mt-2">
                     <input className="form-check-input" type="checkbox" role="switch" id="deliverySwitch" checked={shopForm.delivery_enabled} onChange={e => setShopForm({...shopForm, delivery_enabled: e.target.checked})} />
-                    <label className="form-check-label small" htmlFor="deliverySwitch">Enable Delivery Charge (in POS)</label>
+                    <label className="form-check-label small" htmlFor="deliverySwitch">{t("settings_del_en")}</label>
                   </div>
                   <div className="form-check form-switch mt-2">
                     <input className="form-check-input" type="checkbox" role="switch" id="whatsappSwitch" checked={shopForm.whatsapp_invoice_enabled} onChange={e => setShopForm({...shopForm, whatsapp_invoice_enabled: e.target.checked})} />
-                    <label className="form-check-label small" htmlFor="whatsappSwitch">Send invoice on WhatsApp (POS after-sale)</label>
+                    <label className="form-check-label small" htmlFor="whatsappSwitch">{t("settings_wa_en")}</label>
                   </div>
                 </div>
               </div>
               <div className="d-flex align-items-center gap-3 mt-3">
                 <button type="submit" className="btn btn-primary btn-sm px-4" disabled={shopBusy}>
-                  {shopBusy ? "Saving..." : "Save Shop Settings"}
+                  {shopBusy ? t("settings_saving") : t("settings_save_shop")}
                 </button>
-                {shopSuccess && <span className="text-success small"><i className="bi bi-check-circle me-1"></i>Saved</span>}
+                {shopSuccess && <span className="text-success small"><i className="bi bi-check-circle me-1"></i>{t("settings_saved")}</span>}
               </div>
             </form>
           </div>
@@ -283,16 +285,16 @@ export default function SettingsPage() {
       <div className="row g-3">
         <div className="col-md-6">
           <Card>
-            <div className="small text-secondary">Current plan</div>
+            <div className="small text-secondary">{t("settings_plan")}</div>
             <div className="fs-5 fw-bold text-capitalize">{billing?.plan || "—"}</div>
           </Card>
         </div>
         <div className="col-md-6">
           <Card>
-            <div className="small text-secondary">Subscription status</div>
+            <div className="small text-secondary">{t("settings_sub_status")}</div>
             <div className="fs-5 fw-bold">
-              {billing?.on_trial ? "Trial" : billing?.status || "—"}
-              {billing?.trial_ends_at && <span className="small text-secondary ms-2">ends {fmtDate(billing.trial_ends_at)}</span>}
+              {billing?.on_trial ? t("settings_trial") : billing?.status || "—"}
+              {billing?.trial_ends_at && <span className="small text-secondary ms-2">{t("settings_ends", { date: fmtDate(billing.trial_ends_at) })}</span>}
             </div>
           </Card>
         </div>

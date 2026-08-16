@@ -6,6 +6,7 @@ import { api, useApi, Paginated } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
@@ -20,6 +21,7 @@ type ScanMsg = { text: string; ok: boolean } | null;
 
 export default function PosPage() {
   const router = useRouter();
+  const { t } = useLanguage();
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -155,17 +157,17 @@ export default function PosPage() {
 
   function tryAdd(p: Product) {
     if (p.track_inventory !== false && Number(p.current_stock) <= 0) {
-      flash(`✗ Out of stock: ${p.name}`, false);
+      flash(t("pos_out_of_stock_alert", { name: p.name }), false);
       return;
     }
     if (p.scanned_unit) {
       const unit = p.scanned_unit;
       const already = cart.some((l) => l.product.id === p.id && l.selectedUnits.some((u) => u.id === unit.id));
       if (already) {
-        flash(`Already in cart: ${unit.barcode}`, false);
+        flash(t("pos_already_in_cart_alert", { barcode: unit.barcode }), false);
       } else {
         addToCart(p, unit);
-        flash(`✓ Added unit: ${unit.barcode}`, true);
+        flash(t("pos_added_unit_alert", { barcode: unit.barcode }), true);
       }
       setQuery("");
       setTimeout(() => inputRef.current?.focus(), 50);
@@ -176,7 +178,7 @@ export default function PosPage() {
       return;
     }
     addToCart(p);
-    flash(`✓ Added: ${p.name}`, true);
+    flash(t("pos_added_alert", { name: p.name }), true);
     setQuery("");
     setTimeout(() => inputRef.current?.focus(), 50);
   }
@@ -202,14 +204,14 @@ export default function PosPage() {
       const unit = p.units?.find((u) => u.barcode === code);
       if (unit) {
         if (p.track_inventory !== false && Number(p.current_stock) <= 0) {
-          flash(`✗ Out of stock: ${p.name}`, false); return;
+          flash(t("pos_out_of_stock_alert", { name: p.name }), false); return;
         }
         const already = cart.some((l) => l.product.id === p.id && l.selectedUnits.some((u) => u.id === unit.id));
         if (already) {
-          flash(`Already in cart: ${unit.barcode}`, false);
+          flash(t("pos_already_in_cart_alert", { barcode: unit.barcode }), false);
         } else {
           addToCart(p, unit);
-          flash(`✓ Added unit: ${unit.barcode}`, true);
+          flash(t("pos_added_unit_alert", { barcode: unit.barcode }), true);
         }
         setQuery("");
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -245,7 +247,7 @@ export default function PosPage() {
     } catch (e: any) {
       // 409 → barcode belongs to a real unit that's already sold/returned.
       if (e?.status === 409 || e?.data?.sold_unit) {
-        flash(e?.data?.detail || `✗ Unit "${code}" is already sold or not in stock.`, false);
+        flash(e?.data?.detail || t("pos_unit_sold_alert", { code }), false);
         setQuery("");
         setTimeout(() => inputRef.current?.focus(), 50);
       } else {
@@ -278,9 +280,9 @@ export default function PosPage() {
       // Refresh shown list is automatic due to SWR mutate or next search
       setShowAssign(false);
       setQuery("");
-      flash(`✓ Barcode assigned to "${assignSelected.name}" — scan again to add`, true);
+      flash(t("pos_barcode_assigned_alert", { name: assignSelected.name }), true);
     } catch (e: any) {
-      toast.error(e?.message || "Could not assign barcode");
+      toast.error(e?.message || t("pos_barcode_assign_error"));
     } finally {
       setAssignSaving(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -300,7 +302,7 @@ export default function PosPage() {
       <div className="row g-3">
         {/* ── Left panel ── */}
         <div className="col-lg-7 d-flex flex-column gap-3">
-          <div className="text-secondary small fw-semibold">Point of Sale · Step 1: Scan or search products</div>
+          <div className="text-secondary small fw-semibold">{t("pos_step1")}</div>
 
           {/* ── Scan / search input ── */}
           <div className="card shadow-sm border-brand">
@@ -315,7 +317,7 @@ export default function PosPage() {
                   ref={inputRef}
                   autoFocus
                   className="form-control"
-                  placeholder="Scan barcode or type product name / SKU…"
+                  placeholder={t("pos_scan_placeholder")}
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleEnter(); } }}
@@ -323,7 +325,7 @@ export default function PosPage() {
                 <button 
                   className="btn btn-outline-secondary d-md-none" 
                   onClick={() => setShowScanner(true)}
-                  title="Scan with Mobile Camera"
+                  title={t("pos_scan_camera")}
                 >
                   📷
                 </button>
@@ -345,9 +347,9 @@ export default function PosPage() {
               <div className="mt-2 small text-secondary">
                 {query
                   ? shown.length > 0
-                    ? `${shown.length} product${shown.length > 1 ? "s" : ""} found — click to add, or press Enter${shown.length === 1 ? " to add" : ""}`
-                    : "No match — press Enter to search backend or assign this barcode to a product"
-                  : "Ready for scan or search..."
+                    ? shown.length > 1 ? t("pos_products_found_plural", { count: shown.length }) : t("pos_products_found_singular")
+                    : t("pos_no_match")
+                  : t("pos_ready")
                 }
               </div>
             </div>
@@ -357,9 +359,9 @@ export default function PosPage() {
           {shown.length === 0 && query && !gridLoading ? (
             <div className="card shadow-sm">
               <div className="card-body text-center py-4 text-secondary small">
-                No barcoded products match "<strong>{query}</strong>"
+                {t("pos_no_barcode_match")} "<strong>{query}</strong>"
                 <div className="mt-2">
-                  Press <kbd>Enter</kbd> to search backend — if still not found, you can assign this barcode to a product.
+                  {t("pos_press_enter")}
                 </div>
               </div>
             </div>
@@ -385,7 +387,7 @@ export default function PosPage() {
                         <span className="small fw-bold">{money(p.selling_price)}</span>
                         <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
                               style={{ fontSize: ".68rem" }}>
-                          {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? "OUT" : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : `stock ${p.current_stock}`}
+                          {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
                         </span>
                       </div>
                     </button>
@@ -395,7 +397,7 @@ export default function PosPage() {
               {gridLoading && (
                 <div className="col-12 text-center text-secondary py-3">
                   <span className="spinner-border spinner-border-sm me-2" role="status" />
-                  <span className="small">Loading products…</span>
+                  <span className="small">{t("pos_loading_products")}</span>
                 </div>
               )}
             </div>
@@ -407,11 +409,11 @@ export default function PosPage() {
           <div className="card shadow-sm" style={{ position: "sticky", top: "1rem" }}>
             <div className="card-header d-flex justify-content-between align-items-center">
               <span className="fw-semibold">
-                🛒 Cart
+                🛒 {t("pos_cart")}
                 {itemCount > 0 && <span className="badge text-bg-secondary ms-2">{itemCount}</span>}
               </span>
               {cart.length > 0 && (
-                <button className="btn btn-link btn-sm text-danger p-0" onClick={clearCart}>Clear</button>
+                <button className="btn btn-link btn-sm text-danger p-0" onClick={clearCart}>{t("pos_clear")}</button>
               )}
             </div>
             <div className="card-body p-0">
@@ -422,7 +424,7 @@ export default function PosPage() {
                       <tr>
                         <td className="text-secondary text-center py-5 px-3">
                           <div style={{ fontSize: "2rem" }}>▦</div>
-                          <div className="small mt-1">Scan a barcode or click a product to add</div>
+                          <div className="small mt-1">{t("pos_scan_to_add")}</div>
                         </td>
                       </tr>
                     ) : cart.map((l) => (
@@ -433,11 +435,11 @@ export default function PosPage() {
                             {!!l.product.warranty_months && l.selectedUnits.length === 0 && (
                               <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-2 fw-normal" style={{ fontSize: '.6rem' }}>
                                 <i className="bi bi-shield-check me-1"></i>
-                                {l.product.warranty_months} Mo
+                                {t("pos_months_warranty", { months: l.product.warranty_months })}
                               </span>
                             )}
                           </div>
-                          <div className="text-secondary" style={{ fontSize: ".72rem" }}>{money(l.price)} each</div>
+                          <div className="text-secondary" style={{ fontSize: ".72rem" }}>{money(l.price)} {t("pos_each")}</div>
                           {l.selectedUnits.length > 0 && (
                             <div className="mt-1 d-flex flex-wrap gap-1">
                               {l.selectedUnits.map(u => (
@@ -445,7 +447,7 @@ export default function PosPage() {
                                   {u.barcode}
                                   {!!u.effective_warranty_months && (
                                     <span className="text-warning-emphasis ms-1">
-                                      <i className="bi bi-shield-check"></i> {u.effective_warranty_months}M
+                                      <i className="bi bi-shield-check"></i> {t("pos_months_warranty_short", { months: u.effective_warranty_months })}
                                     </span>
                                   )}
                                 </span>
@@ -455,7 +457,7 @@ export default function PosPage() {
                                 style={{ fontSize: ".65rem" }}
                                 onClick={() => setUnitSelectProduct(l.product)}
                               >
-                                Edit units
+                                {t("pos_edit_units")}
                               </button>
                             </div>
                           )}
@@ -486,11 +488,11 @@ export default function PosPage() {
 
               <div className="px-3 py-3 border-top">
                 <div className="d-flex justify-content-between small mb-1">
-                  <span className="text-secondary">Subtotal</span>
+                  <span className="text-secondary">{t("pos_subtotal")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
                 <div className="d-flex justify-content-between fw-bold mb-3">
-                  <span>Total</span>
+                  <span>{t("pos_total")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
                 <button
@@ -498,7 +500,7 @@ export default function PosPage() {
                   disabled={cart.length === 0}
                   onClick={goToCheckout}
                 >
-                  Continue to customer &amp; payment →
+                  {t("pos_continue")}
                 </button>
               </div>
             </div>
@@ -512,19 +514,19 @@ export default function PosPage() {
           <div className="modal-dialog modal-dialog-centered">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Barcode not found — assign it?</h5>
+                <h5 className="modal-title">{t("pos_assign_title")}</h5>
                 <button className="btn-close" onClick={() => { setShowAssign(false); setTimeout(() => inputRef.current?.focus(), 50); }} />
               </div>
               <div className="modal-body">
                 <div className="mb-3">
-                  <div className="small text-secondary mb-1">Scanned barcode</div>
+                  <div className="small text-secondary mb-1">{t("pos_assign_scanned")}</div>
                   <div className="px-3 py-2 bg-body-secondary rounded fw-bold" style={{ fontFamily: "monospace", letterSpacing: ".05em" }}>
                     {assignBarcode}
                   </div>
                 </div>
 
                 <div className="mb-3 position-relative">
-                  <label className="form-label small">Which product does this barcode belong to?</label>
+                  <label className="form-label small">{t("pos_assign_which")}</label>
                   {assignSelected ? (
                     <div className="input-group input-group-sm">
                       <span className="form-control bg-body-secondary fw-medium text-truncate">{assignSelected.name}</span>
@@ -535,7 +537,7 @@ export default function PosPage() {
                       <input
                         autoFocus
                         className="form-control"
-                        placeholder="Type product name or SKU to search…"
+                        placeholder={t("pos_assign_search")}
                         value={assignSearch}
                         onChange={(e) => setAssignSearch(e.target.value)}
                       />
@@ -549,7 +551,7 @@ export default function PosPage() {
                             >
                               <span className="fw-medium">{p.name}</span>
                               {p.sku && <span className="text-secondary ms-2 small">{p.sku}</span>}
-                              {p.barcode && <span className="text-warning ms-2 small">(has barcode: {p.barcode})</span>}
+                              {p.barcode && <span className="text-warning ms-2 small">{t("pos_assign_has_barcode", { barcode: p.barcode })}</span>}
                             </button>
                           ))}
                         </div>
@@ -560,14 +562,14 @@ export default function PosPage() {
               </div>
               <div className="modal-footer">
                 <button className="btn btn-secondary btn-sm" onClick={() => { setShowAssign(false); setTimeout(() => inputRef.current?.focus(), 50); }}>
-                  Cancel
+                  {t("pos_assign_cancel")}
                 </button>
                 <button
                   className="btn btn-brand btn-sm"
                   disabled={!assignSelected || assignSaving}
                   onClick={doAssign}
                 >
-                  {assignSaving ? "Saving…" : `Assign barcode to "${assignSelected?.name ?? "…"}"`}
+                  {assignSaving ? t("pos_assign_saving") : t("pos_assign_btn", { name: assignSelected?.name ?? "…" })}
                 </button>
               </div>
             </div>
@@ -580,12 +582,12 @@ export default function PosPage() {
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
             <div className="modal-content">
               <div className="modal-header">
-                <h5 className="modal-title">Select Units to Sell</h5>
+                <h5 className="modal-title">{t("pos_unit_title")}</h5>
                 <button className="btn-close" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }} />
               </div>
               <div className="modal-body">
                 <div className="mb-3 small text-secondary">
-                  <strong>{unitSelectProduct.name}</strong> has individual units. Select the exact units you are selling.
+                  <strong>{unitSelectProduct.name}</strong> {t("pos_unit_desc")}
                 </div>
                 <div className="d-flex flex-column gap-2">
                   {unitSelectProduct.units?.map((u) => {
@@ -625,11 +627,11 @@ export default function PosPage() {
                           {!!u.effective_warranty_months && (
                             <span className="badge bg-warning-subtle text-warning-emphasis rounded-pill me-2 border border-warning-subtle">
                               <i className="bi bi-shield-check me-1"></i>
-                              {u.effective_warranty_months} Mo Warranty
+                              {t("pos_unit_warranty", { months: u.effective_warranty_months })}
                             </span>
                           )}
-                          <span className="text-secondary">Cost: {money(u.effective_cost_price || unitSelectProduct.cost_price || 0)}</span>
-                          <span className="ms-2 fw-semibold text-body">Price: {money(u.effective_selling_price || unitSelectProduct.selling_price || 0)}</span>
+                          <span className="text-secondary">{t("pos_unit_cost", { amount: money(u.effective_cost_price || unitSelectProduct.cost_price || 0) })}</span>
+                          <span className="ms-2 fw-semibold text-body">{t("pos_unit_price", { amount: money(u.effective_selling_price || unitSelectProduct.selling_price || 0) })}</span>
                         </div>
                       </label>
                     );
@@ -638,10 +640,10 @@ export default function PosPage() {
               </div>
               <div className="modal-footer d-flex justify-content-between">
                 <div className="small fw-semibold text-brand">
-                  {cart.find(l => l.product.id === unitSelectProduct.id)?.selectedUnits.length || 0} selected
+                  {t("pos_unit_selected", { count: cart.find(l => l.product.id === unitSelectProduct.id)?.selectedUnits.length || 0 })}
                 </div>
                 <button className="btn btn-brand btn-sm" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }}>
-                  Done
+                  {t("pos_unit_done")}
                 </button>
               </div>
             </div>
@@ -656,9 +658,9 @@ export default function PosPage() {
             <div className="modal-content">
               <div className="modal-header">
                 <div>
-                  <h5 className="modal-title">Choose a product</h5>
+                  <h5 className="modal-title">{t("pos_pick_title")}</h5>
                   <div className="small text-secondary">
-                    Barcode <span className="font-monospace fw-semibold">{pickCode}</span> matches {pickProducts.length} products.
+                    {t("pos_pick_desc", { count: pickProducts.length })} (Barcode: <span className="font-monospace fw-semibold">{pickCode}</span>)
                   </div>
                 </div>
                 <button className="btn-close" onClick={() => { setPickProducts(null); setTimeout(() => inputRef.current?.focus(), 50); }} />
@@ -680,13 +682,13 @@ export default function PosPage() {
                         <div>
                           <div className="fw-semibold">{p.name}</div>
                           <div className="small text-secondary">
-                            {p.sku ? <>SKU: {p.sku}</> : <>Barcode: {pickCode}</>}
+                            {p.sku ? t("pos_pick_sku", { sku: p.sku }) : t("pos_pick_barcode", { barcode: pickCode })}
                           </div>
                         </div>
                         <div className="text-end">
                           <div className="fw-semibold">{money(p.selling_price || 0)}</div>
                           <div className={`small ${oos ? "text-danger" : "text-secondary"}`}>
-                            {oos ? "Out of stock" : `Stock ${p.current_stock}`}
+                            {oos ? t("pos_pick_out_of_stock") : t("pos_stock", { count: p.current_stock })}
                           </div>
                         </div>
                       </button>

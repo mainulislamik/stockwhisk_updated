@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { fetchAll } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Sale = {
   id: number;
@@ -24,6 +25,7 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function SalesPage() {
+  const { t } = useLanguage();
   const [rows, setRows] = useState<Sale[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,7 +36,7 @@ export default function SalesPage() {
       try {
         setRows(await fetchAll<Sale>("/sales/sales/"));
       } catch (e: any) {
-        setError(e?.message || "Failed to load sales");
+        setError(e?.message || t("sales_err_load"));
       } finally {
         setLoading(false);
       }
@@ -47,15 +49,15 @@ export default function SalesPage() {
   });
   const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
 
-  if (loading) return <Spinner label="Loading invoices…" />;
+  if (loading) return <Spinner label={t("sales_list_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <input placeholder="Filter invoice/customer…" className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <input placeholder={t("sales_list_filter")} className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         <Link href="/app/pos" className="btn btn-brand btn-sm">
-          🛒 New sale (POS)
+          {t("sales_list_new")}
         </Link>
       </div>
       <div className="card shadow-sm">
@@ -63,13 +65,13 @@ export default function SalesPage() {
           <table className="table table-striped table-sm align-middle mb-0">
             <thead className="thead-3">
               <tr>
-                <th>Invoice</th>
-                <th>Customer</th>
-                <th>Date</th>
-                <th className="text-end">Total</th>
-                <th className="text-end">Paid</th>
-                <th className="text-end">Due</th>
-                <th>Status</th>
+                <th>{t("sales_list_col_invoice")}</th>
+                <th>{t("sales_list_col_customer")}</th>
+                <th>{t("sales_list_col_date")}</th>
+                <th className="text-end">{t("sales_list_col_total")}</th>
+                <th className="text-end">{t("sales_list_col_paid")}</th>
+                <th className="text-end">{t("sales_list_col_due")}</th>
+                <th>{t("sales_list_col_status")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -78,7 +80,7 @@ export default function SalesPage() {
                 <tr data-empty="">
                   <td colSpan={8} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>🧾</div>
-                    No invoices yet.
+                    {t("sales_list_no_invoices")}
                   </td>
                 </tr>
               ) : (
@@ -89,17 +91,17 @@ export default function SalesPage() {
                         {s.invoice_no || `#${s.id}`}
                       </Link>
                     </td>
-                    <td className="text-secondary">{s.customer_name || "Walk-in"}</td>
+                    <td className="text-secondary">{s.customer_name || t("sales_list_walkin")}</td>
                     <td className="text-secondary">{fmtDate(s.sale_date)}</td>
                     <td className="text-end">{money(s.total)}</td>
                     <td className="text-end">{money(s.paid)}</td>
                     <td className={`text-end ${Number(s.due) > 0 ? "text-danger fw-semibold" : ""}`}>{money(s.due)}</td>
                     <td>
-                      <span className={`badge ${statusBadge[s.status] || "text-bg-light"}`}>{s.status}</span>
+                      <span className={`badge ${statusBadge[s.status] || "text-bg-light"}`}>{t(`sales_status_${s.status.toLowerCase()}`) || s.status}</span>
                     </td>
                     <td className="text-end">
                       <Link href={`/app/sales/${s.id}`} className="small text-decoration-none">
-                        View
+                        {t("sales_list_view")}
                       </Link>
                     </td>
                   </tr>

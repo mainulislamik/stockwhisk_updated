@@ -5,6 +5,7 @@ import { api, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Customer = {
   id: number;
@@ -21,6 +22,7 @@ type Customer = {
 
 export default function CustomersPage() {
   const { can, isOwner } = useAuth();
+  const { t } = useLanguage();
   const canManage = isOwner || can("manage_customers");
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -56,7 +58,7 @@ export default function CustomersPage() {
       setShowAdd(false);
       mutate();
     } catch (e: any) {
-      toast.error(e?.message || "Could not save customer");
+      toast.error(e?.message || t("cust_err_save"));
     } finally {
       setSaving(false);
     }
@@ -71,11 +73,11 @@ export default function CustomersPage() {
         method: "POST",
         body: { amount: payForm.amount, method, note: payForm.note },
       });
-      toast.success(payForm.type === "settlement" ? "Settlement recorded successfully!" : "Payment received successfully!");
+      toast.success(payForm.type === "settlement" ? t("cust_set_ok") : t("cust_pay_ok"));
       setPaying(null);
       mutate();
     } catch (e: any) {
-      toast.error(e?.message || "Could not process payment");
+      toast.error(e?.message || t("cust_err_pay"));
     } finally {
       setSaving(false);
     }
@@ -87,16 +89,16 @@ export default function CustomersPage() {
     setShowAdd(false);
   }
 
-  if (loading) return <Spinner label="Loading customers…" />;
+  if (loading) return <Spinner label={t("cust_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <input placeholder="Filter name/phone…" className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <input placeholder={t("cust_filter")} className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
           <button onClick={() => { setShowAdd((s) => !s); setPaying(null); }} className="btn btn-brand btn-sm">
-            + New customer
+            {t("cust_new")}
           </button>
         )}
       </div>
@@ -106,24 +108,24 @@ export default function CustomersPage() {
           <div className="card-body">
             <form onSubmit={save} className="row g-3">
               <div className="col-md-3">
-                <label className="small">Name</label>
+                <label className="small">{t("cust_name")}</label>
                 <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div className="col-md-3">
-                <label className="small">Phone</label>
+                <label className="small">{t("cust_phone")}</label>
                 <input className="form-control form-control-sm" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
               </div>
               <div className="col-md-3">
-                <label className="small">Email</label>
+                <label className="small">{t("cust_email")}</label>
                 <input type="email" className="form-control form-control-sm" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
               </div>
               <div className="col-md-3">
-                <label className="small">Address</label>
+                <label className="small">{t("cust_address")}</label>
                 <input className="form-control form-control-sm" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
               </div>
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
-                  {saving ? "Saving…" : "Save customer"}
+                  {saving ? t("cust_saving") : t("cust_save")}
                 </button>
               </div>
             </form>
@@ -136,11 +138,11 @@ export default function CustomersPage() {
           <table className="table table-striped table-sm align-middle mb-0">
             <thead className="thead-2">
               <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th className="text-end">Total purchased</th>
-                <th className="text-end">Due</th>
-                <th>Last purchase</th>
+                <th>{t("cust_col_name")}</th>
+                <th>{t("cust_col_phone")}</th>
+                <th className="text-end">{t("cust_col_total")}</th>
+                <th className="text-end">{t("cust_col_due")}</th>
+                <th>{t("cust_col_last")}</th>
                 {canManage && <th></th>}
               </tr>
             </thead>
@@ -149,7 +151,7 @@ export default function CustomersPage() {
                 <tr data-empty="">
                   <td colSpan={canManage ? 6 : 5} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>👥</div>
-                    No customers yet.
+                    {t("cust_no_cust")}
                   </td>
                 </tr>
               ) : (
@@ -165,7 +167,7 @@ export default function CustomersPage() {
                         <td className="text-end text-nowrap">
                           {Number(c.due_balance) > 0 && (
                             <button className="btn btn-brand btn-sm py-0 px-2" style={{ fontSize: "0.8rem" }} onClick={() => startPay(c)}>
-                              Receive / Settle
+                              {t("cust_btn_pay")}
                             </button>
                           )}
                         </td>
@@ -178,40 +180,40 @@ export default function CustomersPage() {
                         <td colSpan={canManage ? 6 : 5} className="bg-light p-3 border-start border-4 border-success">
                           <form onSubmit={(e) => processPayment(e, c)} className="row g-3 align-items-end">
                             <div className="col-12 mb-1">
-                              <span className="fw-bold text-success me-2">Clear Dues for {c.name}</span>
-                              <span className="text-muted small">(Outstanding: {money(c.due_balance)})</span>
+                              <span className="fw-bold text-success me-2">{t("cust_clear_dues", { name: c.name })}</span>
+                              <span className="text-muted small">{t("cust_out", { amount: money(c.due_balance) })}</span>
                             </div>
                             <div className="col-md-3">
-                              <label className="small fw-medium">Action Type</label>
+                              <label className="small fw-medium">{t("cust_act_type")}</label>
                               <select className="form-select form-select-sm" value={payForm.type} onChange={e => setPayForm({...payForm, type: e.target.value})}>
-                                <option value="payment">Receive Payment (Cash Inflow)</option>
-                                <option value="settlement">Settle / Adjust (No Cash Impact)</option>
+                                <option value="payment">{t("cust_act_pay")}</option>
+                                <option value="settlement">{t("cust_act_set")}</option>
                               </select>
                             </div>
                             <div className="col-md-2">
-                              <label className="small fw-medium">Amount</label>
+                              <label className="small fw-medium">{t("cust_amt")}</label>
                               <input type="number" step="0.01" max={c.due_balance} required className="form-control form-control-sm" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} />
                             </div>
                             {payForm.type === "payment" && (
                               <div className="col-md-2">
-                                <label className="small fw-medium">Payment Method</label>
+                                <label className="small fw-medium">{t("cust_meth")}</label>
                                 <select className="form-select form-select-sm" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
-                                  <option value="cash">Cash</option>
-                                  <option value="bkash">bKash</option>
-                                  <option value="nagad">Nagad</option>
-                                  <option value="bank">Bank</option>
+                                  <option value="cash">{t("cust_meth_cash")}</option>
+                                  <option value="bkash">{t("cust_meth_bkash")}</option>
+                                  <option value="nagad">{t("cust_meth_nagad")}</option>
+                                  <option value="bank">{t("cust_meth_bank")}</option>
                                 </select>
                               </div>
                             )}
                             <div className={payForm.type === "payment" ? "col-md-3" : "col-md-5"}>
-                              <label className="small fw-medium">Note / Reference</label>
-                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder="Optional reference..." />
+                              <label className="small fw-medium">{t("cust_note")}</label>
+                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder={t("cust_note_ph")} />
                             </div>
                             <div className="col-md-2 d-flex gap-2">
                               <button type="submit" className="btn btn-success btn-sm w-100" disabled={saving}>
-                                {saving ? "Processing…" : "Submit"}
+                                {saving ? t("cust_proc") : t("cust_submit")}
                               </button>
-                              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>Cancel</button>
+                              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>{t("cust_cancel")}</button>
                             </div>
                           </form>
                         </td>

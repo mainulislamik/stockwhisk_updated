@@ -8,6 +8,7 @@ import { api, fetchAll, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Product = {
   id: number;
@@ -26,6 +27,7 @@ type Named = { id: number; name: string };
 
 export default function ProductsPage() {
   const { can, isOwner } = useAuth();
+  const { t } = useLanguage();
   const canManage = isOwner || can("manage_products");
   const [categories, setCategories] = useState<Named[]>([]);
   const [brands, setBrands] = useState<Named[]>([]);
@@ -86,7 +88,7 @@ export default function ProductsPage() {
       setShowAdd(false);
       mutate();
     } catch (e: any) {
-      toast.error(e?.message || "Could not save product");
+      toast.error(e?.message || t("prod_err_save"));
     } finally {
       setSaving(false);
     }
@@ -97,17 +99,17 @@ export default function ProductsPage() {
       await api(`/catalog/products/${p.id}/`, { method: "PATCH", body: { is_active: !p.is_active } });
       mutate();
     } catch (e: any) {
-      toast.error(e?.message || "Could not update");
+      toast.error(e?.message || t("prod_err_update"));
     }
   }
 
   async function remove(p: Product) {
-    if (!(await confirmAction(`Delete "${p.name}" permanently?`))) return;
+    if (!(await confirmAction(t("prod_confirm_delete", { name: p.name })))) return;
     try {
       await api(`/catalog/products/${p.id}/`, { method: "DELETE" });
       mutate();
     } catch (e: any) {
-      toast.error(e?.message || "Could not delete");
+      toast.error(e?.message || t("prod_err_delete"));
     }
   }
 
@@ -120,18 +122,18 @@ export default function ProductsPage() {
       else { setBrands((b) => [...b, created]); setNewBrand(""); }
       setForm((f: any) => ({ ...f, [kind]: created.id }));
     } catch (e: any) {
-      toast.error(e?.message || "Could not add");
+      toast.error(e?.message || t("prod_err_add"));
     }
   }
 
-  if (loading) return <Spinner label="Loading products…" />;
+  if (loading) return <Spinner label={t("prod_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input
-          placeholder="Filter name/SKU/barcode…"
+          placeholder={t("prod_list_filter")}
           className="form-control form-control-sm"
           style={{ maxWidth: "18rem" }}
           value={filter}
@@ -140,10 +142,10 @@ export default function ProductsPage() {
         {canManage && (
           <div className="d-flex gap-2">
             <button onClick={() => setShowAdd((s) => !s)} className="btn btn-outline-brand btn-sm">
-              + New product
+              {t("prod_list_new")}
             </button>
             <Link href="/app/products/purchase" className="btn btn-brand btn-sm">
-              🛒 Purchase product
+              {t("prod_list_purchase")}
             </Link>
           </div>
         )}
@@ -154,64 +156,64 @@ export default function ProductsPage() {
           <div className="card-body">
             <form onSubmit={saveProduct} className="row g-3">
               <div className="col-md-4">
-                <label className="small">Product name</label>
+                <label className="small">{t("prod_list_name")}</label>
                 <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
               <div className="col-md-2">
                 <label className="small">
-                  SKU <span className="text-secondary">(auto)</span>
+                  {t("prod_list_sku")} <span className="text-secondary">{t("prod_list_auto")}</span>
                 </label>
-                <input placeholder="auto-generated" className="form-control form-control-sm" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
+                <input placeholder={t("prod_list_auto_gen")} className="form-control form-control-sm" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
               </div>
               <div className="col-md-2">
-                <label className="small">Barcode</label>
-                <input placeholder="scan or type…" className="form-control form-control-sm" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
+                <label className="small">{t("prod_list_barcode")}</label>
+                <input placeholder={t("prod_list_scan_type")} className="form-control form-control-sm" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
               </div>
               <div className="col-md-4">
-                <label className="small">Category</label>
+                <label className="small">{t("prod_list_category")}</label>
                 <select className="form-select form-select-sm mb-1" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                  <option value="">— none —</option>
+                  <option value="">{t("prod_list_none")}</option>
                   {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                 </select>
                 <div className="input-group input-group-sm">
-                  <input className="form-control" placeholder="New category name…" value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("category"))} />
-                  <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("category")}>+ Add</button>
+                  <input className="form-control" placeholder={t("prod_list_new_cat")} value={newCat} onChange={(e) => setNewCat(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("category"))} />
+                  <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("category")}>{t("prod_list_add")}</button>
                 </div>
               </div>
               <div className="col-md-4">
-                <label className="small">Brand</label>
+                <label className="small">{t("prod_list_brand")}</label>
                 <select className="form-select form-select-sm mb-1" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })}>
-                  <option value="">— none —</option>
+                  <option value="">{t("prod_list_none")}</option>
                   {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                 </select>
                 <div className="input-group input-group-sm">
-                  <input className="form-control" placeholder="New brand name…" value={newBrand} onChange={(e) => setNewBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("brand"))} />
-                  <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("brand")}>+ Add</button>
+                  <input className="form-control" placeholder={t("prod_list_new_brand")} value={newBrand} onChange={(e) => setNewBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("brand"))} />
+                  <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("brand")}>{t("prod_list_add")}</button>
                 </div>
               </div>
               <div className="col-md-3">
-                <label className="small">Cost</label>
+                <label className="small">{t("prod_list_cost")}</label>
                 <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
               </div>
               <div className="col-md-3">
-                <label className="small">Selling price</label>
+                <label className="small">{t("prod_list_selling_price")}</label>
                 <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
               </div>
               <div className="col-md-3">
-                <label className="small">Reorder level</label>
+                <label className="small">{t("prod_list_reorder_level")}</label>
                 <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="5" />
               </div>
               <div className="col-md-2">
-                <label className="small">Warranty (months)</label>
+                <label className="small">{t("prod_list_warranty_months")}</label>
                 <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
               </div>
               <div className="col-md-2">
-                <label className="small" title="Replacement Guarantee (Days)">Replacement (Days)</label>
+                <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days")}</label>
                 <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
               </div>
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
-                  {saving ? "Saving…" : "Save product"}
+                  {saving ? t("prod_list_saving") : t("prod_list_save")}
                 </button>
               </div>
             </form>
@@ -224,11 +226,11 @@ export default function ProductsPage() {
           <table className="table table-striped table-sm align-middle mb-0">
             <thead className="thead-1">
               <tr>
-                <th>Name</th>
-                <th className="text-end">Cost</th>
-                <th className="text-end">Price</th>
-                <th className="text-end">Stock</th>
-                <th className="text-center">Active</th>
+                <th>{t("prod_list_col_name")}</th>
+                <th className="text-end">{t("prod_list_col_cost")}</th>
+                <th className="text-end">{t("prod_list_col_price")}</th>
+                <th className="text-end">{t("prod_list_col_stock")}</th>
+                <th className="text-center">{t("prod_list_col_active")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -237,11 +239,11 @@ export default function ProductsPage() {
                 <tr data-empty="">
                   <td colSpan={6} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
-                    <div className="fw-semibold mt-2">No products yet</div>
-                    <div className="small mb-3">Add your first product to start tracking stock and sales.</div>
+                    <div className="fw-semibold mt-2">{t("prod_list_no_products")}</div>
+                    <div className="small mb-3">{t("prod_list_add_first")}</div>
                     {canManage && (
                       <button onClick={() => setShowAdd(true)} className="btn btn-brand btn-sm">
-                        + New product
+                        {t("prod_list_new")}
                       </button>
                     )}
                   </td>
@@ -261,22 +263,22 @@ export default function ProductsPage() {
                     <td className="text-center">
                       {canManage ? (
                         <button onClick={() => toggle(p)} className={`btn btn-sm ${p.is_active ? "btn-success" : "btn-outline-secondary"} py-0 px-2`}>
-                          {p.is_active ? "On" : "Off"}
+                          {p.is_active ? t("prod_list_on") : t("prod_list_off")}
                         </button>
                       ) : p.is_active ? (
-                        "Yes"
+                        t("prod_list_yes")
                       ) : (
-                        "No"
+                        t("prod_list_no")
                       )}
                     </td>
                     <td className="text-end text-nowrap">
                       {canManage && (
                         <>
                           <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
-                            Edit
+                            {t("prod_list_edit")}
                           </Link>
                           <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
-                            Delete
+                            {t("prod_list_delete")}
                           </button>
                         </>
                       )}
