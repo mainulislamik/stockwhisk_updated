@@ -46,6 +46,18 @@ class SalesOverviewView(_AnalyticsBase):
         return Response(services.sales_overview(self.shop))
 
 
+class ProfitOverviewView(_AnalyticsBase):
+    """Profit analytics (KPIs + trend) for a selectable date range. Shop-scoped."""
+    def get(self, request):
+        p = request.query_params
+        return Response(services.profit_overview(
+            self.shop,
+            range_key=p.get("range", "30d"),
+            custom_start=p.get("start"),
+            custom_end=p.get("end"),
+        ))
+
+
 class InventoryAnalyticsView(_AnalyticsBase):
     required_perm = "view_inventory"
 

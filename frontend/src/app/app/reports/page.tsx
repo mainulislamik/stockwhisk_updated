@@ -21,6 +21,24 @@ type SalesOverview = {
   today_sales: string; today_orders: number;
   last_month_sales: string; last_month_orders: number;
 };
+type ProfitPoint = { date: string; revenue: number; cost: number; profit: number; orders: number; margin: number; avg_profit: number };
+type ProfitOverview = {
+  summary: { gross_profit: number; total_cost: number; profit_margin: number; average_profit_per_order: number; revenue: number; completed_orders: number };
+  comparison: { gross_profit_change: number | null; total_cost_change: number | null; profit_margin_change: number | null; average_profit_per_order_change: number | null; has_previous: boolean };
+  trend: ProfitPoint[];
+  range: { key: string; start: string; end: string; bucket: string };
+};
+
+const PROFIT_RANGES: { key: string; label: string }[] = [
+  { key: "today", label: "Today" },
+  { key: "yesterday", label: "Yesterday" },
+  { key: "7d", label: "Last 7 Days" },
+  { key: "30d", label: "Last 30 Days" },
+  { key: "this_month", label: "This Month" },
+  { key: "last_month", label: "Last Month" },
+  { key: "this_quarter", label: "This Quarter" },
+  { key: "this_year", label: "This Year" },
+];
 
 type DashboardData = {
   trend: DayTrend[];
@@ -40,6 +58,17 @@ export default function ReportsPage() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<SalesOverview | null>(null);
   const [reports, setReports] = useState<string[]>([]);
+
+  // Profit Overview (independent date range)
+  const [profitRange, setProfitRange] = useState("30d");
+  const [profit, setProfit] = useState<ProfitOverview | null>(null);
+  const [profitLoading, setProfitLoading] = useState(true);
+  const [profitError, setProfitError] = useState("");
+  const [profitReload, setProfitReload] = useState(0);
+  const pTrendRef = useRef<HTMLCanvasElement>(null); const pTrendInst = useRef<any>(null);
+  const pBarRef = useRef<HTMLCanvasElement>(null); const pBarInst = useRef<any>(null);
+  const pMarginRef = useRef<HTMLCanvasElement>(null); const pMarginInst = useRef<any>(null);
+  const pAvgRef = useRef<HTMLCanvasElement>(null); const pAvgInst = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [invPage, setInvPage] = useState(1);
@@ -80,6 +109,87 @@ export default function ReportsPage() {
       }
     })();
   }, []);
+
+  // Profit Overview: refetch whenever the selected range changes.
+  useEffect(() => {
+    let active = true;
+    setProfitLoading(true); setProfitError("");
+    api<ProfitOverview>("/analytics/profit-overview/", { params: { range: profitRange } })
+      .then((d) => { if (active) setProfit(d); })
+      .catch(() => { if (active) setProfitError("Unable to load profit analytics. Please try again."); })
+      .finally(() => { if (active) setProfitLoading(false); });
+    return () => { active = false; };
+  }, [profitRange, profitReload]);
+
+  // Build the 4 Profit Overview charts whenever the profit data changes.
+  useEffect(() => {
+    const Chart = (window as any).Chart;
+    if (!Chart || !profit || profit.trend.length === 0) return;
+    const monthly = profit.range.bucket === "month";
+    const labels = profit.trend.map((p) =>
+      new Date(p.date).toLocaleDateString(undefined, monthly ? { month: "short", year: "2-digit" } : { month: "short", day: "numeric" }));
+    const REV = "#2f4b7c", COST = "#f95d6a", PROFIT = "#008c54", MARGIN = "#a05195";
+    const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+    const moneyTip = { callbacks: { label: (c: any) => `${c.dataset.label}: ${tk(c.parsed.y)}` } };
+
+    // 1. Profit Trend (area line): Revenue / Cost / Gross Profit
+    if (pTrendRef.current) {
+      pTrendInst.current?.destroy();
+      pTrendInst.current = new Chart(pTrendRef.current, {
+        type: "line",
+        data: { labels, datasets: [
+          { label: "Revenue", data: profit.trend.map((p) => p.revenue), borderColor: REV, backgroundColor: "rgba(47,75,124,.10)", fill: true, tension: 0.3 },
+          { label: "Total Cost", data: profit.trend.map((p) => p.cost), borderColor: COST, backgroundColor: "rgba(249,93,106,.08)", fill: true, tension: 0.3 },
+          { label: "Gross Profit", data: profit.trend.map((p) => p.profit), borderColor: PROFIT, backgroundColor: "rgba(0,140,84,.12)", fill: true, tension: 0.3 },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { tooltip: moneyTip } },
+      });
+    }
+    // 2. Revenue vs Cost vs Profit (grouped bar)
+    if (pBarRef.current) {
+      pBarInst.current?.destroy();
+      pBarInst.current = new Chart(pBarRef.current, {
+        type: "bar",
+        data: { labels, datasets: [
+          { label: "Revenue", data: profit.trend.map((p) => p.revenue), backgroundColor: REV },
+          { label: "Cost", data: profit.trend.map((p) => p.cost), backgroundColor: COST },
+          { label: "Profit", data: profit.trend.map((p) => p.profit), backgroundColor: PROFIT },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: moneyTip } },
+      });
+    }
+    // 3. Profit Margin Trend (line, %)
+    if (pMarginRef.current) {
+      pMarginInst.current?.destroy();
+      pMarginInst.current = new Chart(pMarginRef.current, {
+        type: "line",
+        data: { labels, datasets: [
+          { label: "Profit Margin", data: profit.trend.map((p) => p.margin), borderColor: MARGIN, backgroundColor: "rgba(160,81,149,.10)", fill: true, tension: 0.3 },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: (v: any) => v + "%" } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c: any) => `Profit Margin: ${Number(c.parsed.y).toFixed(2)}%` } } } },
+      });
+    }
+    // 4. Average Profit Per Order (bar)
+    if (pAvgRef.current) {
+      pAvgInst.current?.destroy();
+      pAvgInst.current = new Chart(pAvgRef.current, {
+        type: "bar",
+        data: { labels, datasets: [
+          { label: "Avg. Profit / Order", data: profit.trend.map((p) => p.avg_profit), backgroundColor: PROFIT },
+        ] },
+        options: { responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: (c: any) => `Avg. Profit / Order: ${tk(c.parsed.y)}`,
+            afterLabel: (c: any) => `Orders: ${profit.trend[c.dataIndex]?.orders ?? 0}`,
+          } } } },
+      });
+    }
+    return () => {
+      pTrendInst.current?.destroy(); pBarInst.current?.destroy();
+      pMarginInst.current?.destroy(); pAvgInst.current?.destroy();
+    };
+  }, [profit]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -234,6 +344,19 @@ export default function ReportsPage() {
   if (error) return <ErrorState error={error} />;
   if (!data) return null;
 
+  const pct = (v: number) => `${Number(v || 0).toFixed(2)}%`;
+  const changeBadge = (value: number | null | undefined, opts?: { pts?: boolean; goodWhenUp?: boolean }) => {
+    const pts = opts?.pts ?? false;
+    const goodWhenUp = opts?.goodWhenUp ?? true;
+    if (value === null || value === undefined) return <span className="small text-secondary">No previous data</span>;
+    const up = value > 0, down = value < 0;
+    const good = (up && goodWhenUp) || (down && !goodWhenUp);
+    const cls = value === 0 ? "text-secondary" : good ? "text-success" : "text-danger";
+    const arrow = up ? "↑" : down ? "↓" : "→";
+    const val = pts ? `${Math.abs(value).toFixed(2)} pts` : `${Math.abs(value).toFixed(1)}%`;
+    return <span className={`small fw-medium ${cls}`}>{arrow} {val} <span className="text-secondary fw-normal">vs prev</span></span>;
+  };
+
   const overviewCards = overview ? [
     { icon: "bi-cash-stack", label: "Total Sales", value: money(overview.total_sales), accent: "primary" },
     { icon: "bi-receipt", label: "Total Orders", value: Number(overview.total_orders).toLocaleString(), accent: "info" },
@@ -270,6 +393,100 @@ export default function ReportsPage() {
                 </div>
               </div>
             ))}
+          </div>
+        )}
+      </section>
+
+      {/* Profit Overview — analytics + charts */}
+      <section aria-labelledby="profit-overview-heading">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 id="profit-overview-heading" className="h5 fw-bold mb-0">Profit Overview</h2>
+            <div className="small text-secondary">Track revenue, costs, profit margins, and profitability trends over time.</div>
+          </div>
+          <select className="form-select form-select-sm" style={{ width: "auto" }} value={profitRange}
+            onChange={(e) => setProfitRange(e.target.value)} aria-label="Profit date range">
+            {PROFIT_RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+          </select>
+        </div>
+
+        {profitError ? (
+          <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
+            <span>{profitError}</span>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setProfitReload((x) => x + 1)}>Retry</button>
+          </div>
+        ) : !profit ? (
+          <div className="text-center py-5"><span className="spinner-border" /></div>
+        ) : (
+          <div className={`vstack gap-3 ${profitLoading ? "opacity-50" : ""}`} aria-busy={profitLoading}>
+            {/* KPI cards */}
+            <div className="row g-3">
+              {[
+                { icon: "bi-graph-up-arrow", label: "Gross Profit", value: money(String(profit.summary.gross_profit)), accent: "success", badge: changeBadge(profit.comparison.gross_profit_change) },
+                { icon: "bi-cart-dash", label: "Total Cost", value: money(String(profit.summary.total_cost)), accent: "danger", badge: changeBadge(profit.comparison.total_cost_change, { goodWhenUp: false }) },
+                { icon: "bi-percent", label: "Profit Margin", value: pct(profit.summary.profit_margin), accent: "primary", badge: changeBadge(profit.comparison.profit_margin_change, { pts: true }) },
+                { icon: "bi-receipt-cutoff", label: "Avg. Profit / Order", value: money(String(profit.summary.average_profit_per_order)), accent: "info", badge: changeBadge(profit.comparison.average_profit_per_order_change) },
+              ].map((c) => (
+                <div key={c.label} className="col-12 col-sm-6 col-xl-3">
+                  <div className="card shadow-sm h-100 border-0">
+                    <div className="card-body">
+                      <div className="d-flex align-items-center gap-2 mb-2">
+                        <span className={`d-inline-flex align-items-center justify-content-center rounded-3 bg-${c.accent} bg-opacity-10 text-${c.accent}`}
+                              style={{ width: 38, height: 38 }} aria-hidden="true"><i className={`bi ${c.icon}`}></i></span>
+                        <span className="small text-secondary">{c.label}</span>
+                      </div>
+                      <div className="fs-4 fw-bold text-body lh-1">{c.value}</div>
+                      <div className="mt-2">{c.badge}</div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {profit.trend.length === 0 ? (
+              <div className="card border-0 shadow-sm"><div className="card-body text-center text-secondary py-5">
+                No profit data available for this period.
+              </div></div>
+            ) : (
+              <>
+                {/* Profit Trend */}
+                <div className="card border-0 shadow-sm">
+                  <div className="card-body">
+                    <div className="fw-semibold">Profit Trend</div>
+                    <div className="small text-secondary mb-3">Revenue, cost, and gross profit over time</div>
+                    <div style={{ height: 300 }}><canvas ref={pTrendRef} /></div>
+                  </div>
+                </div>
+
+                <div className="row g-3">
+                  <div className="col-12 col-lg-7">
+                    <div className="card border-0 shadow-sm h-100">
+                      <div className="card-body">
+                        <div className="fw-semibold mb-3">Revenue vs Cost vs Profit</div>
+                        <div style={{ height: 280 }}><canvas ref={pBarRef} /></div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-12 col-lg-5">
+                    <div className="card border-0 shadow-sm h-100">
+                      <div className="card-body">
+                        <div className="fw-semibold">Profit Margin Trend</div>
+                        <div className="small text-secondary mb-3">How efficiently sales convert to profit</div>
+                        <div style={{ height: 280 }}><canvas ref={pMarginRef} /></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card border-0 shadow-sm">
+                  <div className="card-body">
+                    <div className="fw-semibold">Average Profit Per Order</div>
+                    <div className="small text-secondary mb-3">Profitability per completed order</div>
+                    <div style={{ height: 260 }}><canvas ref={pAvgRef} /></div>
+                  </div>
+                </div>
+              </>
+            )}
           </div>
         )}
       </section>

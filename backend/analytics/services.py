@@ -223,6 +223,174 @@ def sales_overview(shop):
     }
 
 
+def _completed_orders(shop, start=None, end=None):
+    qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+    if start is not None:
+        qs = qs.filter(sale_date__gte=start)
+    if end is not None:
+        qs = qs.filter(sale_date__lte=end)
+    return qs.count()
+
+
+def _pct_change(cur, prev):
+    """% change vs previous; None when there's no comparable previous value."""
+    cur, prev = float(cur or 0), float(prev or 0)
+    if prev == 0:
+        return None
+    return round((cur - prev) / prev * 100, 2)
+
+
+def _resolve_profit_range(key, custom_start, custom_end, now):
+    """Return (start, end, prev_start, prev_end, bucket) for a range key.
+    Calendar ranges compare against the same elapsed slice of the previous
+    calendar period; rolling ranges compare against the immediately preceding
+    equal-length window. Bucket is monthly for long spans, else daily."""
+    day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    us = timedelta(microseconds=1)
+    if key == "today":
+        start, end = day, now
+        prev_start, prev_end = day - timedelta(days=1), day - us
+    elif key == "yesterday":
+        y = day - timedelta(days=1)
+        start, end = y, day - us
+        prev_start, prev_end = y - timedelta(days=1), y - us
+    elif key == "7d":
+        start, end = now - timedelta(days=7), now
+        prev_start, prev_end = now - timedelta(days=14), now - timedelta(days=7)
+    elif key in ("30d", ""):
+        start, end = now - timedelta(days=30), now
+        prev_start, prev_end = now - timedelta(days=60), now - timedelta(days=30)
+    elif key == "this_month":
+        start, end = day.replace(day=1), now
+        pm = start - relativedelta(months=1)
+        prev_start, prev_end = pm, pm + (now - start)
+    elif key == "last_month":
+        start = day.replace(day=1) - relativedelta(months=1)
+        end = day.replace(day=1) - us
+        prev_start, prev_end = start - relativedelta(months=1), start - us
+    elif key == "this_quarter":
+        qm = ((now.month - 1) // 3) * 3 + 1
+        start, end = day.replace(month=qm, day=1), now
+        pq = start - relativedelta(months=3)
+        prev_start, prev_end = pq, pq + (now - start)
+    elif key == "this_year":
+        start, end = day.replace(month=1, day=1), now
+        py = start - relativedelta(years=1)
+        prev_start, prev_end = py, py + (now - start)
+    elif key == "custom":
+        from datetime import datetime as _dt, time as _time
+        from django.utils.dateparse import parse_date, parse_datetime
+
+        def _to_dt(s, end_of_day=False):
+            if not s:
+                return None
+            dt = parse_datetime(s)
+            if dt is None:
+                d = parse_date(s)
+                if d is None:
+                    return None
+                dt = _dt.combine(d, _time.max if end_of_day else _time.min)
+            return dt if timezone.is_aware(dt) else timezone.make_aware(dt)
+
+        start = _to_dt(custom_start) or (now - timedelta(days=30))
+        end = _to_dt(custom_end, end_of_day=True) or now
+        dur = end - start
+        prev_start, prev_end = start - dur, start - us
+    else:
+        start, end = now - timedelta(days=30), now
+        prev_start, prev_end = now - timedelta(days=60), now - timedelta(days=30)
+
+    bucket = "month" if (end - start).days > 92 else "day"
+    return start, end, prev_start, prev_end, bucket
+
+
+def _profit_trend(shop, start, end, bucket):
+    """Per-bucket revenue / cost / gross-profit / orders (gross of returns —
+    the summary KPIs carry the return-adjusted figures). Two grouped queries."""
+    trunc = TruncMonth if bucket == "month" else TruncDate
+    item_rows = (
+        _sale_items(shop, start, end)
+        .annotate(b=trunc("sale__sale_date")).values("b")
+        .annotate(
+            subtotal=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC),
+            cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
+        )
+    )
+    sale_rows = (
+        Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+        .filter(sale_date__gte=start, sale_date__lte=end)
+        .annotate(b=trunc("sale_date")).values("b")
+        .annotate(discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC), orders=Count("id"))
+    )
+    buckets = {}
+    for r in item_rows:
+        buckets.setdefault(r["b"], {}).update(subtotal=r["subtotal"], cost=r["cost"])
+    for r in sale_rows:
+        buckets.setdefault(r["b"], {}).update(discount=r["discount"], orders=r["orders"])
+
+    out = []
+    for k in sorted(b for b in buckets if b is not None):
+        v = buckets[k]
+        revenue = float(v.get("subtotal", ZERO) - v.get("discount", ZERO))
+        cost = float(v.get("cost", ZERO))
+        orders = int(v.get("orders", 0))
+        profit = revenue - cost
+        out.append({
+            "date": k.isoformat(),
+            "revenue": round(revenue, 2), "cost": round(cost, 2), "profit": round(profit, 2),
+            "orders": orders,
+            "margin": round((profit / revenue * 100) if revenue else 0.0, 2),
+            "avg_profit": round((profit / orders) if orders else 0.0, 2),
+        })
+    return out
+
+
+def profit_overview(shop, range_key="30d", custom_start=None, custom_end=None):
+    """Profit analytics for the report page: 4 KPIs (with previous-period
+    comparison) + per-bucket trend feeding the profit charts. Money figures
+    reuse ``accounting.profit_summary`` (net of returns, snapshotted item cost),
+    so cards stay consistent with the dashboard. Shop-scoped."""
+    from accounting.services import profit_summary
+
+    now = timezone.now()
+    start, end, pstart, pend, bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+
+    cur = profit_summary(shop, start=start, end=end)
+    prev = profit_summary(shop, start=pstart, end=pend)
+    cur_orders = _completed_orders(shop, start, end)
+    prev_orders = _completed_orders(shop, pstart, pend)
+
+    revenue = float(cur["revenue"] or 0)
+    gp = float(cur["gross_profit"] or 0)
+    cost = float(cur["cogs"] or 0)
+    margin = (gp / revenue * 100) if revenue else 0.0
+    avg = (gp / cur_orders) if cur_orders else 0.0
+
+    p_revenue = float(prev["revenue"] or 0)
+    p_gp = float(prev["gross_profit"] or 0)
+    p_cost = float(prev["cogs"] or 0)
+    p_margin = (p_gp / p_revenue * 100) if p_revenue else 0.0
+    p_avg = (p_gp / prev_orders) if prev_orders else 0.0
+
+    return {
+        "summary": {
+            "gross_profit": round(gp, 2), "total_cost": round(cost, 2),
+            "profit_margin": round(margin, 2), "average_profit_per_order": round(avg, 2),
+            "revenue": round(revenue, 2), "completed_orders": cur_orders,
+        },
+        "comparison": {
+            "gross_profit_change": _pct_change(gp, p_gp),
+            "total_cost_change": _pct_change(cost, p_cost),
+            # margin compares in percentage POINTS, not % of %.
+            "profit_margin_change": round(margin - p_margin, 2) if (revenue or p_revenue) else None,
+            "average_profit_per_order_change": _pct_change(avg, p_avg),
+            "has_previous": bool(p_revenue or p_gp or prev_orders),
+        },
+        "trend": _profit_trend(shop, start, end, bucket),
+        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat(), "bucket": bucket},
+    }
+
+
 def weekly_sales_trend(shop, weeks=12):
     start = timezone.now() - timedelta(weeks=weeks)
     return list(
