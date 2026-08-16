@@ -44,6 +44,12 @@ app.conf.beat_schedule = {
         "task": "notifications.tasks.send_notification_digest",
         "schedule": crontab(hour=10, minute=0),
     },
+    # Reseller commissions for the just-closed month, on the 1st at 02:30.
+    # Idempotent (unique per reseller+shop+month), so a re-run never doubles up.
+    "generate-reseller-commissions-monthly": {
+        "task": "resellers.tasks.generate_previous_month_commissions",
+        "schedule": crontab(hour=2, minute=30, day_of_month=1),
+    },
 }
 
 
