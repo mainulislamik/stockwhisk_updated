@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { getLandingPath } from "@/lib/landing";
 import { Card, ErrorState, Spinner, money } from "@/components/ui";
 
@@ -30,10 +31,9 @@ type SubStatus = {
 };
 
 function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
+  const { t } = useLanguage();
   const [showPay, setShowPay] = useState(false);
   if (!sub || sub.state === "none" || sub.state === "free") return null;
-  // Only surface the banner near expiry (≤3 days) or once expired. While a plan
-  // (trial or paid) is comfortably active, the sidebar "plan" label is enough.
   if (sub.state !== "expired" && sub.days_left > 3) return null;
 
   const d = sub.days_left;
@@ -49,13 +49,13 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
     { bg: "info", icon: "bi-hourglass-split" };
 
   const title =
-    sub.state === "expired" ? "Your subscription has expired" :
-    sub.state === "trial" ? `Free trial — ${d} day${d === 1 ? "" : "s"} left` :
-    `${sub.plan_name || "Pro"} plan — ${d} day${d === 1 ? "" : "s"} left`;
+    sub.state === "expired" ? t("sub_expired") :
+    sub.state === "trial" ? t("sub_trial_left", { d }) :
+    t("sub_plan_left", { plan: sub.plan_name || "Pro", d });
 
   const subtitle =
-    sub.state === "expired" ? "Access is suspended. Renew to restore your shop." :
-    `${sub.state === "trial" ? "Trial" : "Plan"} ends on ${endStr}.${urgent ? " Renew soon to avoid interruption." : ""}`;
+    sub.state === "expired" ? t("sub_renew_needed") :
+    t("sub_ends_on", { type: sub.state === "trial" ? t("sub_type_trial") : t("sub_type_plan"), endStr, urgent: urgent ? t("sub_urgent") : "" });
 
   const bd = sub.billing_details || {};
 
@@ -72,14 +72,14 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
         {(urgent || sub.state === "trial") && (
           <button className={`btn btn-${sub.state === "expired" ? "light" : theme.bg === "warning" ? "dark" : "light"} btn-sm rounded-pill px-3 fw-semibold`}
             onClick={() => setShowPay((s) => !s)}>
-            <i className="bi bi-arrow-repeat me-1"></i>{sub.state === "trial" ? "Upgrade / Renew" : "Renew now"}
+            <i className="bi bi-arrow-repeat me-1"></i>{sub.state === "trial" ? t("sub_upgrade_renew") : t("sub_renew_now")}
           </button>
         )}
       </div>
 
       {showPay && (
         <div className="bg-white text-dark rounded-3 p-3 small">
-          <div className="fw-semibold mb-1">To renew, pay to any of the below and inform the admin:</div>
+          <div className="fw-semibold mb-1">{t("sub_payment_instr")}</div>
           {(bd.bkash || bd.nagad || bd.bank) && (
             <ul className="mb-2">
               {bd.bkash && <li>bKash: <b>{bd.bkash}</b></li>}
@@ -90,20 +90,20 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
           <div className="d-flex flex-column gap-1 mb-2">
             <div>
               <i className="bi bi-whatsapp text-success me-1"></i>
-              Phone / WhatsApp:{" "}
+              {t("sub_phone_whatsapp")}:{" "}
               <a href="https://wa.me/8801613511887" target="_blank" rel="noopener noreferrer" className="fw-semibold text-decoration-none">
                 +8801613511887
               </a>
             </div>
             <div>
               <i className="bi bi-envelope-fill text-primary me-1"></i>
-              Email:{" "}
+              {t("sub_email")}:{" "}
               <a href="mailto:admin@stockwhisk.com" className="fw-semibold text-decoration-none">
                 admin@stockwhisk.com
               </a>
             </div>
           </div>
-          <div className="text-secondary">Once your payment is confirmed, your plan is activated and an invoice is emailed to you.</div>
+          <div className="text-secondary">{t("sub_activation_note")}</div>
         </div>
       )}
     </div>
@@ -113,20 +113,18 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
 export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, can, isOwner } = useAuth();
+  const { t } = useLanguage();
   const canDashboard = isOwner || can("view_reports");
   const canProfit = isOwner || can("view_profit");
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [sub, setSub] = useState<SubStatus | null>(null);
-  const [topFilter, setTopFilter] = useState("today");
+  const [profitRange, setProfitRange] = useState("today");
   const [topData, setTopData] = useState<any>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
   const chartInst = useRef<any>(null);
 
-  // The dashboard is protected server-side by `view_reports`. If a user without
-  // it lands here directly, send them to a page they can actually use instead of
-  // showing a 403 (backend protection stays intact — this only steers the UI).
   useEffect(() => {
     if (!authLoading && user && !canDashboard) {
       router.replace(getLandingPath({ isOwner, can }));
@@ -134,7 +132,7 @@ export default function DashboardPage() {
   }, [authLoading, user, canDashboard, isOwner, can, router]);
 
   useEffect(() => {
-    if (!canDashboard) { setLoading(false); return; }  // skip the 403-ing call
+    if (!canDashboard) { setLoading(false); return; }
     (async () => {
       try {
         const d = await api<Summary>("/analytics/dashboard/", { params: { days: 30 } });
@@ -153,10 +151,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (!canDashboard) return;
-    api(`/analytics/profit-overview/`, { params: { range: topFilter } })
+    api(`/analytics/profit-overview/`, { params: { range: profitRange } })
       .then(setTopData)
       .catch(() => {});
-  }, [canDashboard, topFilter]);
+  }, [canDashboard, profitRange]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -168,7 +166,7 @@ export default function DashboardPage() {
         labels: data.sales_trend.map((r) => r.day),
         datasets: [
           {
-            label: "Revenue",
+            label: t("dash_revenue"),
             data: data.sales_trend.map((r) => Number(r.revenue)),
             borderColor: "#234C6A",
             backgroundColor: "rgba(69,104,130,.15)",
@@ -180,44 +178,43 @@ export default function DashboardPage() {
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
     });
     return () => chartInst.current?.destroy();
-  }, [data]);
+  }, [data, t]);
 
-  // Users without dashboard access are being redirected (effect above); show a
-  // spinner meanwhile rather than the dashboard shell or a 403.
-  if (!canDashboard) return <Spinner label="Redirecting…" />;
-  if (loading) return <Spinner label="Loading dashboard…" />;
+  if (!canDashboard) return <Spinner label={t("dash_redirecting")} />;
+  if (loading) return <Spinner label={t("dash_loading")} />;
   if (error) return <ErrorState error={error} />;
   if (!data) return null;
 
-  const filterPrefix =
-    topFilter === "today" ? "Today" :
-    topFilter === "7d" ? "Weekly" :
-    topFilter === "30d" ? "Monthly" :
-    topFilter === "this_year" ? "Yearly" : "Lifetime";
+  let filterPrefix = "";
+  if (profitRange === "today") filterPrefix = t("dash_prefix_today");
+  else if (profitRange === "7d") filterPrefix = t("dash_prefix_weekly");
+  else if (profitRange === "30d") filterPrefix = t("dash_prefix_monthly");
+  else if (profitRange === "this_year") filterPrefix = t("dash_prefix_yearly");
+  else if (profitRange === "all_time") filterPrefix = t("dash_prefix_lifetime");
 
   return (
     <div>
       <SubscriptionBanner sub={sub} />
       
-      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-        <h1 className="h4 fw-bold text-brand mb-0">Dashboard</h1>
+      <div className="d-flex align-items-center justify-content-between mb-4">
+        <h1 className="h3 mb-0 fw-bold">{t("nav_dashboard")}</h1>
         <select
-          className="form-select form-select-sm w-auto fw-semibold rounded-pill bg-light"
-          value={topFilter}
-          onChange={(e) => setTopFilter(e.target.value)}
+          className="form-select form-select-sm w-auto"
+          value={profitRange}
+          onChange={(e) => setProfitRange(e.target.value)}
         >
-          <option value="today">Daily</option>
-          <option value="7d">Weekly</option>
-          <option value="30d">Monthly</option>
-          <option value="this_year">Yearly</option>
-          <option value="all_time">Lifetime</option>
+          <option value="today">{t("dash_filter_daily")}</option>
+          <option value="7d">{t("dash_filter_weekly")}</option>
+          <option value="30d">{t("dash_filter_monthly")}</option>
+          <option value="this_year">{t("dash_filter_yearly")}</option>
+          <option value="all_time">{t("dash_filter_lifetime")}</option>
         </select>
       </div>
 
       <div className="row g-3 mb-4">
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">{filterPrefix} Sale Money</div>
+            <div className="small text-secondary">{t("dash_sale_money", { prefix: filterPrefix })}</div>
             <div className="fs-4 fw-bold text-brand">
               {topData ? money(topData.summary.revenue) : "..."}
             </div>
@@ -225,7 +222,7 @@ export default function DashboardPage() {
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">{filterPrefix} Total Order</div>
+            <div className="small text-secondary">{t("dash_total_order", { prefix: filterPrefix })}</div>
             <div className="fs-4 fw-bold text-primary">
               {topData ? topData.summary.completed_orders : "..."}
             </div>
@@ -234,7 +231,7 @@ export default function DashboardPage() {
         {canProfit && (
           <div className="col-6 col-lg-3">
             <Card>
-              <div className="small text-secondary">{filterPrefix} Gross Profit</div>
+              <div className="small text-secondary">{t("dash_gross_profit", { prefix: filterPrefix })}</div>
               <div className="fs-4 fw-bold text-success">
                 {topData ? money(topData.summary.gross_profit) : "..."}
               </div>
@@ -244,7 +241,7 @@ export default function DashboardPage() {
         {canProfit && (
           <div className="col-6 col-lg-3">
             <Card>
-              <div className="small text-secondary">{filterPrefix} Profit Margin</div>
+              <div className="small text-secondary">{t("dash_profit_margin", { prefix: filterPrefix })}</div>
               <div className="fs-4 fw-bold text-info">
                 {topData ? `${topData.summary.profit_margin.toFixed(2)}%` : "..."}
               </div>
@@ -253,7 +250,7 @@ export default function DashboardPage() {
         )}
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Out / Low stock</div>
+            <div className="small text-secondary">{t("dash_out_low_stock")}</div>
             <div className="fs-4 fw-bold text-danger">
               {data.out_of_stock_count} / {data.low_stock_count}
             </div>
@@ -265,7 +262,7 @@ export default function DashboardPage() {
         <div className="col-lg-8">
           <div className="card shadow-sm">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Sales trend (last 30 days)</div>
+              <div className="fw-semibold mb-3">{t("dash_sales_trend")}</div>
               <div style={{ height: 260 }}>
                 <canvas ref={chartRef}></canvas>
               </div>
@@ -275,19 +272,19 @@ export default function DashboardPage() {
         <div className="col-lg-4">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Top products</div>
+              <div className="fw-semibold mb-3">{t("dash_top_products")}</div>
               <div className="table-responsive">
                 <table className="table table-striped table-sm mb-0">
                   <thead className="thead-6">
                     <tr>
-                      <th>Product</th>
-                      <th className="text-end">Sold</th>
+                      <th>{t("dash_col_product")}</th>
+                      <th className="text-end">{t("dash_col_sold")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.top_products.length === 0 ? (
                       <tr>
-                        <td colSpan={2} className="text-secondary">No sales yet.</td>
+                        <td colSpan={2} className="text-secondary">{t("dash_no_sales")}</td>
                       </tr>
                     ) : (
                       data.top_products.map((p) => (
@@ -309,26 +306,26 @@ export default function DashboardPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Financial position</div>
+              <div className="fw-semibold mb-3">{t("dash_financial_position")}</div>
               <div className="table-responsive">
                 <table className="table table-striped table-sm mb-0">
                   <thead className="thead-3">
                     <tr>
-                      <th>Account</th>
-                      <th className="text-end">Amount</th>
+                      <th>{t("dash_col_account")}</th>
+                      <th className="text-end">{t("dash_col_amount")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr>
-                      <td className="text-secondary">Cash</td>
+                      <td className="text-secondary">{t("dash_cash")}</td>
                       <td className="text-end">{money(data.position.cash_balance)}</td>
                     </tr>
                     <tr>
-                      <td className="text-secondary">Receivables</td>
+                      <td className="text-secondary">{t("dash_receivables")}</td>
                       <td className="text-end">{money(data.position.receivables)}</td>
                     </tr>
                     <tr>
-                      <td className="text-secondary">Payables</td>
+                      <td className="text-secondary">{t("dash_payables")}</td>
                       <td className="text-end">{money(data.position.payables)}</td>
                     </tr>
                   </tbody>
@@ -340,22 +337,22 @@ export default function DashboardPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Period ({data.period_days} days)</div>
+              <div className="fw-semibold mb-3">{t("dash_period", { days: data.period_days })}</div>
               <div className="table-responsive">
                 <table className="table table-striped table-sm mb-0">
                   <tbody>
                     <tr>
-                      <td className="text-secondary">Revenue</td>
+                      <td className="text-secondary">{t("dash_revenue")}</td>
                       <td className="text-end">{money(data.period.revenue)}</td>
                     </tr>
                     {canProfit && (
                       <tr>
-                        <td className="text-secondary">Net profit</td>
+                        <td className="text-secondary">{t("dash_net_profit")}</td>
                         <td className="text-end text-success">{money(data.period.net_profit)}</td>
                       </tr>
                     )}
                     <tr>
-                      <td className="text-secondary">Invoices</td>
+                      <td className="text-secondary">{t("dash_invoices")}</td>
                       <td className="text-end">{data.period.sales_count}</td>
                     </tr>
                   </tbody>

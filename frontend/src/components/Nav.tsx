@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type NavGroupProps = {
   id: string;
@@ -50,6 +51,7 @@ export default function Nav({
 }) {
   const pathname = usePathname();
   const { can, isOwner, user } = useAuth();
+  const { t } = useLanguage();
   
   const active = (href: string) => (pathname === href ? "active" : "");
 
@@ -75,74 +77,70 @@ export default function Nav({
 
   return (
     <>
-      {(isOwner || can("view_reports")) && <Item href="/app" icon="bi-speedometer2" label="Dashboard" />}
-      {showPOS && <Item href="/app/pos" icon="bi-cart3" label="POS" />}
+      {(isOwner || can("view_reports")) && <Item href="/app" icon="bi-speedometer2" label={t("nav_dashboard")} />}
+      {showPOS && <Item href="/app/pos" icon="bi-cart3" label={t("nav_pos")} />}
 
       {showProductsGroup && (
-        <NavGroup id="products" icon="bi-box-seam" label="Products" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-          {showProductsRead && <Item href="/app/products" icon="bi-list-ul" label="Product list" />}
-          {showProductMgmt && <Item href="/app/products/purchase" icon="bi-upc-scan" label="Purchase product" />}
-          {showProductsRead && <Item href="/app/products/lookup" icon="bi-qr-code-scan" label="Item lookup" />}
-          {showProductsRead && <Item href="/app/barcodes" icon="bi-upc" label="Barcodes" />}
-          {showInventory && <Item href="/app/inventory" icon="bi-boxes" label="Inventory & stock" />}
+        <NavGroup id="products" icon="bi-box-seam" label={t("nav_products")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          {showProductsRead && <Item href="/app/products" icon="bi-list-ul" label={t("nav_product_list")} />}
+          {showProductMgmt && <Item href="/app/products/purchase" icon="bi-upc-scan" label={t("nav_purchase_product")} />}
+          {showProductsRead && <Item href="/app/products/lookup" icon="bi-qr-code-scan" label={t("nav_item_lookup")} />}
+          {showProductsRead && <Item href="/app/barcodes" icon="bi-upc" label={t("nav_barcodes")} />}
+          {showInventory && <Item href="/app/inventory" icon="bi-boxes" label={t("nav_inventory_stock")} />}
           {showPurchasing && (
             <>
-              <Item href="/app/suppliers" icon="bi-truck" label="Suppliers" />
-              <Item href="/app/purchases" icon="bi-box-arrow-in-down" label="Purchases" />
+              <Item href="/app/suppliers" icon="bi-truck" label={t("nav_suppliers")} />
+              <Item href="/app/purchases" icon="bi-box-arrow-in-down" label={t("nav_purchases")} />
             </>
           )}
         </NavGroup>
       )}
 
       {showSalesGroup && (
-      <NavGroup id="sales" icon="bi-receipt" label="Sales" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-        {/* Invoices + Selling details read /sales/sales/ → gate by view_sales. */}
-        {showSalesRead && <Item href="/app/sales" icon="bi-receipt-cutoff" label="Invoices" />}
-        {/* Returns is a scan→process-return workflow → gate by process_return
-            (return history itself is visible on a sale's detail via view_sales). */}
-        {(isOwner || can("process_return")) && <Item href="/app/sales/returns" icon="bi-arrow-return-left" label="Returns" />}
+      <NavGroup id="sales" icon="bi-receipt" label={t("nav_sales")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+        {showSalesRead && <Item href="/app/sales" icon="bi-receipt-cutoff" label={t("nav_invoices")} />}
+        {(isOwner || can("process_return")) && <Item href="/app/sales/returns" icon="bi-arrow-return-left" label={t("nav_returns")} />}
         {user?.shop_emi_enabled && (
-          <Item href="/app/emi" icon="bi-calendar-check" label="EMI Management" />
+          <Item href="/app/emi" icon="bi-calendar-check" label={t("nav_emi_mgmt")} />
         )}
-        {/* Sold products is an analytics report → view_reports. */}
-        {showReports && <Item href="/app/sales/products" icon="bi-list-check" label="Sold products" />}
-        {showSalesRead && <Item href="/app/sales/details" icon="bi-card-list" label="Selling details" />}
+        {showReports && <Item href="/app/sales/products" icon="bi-list-check" label={t("nav_sold_products")} />}
+        {showSalesRead && <Item href="/app/sales/details" icon="bi-card-list" label={t("nav_selling_details")} />}
       </NavGroup>
       )}
 
       {showCustomers && (
-        <NavGroup id="customers" icon="bi-people" label="Customers" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-          <Item href="/app/customers" icon="bi-person-lines-fill" label="Customer list" />
-          <Item href="/app/dues" icon="bi-cash-coin" label="Dues" />
+        <NavGroup id="customers" icon="bi-people" label={t("nav_customers")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          <Item href="/app/customers" icon="bi-person-lines-fill" label={t("nav_customer_list")} />
+          <Item href="/app/dues" icon="bi-cash-coin" label={t("nav_dues")} />
         </NavGroup>
       )}
 
       {showService && (
-        <NavGroup id="service" icon="bi-tools" label="Service" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-          <Item href="/app/service/tickets" icon="bi-wrench-adjustable" label="Repair tickets" />
-          <Item href="/app/service/warranties" icon="bi-shield-check" label="Warranties" />
-          <Item href="/app/service/warranty-coverage" icon="bi-shield-shaded" label="Warranty coverage" />
+        <NavGroup id="service" icon="bi-tools" label={t("nav_service")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          <Item href="/app/service/tickets" icon="bi-wrench-adjustable" label={t("nav_repair_tickets")} />
+          <Item href="/app/service/warranties" icon="bi-shield-check" label={t("nav_warranties")} />
+          <Item href="/app/service/warranty-coverage" icon="bi-shield-shaded" label={t("nav_warranty_coverage")} />
         </NavGroup>
       )}
 
       {showFinance && (
-        <NavGroup id="finance" icon="bi-bank" label="Finance" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-          {(isOwner || can("manage_expenses")) && <Item href="/app/expenses" icon="bi-cash-stack" label="Expenses" />}
+        <NavGroup id="finance" icon="bi-bank" label={t("nav_finance")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          {(isOwner || can("manage_expenses")) && <Item href="/app/expenses" icon="bi-cash-stack" label={t("nav_expenses")} />}
           {(isOwner || can("view_profit")) && (
             <>
-              <Item href="/app/accounting" icon="bi-calculator" label="Accounting" />
-              <Item href="/app/accounting/settlement" icon="bi-journal-check" label="Daily Settlement" />
+              <Item href="/app/accounting" icon="bi-calculator" label={t("nav_accounting")} />
+              <Item href="/app/accounting/settlement" icon="bi-journal-check" label={t("nav_daily_settlement")} />
             </>
           )}
-          {(isOwner || can("view_reports")) && <Item href="/app/reports" icon="bi-graph-up" label="Reports" />}
+          {(isOwner || can("view_reports")) && <Item href="/app/reports" icon="bi-graph-up" label={t("nav_reports")} />}
         </NavGroup>
       )}
 
-      <NavGroup id="admin" icon="bi-sliders" label="Admin" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-        <Item href="/app/notifications" icon="bi-bell" label="Notifications" />
-        <Item href="/app/tutorials" icon="bi-play-btn" label="Video tutorials" />
-        {(isOwner || can("manage_users")) && <Item href="/app/users" icon="bi-key" label="Users & Roles" />}
-        <Item href="/app/settings" icon="bi-gear" label="Settings" />
+      <NavGroup id="admin" icon="bi-sliders" label={t("nav_admin")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+        <Item href="/app/notifications" icon="bi-bell" label={t("nav_notifications")} />
+        <Item href="/app/tutorials" icon="bi-play-btn" label={t("nav_video_tutorials")} />
+        {(isOwner || can("manage_users")) && <Item href="/app/users" icon="bi-key" label={t("nav_users_roles")} />}
+        <Item href="/app/settings" icon="bi-gear" label={t("nav_settings")} />
       </NavGroup>
     </>
   );

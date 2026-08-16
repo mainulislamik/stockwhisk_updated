@@ -9,11 +9,14 @@ import Nav from "@/components/Nav";
 import UniversalSearch from "@/components/UniversalSearch";
 import { impersonatingShop, isImpersonating, returnToAdmin } from "@/lib/impersonation";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { api } from "@/lib/api";
 import { useBranding } from "@/lib/branding";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, billing, can, isOwner } = useAuth();
+  const { t } = useLanguage();
   const branding = useBranding();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -26,14 +29,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
   // Core shortcuts shown in the Quick Access menu (permission-aware).
   const QUICK_ITEMS = [
-    { href: "/app/pos", icon: "bi-cart-plus-fill", label: "New Sale", color: "#2563eb", perms: ["create_sale"] },
-    { href: "/app/products", icon: "bi-box-seam-fill", label: "Products", color: "#7c3aed", perms: ["view_products"] },
-    { href: "/app/inventory", icon: "bi-boxes", label: "Inventory", color: "#0891b2", perms: ["view_inventory"] },
-    { href: "/app/sales", icon: "bi-receipt", label: "Invoices", color: "#059669", perms: ["view_sales"] },
-    { href: "/app/customers", icon: "bi-people-fill", label: "Customers", color: "#d97706", perms: ["view_customers", "manage_customers"] },
-    { href: "/app/dues", icon: "bi-cash-coin", label: "Dues", color: "#e11d48", perms: ["view_customers", "manage_customers"] },
-    { href: "/app/reports", icon: "bi-graph-up-arrow", label: "Reports", color: "#0ea5e9", perms: ["view_reports"] },
-    { href: "/app/service/tickets", icon: "bi-wrench-adjustable", label: "Service", color: "#9333ea", perms: ["view_service", "manage_service"] },
+    { href: "/app/pos", icon: "bi-cart-plus-fill", label: t("nav_new_sale"), color: "#2563eb", perms: ["create_sale"] },
+    { href: "/app/products", icon: "bi-box-seam-fill", label: t("nav_products"), color: "#7c3aed", perms: ["view_products"] },
+    { href: "/app/inventory", icon: "bi-boxes", label: t("nav_inventory"), color: "#0891b2", perms: ["view_inventory"] },
+    { href: "/app/sales", icon: "bi-receipt", label: t("nav_invoices"), color: "#059669", perms: ["view_sales"] },
+    { href: "/app/customers", icon: "bi-people-fill", label: t("nav_customers"), color: "#d97706", perms: ["view_customers", "manage_customers"] },
+    { href: "/app/dues", icon: "bi-cash-coin", label: t("nav_dues"), color: "#e11d48", perms: ["view_customers", "manage_customers"] },
+    { href: "/app/reports", icon: "bi-graph-up-arrow", label: t("nav_reports"), color: "#0ea5e9", perms: ["view_reports"] },
+    { href: "/app/service/tickets", icon: "bi-wrench-adjustable", label: t("nav_service"), color: "#9333ea", perms: ["view_service", "manage_service"] },
   ];
   const quickItems = QUICK_ITEMS.filter((q) => isOwner || q.perms.some((p) => can(p)));
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -130,7 +133,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               onClick={toggle}
               className="btn btn-sm flex-shrink-0 ms-auto p-0"
               style={{ color: "var(--text-muted)" }}
-              title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+              title={collapsed ? t("sidebar_expand") : t("sidebar_collapse")}
             >
               {collapsed ? "»" : "«"}
             </button>
@@ -154,7 +157,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                 </div>
               )}
               <div className="text-truncate min-vw-0">
-                <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
+                <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || t("nav_my_shop")}</div>
                 <div className="d-flex align-items-center gap-1 mt-1 flex-wrap">
                   {(user.shop_code || user.shop) && (
                     <span className="badge rounded-pill bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>
@@ -162,7 +165,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     </span>
                   )}
                   <span className="small text-truncate" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                    {billing?.plan ? `${billing.plan} plan` : " "}
+                    {billing?.plan ? t("nav_plan", { plan: billing.plan }) : " "}
                   </span>
                 </div>
               </div>
@@ -183,9 +186,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             onClick={logout}
             role="button"
             className="d-inline-block mt-2 text-danger text-decoration-none"
-            title={collapsed ? "Log out" : ""}
+            title={collapsed ? t("nav_logout") : ""}
           >
-            {collapsed ? "⎋" : "Log out →"}
+            {collapsed ? "⎋" : `${t("nav_logout")} →`}
           </a>
         </div>
       </aside>
@@ -312,6 +315,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             ) : null}
 
             <ThemeToggle />
+            <LanguageToggle />
 
             {/* Quick access — hover or click the grid icon to reveal shortcuts */}
             {quickItems.length > 0 && (
