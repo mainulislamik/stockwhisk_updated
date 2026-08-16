@@ -74,7 +74,7 @@ class ProductPerformanceOverviewView(_AnalyticsBase):
     """Most-sold (date range) + low-stock + out-of-stock (current). Shop-scoped."""
     def get(self, request):
         p = request.query_params
-        return Response(services.product_performance(
+        return Response(services.product_performance_overview(
             self.shop,
             range_key=p.get("range", "30d"),
             custom_start=p.get("start"),

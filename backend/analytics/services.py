@@ -465,7 +465,7 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
     }
 
 
-def product_performance(shop, range_key="30d", custom_start=None, custom_end=None):
+def product_performance_overview(shop, range_key="30d", custom_start=None, custom_end=None):
     """Product Performance for the report page: most-sold (date-sensitive,
     returns-adjusted), low-stock and out-of-stock (current inventory state).
 
