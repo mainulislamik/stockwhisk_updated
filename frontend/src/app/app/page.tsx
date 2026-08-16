@@ -219,7 +219,7 @@ export default function DashboardPage() {
           <Card>
             <div className="small text-secondary">{filterPrefix} Sale Money</div>
             <div className="fs-4 fw-bold text-brand">
-              {topData ? money(topData.summary.revenue) : <Spinner size="sm" />}
+              {topData ? money(topData.summary.revenue) : "..."}
             </div>
           </Card>
         </div>
@@ -227,7 +227,7 @@ export default function DashboardPage() {
           <Card>
             <div className="small text-secondary">{filterPrefix} Total Order</div>
             <div className="fs-4 fw-bold text-primary">
-              {topData ? topData.summary.completed_orders : <Spinner size="sm" />}
+              {topData ? topData.summary.completed_orders : "..."}
             </div>
           </Card>
         </div>
@@ -236,7 +236,7 @@ export default function DashboardPage() {
             <Card>
               <div className="small text-secondary">{filterPrefix} Gross Profit</div>
               <div className="fs-4 fw-bold text-success">
-                {topData ? money(topData.summary.gross_profit) : <Spinner size="sm" />}
+                {topData ? money(topData.summary.gross_profit) : "..."}
               </div>
             </Card>
           </div>
@@ -246,7 +246,7 @@ export default function DashboardPage() {
             <Card>
               <div className="small text-secondary">{filterPrefix} Profit Margin</div>
               <div className="fs-4 fw-bold text-info">
-                {topData ? `${topData.summary.profit_margin.toFixed(2)}%` : <Spinner size="sm" />}
+                {topData ? `${topData.summary.profit_margin.toFixed(2)}%` : "..."}
               </div>
             </Card>
           </div>
