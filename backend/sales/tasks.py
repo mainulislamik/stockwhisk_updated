@@ -25,16 +25,15 @@ def send_emi_welcome_email(schedule_id):
 
     subject = f"Your EMI Plan Details - {schedule.shop.name}"
     
-    # We use a hard-coded template for now. Can be pulled from shop.invoice_settings later.
-    message = f"""
-Dear {customer.name},
+    message = f"""Dear {customer.name},
 
 Thank you for your purchase (Invoice: {schedule.sale.invoice_no}). Here are the details of your new EMI plan:
 
-Principal Amount: BDT {schedule.total_emi_amount}
+Principal Amount: BDT {schedule.principal}
 Down Payment: BDT {schedule.down_payment}
 Interest Rate: {schedule.interest_percent}%
-Total Months: {schedule.total_months}
+Total EMI Amount: BDT {schedule.total_emi_amount}
+Number of Installments: {schedule.total_months} Months
 Monthly Installment: BDT {schedule.monthly_installment}
 
 Your installments are due monthly starting from next month. We will send you reminders before each due date.
@@ -44,15 +43,35 @@ Thank you for choosing {schedule.shop.name}!
 Best Regards,
 {schedule.shop.name}
     """
-    
+
     try:
-        send_mail(
-            subject,
-            message.strip(),
-            None, # Will use DEFAULT_FROM_EMAIL
-            [customer.email],
-            fail_silently=False,
+        from django.core.mail import get_connection, EmailMessage
+        from django.conf import settings
+        from platform_admin.models import PlatformConfig
+
+        config = PlatformConfig.get_solo()
+        connection = None
+        from_email = settings.DEFAULT_FROM_EMAIL
+
+        if config.smtp_host and config.smtp_user:
+            connection = get_connection(
+                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
+                host=config.smtp_host,
+                port=config.smtp_port,
+                username=config.smtp_user,
+                password=config.smtp_password,
+                use_tls=config.smtp_use_tls,
+            )
+            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
+
+        email = EmailMessage(
+            subject=subject,
+            body=message.strip(),
+            from_email=from_email,
+            to=[customer.email],
+            connection=connection,
         )
+        email.send(fail_silently=False)
         logger.info(f"Sent EMI welcome email to {customer.email}")
     except Exception as e:
         logger.error(f"Failed to send EMI welcome email: {e}")
@@ -81,8 +100,7 @@ def send_emi_reminders():
         subject = f"EMI Installment Reminder - {shop.name}"
         amount_due = inst.amount - inst.paid_amount
         
-        message = f"""
-Dear {customer.name},
+        message = f"""Dear {customer.name},
 
 This is a friendly reminder that your EMI installment (Month {inst.installment_number}) for Invoice #{inst.schedule.sale.invoice_no} is due on {inst.due_date}.
 
@@ -95,13 +113,33 @@ Thank you,
         """
         
         try:
-            send_mail(
-                subject,
-                message.strip(),
-                None,
-                [customer.email],
-                fail_silently=True,
+            from django.core.mail import get_connection, EmailMessage as DjangoEmailMessage
+            from django.conf import settings as django_settings
+            from platform_admin.models import PlatformConfig
+
+            config = PlatformConfig.get_solo()
+            connection = None
+            from_email = django_settings.DEFAULT_FROM_EMAIL
+
+            if config.smtp_host and config.smtp_user:
+                connection = get_connection(
+                    backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
+                    host=config.smtp_host,
+                    port=config.smtp_port,
+                    username=config.smtp_user,
+                    password=config.smtp_password,
+                    use_tls=config.smtp_use_tls,
+                )
+                from_email = config.smtp_default_from or django_settings.DEFAULT_FROM_EMAIL
+
+            email_msg = DjangoEmailMessage(
+                subject=subject,
+                body=message.strip(),
+                from_email=from_email,
+                to=[customer.email],
+                connection=connection,
             )
+            email_msg.send(fail_silently=True)
             count += 1
         except Exception as e:
             logger.error(f"Failed to send reminder for installment {inst.id}: {e}")
