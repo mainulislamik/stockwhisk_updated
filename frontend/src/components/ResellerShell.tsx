@@ -9,6 +9,7 @@ const NAV = [
   { href: "/reseller/dashboard", label: "Dashboard", icon: "bi-speedometer2" },
   { href: "/reseller/shops", label: "My Shops", icon: "bi-shop" },
   { href: "/reseller/commissions", label: "Commissions", icon: "bi-cash-coin" },
+  { href: "/reseller/tutorials", label: "Tutorials", icon: "bi-play-btn" },
   { href: "/reseller/profile", label: "Profile", icon: "bi-person-badge" },
 ];
 
