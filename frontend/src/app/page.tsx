@@ -640,6 +640,7 @@ export default function Home() {
                       
                       let priceStr = monthly > 0 ? `$${monthly}` : t('price_card_1_price');
                       if (lang === 'bn' && monthly > 0) priceStr = `$${toBnNum(monthly)}`;
+                      const periodStr = monthly > 0 ? t('price_card_2_period') : t('price_card_1_period');
                       
                       const features = plan.highlights && plan.highlights.length > 0
                         ? plan.highlights
@@ -675,7 +676,7 @@ export default function Home() {
                               
                               <Box sx={{ mb: 4 }}>
                                 <Typography component="span" sx={{ fontFamily: hanken.style.fontFamily, fontWeight: 800, fontSize: "2.5rem", color: isPopular ? C.onPrimary : C.onBackground }}>{priceStr}</Typography>
-                                <Typography component="span" sx={{ fontSize: "1rem", color: isPopular ? C.primaryFixedDim : C.onSurfaceVariant, ml: 1 }}>{t('price_card_1_period')}</Typography>
+                                <Typography component="span" sx={{ fontSize: "1rem", color: isPopular ? C.primaryFixedDim : C.onSurfaceVariant, ml: 1 }}>{periodStr}</Typography>
                               </Box>
                               
                               <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, mb: 4 }}>
