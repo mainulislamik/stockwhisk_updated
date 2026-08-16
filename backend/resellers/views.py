@@ -253,3 +253,76 @@ class ResellerProfileView(APIView):
         ser.is_valid(raise_exception=True)
         ser.save()
         return Response(ser.data)
+
+
+class ResellerFreeShopView(APIView):
+    """Reseller signs up lifetime-free shops — only when a super admin has
+    enabled it (can_grant_free_shops) and within the granted quota."""
+    permission_classes = [IsReseller]
+
+    def _list(self, profile):
+        from tenants.models import Shop
+        shops = Shop.objects.filter(reseller=profile, is_free=True).order_by("-created_at")
+        owners = {
+            u.shop_id: u.email
+            for u in get_user_model().objects.filter(shop_id__in=[s.id for s in shops], role="owner")
+        }
+        used = len(shops)
+        return {
+            "enabled": profile.can_grant_free_shops,
+            "quota": profile.free_shop_quota,
+            "used": used,
+            "remaining": max(0, profile.free_shop_quota - used),
+            "shops": [{
+                "id": s.id, "name": s.name, "code": s.shop_code,
+                "owner_email": owners.get(s.id, ""),
+                "is_active": s.is_active,
+                "created_at": s.created_at,
+            } for s in shops],
+        }
+
+    def get(self, request):
+        return Response(self._list(request.user.reseller_profile))
+
+    def post(self, request):
+        profile = request.user.reseller_profile
+        if not profile.can_grant_free_shops:
+            return Response({"detail": "Free-shop grants are not enabled for your account."},
+                            status=status.HTTP_403_FORBIDDEN)
+
+        from tenants.models import Shop
+        used = Shop.objects.filter(reseller=profile, is_free=True).count()
+        if used >= profile.free_shop_quota:
+            return Response({"detail": f"You have used all {profile.free_shop_quota} free-shop grant(s)."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        d = request.data
+        name = (d.get("shop_name") or "").strip()
+        owner_email = (d.get("owner_email") or "").strip().lower()
+        owner_password = d.get("owner_password") or ""
+        owner_name = (d.get("owner_name") or "").strip()
+        phone = (d.get("phone") or "").strip()
+
+        if not name or not owner_email or not owner_password:
+            return Response({"detail": "Shop name, owner email and password are required."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if len(owner_password) < 8:
+            return Response({"detail": "Password must be at least 8 characters."},
+                            status=status.HTTP_400_BAD_REQUEST)
+        if get_user_model().objects.filter(email=owner_email).exists():
+            return Response({"detail": "A user with this email already exists."},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        from tenants.services import register_shop
+        try:
+            shop, _owner = register_shop(
+                name=name, owner_email=owner_email, owner_password=owner_password,
+                owner_name=owner_name, phone=phone, reseller=profile,
+            )
+        except Exception as exc:
+            return Response({"detail": f"Could not create shop: {exc}"},
+                            status=status.HTTP_400_BAD_REQUEST)
+
+        shop.is_free = True
+        shop.save(update_fields=["is_free"])
+        return Response(self._list(profile), status=status.HTTP_201_CREATED)

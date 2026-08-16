@@ -299,6 +299,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               >
                 <i className="bi bi-patch-check-fill"></i> PRO
               </button>
+            ) : billing?.state === "free" ? (
+              <span className="badge text-bg-success border-0" title="Lifetime-free shop">
+                <i className="bi bi-gift-fill"></i> FREE
+              </span>
             ) : billing?.on_trial ? (
               <button type="button" onClick={() => setShowPlan((v) => !v)}
                 className="badge text-bg-warning border-0" title="View your plan"

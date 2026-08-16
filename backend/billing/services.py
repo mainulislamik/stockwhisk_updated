@@ -220,7 +220,9 @@ def subscription_status(shop):
     sub = Subscription.objects.filter(shop=shop, is_current=True).select_related("plan").first()
     now = timezone.now()
 
-    if shop.on_trial:
+    if shop.has_free_access:
+        state, ends_at = "free", None
+    elif shop.on_trial:
         state, ends_at = "trial", shop.trial_ends_at
     elif sub and sub.current_period_end and sub.current_period_end > now:
         state, ends_at = "paid", sub.current_period_end

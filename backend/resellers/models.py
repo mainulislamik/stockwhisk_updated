@@ -52,6 +52,11 @@ class ResellerProfile(TimeStampedModel):
         validators=[MinValueValidator(Decimal("0")), MaxValueValidator(MAX_COMMISSION_RATE)],
     )
     status = models.CharField(max_length=15, choices=Status.choices, default=Status.PENDING)
+    # Super-admin gated: when enabled, the reseller may sign up shops that are
+    # free for life (up to free_shop_quota). Disabled by default — the reseller
+    # sees the option only after an admin turns it on.
+    can_grant_free_shops = models.BooleanField(default=False)
+    free_shop_quota = models.PositiveIntegerField(default=0)
     approved_at = models.DateTimeField(null=True, blank=True)
     approved_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,

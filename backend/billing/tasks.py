@@ -39,6 +39,10 @@ def check_subscription_expiry():
 
     for sub in subs:
         shop = sub.shop
+        # Lifetime-free shops (reseller grant, reseller still active) never expire
+        # or get auto-suspended — skip them entirely.
+        if shop.has_free_access:
+            continue
         end = sub.current_period_end
         days_left = (end.date() - today).days
         label = _plan_label(sub)

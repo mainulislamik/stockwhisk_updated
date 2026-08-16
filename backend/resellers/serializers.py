@@ -43,10 +43,11 @@ class ResellerProfileSerializer(serializers.ModelSerializer):
         fields = [
             "reseller_code", "referral_code", "referral_link", "email", "full_name",
             "company_name", "phone", "address", "country",
-            "commission_rate", "status",
+            "commission_rate", "status", "can_grant_free_shops", "free_shop_quota",
         ]
-        # Reseller may only edit contact fields; never identity/rate/status.
-        read_only_fields = ["reseller_code", "referral_code", "commission_rate", "status"]
+        # Reseller may only edit contact fields; never identity/rate/status/perks.
+        read_only_fields = ["reseller_code", "referral_code", "commission_rate", "status",
+                            "can_grant_free_shops", "free_shop_quota"]
 
     def get_full_name(self, obj):
         return (f"{obj.user.first_name} {obj.user.last_name}").strip() or obj.user.email

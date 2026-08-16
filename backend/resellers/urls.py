@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     ResellerCommissionsView,
     ResellerDashboardView,
+    ResellerFreeShopView,
     ResellerLoginView,
     ResellerProfileView,
     InitiateResellerRegistrationView,
@@ -24,4 +25,5 @@ urlpatterns = [
     path("shops/<int:pk>/", ResellerShopDetailView.as_view(), name="reseller-shop-detail"),
     path("commissions/", ResellerCommissionsView.as_view(), name="reseller-commissions"),
     path("profile/", ResellerProfileView.as_view(), name="reseller-profile"),
+    path("free-shops/", ResellerFreeShopView.as_view(), name="reseller-free-shops"),
 ]

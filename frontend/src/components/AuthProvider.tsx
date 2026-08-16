@@ -28,7 +28,7 @@ export type User = {
 export type BillingStatus = {
   plan: string | null;
   plan_name?: string | null;
-  state?: "trial" | "paid" | "expired" | "none";
+  state?: "trial" | "paid" | "expired" | "none" | "free";
   days_left?: number;
   ends_at?: string | null;
   current_period_end?: string | null;

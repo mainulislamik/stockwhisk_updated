@@ -159,6 +159,11 @@ class Shop(TimeStampedModel):
         null=True, blank=True, related_name="shops",
     )
     reseller_attributed_at = models.DateTimeField(null=True, blank=True)
+    # Lifetime-free grant from a reseller: while True AND the attributing reseller
+    # is active, this shop bypasses subscription/trial billing. If the reseller is
+    # suspended or removed the grant lapses automatically (see has_free_access) —
+    # the shop is never deleted, it simply has to start paying.
+    is_free = models.BooleanField(default=False)
     # When the shop was last suspended (is_active flipped to False). Used to
     # enforce a cool-off before a shop can be permanently deleted.
     suspended_at = models.DateTimeField(null=True, blank=True)
@@ -191,6 +196,16 @@ class Shop(TimeStampedModel):
     @property
     def shop_code(self) -> str:
         return f"SW-{1000 + self.id}"
+
+    @property
+    def has_free_access(self) -> bool:
+        """A lifetime-free shop keeps free access only while its granting reseller
+        is active. Suspending/removing the reseller lapses the perk — the shop
+        must then pay — without ever deleting the shop."""
+        if not self.is_free:
+            return False
+        reseller = self.reseller
+        return bool(reseller and reseller.status == "active")
 
     @property
     def on_trial(self) -> bool:

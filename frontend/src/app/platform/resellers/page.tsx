@@ -27,6 +27,7 @@ type Detail = {
   phone: string; company_name: string; address: string; country: string; commission_rate: string;
   status: string; notes: string; shops: ShopLine[]; commissions: Commission[];
   totals: { shops: number; total_earned: string; paid: string; unpaid: string };
+  can_grant_free_shops: boolean; free_shop_quota: number;
 };
 
 function fmtDate(v: string | null) {
@@ -57,6 +58,9 @@ export default function ResellersPage() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [rateInput, setRateInput] = useState("");
   const [savingRate, setSavingRate] = useState(false);
+  const [freeEnabled, setFreeEnabled] = useState(false);
+  const [freeQuota, setFreeQuota] = useState("0");
+  const [savingFree, setSavingFree] = useState(false);
   const [busyComm, setBusyComm] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
@@ -78,6 +82,8 @@ export default function ResellersPage() {
       const d = await api<Detail>(`/platform/resellers/${id}/`);
       setDetail(d);
       setRateInput(String(d.commission_rate ?? ""));
+      setFreeEnabled(!!d.can_grant_free_shops);
+      setFreeQuota(String(d.free_shop_quota ?? 0));
     } catch (e: any) {
       alert(e?.message || "Failed to load reseller.");
     } finally {
@@ -114,6 +120,23 @@ export default function ResellersPage() {
       alert(e?.message || "Failed to update rate.");
     } finally {
       setSavingRate(false);
+    }
+  }
+
+  async function saveFreeShops() {
+    if (!detail) return;
+    const quota = Math.max(0, Math.round(Number(freeQuota) || 0));
+    setSavingFree(true);
+    try {
+      const res = await api<{ can_grant_free_shops: boolean; free_shop_quota: number }>(`/platform/resellers/${detail.id}/`, {
+        method: "PATCH", body: { can_grant_free_shops: freeEnabled, free_shop_quota: quota },
+      });
+      setDetail(prev => prev ? { ...prev, can_grant_free_shops: res.can_grant_free_shops, free_shop_quota: res.free_shop_quota } : prev);
+      setFreeQuota(String(res.free_shop_quota));
+    } catch (e: any) {
+      alert(e?.message || "Failed to save free-shop settings.");
+    } finally {
+      setSavingFree(false);
     }
   }
 
@@ -277,6 +300,30 @@ export default function ResellersPage() {
                       <div className="col"><div className="border rounded p-2"><div className="fs-6 fw-bold text-success">{money(detail.totals.paid)}</div><div className="small text-secondary">Paid</div></div></div>
                       <div className="col"><div className="border rounded p-2"><div className="fs-6 fw-bold text-warning">{money(detail.totals.unpaid)}</div><div className="small text-secondary">Unpaid</div></div></div>
                     </div>
+                  </div>
+                </div>
+
+                {/* Free-shop grants (super-admin gated) */}
+                <div className="border rounded-3 p-3 mb-3" style={{ background: "var(--sidebar-hover)" }}>
+                  <div className="d-flex flex-wrap align-items-center gap-3">
+                    <div className="form-check form-switch mb-0">
+                      <input className="form-check-input" type="checkbox" role="switch" id="freeShopSwitch"
+                        checked={freeEnabled} onChange={(e) => setFreeEnabled(e.target.checked)} />
+                      <label className="form-check-label fw-semibold" htmlFor="freeShopSwitch">Allow lifetime-free shops</label>
+                    </div>
+                    <div className="input-group input-group-sm" style={{ width: 200 }}>
+                      <span className="input-group-text">Quota</span>
+                      <input type="number" min={0} step={1} className="form-control" value={freeQuota}
+                        disabled={!freeEnabled} onChange={(e) => setFreeQuota(e.target.value)} />
+                    </div>
+                    <button className="btn btn-sm btn-primary"
+                      disabled={savingFree || (freeEnabled === detail.can_grant_free_shops && String(freeQuota) === String(detail.free_shop_quota))}
+                      onClick={saveFreeShops}>
+                      {savingFree ? "…" : "Save"}
+                    </button>
+                  </div>
+                  <div className="small text-secondary mt-1">
+                    When enabled, this reseller can sign up up to <b>{freeQuota || 0}</b> shop(s) that are free for life. If the reseller is suspended or removed, those shops keep working but must start paying — they are never deleted.
                   </div>
                 </div>
 

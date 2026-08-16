@@ -1106,6 +1106,8 @@ class PlatformResellerDetailView(APIView):
             "commission_rate": profile.commission_rate,
             "status": profile.status,
             "notes": profile.notes,
+            "can_grant_free_shops": profile.can_grant_free_shops,
+            "free_shop_quota": profile.free_shop_quota,
             "shops": shops_data,
             "commissions": commissions,
             "totals": totals,
@@ -1131,10 +1133,24 @@ class PlatformResellerDetailView(APIView):
         if "notes" in request.data:
             profile.notes = request.data.get("notes") or ""
             fields.append("notes")
+        if "can_grant_free_shops" in request.data:
+            profile.can_grant_free_shops = bool(request.data.get("can_grant_free_shops"))
+            fields.append("can_grant_free_shops")
+        if "free_shop_quota" in request.data:
+            try:
+                quota = int(request.data.get("free_shop_quota") or 0)
+            except (TypeError, ValueError):
+                return Response({"detail": "Invalid free-shop quota."}, status=status.HTTP_400_BAD_REQUEST)
+            profile.free_shop_quota = max(0, quota)
+            fields.append("free_shop_quota")
 
         if fields:
             profile.save(update_fields=fields + ["updated_at"])
-        return Response({"commission_rate": profile.commission_rate, "notes": profile.notes})
+        return Response({
+            "commission_rate": profile.commission_rate, "notes": profile.notes,
+            "can_grant_free_shops": profile.can_grant_free_shops,
+            "free_shop_quota": profile.free_shop_quota,
+        })
 
 
 class PlatformCommissionActionView(APIView):

@@ -17,14 +17,19 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
   const pathname = usePathname();
   const [ready, setReady] = useState(false);
   const [name, setName] = useState("");
+  const [canFreeShops, setCanFreeShops] = useState(false);
 
   useEffect(() => {
     if (!getAccess()) { router.replace("/reseller/login"); return; }
     // Verify this token belongs to an active reseller; else bounce to login.
-    api<{ full_name?: string; reseller_code?: string }>("/reseller/profile/")
-      .then((p) => { setName(p.full_name || p.reseller_code || "Reseller"); setReady(true); })
+    api<{ full_name?: string; reseller_code?: string; can_grant_free_shops?: boolean }>("/reseller/profile/")
+      .then((p) => { setName(p.full_name || p.reseller_code || "Reseller"); setCanFreeShops(!!p.can_grant_free_shops); setReady(true); })
       .catch(() => { clearTokens(); router.replace("/reseller/login"); });
   }, [router]);
+
+  const nav = canFreeShops
+    ? [...NAV, { href: "/reseller/free-shops", label: "Free Shops", icon: "bi-gift" }]
+    : NAV;
 
   function logout() { clearTokens(); router.replace("/reseller/login"); }
 
@@ -38,7 +43,7 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
         <div className="fw-bold fs-5 mb-1">StockWhisk</div>
         <div className="small text-secondary mb-4">Partner Portal</div>
         <nav className="nav flex-column gap-1 flex-grow-1">
-          {NAV.map((n) => (
+          {nav.map((n) => (
             <Link key={n.href} href={n.href}
               className={`nav-link text-start rounded px-2 ${pathname?.startsWith(n.href) ? "active bg-primary text-white" : "text-light"}`}>
               <i className={`bi ${n.icon} me-2`} />{n.label}
