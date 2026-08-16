@@ -417,6 +417,9 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
                 installment.paid_at = timezone.now()
                 installment.save(update_fields=["paid_amount", "status", "paid_at"])
 
+                # Refresh schedule to recalculate total_due accurately
+                schedule.refresh_from_db()
+
                 # Check if schedule is fully paid
                 if schedule.total_due <= Decimal("0"):
                     from .models import EMISchedule

@@ -126,9 +126,19 @@ export default function EMIPage() {
                     <td className="text-danger fw-bold">{money(schedule.total_due)}</td>
                     <td>{schedule.months} Months</td>
                     <td>
-                      <span className={`badge bg-${schedule.status === 'COMPLETED' ? 'success' : schedule.status === 'ACTIVE' ? 'primary' : 'danger'}`}>
-                        {schedule.status}
-                      </span>
+                      {schedule.status.toLowerCase() === 'completed' ? (
+                        <span className="badge rounded-pill bg-success bg-opacity-10 text-success border border-success fw-semibold px-3 py-2">
+                          <i className="bi bi-check-circle-fill me-1"></i> Completed
+                        </span>
+                      ) : schedule.status.toLowerCase() === 'active' ? (
+                        <span className="badge rounded-pill bg-primary bg-opacity-10 text-primary border border-primary fw-semibold px-3 py-2">
+                          <i className="bi bi-play-circle-fill me-1"></i> Active
+                        </span>
+                      ) : (
+                        <span className="badge rounded-pill bg-danger bg-opacity-10 text-danger border border-danger fw-semibold px-3 py-2">
+                          <i className="bi bi-exclamation-triangle-fill me-1"></i> {schedule.status.toUpperCase()}
+                        </span>
+                      )}
                     </td>
                     <td className="text-end pe-4">
                       <button 
@@ -180,9 +190,19 @@ export default function EMIPage() {
                         <td>{money(inst.amount)}</td>
                         <td className="text-success">{money(inst.paid_amount)}</td>
                         <td>
-                          <span className={`badge bg-${inst.status === 'PAID' ? 'success' : inst.status === 'PARTIAL' ? 'warning' : 'secondary'}`}>
-                            {inst.status}
-                          </span>
+                          {inst.status.toLowerCase() === 'paid' ? (
+                            <span className="badge rounded-pill bg-success bg-opacity-10 text-success border border-success fw-semibold px-2 py-1">
+                              <i className="bi bi-check-circle-fill me-1"></i> Paid
+                            </span>
+                          ) : inst.status.toLowerCase() === 'partial' ? (
+                            <span className="badge rounded-pill bg-warning bg-opacity-10 text-warning border border-warning fw-semibold px-2 py-1">
+                              <i className="bi bi-circle-half me-1"></i> Partial
+                            </span>
+                          ) : (
+                            <span className="badge rounded-pill bg-secondary bg-opacity-10 text-secondary border border-secondary fw-semibold px-2 py-1">
+                              <i className="bi bi-clock-history me-1"></i> Pending
+                            </span>
+                          )}
                         </td>
                         <td className="text-end pe-3">
                           {inst.status !== 'PAID' && (
