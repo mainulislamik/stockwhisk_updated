@@ -370,6 +370,13 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
     """
     from .serializers import EMIScheduleSerializer
     serializer_class = EMIScheduleSerializer
+    permission_classes = [IsTenantMember, HasPermCode]
+    required_perm = "view_sales"
+
+    def initial(self, request, *args, **kwargs):
+        set_current_tenant(getattr(request.user, "shop", None))
+        request.tenant = getattr(request.user, "shop", None)
+        super().initial(request, *args, **kwargs)
 
     def get_queryset(self):
         from .models import EMISchedule
