@@ -13,7 +13,7 @@ def send_emi_welcome_email(schedule_id):
     """
     from .models import EMISchedule
     try:
-        schedule = EMISchedule.objects.select_related('sale', 'customer', 'shop').get(id=schedule_id)
+        schedule = EMISchedule.all_objects.select_related('sale', 'customer', 'shop').get(id=schedule_id)
     except EMISchedule.DoesNotExist:
         logger.error(f"EMISchedule {schedule_id} not found for welcome email.")
         return
@@ -85,7 +85,7 @@ def send_emi_reminders():
     from .models import EMIInstallment
     
     target_date = timezone.localdate() + timedelta(days=3)
-    installments = EMIInstallment.objects.filter(
+    installments = EMIInstallment.all_objects.filter(
         status=EMIInstallment.Status.PENDING,
         due_date=target_date
     ).select_related('schedule', 'schedule__customer', 'schedule__shop', 'schedule__sale')
