@@ -406,6 +406,8 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"detail": "Amount must be positive."}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
+            from django.db import transaction
+            from django.utils import timezone
             with transaction.atomic():
                 installment.paid_amount += amount
                 if installment.paid_amount >= installment.amount:
