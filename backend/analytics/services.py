@@ -21,7 +21,7 @@ from django.db.models import (
     Q,
     Sum,
 )
-from django.db.models.functions import Coalesce, TruncDate, TruncMonth, TruncWeek
+from django.db.models.functions import Coalesce, TruncDate, TruncHour, TruncMonth, TruncWeek
 from django.utils import timezone
 
 from catalog.models import Product
@@ -553,6 +553,115 @@ def product_performance(shop, range_key="30d", custom_start=None, custom_end=Non
         "most_sold_products": most_sold,
         "low_stock_products": low_stock,
         "out_of_stock_products": out_of_stock,
+    }
+
+
+def _trend_key(b, bucket):
+    if bucket == "hour":
+        return timezone.localtime(b).strftime("%Y-%m-%dT%H:00")
+    if bucket == "month":
+        return b.strftime("%Y-%m-01")
+    return b.strftime("%Y-%m-%d")
+
+
+def _bucket_sequence(start, end, bucket):
+    """Continuous list of bucket keys from start..end (local time) so the trend
+    chart has no gaps — quiet periods show as zero, not missing points."""
+    keys = []
+    if bucket == "hour":
+        cur = timezone.localtime(start).replace(minute=0, second=0, microsecond=0)
+        endl = timezone.localtime(end)
+        while cur <= endl:
+            keys.append(cur.strftime("%Y-%m-%dT%H:00"))
+            cur += timedelta(hours=1)
+    elif bucket == "month":
+        cur = timezone.localtime(start).date().replace(day=1)
+        endd = timezone.localtime(end).date()
+        while cur <= endd:
+            keys.append(cur.strftime("%Y-%m-01"))
+            cur = cur + relativedelta(months=1)
+    else:  # day
+        cur = timezone.localtime(start).date()
+        endd = timezone.localtime(end).date()
+        while cur <= endd:
+            keys.append(cur.strftime("%Y-%m-%d"))
+            cur += timedelta(days=1)
+    return keys
+
+
+def _sales_trend_buckets(shop, start, end, bucket):
+    """Per-bucket sales (revenue = Σ item subtotals − invoice discounts, the same
+    definition as the dashboard) + order count, gap-filled to a continuous line."""
+    trunc = {"hour": TruncHour, "day": TruncDate, "month": TruncMonth}[bucket]
+    items = (
+        _sale_items(shop, start, end).annotate(b=trunc("sale__sale_date")).values("b")
+        .annotate(subtotal=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC))
+    )
+    sales = (
+        Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+        .filter(sale_date__gte=start, sale_date__lte=end)
+        .annotate(b=trunc("sale_date")).values("b")
+        .annotate(discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC), orders=Count("id"))
+    )
+    data = {}
+    for r in items:
+        if r["b"] is None:
+            continue
+        data.setdefault(_trend_key(r["b"], bucket), {})["subtotal"] = r["subtotal"]
+    for r in sales:
+        if r["b"] is None:
+            continue
+        d = data.setdefault(_trend_key(r["b"], bucket), {})
+        d["discount"] = r["discount"]; d["orders"] = r["orders"]
+
+    out = []
+    for k in _bucket_sequence(start, end, bucket):
+        v = data.get(k, {})
+        revenue = float(v.get("subtotal", ZERO) - v.get("discount", ZERO))
+        out.append({"date": k, "sales": round(revenue, 2), "orders": int(v.get("orders", 0))})
+    return out
+
+
+def profitability_analytics(shop, range_key="30d", custom_start=None, custom_end=None):
+    """Payment-completion / cancellation ratios + sales trend for a date range.
+
+    Denominators (documented):
+      * Fulfill & Pending ratios → NON-CANCELLED sales in the period. A sale is
+        "fulfilled" when paid >= total (amount-based, so partial payments count
+        as pending); the two sum to 100% of non-cancelled sales.
+      * Cancellation ratio → ALL sales in the period (cancelled / total).
+    Sales trend reuses the dashboard revenue definition and is gap-filled.
+    Shop-scoped throughout.
+    """
+    now = timezone.now()
+    start, end, _ps, _pe, bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+    if range_key in ("today", "yesterday"):
+        bucket = "hour"
+
+    base = Sale.all_objects.filter(shop_id=shop.id)
+    if start is not None:
+        base = base.filter(sale_date__gte=start)
+    if end is not None:
+        base = base.filter(sale_date__lte=end)
+
+    total_all = base.count()
+    cancelled = base.filter(status=Sale.Status.CANCELLED).count()
+    non_cancelled = base.exclude(status=Sale.Status.CANCELLED)
+    eligible = non_cancelled.count()
+    fulfilled = non_cancelled.filter(paid__gte=F("total")).count()
+    pending = eligible - fulfilled
+
+    def ratio(n, d):
+        return round(n / d * 100, 1) if d else 0.0
+
+    return {
+        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat(), "bucket": bucket},
+        "payment_metrics": {
+            "fulfill_payment_ratio": {"percentage": ratio(fulfilled, eligible), "fulfilled_count": fulfilled, "total_count": eligible},
+            "pending_payment_ratio": {"percentage": ratio(pending, eligible), "pending_count": pending, "total_count": eligible},
+            "cancellation_ratio": {"percentage": ratio(cancelled, total_all), "cancelled_count": cancelled, "total_count": total_all},
+        },
+        "sales_trend": _sales_trend_buckets(shop, start, end, bucket),
     }
 
 

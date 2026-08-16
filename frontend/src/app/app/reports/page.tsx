@@ -47,6 +47,18 @@ type ProductPerf = {
   out_of_stock_products: PPOutOfStock[];
 };
 
+type RatioMetric = { percentage: number; total_count: number; fulfilled_count?: number; pending_count?: number; cancelled_count?: number };
+type SalesTrendPoint = { date: string; sales: number; orders: number };
+type ProfitabilityAnalytics = {
+  range: { key: string; start: string; end: string; bucket: string };
+  payment_metrics: {
+    fulfill_payment_ratio: RatioMetric;
+    pending_payment_ratio: RatioMetric;
+    cancellation_ratio: RatioMetric;
+  };
+  sales_trend: SalesTrendPoint[];
+};
+
 const PROFIT_RANGES: { key: string; label: string }[] = [
   { key: "today", label: "Today" },
   { key: "yesterday", label: "Yesterday" },
@@ -105,6 +117,17 @@ export default function ReportsPage() {
   const [ppError, setPpError] = useState("");
   const [ppReload, setPpReload] = useState(0);
   const mostSoldRef = useRef<HTMLCanvasElement>(null); const mostSoldInst = useRef<any>(null);
+
+  // Profitability Analytics (own date range)
+  const [paRange, setPaRange] = useState("30d");
+  const [pa, setPa] = useState<ProfitabilityAnalytics | null>(null);
+  const [paLoading, setPaLoading] = useState(true);
+  const [paError, setPaError] = useState("");
+  const [paReload, setPaReload] = useState(0);
+  const fulfillRef = useRef<HTMLCanvasElement>(null); const fulfillInst = useRef<any>(null);
+  const pendingRef = useRef<HTMLCanvasElement>(null); const pendingInst = useRef<any>(null);
+  const cancelRef = useRef<HTMLCanvasElement>(null); const cancelInst = useRef<any>(null);
+  const saleTrendRef = useRef<HTMLCanvasElement>(null); const saleTrendInst = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [invPage, setInvPage] = useState(1);
@@ -325,6 +348,66 @@ export default function ReportsPage() {
     }
     return () => { mostSoldInst.current?.destroy(); };
   }, [pp]);
+
+  // Profitability Analytics: refetch on range change.
+  useEffect(() => {
+    let active = true;
+    setPaLoading(true); setPaError("");
+    api<ProfitabilityAnalytics>("/analytics/profitability-analytics/", { params: { range: paRange } })
+      .then((d) => { if (active) setPa(d); })
+      .catch(() => { if (active) setPaError("Unable to load profitability analytics."); })
+      .finally(() => { if (active) setPaLoading(false); });
+    return () => { active = false; };
+  }, [paRange, paReload]);
+
+  // Build the 3 donut charts + Sales Trend line.
+  useEffect(() => {
+    const Chart = (window as any).Chart;
+    if (!Chart || !pa) return;
+    const donut = (ref: any, inst: any, value: number, color: string) => {
+      if (!ref.current) return;
+      inst.current?.destroy();
+      inst.current = new Chart(ref.current, {
+        type: "doughnut",
+        data: { labels: ["", ""], datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, "rgba(148,163,184,.18)"], borderWidth: 0 }] },
+        options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+      });
+    };
+    const pm = pa.payment_metrics;
+    if (pm.fulfill_payment_ratio.total_count > 0) donut(fulfillRef, fulfillInst, pm.fulfill_payment_ratio.percentage, "#008c54");
+    else fulfillInst.current?.destroy();
+    if (pm.pending_payment_ratio.total_count > 0) donut(pendingRef, pendingInst, pm.pending_payment_ratio.percentage, "#ffa600");
+    else pendingInst.current?.destroy();
+    if (pm.cancellation_ratio.total_count > 0) donut(cancelRef, cancelInst, pm.cancellation_ratio.percentage, "#d64550");
+    else cancelInst.current?.destroy();
+
+    // Sales Trend (area line)
+    if (saleTrendRef.current && pa.sales_trend.length > 0) {
+      saleTrendInst.current?.destroy();
+      const monthly = pa.range.bucket === "month", hourly = pa.range.bucket === "hour";
+      const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      const labels = pa.sales_trend.map((p) => {
+        const d = new Date(p.date);
+        if (hourly) return d.toLocaleTimeString(undefined, { hour: "numeric" });
+        if (monthly) return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      });
+      saleTrendInst.current = new Chart(saleTrendRef.current, {
+        type: "line",
+        data: { labels, datasets: [{ label: "Sales", data: pa.sales_trend.map((p) => p.sales), borderColor: "#2f4b7c", backgroundColor: "rgba(47,75,124,.12)", fill: true, tension: 0.3, pointRadius: pa.sales_trend.length > 40 ? 0 : 2 }] },
+        options: {
+          responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+          scales: { y: { ticks: { callback: (v: any) => tk(v) } } },
+          plugins: { legend: { display: false }, tooltip: { callbacks: {
+            label: (c: any) => `Sales: ${tk(c.parsed.y)}`,
+            afterLabel: (c: any) => `Orders: ${pa.sales_trend[c.dataIndex]?.orders ?? 0}`,
+          } } },
+        },
+      });
+    } else { saleTrendInst.current?.destroy(); }
+
+    return () => { fulfillInst.current?.destroy(); pendingInst.current?.destroy(); cancelInst.current?.destroy(); saleTrendInst.current?.destroy(); };
+  }, [pa]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -803,6 +886,89 @@ export default function ReportsPage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
+
+      {/* Profitability Analytics — payment ratios + sales trend */}
+      <section aria-labelledby="profitability-analytics-heading">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 id="profitability-analytics-heading" className="h5 fw-bold mb-0">Profitability Analytics</h2>
+            <div className="small text-secondary">Monitor payment completion, pending payments, cancellations and sales performance.</div>
+          </div>
+          <select className="form-select form-select-sm" style={{ width: "auto" }} value={paRange}
+            onChange={(e) => setPaRange(e.target.value)} aria-label="Profitability analytics date range">
+            {PROFIT_RANGES.map((r) => <option key={r.key} value={r.key}>{r.label}</option>)}
+          </select>
+        </div>
+
+        {paError ? (
+          <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
+            <span>{paError}</span>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPaReload((x) => x + 1)}>Retry</button>
+          </div>
+        ) : !pa ? (
+          <div className="text-center py-5"><span className="spinner-border" /></div>
+        ) : (
+          <div className={`vstack gap-3 ${paLoading ? "opacity-50" : ""}`} aria-busy={paLoading}>
+            <div className="row g-3">
+              {[
+                { key: "fulfill", title: "Fulfill Payment Ratio", label: "Fully Paid", color: "success", m: pa.payment_metrics.fulfill_payment_ratio, count: pa.payment_metrics.fulfill_payment_ratio.fulfilled_count ?? 0, ref: fulfillRef, empty: "No payment data available for this period." },
+                { key: "pending", title: "Pending Payment Ratio", label: "Pending", color: "warning", m: pa.payment_metrics.pending_payment_ratio, count: pa.payment_metrics.pending_payment_ratio.pending_count ?? 0, ref: pendingRef, empty: "No pending payment data available." },
+                { key: "cancel", title: "Cancellation Ratio", label: "Cancelled", color: "danger", m: pa.payment_metrics.cancellation_ratio, count: pa.payment_metrics.cancellation_ratio.cancelled_count ?? 0, ref: cancelRef, empty: "No cancelled transactions found." },
+              ].map((c) => (
+                <div key={c.key} className="col-12 col-md-4">
+                  <div className="card border-0 shadow-sm h-100">
+                    <div className="card-body text-center">
+                      <div className="fw-semibold">{c.title}</div>
+                      {c.m.total_count === 0 ? (
+                        <div className="text-secondary small py-5">{c.empty}</div>
+                      ) : (
+                        <>
+                          <div className="position-relative mx-auto my-2" style={{ height: 160, maxWidth: 200 }}>
+                            <canvas ref={c.ref} aria-label={`${c.title}: ${c.m.percentage}%, ${c.count} of ${c.m.total_count} orders`} />
+                            <div className="position-absolute top-50 start-50 translate-middle text-center">
+                              <div className="fs-3 fw-bold lh-1">{c.m.percentage}%</div>
+                              <div className={`small text-${c.color}`}>{c.label}</div>
+                            </div>
+                          </div>
+                          <div className="small text-secondary">{c.count} / {c.m.total_count} orders</div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Sales Trend */}
+            <div className="card border-0 shadow-sm">
+              <div className="card-body">
+                <div className="fw-semibold mb-1">Sales Trend</div>
+                {pa.sales_trend.length === 0 || pa.sales_trend.every((p) => p.sales === 0) ? (
+                  <div className="text-secondary small py-5 text-center">No sales data available for this period.</div>
+                ) : (
+                  <>
+                    {(() => {
+                      const pts = pa.sales_trend;
+                      const total = pts.reduce((a, p) => a + p.sales, 0);
+                      const avg = total / (pts.length || 1);
+                      const best = pts.reduce((a, p) => (p.sales > a.sales ? p : a), pts[0]);
+                      const fmtLbl = (d: string) => new Date(d).toLocaleDateString(undefined, pa.range.bucket === "month" ? { month: "short", year: "2-digit" } : { month: "short", day: "numeric" });
+                      return (
+                        <div className="row g-2 mb-3 small">
+                          <div className="col-4"><div className="text-secondary">Total Sales</div><div className="fw-bold">{money(String(total))}</div></div>
+                          <div className="col-4"><div className="text-secondary">Average</div><div className="fw-bold">{money(String(avg))}</div></div>
+                          <div className="col-4"><div className="text-secondary">Best {pa.range.bucket === "hour" ? "hour" : "day"}</div><div className="fw-bold">{best && best.sales > 0 ? `${fmtLbl(best.date)}` : "—"}</div></div>
+                        </div>
+                      );
+                    })()}
+                    <div style={{ height: 300 }}><canvas ref={saleTrendRef} /></div>
+                  </>
                 )}
               </div>
             </div>

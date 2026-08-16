@@ -82,6 +82,18 @@ class ProductPerformanceOverviewView(_AnalyticsBase):
         ))
 
 
+class ProfitabilityAnalyticsView(_AnalyticsBase):
+    """Payment/cancellation ratios + sales trend for a date range. Shop-scoped."""
+    def get(self, request):
+        p = request.query_params
+        return Response(services.profitability_analytics(
+            self.shop,
+            range_key=p.get("range", "30d"),
+            custom_start=p.get("start"),
+            custom_end=p.get("end"),
+        ))
+
+
 class InventoryAnalyticsView(_AnalyticsBase):
     required_perm = "view_inventory"
 
