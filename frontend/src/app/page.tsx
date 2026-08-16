@@ -623,7 +623,7 @@ export default function Home() {
                   </motion.div>
                 </Box>
 
-                <Grid container spacing={4} sx={{ maxWidth: 1200, mx: "auto", alignItems: "center" }}>
+                <Grid container spacing={4} sx={{ maxWidth: 1200, mx: "auto", alignItems: "center", justifyContent: "center" }}>
                   
                   {loadingPricing ? (
                     <Box sx={{ py: 10, textAlign: 'center', width: '100%' }}>
