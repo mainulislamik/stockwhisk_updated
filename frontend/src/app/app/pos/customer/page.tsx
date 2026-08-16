@@ -31,6 +31,7 @@ export default function PosCustomerPage() {
   const [customerId, setCustomerId] = useState("");
   const [walkName, setWalkName] = useState("");
   const [walkPhone, setWalkPhone] = useState("");
+  const [walkEmail, setWalkEmail] = useState("");
   const [walkAddress, setWalkAddress] = useState("");
   const [matchedId, setMatchedId] = useState<number | null>(null);
 
@@ -44,6 +45,7 @@ export default function PosCustomerPage() {
     if (found) {
       setMatchedId(found.id);
       setWalkName(found.name || "");
+      setWalkEmail(found.email || "");
       setWalkAddress((found as any).address || "");
     } else if (matchedId) {
       // They edited away from a matched number — unlink.
@@ -108,7 +110,7 @@ export default function PosCustomerPage() {
         } else {
           const c = await api<{ id: number }>("/crm/customers/", {
             method: "POST",
-            body: { name: walkName.trim(), phone: walkPhone.trim(), address: walkAddress.trim() },
+            body: { name: walkName.trim(), phone: walkPhone.trim(), email: walkEmail.trim(), address: walkAddress.trim() },
           }).catch(() => null);
           if (c) customerId2 = c.id;
         }
@@ -232,6 +234,10 @@ export default function PosCustomerPage() {
                 <div className="form-floating">
                   <input id="walkName" className="form-control shadow-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder="Enter name…" />
                   <label htmlFor="walkName">{t("pos_checkout_cust_name")}</label>
+                </div>
+                <div className="form-floating">
+                  <input id="walkEmail" type="email" className="form-control shadow-sm" value={walkEmail} onChange={(e) => setWalkEmail(e.target.value)} placeholder="Enter email…" />
+                  <label htmlFor="walkEmail">{t("pos_checkout_email_opt")}</label>
                 </div>
                 <div className="form-floating">
                   <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
