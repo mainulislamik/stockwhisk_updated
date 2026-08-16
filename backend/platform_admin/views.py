@@ -1052,6 +1052,118 @@ class PlatformResellerActionView(APIView):
         return Response({"status": profile.status})
 
 
+class PlatformResellerDetailView(APIView):
+    """Full control for one reseller: profile + referred shops + commissions,
+    editable commission rate and admin notes."""
+    permission_classes = [IsPlatformStaff]
+
+    def _profile(self, pk):
+        from resellers.models import ResellerProfile
+        return ResellerProfile.objects.select_related("user").filter(pk=pk).first()
+
+    def get(self, request, pk):
+        from resellers.models import ResellerCommission
+        from resellers.serializers import ResellerCommissionSerializer
+
+        profile = self._profile(pk)
+        if not profile:
+            return Response({"detail": "Reseller not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        shops = profile.shops.select_related("plan").all()
+        shops_data = [{
+            "id": s.id,
+            "name": s.name,
+            "code": s.slug,
+            "plan": getattr(getattr(s, "plan", None), "name", "") or "",
+            "is_active": s.is_active,
+            "attributed_at": s.reseller_attributed_at,
+        } for s in shops]
+
+        comms = list(ResellerCommission.objects.filter(reseller=profile)
+                     .order_by("-period_year", "-period_month", "-id"))
+        commissions = ResellerCommissionSerializer(comms, many=True).data
+
+        def _sum(rows):
+            return sum((c.commission_amount or Decimal("0")) for c in rows)
+
+        totals = {
+            "shops": len(shops_data),
+            "total_earned": _sum(c for c in comms if c.status != "cancelled"),
+            "paid": _sum(c for c in comms if c.status == "paid"),
+            "unpaid": _sum(c for c in comms if c.status in ("pending", "approved")),
+        }
+
+        return Response({
+            "id": profile.id,
+            "reseller_code": profile.reseller_code,
+            "referral_code": profile.referral_code,
+            "user_name": f"{profile.user.first_name} {profile.user.last_name}".strip() or profile.user.email,
+            "user_email": profile.user.email,
+            "phone": profile.phone,
+            "company_name": profile.company_name,
+            "address": profile.address,
+            "country": profile.country,
+            "commission_rate": profile.commission_rate,
+            "status": profile.status,
+            "notes": profile.notes,
+            "shops": shops_data,
+            "commissions": commissions,
+            "totals": totals,
+        })
+
+    def patch(self, request, pk):
+        from decimal import InvalidOperation
+
+        profile = self._profile(pk)
+        if not profile:
+            return Response({"detail": "Reseller not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        fields = []
+        if "commission_rate" in request.data:
+            try:
+                rate = Decimal(str(request.data.get("commission_rate")))
+            except (InvalidOperation, TypeError):
+                return Response({"detail": "Invalid commission rate."}, status=status.HTTP_400_BAD_REQUEST)
+            if rate < 0 or rate > 100:
+                return Response({"detail": "Commission rate must be between 0 and 100."}, status=status.HTTP_400_BAD_REQUEST)
+            profile.commission_rate = rate
+            fields.append("commission_rate")
+        if "notes" in request.data:
+            profile.notes = request.data.get("notes") or ""
+            fields.append("notes")
+
+        if fields:
+            profile.save(update_fields=fields + ["updated_at"])
+        return Response({"commission_rate": profile.commission_rate, "notes": profile.notes})
+
+
+class PlatformCommissionActionView(APIView):
+    """Approve, mark paid, or cancel a single reseller commission (payouts)."""
+    permission_classes = [IsPlatformStaff]
+
+    def post(self, request, pk):
+        from resellers.models import ResellerCommission
+
+        c = ResellerCommission.objects.filter(pk=pk).first()
+        if not c:
+            return Response({"detail": "Commission not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get("action")
+        if action == "approve":
+            c.status = ResellerCommission.Status.APPROVED
+            c.approved_at = timezone.now()
+            c.save(update_fields=["status", "approved_at", "updated_at"])
+        elif action == "paid":
+            c.mark_paid(reference=request.data.get("payment_reference", ""), note=request.data.get("note", ""))
+        elif action == "cancel":
+            c.status = ResellerCommission.Status.CANCELLED
+            c.save(update_fields=["status", "updated_at"])
+        else:
+            return Response({"detail": "Invalid action."}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({"status": c.status})
+
+
 # --- Tutorial videos ---------------------------------------------------------
 
 class TutorialVideoSerializer(serializers.ModelSerializer):
