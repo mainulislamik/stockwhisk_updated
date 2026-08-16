@@ -105,10 +105,33 @@ class CheckoutView(_POSBase):
         ser = SaleCreateSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
+        customer = data.get("customer")
+        
+        if not customer:
+            cust_name = str(request.data.get("customer_name", "")).strip()
+            cust_phone = str(request.data.get("customer_phone", "")).strip()
+            if cust_name and cust_phone:
+                from crm.models import Customer
+                customer = Customer.objects.filter(shop=request.user.shop, phone=cust_phone).first()
+                if not customer:
+                    customer = Customer.objects.create(
+                        shop=request.user.shop,
+                        name=cust_name[:150],
+                        phone=cust_phone[:30],
+                        email=str(request.data.get("customer_email", "")).strip()[:254],
+                        address=str(request.data.get("customer_address", "")).strip()
+                    )
+        
+        if customer:
+            cust_email = str(request.data.get("customer_email", "")).strip()
+            if cust_email and customer.email != cust_email:
+                customer.email = cust_email[:254]
+                customer.save(update_fields=["email"])
+
         try:
             sale = create_sale(
                 shop=request.user.shop,
-                customer=data.get("customer"),
+                customer=customer,
                 discount=data.get("discount", 0),
                 tax=data.get("tax", 0),
                 note=data.get("note", ""),

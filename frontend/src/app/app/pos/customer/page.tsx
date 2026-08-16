@@ -114,31 +114,18 @@ export default function PosCustomerPage() {
     try {
       let customerId2: number | null = customerMode === "existing" && customerId ? Number(customerId) : null;
 
-      // Update existing customer email if it was changed
-      if (customerMode === "existing" && customerId2) {
-        const selectedCustomer = customers.find(c => c.id === customerId2);
-        if (selectedCustomer && selectedCustomer.email !== existingEmail.trim()) {
-          await api(`/crm/customers/${customerId2}/`, { method: "PATCH", body: { email: existingEmail.trim() } }).catch(console.error);
-        }
-      }
-
-      // Walk-in: reuse the matched existing customer, else create a new one.
-      if (customerMode === "walkin") {
-        if (matchedId) {
-          customerId2 = matchedId;
-        } else {
-          const c = await api<{ id: number }>("/crm/customers/", {
-            method: "POST",
-            body: { name: walkName.trim(), phone: walkPhone.trim(), email: walkEmail.trim(), address: walkAddress.trim() },
-          }).catch(() => null);
-          if (c) customerId2 = c.id;
-        }
+      if (customerMode === "walkin" && matchedId) {
+        customerId2 = matchedId;
       }
 
       const sale = await api<{ id: number; invoice_no: string; public_invoice_url?: string }>("/pos/checkout/", {
         method: "POST",
         body: {
           customer: customerId2,
+          customer_name: customerMode === "walkin" ? walkName.trim() : "",
+          customer_phone: customerMode === "walkin" ? walkPhone.trim() : "",
+          customer_email: customerMode === "existing" ? existingEmail.trim() : walkEmail.trim(),
+          customer_address: customerMode === "walkin" ? walkAddress.trim() : "",
           discount: discountNum,
           delivery_charge: deliveryCharge,
           tax: 0,
@@ -170,7 +157,12 @@ export default function PosCustomerPage() {
         : "";
       setSaleResult({ id: sale.id, invoice_no: sale.invoice_no, phone: custPhone, name: custName, total, pdfUrl });
     } catch (e: any) {
-      const msg = e?.data?.detail || e?.message || t("pos_err_checkout_failed");
+      let msg = e?.data?.detail || e?.message || t("pos_err_checkout_failed");
+      if (e?.data && !e.data.detail && typeof e.data === 'object') {
+        msg = Object.entries(e.data)
+          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
+          .join(" | ");
+      }
       await showError("Transaction Failed", msg);
     } finally {
       setBusy(false);

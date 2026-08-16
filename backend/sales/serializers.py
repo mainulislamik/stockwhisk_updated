@@ -124,6 +124,10 @@ class SaleCreateSerializer(serializers.Serializer):
     customer = serializers.PrimaryKeyRelatedField(
         queryset=Customer.objects, required=False, allow_null=True
     )
+    customer_name = serializers.CharField(max_length=150, required=False, allow_blank=True, default="")
+    customer_phone = serializers.CharField(max_length=30, required=False, allow_blank=True, default="")
+    customer_email = serializers.EmailField(required=False, allow_blank=True, default="")
+    customer_address = serializers.CharField(required=False, allow_blank=True, default="")
     discount = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
     delivery_charge = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
     tax = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
