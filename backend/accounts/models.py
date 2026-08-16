@@ -172,6 +172,10 @@ class PendingRegistration(TimeStampedModel):
     business_type = models.CharField(max_length=20, default="general")
     address = models.TextField(blank=True)
     referral_code = models.CharField(max_length=20, blank=True, default="")
+    # When set, this is a reseller-initiated lifetime-free shop grant: the value
+    # is the granting ResellerProfile pk. The shop is created free and attributed
+    # to that reseller once the owner's email OTP is verified.
+    free_grant_reseller = models.PositiveIntegerField(null=True, blank=True)
     otp = models.CharField(max_length=6)
     expires_at = models.DateTimeField()
 

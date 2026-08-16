@@ -4,6 +4,8 @@ from .views import (
     ResellerCommissionsView,
     ResellerDashboardView,
     ResellerFreeShopView,
+    ResellerFreeShopInitiateView,
+    ResellerFreeShopVerifyView,
     ResellerLoginView,
     ResellerProfileView,
     InitiateResellerRegistrationView,
@@ -26,4 +28,6 @@ urlpatterns = [
     path("commissions/", ResellerCommissionsView.as_view(), name="reseller-commissions"),
     path("profile/", ResellerProfileView.as_view(), name="reseller-profile"),
     path("free-shops/", ResellerFreeShopView.as_view(), name="reseller-free-shops"),
+    path("free-shops/initiate/", ResellerFreeShopInitiateView.as_view(), name="reseller-free-shops-initiate"),
+    path("free-shops/verify/", ResellerFreeShopVerifyView.as_view(), name="reseller-free-shops-verify"),
 ]

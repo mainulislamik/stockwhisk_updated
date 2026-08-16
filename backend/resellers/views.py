@@ -284,26 +284,43 @@ class ResellerFreeShopView(APIView):
     def get(self, request):
         return Response(self._list(request.user.reseller_profile))
 
+
+class ResellerFreeShopInitiateView(APIView):
+    """Step 1: reseller fills the full owner-signup form; we email the owner an
+    OTP and stash the details. Gated by the super-admin free-shop permission."""
+    permission_classes = [IsReseller]
+
     def post(self, request):
+        import random
+        from datetime import timedelta
+        from django.contrib.auth.hashers import make_password
+        from django.utils import timezone
+        from accounts.models import PendingRegistration
+        from accounts.otp_email import send_otp_email
+        from tenants.models import Shop
+
         profile = request.user.reseller_profile
         if not profile.can_grant_free_shops:
             return Response({"detail": "Free-shop grants are not enabled for your account."},
                             status=status.HTTP_403_FORBIDDEN)
-
-        from tenants.models import Shop
         used = Shop.objects.filter(reseller=profile, is_free=True).count()
         if used >= profile.free_shop_quota:
             return Response({"detail": f"You have used all {profile.free_shop_quota} free-shop grant(s)."},
                             status=status.HTTP_400_BAD_REQUEST)
 
         d = request.data
-        name = (d.get("shop_name") or "").strip()
+        shop_name = (d.get("shop_name") or "").strip()
         owner_email = (d.get("owner_email") or "").strip().lower()
         owner_password = d.get("owner_password") or ""
         owner_name = (d.get("owner_name") or "").strip()
         phone = (d.get("phone") or "").strip()
+        address = (d.get("address") or "").strip()
+        business_type = (d.get("business_type") or "general").strip()
+        valid_types = {c[0] for c in Shop.BusinessType.choices}
+        if business_type not in valid_types:
+            business_type = "general"
 
-        if not name or not owner_email or not owner_password:
+        if not shop_name or not owner_email or not owner_password:
             return Response({"detail": "Shop name, owner email and password are required."},
                             status=status.HTTP_400_BAD_REQUEST)
         if len(owner_password) < 8:
@@ -313,16 +330,70 @@ class ResellerFreeShopView(APIView):
             return Response({"detail": "A user with this email already exists."},
                             status=status.HTTP_400_BAD_REQUEST)
 
-        from tenants.services import register_shop
+        otp = str(random.randint(100000, 999999))
+        PendingRegistration.objects.update_or_create(
+            email=owner_email,
+            defaults={
+                "password_hash": make_password(owner_password),
+                "shop_name": shop_name, "owner_name": owner_name, "phone": phone,
+                "business_type": business_type, "address": address, "referral_code": "",
+                "free_grant_reseller": profile.id,
+                "otp": otp, "expires_at": timezone.now() + timedelta(minutes=3),
+            },
+        )
         try:
-            shop, _owner = register_shop(
-                name=name, owner_email=owner_email, owner_password=owner_password,
-                owner_name=owner_name, phone=phone, reseller=profile,
-            )
+            send_otp_email(owner_email, otp,
+                           intro=f"{owner_name or 'Hello'}, you're being set up with a free StockWhisk shop.")
         except Exception as exc:
-            return Response({"detail": f"Could not create shop: {exc}"},
+            return Response({"detail": f"Could not send the verification email: {exc}"},
+                            status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({"detail": "Verification code sent to the owner's email."}, status=status.HTTP_200_OK)
+
+
+class ResellerFreeShopVerifyView(APIView):
+    """Step 2: reseller submits the OTP the owner received; the free shop is
+    created and attributed to the reseller."""
+    permission_classes = [IsReseller]
+
+    def post(self, request):
+        from django.utils import timezone
+        from accounts.models import PendingRegistration
+        from tenants.models import Shop
+        from tenants.services import register_shop
+
+        profile = request.user.reseller_profile
+        email = (request.data.get("email") or "").strip().lower()
+        otp = (request.data.get("otp") or "").strip()
+
+        try:
+            pending = PendingRegistration.objects.get(email=email)
+        except PendingRegistration.DoesNotExist:
+            return Response({"detail": "No pending free-shop request for this email."},
+                            status=status.HTTP_404_NOT_FOUND)
+        if pending.free_grant_reseller != profile.id:
+            return Response({"detail": "This request does not belong to your account."},
+                            status=status.HTTP_403_FORBIDDEN)
+        if pending.otp != otp:
+            return Response({"detail": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
+        if pending.expires_at < timezone.now():
+            return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Re-check the quota at verify time (guards against parallel requests).
+        used = Shop.objects.filter(reseller=profile, is_free=True).count()
+        if used >= profile.free_shop_quota:
+            pending.delete()
+            return Response({"detail": "Your free-shop quota is already full."},
                             status=status.HTTP_400_BAD_REQUEST)
 
+        shop, owner = register_shop(
+            name=pending.shop_name, owner_email=pending.email,
+            owner_password="will-be-overwritten-immediately",
+            owner_name=pending.owner_name, business_type=pending.business_type,
+            phone=pending.phone, address=pending.address, reseller=profile,
+        )
+        owner.password = pending.password_hash
+        owner.save(update_fields=["password"])
         shop.is_free = True
         shop.save(update_fields=["is_free"])
-        return Response(self._list(profile), status=status.HTTP_201_CREATED)
+        pending.delete()
+        return Response(ResellerFreeShopView()._list(profile), status=status.HTTP_201_CREATED)
