@@ -311,8 +311,13 @@ else:
     EMAIL_HOST_USER = env("EMAIL_HOST_USER", "")
     EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", "")
     EMAIL_USE_TLS = env_bool("EMAIL_USE_TLS", True)
+    EMAIL_USE_SSL = env_bool("EMAIL_USE_SSL", False)
     EMAIL_TIMEOUT = int(env("EMAIL_TIMEOUT", "10"))  # never block a request forever
-DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "StockWhisk <no-reply@stockwhisk.app>")
+    # When connecting to the internal mailserver container it uses a self-signed
+    # certificate — tell Python's ssl not to verify it on the internal network.
+    EMAIL_SSL_CERTFILE = None
+    EMAIL_SSL_KEYFILE = None
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", "StockWhisk <no-reply@stockwhisk.com>")
 SERVER_EMAIL = env("SERVER_EMAIL", DEFAULT_FROM_EMAIL)
 
 # --- Logging ------------------------------------------------------------------

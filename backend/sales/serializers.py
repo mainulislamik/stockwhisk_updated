@@ -3,7 +3,7 @@ from rest_framework import serializers
 from catalog.models import Product, ProductVariation
 from crm.models import Customer
 
-from .models import Payment, Sale, SaleItem, SaleReturn
+from .models import Payment, Sale, SaleItem, SaleReturn, EMISchedule
 
 
 class SaleItemSerializer(serializers.ModelSerializer):
@@ -66,9 +66,19 @@ class PaymentSerializer(serializers.ModelSerializer):
         fields = ["id", "amount", "method", "paid_at", "note"]
 
 
+class EMIScheduleSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = EMISchedule
+        fields = [
+            "total_emi_amount", "down_payment", "interest_percent", 
+            "total_months", "monthly_installment", "status",
+            "principal", "interest_amount"
+        ]
+
 class SaleSerializer(serializers.ModelSerializer):
     items = SaleItemSerializer(many=True, read_only=True)
     payments = PaymentSerializer(many=True, read_only=True)
+    emi_schedule = EMIScheduleSerializer(read_only=True)
     due = serializers.DecimalField(max_digits=14, decimal_places=2, read_only=True)
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)
     bill_name = serializers.SerializerMethodField()
@@ -93,7 +103,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone",
             "branch", "sale_date",
             "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
-            "note", "items", "payments", "created_at", "public_invoice_url",
+            "note", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
         ]
         read_only_fields = fields
 
