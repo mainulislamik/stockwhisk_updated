@@ -14,12 +14,23 @@ class TutorialVideo(TimeStampedModel):
     """A help/tutorial video managed platform-wide by super admins and shown to
     every shop on their dashboard, ordered by ``sequence`` (serial number)."""
 
+    class TargetAudience(models.TextChoices):
+        BOTH = "both", "Both"
+        SHOP = "shop", "Shop Only"
+        RESELLER = "reseller", "Reseller Only"
+
     title = models.CharField(max_length=200)
     youtube_url = models.URLField(help_text="Full YouTube link (watch, youtu.be, or embed).")
     sequence = models.PositiveIntegerField(
         default=1, db_index=True, help_text="Play order — lower numbers show first."
     )
     is_active = models.BooleanField(default=True)
+    target_audience = models.CharField(
+        max_length=15, 
+        choices=TargetAudience.choices, 
+        default=TargetAudience.BOTH,
+        help_text="Who should see this tutorial?"
+    )
 
     class Meta:
         ordering = ["sequence", "id"]

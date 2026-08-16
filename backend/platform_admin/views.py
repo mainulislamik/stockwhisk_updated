@@ -1212,7 +1212,7 @@ class TutorialVideoSerializer(serializers.ModelSerializer):
     class Meta:
         model = TutorialVideo
         fields = ["id", "title", "youtube_url", "sequence", "is_active",
-                  "video_id", "thumbnail_url", "embed_url"]
+                  "target_audience", "video_id", "thumbnail_url", "embed_url"]
         read_only_fields = ["id", "video_id", "thumbnail_url", "embed_url"]
 
     def validate(self, attrs):

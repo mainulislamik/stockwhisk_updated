@@ -13,6 +13,7 @@ type Video = {
   youtube_url: string;
   sequence: number;
   is_active: boolean;
+  target_audience: "both" | "shop" | "reseller";
   thumbnail_url: string;
   embed_url: string;
 };
@@ -20,7 +21,7 @@ type Video = {
 export default function TutorialsPage() {
   const [videos, setVideos] = useState<Video[] | null>(null);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", youtube_url: "", sequence: "" });
+  const [form, setForm] = useState({ title: "", youtube_url: "", sequence: "", target_audience: "both" as "both" | "shop" | "reseller" });
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<Video | null>(null);
   const [playing, setPlaying] = useState<Video | null>(null);
@@ -38,9 +39,9 @@ export default function TutorialsPage() {
     try {
       await api("/platform/tutorials/", {
         method: "POST",
-        body: { title: form.title, youtube_url: form.youtube_url, sequence: form.sequence ? Number(form.sequence) : 0, is_active: true },
+        body: { title: form.title, youtube_url: form.youtube_url, sequence: form.sequence ? Number(form.sequence) : 0, is_active: true, target_audience: form.target_audience },
       });
-      setForm({ title: "", youtube_url: "", sequence: "" });
+      setForm({ title: "", youtube_url: "", sequence: "", target_audience: "both" });
       await load();
     } catch (e: any) {
       toast.error(e?.data?.youtube_url || e?.data?.detail || e?.message || "Could not add video.");
@@ -52,7 +53,7 @@ export default function TutorialsPage() {
     try {
       await api(`/platform/tutorials/${editing.id}/`, {
         method: "PATCH",
-        body: { title: editing.title, youtube_url: editing.youtube_url, sequence: editing.sequence, is_active: editing.is_active },
+        body: { title: editing.title, youtube_url: editing.youtube_url, sequence: editing.sequence, is_active: editing.is_active, target_audience: editing.target_audience },
       });
       setEditing(null);
       await load();
@@ -109,7 +110,15 @@ export default function TutorialsPage() {
             <input className="form-control" required placeholder="https://youtu.be/…" value={form.youtube_url} onChange={(e) => setForm((f) => ({ ...f, youtube_url: e.target.value }))} />
           </div>
           <div className="col-md-2">
-            <label className="form-label small fw-medium">Sequence #</label>
+            <label className="form-label small fw-medium">Audience</label>
+            <select className="form-select" value={form.target_audience} onChange={(e) => setForm(f => ({...f, target_audience: e.target.value as any}))}>
+              <option value="both">Both</option>
+              <option value="shop">Shop Only</option>
+              <option value="reseller">Reseller Only</option>
+            </select>
+          </div>
+          <div className="col-md-1">
+            <label className="form-label small fw-medium">Seq #</label>
             <input className="form-control" placeholder="auto" value={form.sequence} onChange={(e) => setForm((f) => ({ ...f, sequence: e.target.value }))} />
           </div>
           <div className="col-md-1"><button className="btn btn-brand w-100" disabled={busy}>Add</button></div>
@@ -121,7 +130,7 @@ export default function TutorialsPage() {
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-4">
-              <tr><th>Seq</th><th>Preview</th><th>Title</th><th>Link</th><th>Active</th><th className="text-end">Actions</th></tr>
+              <tr><th>Seq</th><th>Preview</th><th>Title / Link</th><th>Audience</th><th>Active</th><th className="text-end">Actions</th></tr>
             </thead>
             <tbody>
               {videos.length === 0 && <EmptyRow cols={6} text="No tutorials yet." />}
@@ -129,8 +138,18 @@ export default function TutorialsPage() {
                 editing?.id === v.id ? (
                   <tr key={v.id} className="table-light">
                     <td><input className="form-control form-control-sm" style={{ width: 64 }} type="number" value={editing.sequence} onChange={(e) => setEditing({ ...editing, sequence: Number(e.target.value) })} /></td>
-                    <td colSpan={2}><input className="form-control form-control-sm" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} /></td>
-                    <td><input className="form-control form-control-sm" value={editing.youtube_url} onChange={(e) => setEditing({ ...editing, youtube_url: e.target.value })} /></td>
+                    <td>—</td>
+                    <td>
+                      <input className="form-control form-control-sm mb-1" value={editing.title} onChange={(e) => setEditing({ ...editing, title: e.target.value })} />
+                      <input className="form-control form-control-sm" value={editing.youtube_url} onChange={(e) => setEditing({ ...editing, youtube_url: e.target.value })} />
+                    </td>
+                    <td>
+                      <select className="form-select form-select-sm" value={editing.target_audience} onChange={(e) => setEditing({ ...editing, target_audience: e.target.value as any})}>
+                        <option value="both">Both</option>
+                        <option value="shop">Shop Only</option>
+                        <option value="reseller">Reseller Only</option>
+                      </select>
+                    </td>
                     <td><input type="checkbox" className="form-check-input" checked={editing.is_active} onChange={(e) => setEditing({ ...editing, is_active: e.target.checked })} /></td>
                     <td className="text-end">
                       <div className="d-flex gap-2 justify-content-end">
@@ -143,8 +162,15 @@ export default function TutorialsPage() {
                   <tr key={v.id}>
                     <td>{v.sequence}</td>
                     <td>{v.thumbnail_url ? <img src={v.thumbnail_url} alt="" style={{ width: 80, borderRadius: 4, cursor: "pointer" }} onClick={() => setPlaying(v)} /> : "—"}</td>
-                    <td className="fw-semibold"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-decoration-none text-dark">{v.title}</a></td>
-                    <td className="small"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-break">{v.youtube_url}</a></td>
+                    <td>
+                      <div className="fw-semibold"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-decoration-none text-dark">{v.title}</a></div>
+                      <div className="small"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-break">{v.youtube_url}</a></div>
+                    </td>
+                    <td>
+                      {v.target_audience === 'both' && <span className="badge bg-success bg-opacity-10 text-success border border-success fw-semibold">Both</span>}
+                      {v.target_audience === 'shop' && <span className="badge bg-primary bg-opacity-10 text-primary border border-primary fw-semibold">Shop Only</span>}
+                      {v.target_audience === 'reseller' && <span className="badge bg-warning bg-opacity-10 text-warning border border-warning fw-semibold">Reseller Only</span>}
+                    </td>
                     <td>{v.is_active ? <span className="badge text-bg-success">On</span> : <span className="badge text-bg-secondary">Off</span>}</td>
                     <td className="text-end">
                       <div className="d-flex gap-2 justify-content-end">

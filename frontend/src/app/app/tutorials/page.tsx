@@ -9,7 +9,8 @@ type TutorialVideo = {
   title: string;
   youtube_url: string;
   sequence: number;
-  video_id: string;
+  is_active: boolean;
+  target_audience?: string;
   thumbnail_url: string;
   embed_url: string;
 };

@@ -325,8 +325,22 @@ class TutorialsView(APIView):
 
     def get(self, request):
         from platform_admin.models import TutorialVideo
+        # Determine if the user is a reseller
+        profile = getattr(request.user, "reseller_profile", None)
+        is_reseller = bool(profile and profile.status == "active")
+        
+        # Filter based on role
+        if is_reseller:
+            allowed_audiences = ["both", "reseller"]
+        else:
+            allowed_audiences = ["both", "shop"]
+
         # We use a simple dict response to avoid creating a new serializer just for this
-        videos = TutorialVideo.objects.filter(is_active=True).order_by("sequence", "id")
+        videos = TutorialVideo.objects.filter(
+            is_active=True,
+            target_audience__in=allowed_audiences
+        ).order_by("sequence", "id")
+        
         data = []
         for v in videos:
             data.append({
@@ -334,6 +348,7 @@ class TutorialsView(APIView):
                 "title": v.title,
                 "youtube_url": v.youtube_url,
                 "sequence": v.sequence,
+                "target_audience": v.target_audience,
                 "video_id": v.video_id,
                 "thumbnail_url": v.thumbnail_url,
                 "embed_url": v.embed_url,
