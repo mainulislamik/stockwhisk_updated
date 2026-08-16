@@ -67,6 +67,7 @@ export default function ShopDetailsPage() {
   const [planId, setPlanId] = useState<string>("");
   const [days, setDays] = useState<string>("30");
   const [amount, setAmount] = useState<string>("");
+  const [showTrialChoice, setShowTrialChoice] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -84,13 +85,14 @@ export default function ShopDetailsPage() {
     }
   }, [id]);
 
-  const grantPlan = useCallback(async () => {
+  const grantPlan = useCallback(async (stack: boolean) => {
     if (!shop) return;
+    setShowTrialChoice(false);
     setBusy(true);
     try {
       const res = await api<{ invoice_number: string }>(
         `/platform/shops/${shop.id}/grant-plan/`,
-        { method: "POST", body: { plan: planId || undefined, days: parseInt(days) || 30, amount: amount || 0, cycle: "monthly" } }
+        { method: "POST", body: { plan: planId || undefined, days: parseInt(days) || 30, amount: amount || 0, cycle: "monthly", add_remaining: stack } }
       );
       toast.success(`Plan activated — invoice ${res.invoice_number} emailed to the owner.`);
       await load();
@@ -100,6 +102,14 @@ export default function ShopDetailsPage() {
       setBusy(false);
     }
   }, [shop, planId, days, amount, load]);
+
+  // On-trial shops: clicking Activate asks whether to keep the remaining trial
+  // days on top of the paid plan, or start the paid period fresh.
+  const onActivateClick = useCallback(() => {
+    if (!shop) return;
+    if (shop.subscription?.state === "trial") { setShowTrialChoice(true); return; }
+    grantPlan(true);
+  }, [shop, grantPlan]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -373,7 +383,7 @@ export default function ShopDetailsPage() {
                 <input type="number" min={0} className="form-control" placeholder="0" value={amount} onChange={(e) => setAmount(e.target.value)} />
               </div>
 
-              <button className="btn btn-success w-100 rounded-3" onClick={grantPlan} disabled={busy || !planId}>
+              <button className="btn btn-success w-100 rounded-3" onClick={onActivateClick} disabled={busy || !planId}>
                 {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-check2-circle me-2" />}
                 {shop.subscription?.state === "paid" ? "Renew / Extend" : "Activate Plan"}
               </button>
@@ -443,6 +453,31 @@ export default function ShopDetailsPage() {
 
         </div>
       </div>
+
+      {/* Trial-day choice when activating a plan on a trialing shop */}
+      {showTrialChoice && shop && (
+        <div className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+          style={{ zIndex: 100000, background: "rgba(0,0,0,.55)" }} onClick={() => setShowTrialChoice(false)}>
+          <div className="bg-body rounded-4 shadow-lg p-4" style={{ maxWidth: 460 }} onClick={(e) => e.stopPropagation()}>
+            <h5 className="fw-bold mb-2">Activate plan</h5>
+            <p className="text-secondary mb-3">
+              This shop still has <b>{shop.subscription?.days_left ?? 0} trial day(s)</b> left.
+              How should the {parseInt(days) || 30}-day plan start?
+            </p>
+            <div className="vstack gap-2">
+              <button className="btn btn-success text-start p-3 rounded-3" disabled={busy} onClick={() => grantPlan(true)}>
+                <div className="fw-semibold"><i className="bi bi-plus-circle me-2"></i>Add trial days on top</div>
+                <div className="small opacity-75">Keep the remaining trial — the plan starts after it ends (extend).</div>
+              </button>
+              <button className="btn btn-outline-primary text-start p-3 rounded-3" disabled={busy} onClick={() => grantPlan(false)}>
+                <div className="fw-semibold"><i className="bi bi-calendar-check me-2"></i>Start fresh — {parseInt(days) || 30} days from today</div>
+                <div className="small opacity-75">Ignore the remaining trial; the paid period begins now.</div>
+              </button>
+              <button className="btn btn-link text-secondary" disabled={busy} onClick={() => setShowTrialChoice(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

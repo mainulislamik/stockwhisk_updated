@@ -384,9 +384,12 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         if not end_date and not days:
             days = 365 if cycle == "yearly" else 30
 
+        # stack=True (default): keep remaining trial/paid days on top; False:
+        # start the paid period fresh from today (discard remaining trial).
+        stack = request.data.get("add_remaining", request.data.get("stack", True))
         sub, invoice = grant_or_extend_plan(
             shop=shop, plan=plan, days=days, end_date=end_date,
-            amount=amount, cycle=cycle, reviewer=request.user,
+            amount=amount, cycle=cycle, reviewer=request.user, stack=bool(stack),
         )
         record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
                description=f"Activated {plan.name} plan until {sub.current_period_end:%Y-%m-%d} "

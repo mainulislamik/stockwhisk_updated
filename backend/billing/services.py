@@ -132,14 +132,17 @@ def reject_payment(*, payment, reviewer, reason):
 
 @transaction.atomic
 def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
-                         cycle=Subscription.Cycle.MONTHLY, reviewer=None):
+                         cycle=Subscription.Cycle.MONTHLY, reviewer=None, stack=True):
     """
     Super Admin directly activates (or renews) a paid plan for a shop — no owner
-    payment submission. Renewing before expiry STACKS: new time is added on top
-    of the remaining period. Marks a PAID invoice and emails the owner.
+    payment submission. Marks a PAID invoice and emails the owner.
 
-    Pass either ``days`` (added to the remaining period) or an explicit
-    ``end_date`` (a timezone-aware datetime).
+    ``stack`` (default True): new time is added on top of any remaining
+    period/trial (renew-before-expiry keeps the leftover days). When False, the
+    paid period starts fresh from today and any remaining trial is discarded.
+
+    Pass either ``days`` (length of the new period) or an explicit ``end_date``
+    (a timezone-aware datetime).
     """
     now = timezone.now()
     sub = Subscription.objects.filter(shop=shop, is_current=True).first()
@@ -150,8 +153,8 @@ def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
             current_period_start=now, current_period_end=now, is_current=True,
         )
 
-    # Stack on any remaining time (renew before expiry adds extra days).
-    base = sub.current_period_end if (sub.current_period_end and sub.current_period_end > now) else now
+    # Stack on remaining time only when asked; otherwise start the paid period now.
+    base = sub.current_period_end if (stack and sub.current_period_end and sub.current_period_end > now) else now
     new_end = end_date if end_date is not None else base + timedelta(days=int(days or 0))
 
     sub.plan = plan
