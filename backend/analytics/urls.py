@@ -9,6 +9,7 @@ from .views import (
     InventoryAnalyticsView,
     ProductPerformanceView,
     SalesByCategoryView,
+    SalesOverviewView,
     SalesRollupView,
     TopProductsView,
 )
@@ -16,6 +17,7 @@ from .views import (
 urlpatterns = [
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
     path("dashboard-comprehensive/", DashboardComprehensiveView.as_view(), name="dashboard-comprehensive"),
+    path("sales-overview/", SalesOverviewView.as_view(), name="sales-overview"),
     path("inventory/", InventoryAnalyticsView.as_view(), name="inventory-analytics"),
     path("dead-stock/", DeadStockView.as_view(), name="dead-stock"),
     path("sales-rollup/", SalesRollupView.as_view(), name="sales-rollup"),

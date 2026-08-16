@@ -181,6 +181,48 @@ def sales_rollups(shop):
     return out
 
 
+def sales_overview(shop):
+    """The 8 headline sales KPIs for the report page (total / this-month /
+    today / last-month × sales-amount & order-count).
+
+    Sales amount reuses ``accounting.profit_summary`` so every card matches the
+    dashboard "Revenue" exactly (revenue = Σ item subtotals − invoice discounts
+    over non-cancelled sales). Order count = non-cancelled sales in the period.
+    All queries are shop-scoped by ``shop.id`` (tenant isolation). Calendar
+    months use the app timezone; "last month" is the full previous calendar
+    month, not a rolling 30 days.
+    """
+    from accounting.services import profit_summary
+
+    now = timezone.now()
+    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    month_start = today_start.replace(day=1)
+    last_month_start = month_start - relativedelta(months=1)
+    last_month_end = month_start - timedelta(seconds=1)  # inclusive end of prev month
+
+    def _orders(start, end):
+        qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+        if start is not None:
+            qs = qs.filter(sale_date__gte=start)
+        if end is not None:
+            qs = qs.filter(sale_date__lte=end)
+        return qs.count()
+
+    def _sales(start, end):
+        return profit_summary(shop, start=start, end=end)["revenue"]
+
+    return {
+        "total_sales": _sales(None, None),
+        "total_orders": _orders(None, None),
+        "this_month_sales": _sales(month_start, now),
+        "this_month_orders": _orders(month_start, now),
+        "today_sales": _sales(today_start, now),
+        "today_orders": _orders(today_start, now),
+        "last_month_sales": _sales(last_month_start, last_month_end),
+        "last_month_orders": _orders(last_month_start, last_month_end),
+    }
+
+
 def weekly_sales_trend(shop, weeks=12):
     start = timezone.now() - timedelta(weeks=weeks)
     return list(

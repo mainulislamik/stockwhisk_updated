@@ -15,6 +15,12 @@ type TopProduct = { product_id: number; product__name: string; qty: string; reve
 type CategorySale = { product__category__name: string | null; revenue: string };
 type RecentTransaction = { id: number; invoice_number: string; created_at: string; total: number; payment_method: string; customer_name: string };
 type LowStock = { id: number; name: string; sku: string; current_stock: number; reorder_level: number };
+type SalesOverview = {
+  total_sales: string; total_orders: number;
+  this_month_sales: string; this_month_orders: number;
+  today_sales: string; today_orders: number;
+  last_month_sales: string; last_month_orders: number;
+};
 
 type DashboardData = {
   trend: DayTrend[];
@@ -32,6 +38,7 @@ type DashboardData = {
 
 export default function ReportsPage() {
   const [data, setData] = useState<DashboardData | null>(null);
+  const [overview, setOverview] = useState<SalesOverview | null>(null);
   const [reports, setReports] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,14 +62,16 @@ export default function ReportsPage() {
   useEffect(() => {
     (async () => {
       try {
-        const [dash, rep] = await Promise.all([
+        const [dash, rep, ov] = await Promise.all([
           api<DashboardData>("/analytics/dashboard-comprehensive/", { params: { days: 30 } }),
           api<{ reports: string[] }>("/reports/").catch(() => ({ reports: [] })),
+          api<SalesOverview>("/analytics/sales-overview/").catch(() => null),
         ]);
         if ((dash as any).error) {
           throw new Error((dash as any).error);
         }
         setData(dash);
+        setOverview(ov);
         setReports((rep as any).reports || []);
       } catch (e: any) {
         setError(e?.message || "Failed to load reports");
@@ -225,8 +234,46 @@ export default function ReportsPage() {
   if (error) return <ErrorState error={error} />;
   if (!data) return null;
 
+  const overviewCards = overview ? [
+    { icon: "bi-cash-stack", label: "Total Sales", value: money(overview.total_sales), accent: "primary" },
+    { icon: "bi-receipt", label: "Total Orders", value: Number(overview.total_orders).toLocaleString(), accent: "info" },
+    { icon: "bi-calendar3", label: "This Month Sales", value: money(overview.this_month_sales), accent: "primary" },
+    { icon: "bi-calendar-check", label: "This Month Orders", value: Number(overview.this_month_orders).toLocaleString(), accent: "info" },
+    { icon: "bi-cash-coin", label: "Today's Sales", value: money(overview.today_sales), accent: "success" },
+    { icon: "bi-bag-check", label: "Today's Orders", value: Number(overview.today_orders).toLocaleString(), accent: "success" },
+    { icon: "bi-clock-history", label: "Last Month's Sales", value: money(overview.last_month_sales), accent: "secondary" },
+    { icon: "bi-archive", label: "Last Month's Orders", value: Number(overview.last_month_orders).toLocaleString(), accent: "secondary" },
+  ] : [];
+
   return (
     <div className="vstack gap-4">
+      {/* Sales Overview — headline KPI cards */}
+      <section aria-labelledby="sales-overview-heading">
+        <h2 id="sales-overview-heading" className="h5 fw-bold mb-3">Sales Overview</h2>
+        {!overview ? (
+          <div className="text-secondary small">Unable to load the sales overview. Please refresh the page.</div>
+        ) : (
+          <div className="row g-3">
+            {overviewCards.map((c) => (
+              <div key={c.label} className="col-12 col-sm-6 col-xl-3">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body d-flex align-items-center gap-3">
+                    <span className={`d-inline-flex align-items-center justify-content-center rounded-3 bg-${c.accent} bg-opacity-10 text-${c.accent}`}
+                          style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                      <i className={`bi ${c.icon} fs-5`}></i>
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="small text-secondary text-truncate">{c.label}</div>
+                      <div className="fs-4 fw-bold text-body lh-1 mt-1">{c.value}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Financial Metrics Summary */}
       <div className="row g-3">
         <div className="col-12 col-md-3">

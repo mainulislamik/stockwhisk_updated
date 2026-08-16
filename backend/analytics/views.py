@@ -40,6 +40,12 @@ class DashboardComprehensiveView(_AnalyticsBase):
         return Response(services.dashboard_comprehensive(self.shop, days=days))
 
 
+class SalesOverviewView(_AnalyticsBase):
+    """The 8 headline sales KPIs for the report page (shop-scoped)."""
+    def get(self, request):
+        return Response(services.sales_overview(self.shop))
+
+
 class InventoryAnalyticsView(_AnalyticsBase):
     required_perm = "view_inventory"
 
