@@ -15,10 +15,12 @@ class Command(BaseCommand):
             
             if unit_count > current:
                 excess = unit_count - max(current, 0)
-                # Delete oldest excess units
                 excess_ids = list(in_stock_units.values_list('id', flat=True)[:excess])
-                ProductUnit.all_objects.filter(id__in=excess_ids).delete()
-                self.stdout.write(f"Fixed {p.name}: deleted {excess} excess units.")
+                # Mark as sold instead of deleting to avoid any foreign key issues
+                ProductUnit.all_objects.filter(id__in=excess_ids).update(status=ProductUnit.Status.SOLD)
+                self.stdout.write(f"Fixed {p.name} (ID: {p.id}): marked {excess} excess units as SOLD. (was {unit_count}, target {max(current, 0)})")
                 fixed += 1
+            elif unit_count < current:
+                self.stdout.write(f"Notice: {p.name} (ID: {p.id}) has {current} current_stock but only {unit_count} IN_STOCK units. We cannot create missing units because they need valid barcodes.")
                 
         self.stdout.write(self.style.SUCCESS(f"Successfully synced units for {fixed} products."))
