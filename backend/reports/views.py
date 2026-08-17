@@ -2,20 +2,14 @@
 from django.utils.dateparse import parse_datetime
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from decimal import Decimal
 
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
+from django.db.models import Q
 
 from .datasets import BUILDERS
 from .exporters import export
-
-from rest_framework.pagination import PageNumberPagination
-from django.db.models import F, Value, CharField, DecimalField, IntegerField, Q
-from django.db.models.functions import Cast, Coalesce
-from django.db.models import DateField
-from decimal import Decimal
-from sales.models import SaleItem
-from service.models import ServiceTicketPart, ServiceTicket
 
 
 class ReportExportView(APIView):
@@ -52,82 +46,124 @@ class ReportCatalogView(APIView):
     def get(self, request):
         return Response({"reports": sorted(BUILDERS), "formats": ["csv", "excel", "pdf"]})
 
+
 class SellingDetailsView(APIView):
+    """Unified cash-flow: POS sale items + delivered repair ticket parts + service charges.
+    Uses Python-level merging (not DB UNION) to avoid type-mismatch 500 errors across
+    different database engines.
+    """
     permission_classes = [IsTenantMember]
 
     def get(self, request):
+        from sales.models import SaleItem
+        from service.models import ServiceTicketPart, ServiceTicket
+
         shop = getattr(request.user, "shop", None)
-        search = request.query_params.get("search", "")
-        
-        q1 = SaleItem.objects.filter(sale__shop=shop).annotate(
-            record_type=Value("sale", CharField()),
-            ref_id=F("sale__id"),
-            invoice=Coalesce(F("sale__invoice_no"), Value("", CharField())),
-            customer=Coalesce(F("sale__customer_name"), Value("Walk-in", CharField())),
-            date=Cast("sale__sale_date", DateField()),
-            pname=Coalesce(F("product__name"), Value("", CharField())),
-            qty=Cast("quantity", DecimalField()),
-            price=Cast("unit_price", DecimalField()),
-            disc=Cast("discount", DecimalField()),
-            sub=Cast("subtotal", DecimalField()),
-        ).values("record_type", "ref_id", "invoice", "customer", "date", "pname", "qty", "price", "disc", "sub")
+        search = request.query_params.get("search", "").strip()
+
+        rows = []
+
+        # ---- 1. POS Sale Items -----------------------------------------------
+        sale_items = SaleItem.objects.filter(
+            sale__shop=shop
+        ).select_related("sale", "product").order_by("-sale__sale_date", "-sale__id")
 
         if search:
-            q1 = q1.filter(
-                Q(invoice__icontains=search) | 
-                Q(customer__icontains=search) | 
-                Q(pname__icontains=search)
+            sale_items = sale_items.filter(
+                Q(sale__invoice_no__icontains=search) |
+                Q(sale__customer_name__icontains=search) |
+                Q(product__name__icontains=search)
             )
 
-        q2 = ServiceTicketPart.objects.filter(ticket__shop=shop, ticket__status="delivered").annotate(
-            record_type=Value("ticket", CharField()),
-            ref_id=F("ticket__id"),
-            invoice=Coalesce(F("ticket__ticket_no"), Value("", CharField())),
-            customer=Coalesce(F("ticket__customer_name"), Value("Walk-in", CharField())),
-            date=Cast("ticket__updated_at", DateField()),
-            pname=Coalesce(F("product__name"), Value("", CharField())),
-            qty=Cast("quantity", DecimalField()),
-            price=Cast("unit_price", DecimalField()),
-            disc=Value(Decimal("0"), DecimalField()),
-            sub=Cast(F("quantity") * F("unit_price"), DecimalField()),
-        ).values("record_type", "ref_id", "invoice", "customer", "date", "pname", "qty", "price", "disc", "sub")
+        for si in sale_items:
+            rows.append({
+                "record_type": "sale",
+                "ref_id": si.sale_id,
+                "invoice": si.sale.invoice_no or f"#{si.sale_id}",
+                "customer": si.sale.customer_name or "Walk-in",
+                "date": str(si.sale.sale_date)[:10] if si.sale.sale_date else "",
+                "pname": si.product.name if si.product else "",
+                "qty": si.quantity,
+                "price": si.unit_price,
+                "disc": si.discount,
+                "sub": si.subtotal,
+            })
+
+        # ---- 2. Delivered Ticket Parts ---------------------------------------
+        ticket_parts = ServiceTicketPart.objects.filter(
+            ticket__shop=shop, ticket__status="delivered"
+        ).select_related("ticket", "product").order_by("-ticket__updated_at", "-ticket__id")
 
         if search:
-            q2 = q2.filter(
-                Q(invoice__icontains=search) | 
-                Q(customer__icontains=search) | 
-                Q(pname__icontains=search)
+            ticket_parts = ticket_parts.filter(
+                Q(ticket__ticket_no__icontains=search) |
+                Q(ticket__customer_name__icontains=search) |
+                Q(product__name__icontains=search)
             )
 
-        q3 = ServiceTicket.objects.filter(shop=shop, status="delivered", service_charge__gt=0).annotate(
-            record_type=Value("ticket", CharField()),
-            ref_id=F("id"),
-            invoice=Coalesce(F("ticket_no"), Value("", CharField())),
-            customer=Coalesce(F("customer_name"), Value("Walk-in", CharField())),
-            date=Cast("updated_at", DateField()),
-            pname=Value("Service Charge", CharField()),
-            qty=Value(Decimal("1"), DecimalField()),
-            price=Cast("service_charge", DecimalField()),
-            disc=Coalesce(Cast("discount", DecimalField()), Value(Decimal("0"), DecimalField())),
-            sub=Cast(F("service_charge") - Coalesce(F("discount"), Value(Decimal("0"), DecimalField())), DecimalField()),
-        ).values("record_type", "ref_id", "invoice", "customer", "date", "pname", "qty", "price", "disc", "sub")
+        for tp in ticket_parts:
+            rows.append({
+                "record_type": "ticket",
+                "ref_id": tp.ticket_id,
+                "invoice": tp.ticket.ticket_no or f"#{tp.ticket_id}",
+                "customer": tp.ticket.customer_name or "Walk-in",
+                "date": str(tp.ticket.updated_at)[:10] if tp.ticket.updated_at else "",
+                "pname": tp.product.name if tp.product else "",
+                "qty": tp.quantity,
+                "price": tp.unit_price,
+                "disc": Decimal("0"),
+                "sub": (tp.quantity or Decimal("0")) * (tp.unit_price or Decimal("0")),
+            })
+
+        # ---- 3. Delivered Ticket Service Charges ----------------------------
+        tickets_with_svc = ServiceTicket.objects.filter(
+            shop=shop, status="delivered", service_charge__gt=0
+        ).order_by("-updated_at", "-id")
 
         if search:
-            q3 = q3.filter(
-                Q(invoice__icontains=search) | 
-                Q(customer__icontains=search)
+            tickets_with_svc = tickets_with_svc.filter(
+                Q(ticket_no__icontains=search) |
+                Q(customer_name__icontains=search)
             )
 
-        combined = q1.union(q2, q3).order_by("-date", "-ref_id")
+        for t in tickets_with_svc:
+            svc = t.service_charge or Decimal("0")
+            disc = t.discount or Decimal("0")
+            rows.append({
+                "record_type": "ticket",
+                "ref_id": t.id,
+                "invoice": t.ticket_no or f"#{t.id}",
+                "customer": t.customer_name or "Walk-in",
+                "date": str(t.updated_at)[:10] if t.updated_at else "",
+                "pname": "Service Charge",
+                "qty": Decimal("1"),
+                "price": svc,
+                "disc": disc,
+                "sub": max(Decimal("0"), svc - disc),
+            })
 
-        paginator = PageNumberPagination()
-        paginator.page_size = 25
-        page = paginator.paginate_queryset(combined, request)
-        
-        # We can format it similarly to the frontend's flattened row format:
-        # { saleId: number; invoice: string; customer: string; date: string; item: { product_name, quantity, unit_price, discount, subtotal } }
+        # ---- Sort newest first -----------------------------------------------
+        rows.sort(key=lambda r: (r["date"], r["ref_id"]), reverse=True)
+
+        # ---- Python pagination -----------------------------------------------
+        try:
+            page_num = int(request.query_params.get("page", 1))
+        except (ValueError, TypeError):
+            page_num = 1
+        try:
+            page_size = int(request.query_params.get("page_size", 25))
+        except (ValueError, TypeError):
+            page_size = 25
+
+        total = len(rows)
+        start_idx = (page_num - 1) * page_size
+        end_idx = start_idx + page_size
+        page_rows = rows[start_idx:end_idx]
+
+        # ---- Format for frontend ---------------------------------------------
         formatted = []
-        for row in page:
+        for i, row in enumerate(page_rows):
+            unique_key = f"{row['record_type']}-{row['ref_id']}-{row['pname']}-{start_idx + i}"
             formatted.append({
                 "saleId": row["ref_id"],
                 "type": row["record_type"],
@@ -135,13 +171,25 @@ class SellingDetailsView(APIView):
                 "customer": row["customer"],
                 "date": row["date"],
                 "item": {
-                    "id": f"{row['record_type']}-{row['ref_id']}-{row['pname']}",
+                    "id": unique_key,
                     "product_name": row["pname"],
                     "quantity": str(row["qty"]),
                     "unit_price": str(row["price"]),
                     "discount": str(row["disc"]),
                     "subtotal": str(row["sub"]),
-                }
+                },
             })
 
-        return paginator.get_paginated_response(formatted)
+        base_url = request.build_absolute_uri(request.path)
+        qs = request.query_params.copy()
+
+        def make_url(p):
+            qs["page"] = str(p)
+            return f"{base_url}?{'&'.join(f'{k}={v}' for k, v in qs.items())}"
+
+        return Response({
+            "count": total,
+            "next": make_url(page_num + 1) if end_idx < total else None,
+            "previous": make_url(page_num - 1) if page_num > 1 else None,
+            "results": formatted,
+        })
