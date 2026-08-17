@@ -18,6 +18,7 @@ type Ticket = {
   complaint: string;
   status: string;
   service_charge: string;
+  discount?: string;
   received_at: string;
   estimated_delivery: string | null;
   is_overdue: boolean;

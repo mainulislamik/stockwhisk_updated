@@ -15,6 +15,7 @@ type Ticket = {
   complaint: string;
   status: string;
   service_charge: string;
+  discount?: string;
   is_overdue: boolean;
   received_at: string;
 };
