@@ -282,6 +282,7 @@ export default function ShopDataPage() {
                       placeholder="CLEAR SHOP DATA" 
                       value={confirmationText}
                       onChange={e => setConfirmationText(e.target.value)}
+                      autoComplete="off"
                       required
                     />
                   </div>
@@ -298,7 +299,7 @@ export default function ShopDataPage() {
                 </div>
                 <div className="modal-footer bg-light">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowClearModal(false)}>Cancel</button>
-                  <button type="submit" className="btn btn-danger fw-semibold" disabled={busy || confirmationText !== "CLEAR SHOP DATA" || !password}>
+                  <button type="submit" className="btn btn-danger fw-semibold" disabled={busy || !password}>
                     {busy ? <Spinner /> : "Execute Clear Operation"}
                   </button>
                 </div>
