@@ -10,7 +10,7 @@ import Link from "next/link";
 
 type Product = { id: number; name: string; selling_price: string; current_stock: string; };
 type SaleItem = { id: number; product_id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; };
-type Sale = { id: number; invoice_no: string; sale_date: string; discount: string; tax: string; delivery_charge: string; paid: string; customer_name: string; customer_phone: string; customer_address: string; items: SaleItem[]; status: string; returns?: any[] };
+type Sale = { id: number; invoice_no: string; sale_date: string; discount: string; tax: string; delivery_charge: string; paid: string; bill_name: string; bill_phone: string; bill_address: string; items: SaleItem[]; status: string; returns?: any[] };
 
 type CartItem = {
     product_id: number;
@@ -74,9 +74,9 @@ export default function EditInvoicePage() {
                 setSaleDiscount(Number(data.discount));
                 setSaleTax(Number(data.tax || 0));
                 setSaleDelivery(Number(data.delivery_charge || 0));
-                setCustomerName(data.customer_name || "");
-                setCustomerPhone(data.customer_phone || "");
-                setCustomerAddress(data.customer_address || "");
+                setCustomerName(data.bill_name && data.bill_name !== "Walk-in customer" ? data.bill_name : "");
+                setCustomerPhone(data.bill_phone || "");
+                setCustomerAddress(data.bill_address || "");
                 
                 const initialCart: CartItem[] = data.items.map(item => ({
                     product_id: item.product_id,

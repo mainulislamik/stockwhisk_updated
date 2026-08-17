@@ -83,6 +83,7 @@ class SaleSerializer(serializers.ModelSerializer):
     customer_name = serializers.CharField(source="customer.name", read_only=True, default=None)
     bill_name = serializers.SerializerMethodField()
     bill_phone = serializers.SerializerMethodField()
+    bill_address = serializers.SerializerMethodField()
     public_invoice_url = serializers.SerializerMethodField()
 
     def get_bill_name(self, obj):
@@ -90,6 +91,9 @@ class SaleSerializer(serializers.ModelSerializer):
 
     def get_bill_phone(self, obj):
         return obj.bill_phone
+
+    def get_bill_address(self, obj):
+        return obj.bill_address
 
     def get_public_invoice_url(self, obj):
         from .views import invoice_token
@@ -100,7 +104,7 @@ class SaleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Sale
         fields = [
-            "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone",
+            "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone", "bill_address",
             "branch", "sale_date",
             "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
             "note", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
