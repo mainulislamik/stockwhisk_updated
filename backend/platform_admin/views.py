@@ -2201,19 +2201,22 @@ class ShopDataManagementViewSet(viewsets.ViewSet):
         if not request.user.check_password(password):
             return Response({"error": "Invalid superadmin password."}, status=status.HTTP_403_FORBIDDEN)
 
-        # Check for active operations on this shop
-        active_ops = ShopDataOperation.objects.filter(
-            shop_id=shop_id, 
-            status=ShopDataOperation.Status.STARTED
-        ).exists()
-        
-        if active_ops:
-            return Response({"error": "An operation is already running for this shop. Please wait."}, status=status.HTTP_409_CONFLICT)
+        try:
+            # Check for active operations on this shop
+            active_ops = ShopDataOperation.objects.filter(
+                shop_id=shop_id, 
+                status=ShopDataOperation.Status.STARTED
+            ).exists()
+            
+            if active_ops:
+                return Response({"error": "An operation is already running for this shop. Please wait."}, status=status.HTTP_409_CONFLICT)
 
-        # Dispatch Celery task
-        clear_shop_data_task.delay(shop_id, request.user.id)
-        
-        return Response({"message": "Data clear operation has been queued."})
+            # Dispatch Celery task
+            clear_shop_data_task.delay(shop_id, request.user.id)
+            
+            return Response({"message": "Data clear operation has been queued."})
+        except Exception as e:
+            return Response({"error": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @action(detail=False, methods=["post"])
     def restore(self, request):
@@ -2230,21 +2233,26 @@ class ShopDataManagementViewSet(viewsets.ViewSet):
             backup = ShopDataBackup.objects.get(id=backup_id)
         except ShopDataBackup.DoesNotExist:
             return Response({"error": "Backup not found."}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            return Response({"error": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        if backup.is_expired or backup.status == ShopDataBackup.Status.DELETED:
-            return Response({"error": "This backup has expired or been deleted."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            if backup.is_expired or backup.status == ShopDataBackup.Status.DELETED:
+                return Response({"error": "This backup has expired or been deleted."}, status=status.HTTP_400_BAD_REQUEST)
 
-        # Check for active operations on this shop
-        active_ops = ShopDataOperation.objects.filter(
-            shop_id=backup.shop_id, 
-            status=ShopDataOperation.Status.STARTED
-        ).exists()
-        
-        if active_ops:
-            return Response({"error": "An operation is already running for this shop. Please wait."}, status=status.HTTP_409_CONFLICT)
+            # Check for active operations on this shop
+            active_ops = ShopDataOperation.objects.filter(
+                shop_id=backup.shop_id, 
+                status=ShopDataOperation.Status.STARTED
+            ).exists()
+            
+            if active_ops:
+                return Response({"error": "An operation is already running for this shop. Please wait."}, status=status.HTTP_409_CONFLICT)
 
-        # Dispatch Celery task
-        restore_shop_data_task.delay(backup.id, request.user.id)
-        
-        return Response({"message": "Data restore operation has been queued."})
+            # Dispatch Celery task
+            restore_shop_data_task.delay(backup.id, request.user.id)
+            
+            return Response({"message": "Data restore operation has been queued."})
+        except Exception as e:
+            return Response({"error": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
