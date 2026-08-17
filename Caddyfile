@@ -23,7 +23,7 @@ stockwhisk.com, www.stockwhisk.com {
 	# page load pulls dozens of JS chunks, so a few quick reloads would otherwise
 	# blow a whole-site budget and get legit users 429'd (and bounced to login).
 	# A scripted flood against /api or /admin from one IP is still capped at 429.
-	@backend path /api/* /admin/*
+	@backend path /api/* /admin/* /ws/*
 	handle @backend {
 		rate_limit {
 			zone sw_backend {

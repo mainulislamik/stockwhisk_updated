@@ -15,6 +15,7 @@ export default function App() {
   
   // New state to toggle between Dashboard and Camera
   const [isScanning, setIsScanning] = useState(false);
+  const [lastScanned, setLastScanned] = useState({ data: null, time: 0 });
 
   // Removed the useEffect that caused an infinite permission request loop
 
@@ -46,7 +47,13 @@ export default function App() {
   };
 
   const handleBarCodeScanned = async ({ type, data }) => {
+    const now = Date.now();
+    // Debounce the exact same barcode for 3 seconds to prevent accidental double-scans
+    if (lastScanned.data === data && now - lastScanned.time < 3000) {
+      return; 
+    }
     setScanned(true);
+    setLastScanned({ data, time: now });
     try {
       const response = await fetch(`${API_BASE}/scanner/scan/`, {
         method: 'POST',
@@ -62,7 +69,7 @@ export default function App() {
     } catch (e) {
       Alert.alert('Network Error', e.message);
     }
-    // Resume scanning after 1 second
+    // Resume scanning for DIFFERENT barcodes after 1 second, but same barcode has a 3s cooldown
     setTimeout(() => setScanned(false), 1000);
   };
 

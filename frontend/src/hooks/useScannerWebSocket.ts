@@ -1,6 +1,8 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export function useScannerWebSocket(shopId: number | null | undefined, onScan: (barcode: string) => void) {
+  const [isConnected, setIsConnected] = useState(false);
+
   useEffect(() => {
     if (!shopId) return;
 
@@ -9,6 +11,9 @@ export function useScannerWebSocket(shopId: number | null | undefined, onScan: (
     const host = window.location.host;
     // Connect to Django Channels route
     const ws = new WebSocket(`${protocol}//${host}/ws/scanner/${shopId}/`);
+
+    ws.onopen = () => setIsConnected(true);
+    ws.onclose = () => setIsConnected(false);
 
     ws.onmessage = (event) => {
       try {
@@ -23,10 +28,13 @@ export function useScannerWebSocket(shopId: number | null | undefined, onScan: (
 
     ws.onerror = (error) => {
       console.error("Scanner WebSocket error", error);
+      setIsConnected(false);
     };
 
     return () => {
       ws.close();
     };
   }, [shopId, onScan]);
+
+  return { isConnected };
 }

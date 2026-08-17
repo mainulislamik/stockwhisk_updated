@@ -266,7 +266,7 @@ export default function PosPage() {
     }
   }, [shown, query, tryAdd, cart, debouncedQuery, gridLoading]);
 
-  useScannerWebSocket(user?.shop, (barcode) => {
+  const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop, (barcode) => {
     processCode(barcode);
   });
 
@@ -309,7 +309,15 @@ export default function PosPage() {
       <div className="row g-3">
         {/* ── Left panel ── */}
         <div className="col-lg-7 d-flex flex-column gap-3">
-          <div className="text-secondary small fw-semibold">{t("pos_step1")}</div>
+          <div className="d-flex align-items-center justify-content-between">
+            <div className="text-secondary small fw-semibold">{t("pos_step1")}</div>
+            <div className="small fw-semibold d-flex align-items-center gap-1">
+              <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
+              <span className={scannerConnected ? 'text-success' : 'text-secondary'}>
+                {scannerConnected ? "Scanner App Connected" : "Scanner App Disconnected"}
+              </span>
+            </div>
+          </div>
 
           {/* ── Scan / search input ── */}
           <div className="card shadow-sm border-brand">

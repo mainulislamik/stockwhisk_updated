@@ -48,7 +48,7 @@ export default function PurchaseProductPage() {
   const [qtyTouched, setQtyTouched] = useState(false);
 
   const { user } = useAuth();
-  useScannerWebSocket(user?.shop ?? undefined, (barcode) => {
+  const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop ?? undefined, (barcode) => {
     setBarcodeText((prev) => (prev ? `${prev}\n${barcode}` : barcode));
   });
 
@@ -338,6 +338,12 @@ export default function PurchaseProductPage() {
               <div>
                 <h1 className="h5 fw-bold mb-0">Purchase New Product</h1>
                 <div className="text-secondary small">Ingest new inventory and update stock levels.</div>
+              </div>
+              <div className="small fw-semibold d-flex align-items-center gap-1 bg-white px-3 py-1 rounded shadow-sm border border-light">
+                <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
+                <span className={scannerConnected ? 'text-success' : 'text-secondary'}>
+                  {scannerConnected ? "Scanner Connected" : "Scanner Disconnected"}
+                </span>
               </div>
               <div className="d-flex gap-2">
                 <button className="btn btn-outline-secondary btn-sm" onClick={() => router.back()}>Cancel</button>
