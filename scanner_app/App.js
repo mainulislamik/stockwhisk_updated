@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
   ActivityIndicator, StatusBar, Image, SafeAreaView, Platform, Dimensions
@@ -26,7 +26,7 @@ export default function App() {
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [lastScanned, setLastScanned] = useState({ data: null, time: 0 });
+  const lastScannedRef = useRef({ data: null, time: 0 });
   const [isInitializing, setIsInitializing] = useState(true);
   const [shopName, setShopName] = useState('');
 
@@ -159,11 +159,19 @@ export default function App() {
     }
 
     const now = Date.now();
-    if (lastScanned.data === data && now - lastScanned.time < 3000) {
-      return; 
+    const last = lastScannedRef.current;
+    
+    if (last.data === data) {
+      // If same barcode, require them to look away for at least 2.5 seconds
+      if (now - last.time < 2500) {
+        lastScannedRef.current = { data, time: now };
+        return; 
+      }
     }
+
+    lastScannedRef.current = { data, time: now };
     setScanned(true);
-    setLastScanned({ data, time: now });
+
     try {
       const response = await fetch(`${API_BASE}/scanner/scan/`, {
         method: 'POST',
