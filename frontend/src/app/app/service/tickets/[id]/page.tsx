@@ -55,6 +55,10 @@ export default function TicketDetailPage() {
   const [editingCharge, setEditingCharge] = useState(false);
   const [chargeVal, setChargeVal] = useState("");
 
+  // Edit discount state
+  const [editingDiscount, setEditingDiscount] = useState(false);
+  const [discountVal, setDiscountVal] = useState("");
+
   const [printMode, setPrintMode] = useState<"invoice" | "token">("invoice");
   const handlePrint = (mode: "invoice" | "token") => {
     setPrintMode(mode);
@@ -106,6 +110,7 @@ export default function TicketDetailPage() {
       setTicket(t);
       setStatus(t.status);
       setChargeVal(t.service_charge);
+      setDiscountVal(t.discount || "0");
     } catch (e: any) {
       setError(e?.message || "Failed to load ticket");
     } finally {
@@ -136,6 +141,20 @@ export default function TicketDetailPage() {
       toast.success("Service charge updated");
     } catch (e: any) {
       toast.error(e.message || "Failed to update charge");
+    }
+  };
+
+  const updateDiscount = async () => {
+    try {
+      const fresh = await api<Ticket>(`/service/tickets/${id}/`, {
+        method: "PATCH",
+        body: { discount: discountVal || "0" }
+      });
+      setTicket(fresh);
+      setEditingDiscount(false);
+      toast.success("Discount updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update discount");
     }
   };
 
@@ -319,6 +338,25 @@ export default function TicketDetailPage() {
                 <span className="text-secondary">Products &amp; parts</span>
                 <span>{money(ticket.parts_total)}</span>
               </div>
+              <div className="d-flex justify-content-between align-items-center mb-1 text-danger">
+                <span>Discount</span>
+                {editingDiscount ? (
+                  <div className="input-group input-group-sm" style={{ width: '130px' }}>
+                    <input type="number" step="0.01" className="form-control" value={discountVal} onChange={e => setDiscountVal(e.target.value)} />
+                    <button className="btn btn-danger" onClick={updateDiscount}><i className="bi bi-check2"></i></button>
+                    <button className="btn btn-light border" onClick={() => { setEditingDiscount(false); setDiscountVal(ticket.discount || "0"); }}><i className="bi bi-x"></i></button>
+                  </div>
+                ) : (
+                  <span>
+                    -{money(ticket.discount || "0")}
+                    {canManage && (
+                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingDiscount(true)}>
+                        <i className="bi bi-pencil-square"></i> Edit
+                      </button>
+                    )}
+                  </span>
+                )}
+              </div>
               <div className="d-flex justify-content-between fw-semibold border-top pt-1 mt-1">
                 <span>Bill total</span>
                 <span>{money(ticket.bill_total)}</span>
@@ -335,7 +373,7 @@ export default function TicketDetailPage() {
                   <span>
                     {money(ticket.paid)}
                     {canManage && Number(ticket.due) > 0 && (
-                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => { setAddingPayment(true); setPayAmount(ticket.due); }}>
+                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => { setAddingPayment(true); setPayAmount(""); }}>
                         <i className="bi bi-plus-circle"></i> Add
                       </button>
                     )}
@@ -392,9 +430,11 @@ export default function TicketDetailPage() {
           {ticket.estimated_delivery && (
             <div className="token-row mt-2"><strong>Est. Delivery:</strong> {fmtDate(ticket.estimated_delivery)}</div>
           )}
-          
           <div className="token-divider" />
           <div className="token-row"><strong>Service Charge:</strong> {money(ticket.service_charge)}</div>
+          {Number(ticket.discount) > 0 && (
+            <div className="token-row text-danger"><strong>Discount:</strong> -{money(ticket.discount)}</div>
+          )}
           {ticket.parts.length > 0 && (
             <div className="mt-2">
               <strong>Parts:</strong>
@@ -501,6 +541,14 @@ export default function TicketDetailPage() {
             ))}
           </tbody>
         </table>
+
+        {Number(ticket.discount) > 0 && (
+          <div className="d-flex justify-content-end w-100 pe-2 mt-2">
+            <span className="text-danger fw-semibold" style={{ width: "25%", textAlign: "right" }}>
+              Discount: -{money(ticket.discount)}
+            </span>
+          </div>
+        )}
 
         <div className="inv-footer-row">
           <div className="inv-notes">
