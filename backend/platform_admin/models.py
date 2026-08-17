@@ -221,3 +221,63 @@ class SoftwareRelease(TimeStampedModel):
 
     def __str__(self):
         return f"{self.get_platform_display()} - {self.version}"
+
+class ShopDataBackup(TimeStampedModel):
+    """
+    Stores a serialized 15-day recovery backup for a shop's operational data.
+    Created by superadmins before a data clear operation.
+    """
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        VERIFIED = "verified", "Verified"
+        FAILED = "failed", "Failed"
+        RESTORED = "restored", "Restored"
+        DELETED = "deleted", "Deleted"
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    shop = models.ForeignKey("tenants.Shop", on_delete=models.CASCADE, related_name="data_backups")
+    created_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    expires_at = models.DateTimeField(db_index=True)
+    backup_file = models.FileField(upload_to="shop_backups/", blank=True, null=True)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    records_count = models.PositiveIntegerField(default=0)
+    deleted_at = models.DateTimeField(blank=True, null=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Backup {self.id} for Shop {self.shop_id} ({self.get_status_display()})"
+
+    @property
+    def is_expired(self):
+        return timezone.now() >= self.expires_at
+
+
+class ShopDataOperation(TimeStampedModel):
+    """
+    Audit log for shop data management operations (Clear, Restore, Auto-Delete).
+    """
+    class OperationType(models.TextChoices):
+        CLEAR = "clear", "Clear"
+        RESTORE = "restore", "Restore"
+        AUTO_DELETE = "auto_delete", "Auto-Delete"
+
+    class Status(models.TextChoices):
+        STARTED = "started", "Started"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    shop = models.ForeignKey("tenants.Shop", on_delete=models.CASCADE, related_name="data_operations")
+    initiated_by = models.ForeignKey("accounts.User", on_delete=models.SET_NULL, null=True, related_name="+")
+    operation_type = models.CharField(max_length=20, choices=OperationType.choices)
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.STARTED)
+    started_at = models.DateTimeField(auto_now_add=True)
+    completed_at = models.DateTimeField(blank=True, null=True)
+    error_message = models.TextField(blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+
+    def __str__(self):
+        return f"{self.get_operation_type_display()} on Shop {self.shop_id} ({self.get_status_display()})"
