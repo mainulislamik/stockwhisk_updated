@@ -35,7 +35,7 @@ const STATUSES = ["received", "diagnosing", "awaiting_parts", "in_repair", "read
 
 export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
-  const { isOwner, can } = useAuth();
+  const { isOwner, can, user } = useAuth();
   const canManage = isOwner || can("manage_service");  // status change is a write
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
