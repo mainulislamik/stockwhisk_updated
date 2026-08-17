@@ -2147,3 +2147,104 @@ class PublicSoftwareReleaseViewSet(viewsets.ReadOnlyModelViewSet):
 
     def get_queryset(self):
         return SoftwareRelease.objects.filter(is_active=True).order_by('-created_at')
+
+# --- Shop Data Management -------------------------------------------------------
+
+from platform_admin.models import ShopDataBackup, ShopDataOperation
+from platform_admin.tasks import clear_shop_data_task, restore_shop_data_task
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from rest_framework import status
+
+class ShopDataBackupSerializer(serializers.ModelSerializer):
+    shop_name = serializers.CharField(source="shop.name", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
+
+    class Meta:
+        model = ShopDataBackup
+        fields = "__all__"
+
+class ShopDataOperationSerializer(serializers.ModelSerializer):
+    shop_name = serializers.CharField(source="shop.name", read_only=True)
+    initiated_by_name = serializers.CharField(source="initiated_by.get_full_name", read_only=True)
+
+    class Meta:
+        model = ShopDataOperation
+        fields = "__all__"
+
+class ShopDataManagementViewSet(viewsets.ViewSet):
+    """
+    Superadmin API for clearing and restoring a shop's operational data.
+    """
+    permission_classes = [IsPlatformStaff]
+
+    def list(self, request):
+        backups = ShopDataBackup.objects.exclude(status=ShopDataBackup.Status.DELETED).order_by("-created_at")[:50]
+        operations = ShopDataOperation.objects.order_by("-started_at")[:50]
+        return Response({
+            "backups": ShopDataBackupSerializer(backups, many=True).data,
+            "operations": ShopDataOperationSerializer(operations, many=True).data,
+        })
+
+    @action(detail=False, methods=["post"])
+    def clear(self, request):
+        shop_id = request.data.get("shop_id")
+        password = request.data.get("password")
+        confirmation_text = request.data.get("confirmation_text")
+
+        if not shop_id:
+            return Response({"error": "Shop ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if confirmation_text != "CLEAR SHOP DATA":
+            return Response({"error": "Invalid confirmation text."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        if not request.user.check_password(password):
+            return Response({"error": "Invalid superadmin password."}, status=status.HTTP_403_FORBIDDEN)
+
+        # Check for active operations on this shop
+        active_ops = ShopDataOperation.objects.filter(
+            shop_id=shop_id, 
+            status=ShopDataOperation.Status.STARTED
+        ).exists()
+        
+        if active_ops:
+            return Response({"error": "An operation is already running for this shop. Please wait."}, status=status.HTTP_409_CONFLICT)
+
+        # Dispatch Celery task
+        clear_shop_data_task.delay(shop_id, request.user.id)
+        
+        return Response({"message": "Data clear operation has been queued."})
+
+    @action(detail=False, methods=["post"])
+    def restore(self, request):
+        backup_id = request.data.get("backup_id")
+        password = request.data.get("password")
+
+        if not backup_id:
+            return Response({"error": "Backup ID is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        if not request.user.check_password(password):
+            return Response({"error": "Invalid superadmin password."}, status=status.HTTP_403_FORBIDDEN)
+
+        try:
+            backup = ShopDataBackup.objects.get(id=backup_id)
+        except ShopDataBackup.DoesNotExist:
+            return Response({"error": "Backup not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if backup.is_expired or backup.status == ShopDataBackup.Status.DELETED:
+            return Response({"error": "This backup has expired or been deleted."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check for active operations on this shop
+        active_ops = ShopDataOperation.objects.filter(
+            shop_id=backup.shop_id, 
+            status=ShopDataOperation.Status.STARTED
+        ).exists()
+        
+        if active_ops:
+            return Response({"error": "An operation is already running for this shop. Please wait."}, status=status.HTTP_409_CONFLICT)
+
+        # Dispatch Celery task
+        restore_shop_data_task.delay(backup.id, request.user.id)
+        
+        return Response({"message": "Data restore operation has been queued."})
+

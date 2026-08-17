@@ -10,7 +10,12 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
 
-from platform_admin.models import PlatformConfig
+from platform_admin.models import PlatformConfig, ShopDataBackup, ShopDataOperation
+from tenants.models import Shop
+from django.core import serializers
+from django.core.files.base import ContentFile
+from django.db import transaction
+from django.apps import apps
 
 logger = logging.getLogger(__name__)
 
@@ -144,3 +149,191 @@ def perform_drive_backup():
                 os.remove(tmp_path)
             except:
                 pass
+
+OPERATIONAL_MODELS_ORDER = [
+    "catalog.Category",
+    "catalog.Brand",
+    "catalog.Unit",
+    "accounting.ExpenseCategory",
+    "crm.Customer",
+    "purchasing.Supplier",
+    "catalog.Product",
+    "catalog.ProductUnit",
+    "catalog.ProductVariation",
+    "sales.Sale",
+    "purchasing.PurchaseOrder",
+    "service.Warranty",
+    "sales.SaleItem",
+    "purchasing.PurchaseOrderItem",
+    "service.WarrantyClaim",
+    "service.ServiceTicket",
+    "service.ServiceTicketPart",
+    "service.ServiceTicketStatusHistory",
+    "sales.SaleReturn",
+    "sales.SaleReturnItem",
+    "sales.EMISchedule",
+    "sales.EMIInstallment",
+    "sales.Payment",
+    "purchasing.PurchasePayment",
+    "purchasing.SupplierPayment",
+    "crm.CustomerPayment",
+    "branches.StockTransfer",
+    "branches.StockTransferItem",
+    "inventory.StockMovement",
+    "accounting.Expense",
+    "accounting.RecurringExpense",
+    "accounting.LedgerEntry",
+    "accounting.DailySettlement",
+    "notifications.Notification",
+]
+
+@shared_task
+def clear_shop_data_task(shop_id, user_id):
+    """
+    Background task to securely back up and delete a shop's operational data.
+    """
+    op = ShopDataOperation.objects.create(
+        shop_id=shop_id,
+        initiated_by_id=user_id,
+        operation_type=ShopDataOperation.OperationType.CLEAR,
+        status=ShopDataOperation.Status.STARTED
+    )
+
+    try:
+        # 1. Gather data
+        objects = []
+        for model_name in OPERATIONAL_MODELS_ORDER:
+            try:
+                model = apps.get_model(model_name)
+                objects.extend(model.objects.filter(shop_id=shop_id))
+            except LookupError:
+                continue
+
+        # 2. Serialize
+        json_data = serializers.serialize("json", objects)
+        
+        # 3. Create Backup
+        import datetime
+        from django.utils import timezone
+        
+        backup = ShopDataBackup.objects.create(
+            shop_id=shop_id,
+            created_by_id=user_id,
+            expires_at=timezone.now() + datetime.timedelta(days=15),
+            records_count=len(objects),
+            status=ShopDataBackup.Status.PENDING
+        )
+        backup.backup_file.save(f"shop_{shop_id}_backup_{backup.id}.json", ContentFile(json_data.encode('utf-8')))
+        backup.status = ShopDataBackup.Status.VERIFIED
+        backup.save()
+
+        # 4. Delete Data (in reverse dependency order to avoid FK errors)
+        with transaction.atomic():
+            for model_name in reversed(OPERATIONAL_MODELS_ORDER):
+                try:
+                    model = apps.get_model(model_name)
+                    # We bypass TenantManager just in case, though filter(shop_id) is safe
+                    if hasattr(model, 'all_objects'):
+                        model.all_objects.filter(shop_id=shop_id).delete()
+                    else:
+                        model.objects.filter(shop_id=shop_id).delete()
+                except LookupError:
+                    continue
+
+        op.status = ShopDataOperation.Status.COMPLETED
+        op.completed_at = timezone.now()
+        op.save()
+        return True
+
+    except Exception as e:
+        logger.error(f"Shop data clear failed for shop {shop_id}: {str(e)}")
+        op.status = ShopDataOperation.Status.FAILED
+        op.error_message = str(e)
+        op.completed_at = timezone.now()
+        op.save()
+        return False
+
+
+@shared_task
+def restore_shop_data_task(backup_id, user_id):
+    """
+    Restores operational data from a 15-day backup file.
+    """
+    backup = ShopDataBackup.objects.get(id=backup_id)
+    op = ShopDataOperation.objects.create(
+        shop_id=backup.shop_id,
+        initiated_by_id=user_id,
+        operation_type=ShopDataOperation.OperationType.RESTORE,
+        status=ShopDataOperation.Status.STARTED
+    )
+
+    try:
+        if not backup.backup_file:
+            raise ValueError("Backup file missing.")
+
+        backup.backup_file.open("r")
+        json_data = backup.backup_file.read().decode('utf-8')
+        backup.backup_file.close()
+
+        with transaction.atomic():
+            # Clear current operational data before restoring to prevent conflicts
+            for model_name in reversed(OPERATIONAL_MODELS_ORDER):
+                try:
+                    model = apps.get_model(model_name)
+                    if hasattr(model, 'all_objects'):
+                        model.all_objects.filter(shop_id=backup.shop_id).delete()
+                    else:
+                        model.objects.filter(shop_id=backup.shop_id).delete()
+                except LookupError:
+                    continue
+
+            # Deserialize and save
+            for deserialized_object in serializers.deserialize("json", json_data):
+                obj = deserialized_object.object
+                if getattr(obj, 'shop_id', None) == backup.shop_id:
+                    obj.save()
+
+        backup.status = ShopDataBackup.Status.RESTORED
+        backup.save()
+
+        op.status = ShopDataOperation.Status.COMPLETED
+        op.completed_at = timezone.now()
+        op.save()
+        return True
+
+    except Exception as e:
+        logger.error(f"Shop data restore failed for backup {backup_id}: {str(e)}")
+        op.status = ShopDataOperation.Status.FAILED
+        op.error_message = str(e)
+        op.completed_at = timezone.now()
+        op.save()
+        return False
+
+
+@shared_task
+def cleanup_expired_shop_backups():
+    """
+    Runs daily to permanently delete expired shop backups.
+    """
+    from django.utils import timezone
+    expired_backups = ShopDataBackup.objects.filter(
+        expires_at__lte=timezone.now()
+    ).exclude(status=ShopDataBackup.Status.DELETED)
+
+    for backup in expired_backups:
+        if backup.backup_file:
+            try:
+                backup.backup_file.delete(save=False)
+            except Exception as e:
+                logger.error(f"Failed to delete file for backup {backup.id}: {e}")
+        
+        backup.status = ShopDataBackup.Status.DELETED
+        backup.deleted_at = timezone.now()
+        backup.save()
+        
+        ShopDataOperation.objects.create(
+            shop_id=backup.shop_id,
+            operation_type=ShopDataOperation.OperationType.AUTO_DELETE,
+            status=ShopDataOperation.Status.COMPLETED,
+            completed_at=timezone.now()
+        )
