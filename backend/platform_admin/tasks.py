@@ -206,7 +206,10 @@ def clear_shop_data_task(shop_id, user_id):
         for model_name in OPERATIONAL_MODELS_ORDER:
             try:
                 model = apps.get_model(model_name)
-                objects.extend(model.objects.filter(shop_id=shop_id))
+                if hasattr(model, 'all_objects'):
+                    objects.extend(model.all_objects.filter(shop_id=shop_id))
+                else:
+                    objects.extend(model.objects.filter(shop_id=shop_id))
             except LookupError:
                 continue
 
