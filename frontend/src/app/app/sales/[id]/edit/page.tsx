@@ -10,7 +10,7 @@ import Link from "next/link";
 
 type Product = { id: number; name: string; selling_price: string; current_stock: string; };
 type SaleItem = { id: number; product_id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; };
-type Sale = { id: number; invoice_no: string; sale_date: string; discount: string; items: SaleItem[]; status: string; returns?: any[] };
+type Sale = { id: number; invoice_no: string; sale_date: string; discount: string; tax: string; delivery_charge: string; paid: string; items: SaleItem[]; status: string; returns?: any[] };
 
 type CartItem = {
     product_id: number;
@@ -30,6 +30,8 @@ export default function EditInvoicePage() {
     
     const [cart, setCart] = useState<CartItem[]>([]);
     const [saleDiscount, setSaleDiscount] = useState(0);
+    const [saleTax, setSaleTax] = useState(0);
+    const [saleDelivery, setSaleDelivery] = useState(0);
     const [reason, setReason] = useState("");
     const [submitting, setSubmitting] = useState(false);
     
@@ -65,6 +67,8 @@ export default function EditInvoicePage() {
                 
                 setSale(data);
                 setSaleDiscount(Number(data.discount));
+                setSaleTax(Number(data.tax || 0));
+                setSaleDelivery(Number(data.delivery_charge || 0));
                 
                 const initialCart: CartItem[] = data.items.map(item => ({
                     product_id: item.product_id,
@@ -132,7 +136,9 @@ export default function EditInvoicePage() {
     };
 
     const subtotal = cart.reduce((sum, item) => sum + (item.unit_price * item.quantity) - item.discount, 0);
-    const total = subtotal - saleDiscount;
+    const total = subtotal - saleDiscount + saleTax + saleDelivery;
+    const previouslyPaid = sale ? Number(sale.paid) : 0;
+    const newDue = total - previouslyPaid;
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -161,6 +167,8 @@ export default function EditInvoicePage() {
                         discount: c.discount
                     })),
                     discount: saleDiscount,
+                    tax: saleTax,
+                    delivery_charge: saleDelivery,
                     correction_reason: reason.trim()
                 })
             });
@@ -291,9 +299,37 @@ export default function EditInvoicePage() {
                                                 />
                                             </td>
                                         </tr>
+                                        <tr>
+                                            <td className="align-middle">Tax / VAT</td>
+                                            <td className="text-end">
+                                                <input 
+                                                    type="number" className="form-control form-control-sm text-end"
+                                                    value={saleTax || ""} min="0" step="any"
+                                                    onChange={(e) => setSaleTax(Number(e.target.value))}
+                                                />
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td className="align-middle">Delivery Charge</td>
+                                            <td className="text-end">
+                                                <input 
+                                                    type="number" className="form-control form-control-sm text-end"
+                                                    value={saleDelivery || ""} min="0" step="any"
+                                                    onChange={(e) => setSaleDelivery(Number(e.target.value))}
+                                                />
+                                            </td>
+                                        </tr>
                                         <tr className="border-top border-dark fw-bold">
                                             <td>New Total</td>
                                             <td className="text-end text-brand">{money(total)}</td>
+                                        </tr>
+                                        <tr className="text-secondary">
+                                            <td>Previously Paid</td>
+                                            <td className="text-end">{money(previouslyPaid)}</td>
+                                        </tr>
+                                        <tr className={`fw-bold ${newDue < 0 ? 'text-warning' : (newDue > 0 ? 'text-danger' : 'text-success')}`}>
+                                            <td>{newDue < 0 ? 'Refund Owed' : 'New Due'}</td>
+                                            <td className="text-end">{money(Math.abs(newDue))}</td>
                                         </tr>
                                     </tbody>
                                 </table>

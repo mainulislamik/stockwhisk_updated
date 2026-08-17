@@ -449,7 +449,7 @@ def cancel_sale(*, sale, created_by=None):
 
 
 @transaction.atomic
-def edit_sale(*, sale, items, discount=ZERO, created_by=None, correction_reason=""):
+def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, created_by=None, correction_reason=""):
     """
     Edit a completed sale's line items + discount (item 12). Ledger-safe:
     reverses the old lines with SALE_RETURN_IN, deletes old SaleItems, then
@@ -524,7 +524,12 @@ def edit_sale(*, sale, items, discount=ZERO, created_by=None, correction_reason=
                 created_by=created_by,
             )
 
-    total = subtotal - discount + (sale.tax or ZERO)
+    if delivery_charge is not None:
+        sale.delivery_charge = Decimal(delivery_charge or 0)
+    if tax is not None:
+        sale.tax = Decimal(tax or 0)
+
+    total = subtotal - discount + (sale.tax or ZERO) + (sale.delivery_charge or ZERO)
     
     # Store original state for audit if not already corrected
     if not sale.is_corrected:
