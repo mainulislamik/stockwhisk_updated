@@ -42,6 +42,8 @@ from .views import (
     PlatformResellerActionView,
     PlatformResellerDetailView,
     PlatformCommissionActionView,
+    SoftwareReleaseAdminViewSet,
+    PublicSoftwareReleaseViewSet,
 )
 
 app_name = "platform_admin"
@@ -56,6 +58,8 @@ router.register("blogs", BlogPostAdminViewSet, basename="admin-blogs")
 router.register("public/blogs", PublicBlogViewSet, basename="public-blogs")
 router.register("public/pricing", PublicPricingPlanViewSet, basename="public-pricing")
 router.register("plans-manage", PlanAdminViewSet, basename="admin-plans-manage")
+router.register("software", SoftwareReleaseAdminViewSet, basename="admin-software")
+router.register("public/software", PublicSoftwareReleaseViewSet, basename="public-software")
 
 urlpatterns = [
     path("dashboard/", PlatformDashboardView.as_view(), name="dashboard"),

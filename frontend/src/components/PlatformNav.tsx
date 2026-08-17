@@ -16,6 +16,7 @@ const ITEMS: { href: string; icon: string; label: string }[] = [
   { href: "/platform/api-keys", icon: "bi-plug", label: "API Keys" },
   { href: "/platform/messages", icon: "bi-envelope", label: "Messages" },
   { href: "/platform/blogs", icon: "bi-journal-text", label: "Blogs" },
+  { href: "/platform/software", icon: "bi-download", label: "Software" },
   { href: "/platform/tutorials", icon: "bi-camera-video", label: "Tutorials" },
   { href: "/platform/backups", icon: "bi-device-hdd", label: "System Backups" },
   { href: "/platform/mail-server", icon: "bi-envelope-at", label: "Mail Server Admin" },

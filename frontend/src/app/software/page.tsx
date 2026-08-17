@@ -1,0 +1,192 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { Box, Typography, Button, Container, Grid, Card, CardContent, CircularProgress } from '@mui/material';
+import MarketingNav from '@/components/MarketingNav';
+import MarketingFooter from '@/components/MarketingFooter';
+import PublicThemeProvider from '@/components/PublicThemeProvider';
+import { api, unwrap } from "@/lib/api";
+
+const LIGHT_COLORS = {
+  surface: '#f8fafc',
+  onSurface: '#0f172a',
+  onSurfaceVariant: '#475569',
+  primary: '#2563eb',
+  onPrimary: '#ffffff',
+  surfaceContainerLowest: '#ffffff',
+  outlineVariant: '#c3c6d7',
+};
+
+const DARK_COLORS = {
+  surface: '#0f172a',
+  onSurface: '#f8fafc',
+  onSurfaceVariant: '#cbd5e1',
+  primary: '#38bdf8',
+  onPrimary: '#020617',
+  surfaceContainerLowest: '#020617',
+  outlineVariant: '#334155',
+};
+
+type SoftwareRelease = {
+  id: number;
+  platform: "android" | "windows" | "mac";
+  version: string;
+  release_notes: string;
+  file: string;
+  created_at: string;
+};
+
+export default function SoftwarePage() {
+  const mode = "light"; // Hardcoded default for simplicity, can be dynamic
+  const [mounted, setMounted] = useState(false);
+  const [releases, setReleases] = useState<SoftwareRelease[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
+
+  useEffect(() => {
+    setMounted(true);
+    api<any>("/platform/public/software/")
+      .then((data) => setReleases(unwrap(data)))
+      .catch((e) => console.error("Failed to load software releases", e))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const getPlatformIcon = (platform: string) => {
+    switch(platform) {
+      case 'android': return '📱';
+      case 'windows': return '💻';
+      case 'mac': return '🍏';
+      default: return '📦';
+    }
+  };
+
+  const getPlatformName = (platform: string) => {
+    switch(platform) {
+      case 'android': return 'Android APK';
+      case 'windows': return 'Windows PC';
+      case 'mac': return 'macOS';
+      default: return 'Download';
+    }
+  };
+
+  return (
+    <PublicThemeProvider>
+      <Box sx={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', bgcolor: COLORS.surface, color: COLORS.onSurface, fontFamily: 'Outfit, sans-serif' }}>
+        
+        {/* Navigation */}
+        <MarketingNav />
+
+        {/* Hero Section */}
+        <Box sx={{ pt: { xs: 8, md: 12 }, pb: { xs: 6, md: 10 }, textAlign: 'center', px: 2 }}>
+          <Container maxWidth="md">
+            <Typography variant="h2" sx={{ fontWeight: 800, letterSpacing: '-0.02em', mb: 3, 
+              background: `linear-gradient(135deg, ${COLORS.onSurface}, ${COLORS.primary})`,
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
+            }}>
+              Download StockWhisk
+            </Typography>
+            <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, mb: 5, fontWeight: 400, maxWidth: 600, mx: 'auto' }}>
+              Get the latest version of the StockWhisk application for your device. Fast, secure, and always updated.
+            </Typography>
+          </Container>
+        </Box>
+
+        {/* Content Section */}
+        <Box sx={{ flexGrow: 1, pb: 12, px: 2 }}>
+          <Container maxWidth="lg">
+            {loading ? (
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 10 }}>
+                <CircularProgress />
+              </Box>
+            ) : releases.length === 0 ? (
+              <Box sx={{ textAlign: 'center', py: 10 }}>
+                <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant }}>
+                  No software releases are currently available. Check back later!
+                </Typography>
+              </Box>
+            ) : (
+              <Grid container spacing={4} justifyContent="center">
+                {releases.map((release) => (
+                  <Grid item xs={12} sm={6} md={4} key={release.id}>
+                    <Card sx={{ 
+                      height: '100%', 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      borderRadius: 4,
+                      boxShadow: '0 12px 40px rgba(15,23,42,0.06)',
+                      border: `1px solid ${COLORS.outlineVariant}`,
+                      bgcolor: COLORS.surfaceContainerLowest,
+                      transition: 'transform 0.3s ease, box-shadow 0.3s ease',
+                      '&:hover': {
+                        transform: 'translateY(-8px)',
+                        boxShadow: '0 20px 40px rgba(15,23,42,0.12)',
+                      }
+                    }}>
+                      <CardContent sx={{ p: 4, flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                          <Typography sx={{ fontSize: 48, lineHeight: 1, mr: 2 }}>
+                            {getPlatformIcon(release.platform)}
+                          </Typography>
+                          <Box>
+                            <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.onSurface }}>
+                              {getPlatformName(release.platform)}
+                            </Typography>
+                            <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 600 }}>
+                              Version {release.version}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box sx={{ flexGrow: 1, mb: 4 }}>
+                          {release.release_notes ? (
+                            <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, whiteSpace: 'pre-wrap' }}>
+                              {release.release_notes}
+                            </Typography>
+                          ) : (
+                            <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontStyle: 'italic' }}>
+                              No release notes available for this version.
+                            </Typography>
+                          )}
+                        </Box>
+                        
+                        <Button 
+                          variant="contained" 
+                          href={release.file} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          sx={{ 
+                            py: 1.5, 
+                            borderRadius: 2, 
+                            fontWeight: 700,
+                            textTransform: 'none',
+                            bgcolor: COLORS.primary,
+                            color: COLORS.onPrimary,
+                            boxShadow: `0 8px 16px -4px ${COLORS.primary}80`,
+                            '&:hover': {
+                              bgcolor: COLORS.primary,
+                              filter: 'brightness(0.9)',
+                            }
+                          }}
+                          fullWidth
+                        >
+                          Download Now
+                        </Button>
+                        <Typography variant="caption" sx={{ mt: 2, textAlign: 'center', display: 'block', color: COLORS.onSurfaceVariant }}>
+                          Released on {new Date(release.created_at).toLocaleDateString()}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+          </Container>
+        </Box>
+
+        {/* Footer */}
+        <MarketingFooter />
+      </Box>
+    </PublicThemeProvider>
+  );
+}

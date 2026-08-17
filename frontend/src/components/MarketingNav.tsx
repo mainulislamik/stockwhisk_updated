@@ -46,6 +46,7 @@ export default function MarketingNav() {
     { href: "/", label: t("nav_home") },
     { href: "/pricing", label: t("nav_pricing") },
     { href: "/demo", label: t("nav_demo") },
+    { href: "/software", label: "Software" },
     { href: "/reseller", label: t("nav_reseller") },
     { href: "/blog", label: t("nav_blog") },
     { href: "/contact", label: t("nav_contact") },

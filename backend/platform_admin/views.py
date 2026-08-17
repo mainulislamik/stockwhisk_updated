@@ -1842,7 +1842,7 @@ class MediaBackupRestoreView(APIView):
 
 # --- Blog Posts --------------------------------------------------------------
 
-from .models import BlogPost
+from .models import BlogPost, SoftwareRelease
 
 class BlogPostSerializer(serializers.ModelSerializer):
     class Meta:
@@ -2127,3 +2127,23 @@ class MailSSORedirectView(View):
         except requests.RequestException as exc:
             return _fail(f"Could not reach Roundcube internally ({internal}): {exc}")
 
+# --- Software Releases -------------------------------------------------------
+
+class SoftwareReleaseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SoftwareRelease
+        fields = '__all__'
+
+class SoftwareReleaseAdminViewSet(viewsets.ModelViewSet):
+    """CRUD for super admins to manage software downloads."""
+    permission_classes = [IsPlatformStaff]
+    serializer_class = SoftwareReleaseSerializer
+    queryset = SoftwareRelease.objects.all()
+
+class PublicSoftwareReleaseViewSet(viewsets.ReadOnlyModelViewSet):
+    """Read-only view for the public marketing site."""
+    permission_classes = [] # AllowAny
+    serializer_class = SoftwareReleaseSerializer
+
+    def get_queryset(self):
+        return SoftwareRelease.objects.filter(is_active=True).order_by('-created_at')

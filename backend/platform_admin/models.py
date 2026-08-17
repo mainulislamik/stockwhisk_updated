@@ -196,3 +196,27 @@ class BlogPost(TimeStampedModel):
 
     def __str__(self):
         return self.title
+
+class SoftwareRelease(TimeStampedModel):
+    """
+    Downloadable software releases (Android, Windows, Mac).
+    Managed by super admins.
+    """
+    PLATFORM_CHOICES = [
+        ('android', 'Android'),
+        ('windows', 'Windows'),
+        ('mac', 'macOS'),
+    ]
+
+    platform = models.CharField(max_length=20, choices=PLATFORM_CHOICES)
+    version = models.CharField(max_length=50, help_text="e.g., v1.2.0")
+    release_notes = models.TextField(blank=True)
+    file = models.FileField(upload_to="software/", help_text="Upload the executable or APK")
+    is_active = models.BooleanField(default=True, help_text="If false, this version won't be visible to users")
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["platform", "is_active", "-created_at"])]
+
+    def __str__(self):
+        return f"{self.get_platform_display()} - {self.version}"
