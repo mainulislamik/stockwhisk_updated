@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { api } from "@/lib/api";
+import { api, fetchAll } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
@@ -51,10 +51,10 @@ export default function ShopDataPage() {
   const load = useCallback(async () => {
     try {
       const data = await api<{ backups: ShopDataBackup[], operations: ShopDataOperation[] }>("/platform/shop-data/");
-      setBackups(data.backups);
-      setOperations(data.operations);
+      setBackups(data.backups || []);
+      setOperations(data.operations || []);
       
-      const shopsData = await api<Shop[]>("/platform/shops/");
+      const shopsData = await fetchAll<Shop>("/platform/shops/");
       setShops(shopsData);
     } catch (e: any) {
       setError(e?.message || "Failed to load data.");
