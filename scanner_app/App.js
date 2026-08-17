@@ -34,7 +34,25 @@ export default function App() {
           setToken(savedToken);
           setShopId(savedShopId);
           if (savedEmail) setEmail(savedEmail);
-          if (savedShopName) setShopName(savedShopName);
+          
+          if (savedShopName) {
+            setShopName(savedShopName);
+          } else {
+            // Auto-fetch if missing from old session
+            try {
+              const meResp = await fetch(`${API_BASE}/accounts/me/`, {
+                headers: { 'Authorization': `Bearer ${savedToken}` }
+              });
+              if (meResp.ok) {
+                const meData = await meResp.json();
+                const fetchedShopName = meData.shop_name || "My Shop";
+                setShopName(fetchedShopName);
+                await AsyncStorage.setItem('shopName', fetchedShopName);
+              }
+            } catch(e) {
+              console.error(e);
+            }
+          }
         }
       } catch (e) {
         console.error('Failed to load session');
