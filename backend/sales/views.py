@@ -371,7 +371,9 @@ class SaleViewSet(
         
         sale = self.get_object()
         
-        if not request.user.has_perm_code("is_shop_owner"):
+        from accounts.models import RoleType
+        
+        if request.user.role != RoleType.OWNER:
             return Response({"detail": "Only the Shop Owner can correct invoices."}, status=status.HTTP_403_FORBIDDEN)
             
         items_data = request.data.get("items", [])

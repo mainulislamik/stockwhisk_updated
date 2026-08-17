@@ -39,7 +39,7 @@ export default function EditInvoicePage() {
 
     useEffect(() => {
         if (!user) return;
-        if (!user.permissions?.includes("is_shop_owner")) {
+        if (user.role !== "owner") {
             setError("Only Shop Owners can correct invoices.");
             setLoading(false);
             return;

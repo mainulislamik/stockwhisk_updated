@@ -72,7 +72,7 @@ export default function SaleDetailPage() {
         </div>
         <div className="d-flex gap-2 align-items-center">
           {(() => {
-            if (!user?.permissions?.includes("is_shop_owner")) return null;
+            if (user?.role !== "owner") return null;
             
             const saleDate = new Date(sale.sale_date).toLocaleDateString();
             const today = new Date().toLocaleDateString();
