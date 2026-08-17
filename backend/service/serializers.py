@@ -66,6 +66,15 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ["ticket_no", "actual_delivery", "status"]
 
+    def to_representation(self, instance):
+        rep = super().to_representation(instance)
+        # If walk-in fields are empty, fall back to the registered Customer record.
+        if not rep.get("customer_name") and instance.customer_id:
+            rep["customer_name"] = instance.customer.name
+        if not rep.get("customer_phone") and instance.customer_id:
+            rep["customer_phone"] = instance.customer.phone
+        return rep
+
 
 class TicketCreateSerializer(serializers.Serializer):
     customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects, required=False, allow_null=True)
