@@ -15,10 +15,24 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
-      }
+      },
+      "package": "com.mainulislamik.scanner_app"
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow StockWhisk to access your camera to scan barcodes."
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "c2194942-5797-4560-8c15-cb43d4b71675"
+      }
     }
   }
 }
