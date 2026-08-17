@@ -16,11 +16,7 @@ export default function App() {
   // New state to toggle between Dashboard and Camera
   const [isScanning, setIsScanning] = useState(false);
 
-  useEffect(() => {
-    if (permission && !permission.granted) {
-      requestPermission();
-    }
-  }, [permission]);
+  // Removed the useEffect that caused an infinite permission request loop
 
   const handleLogin = async () => {
     if (!email || !password) {
