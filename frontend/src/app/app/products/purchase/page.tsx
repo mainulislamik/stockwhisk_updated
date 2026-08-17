@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
+import { XMarkIcon, PlusIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
+import { useAuth } from "@/components/AuthProvider";
+import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 
 type Product = {
   id: number; name: string; sku: string; barcode: string;
@@ -44,6 +47,11 @@ export default function PurchaseProductPage() {
   // When the user hasn't typed a quantity, it auto-mirrors the scanned barcode
   // count. Typing a value takes over; clearing the field returns to auto.
   const [qtyTouched, setQtyTouched] = useState(false);
+
+  const { user } = useAuth();
+  useScannerWebSocket(user?.shop_id, (barcode) => {
+    setBarcodeText((prev) => (prev ? `${prev}\n${barcode}` : barcode));
+  });
 
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);

@@ -1,9 +1,12 @@
-﻿# --- Production server + DB drivers -------------------------------------------
+# --- Production server + DB drivers -------------------------------------------
 # WSGI server for prod (behind nginx). Install the DB driver matching DB_ENGINE:
 # psycopg2-binary for PostgreSQL (default prod target); for MySQL/cPanel hosts
 # swap in `mysqlclient==2.2.4` instead.
 gunicorn==23.0.0
 psycopg2-binary==2.9.10
+channels==4.1.0
+daphne==4.1.2
+channels-redis==4.2.1
 # mysqlclient==2.2.4   # uncomment if DB_ENGINE=mysql
 # ------------------------------------------------------------------------------
 # --- Dev tooling (only active when DEBUG=True, see config/settings.py) --------

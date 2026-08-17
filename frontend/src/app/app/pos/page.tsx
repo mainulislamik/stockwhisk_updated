@@ -7,6 +7,8 @@ import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
+import { useAuth } from "@/components/AuthProvider";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
@@ -22,6 +24,7 @@ type ScanMsg = { text: string; ok: boolean } | null;
 export default function PosPage() {
   const router = useRouter();
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -262,6 +265,10 @@ export default function PosPage() {
       setScanning(false);
     }
   }, [shown, query, tryAdd, cart, debouncedQuery, gridLoading]);
+
+  useScannerWebSocket(user?.shop_id, (barcode) => {
+    processCode(barcode);
+  });
 
   // ── Enter / scan handler ────────────────────────────────────────────────
   const handleEnter = useCallback(async () => {

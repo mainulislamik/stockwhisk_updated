@@ -37,6 +37,7 @@ DEBUG = env_bool("DEBUG", True)
 ALLOWED_HOSTS = env_list("ALLOWED_HOSTS", "localhost,127.0.0.1")
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -73,6 +74,7 @@ INSTALLED_APPS = [
     "service",
     "public_api",
     "resellers",
+    "scanner",
     # Server-rendered frontend
     "web",
     # Super-admin bulk data import pipeline
@@ -257,12 +259,25 @@ if REDIS_URL:
             "LOCATION": REDIS_URL,
         }
     }
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [REDIS_URL],
+            },
+        },
+    }
 else:
     CACHES = {
         "default": {
             "BACKEND": "django.core.cache.backends.locmem.LocMemCache",
             "LOCATION": "stockwhisk-local",
         }
+    }
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels.layers.InMemoryChannelLayer",
+        },
     }
 ANALYTICS_CACHE_TTL = int(env("ANALYTICS_CACHE_TTL", "60"))  # seconds
 

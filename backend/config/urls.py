@@ -78,6 +78,7 @@ urlpatterns = [
     # Phase 3
     path("api/service/", include("service.urls")),
     path("api/reseller/", include("resellers.urls")),  # Reseller/partner portal
+    path("api/scanner/", include("scanner.urls")),
     path("api/v1/", include("public_api.urls")),  # Enterprise public API
     # Super Admin dashboard (server-rendered, staff only)
     path("platform/imports/", include("imports.urls")),

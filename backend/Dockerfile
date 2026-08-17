@@ -31,4 +31,4 @@ USER app
 # Collected at container start (entrypoint) so it picks up mounted env/volumes.
 EXPOSE 8000
 ENTRYPOINT ["/app/deploy/docker/entrypoint.sh"]
-CMD ["gunicorn", "-c", "deploy/gunicorn.conf.py", "config.wsgi:application"]
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "config.asgi:application"]
