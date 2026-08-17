@@ -8,7 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 
-type Part = { id: number; product_name: string; quantity: string; unit_cost: string; unit_price: string; line_total: string };
+type Part = { id: number; product_name: string; warranty_months?: number; quantity: string; unit_cost: string; unit_price: string; line_total: string };
 type History = { id: number; from_status: string; to_status: string; note: string; created_at: string };
 type Ticket = {
   id: number;
@@ -164,7 +164,12 @@ export default function TicketDetailPage() {
                   <tbody>
                     {ticket.parts.map((p) => (
                       <tr key={p.id}>
-                        <td>{p.product_name}</td>
+                        <td>
+                          {p.product_name}
+                          {p.warranty_months ? (
+                            <div className="text-success" style={{ fontSize: "0.75rem" }}>{p.warranty_months} months warranty</div>
+                          ) : null}
+                        </td>
                         <td className="text-end">{p.quantity}</td>
                         <td className="text-end">{money(p.unit_price)}</td>
                         <td className="text-end">{money(p.line_total)}</td>
@@ -339,7 +344,14 @@ export default function TicketDetailPage() {
             </tr>
             {ticket.parts.map(p => (
               <tr key={p.id}>
-                <td><span className="inv-product-name">{p.product_name}</span></td>
+                <td>
+                  <span className="inv-product-name">{p.product_name}</span>
+                  {p.warranty_months ? (
+                    <div style={{ fontSize: "8pt", color: "#16a34a", marginTop: "2px", fontStyle: "italic" }}>
+                      Warranty: {p.warranty_months} months
+                    </div>
+                  ) : null}
+                </td>
                 <td className="inv-td-center">{p.quantity}</td>
                 <td className="inv-td-right"><span className="inv-line-total">{money(p.line_total)}</span></td>
               </tr>

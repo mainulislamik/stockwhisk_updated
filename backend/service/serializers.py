@@ -33,11 +33,12 @@ class WarrantyClaimSerializer(serializers.ModelSerializer):
 
 class TicketPartSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
+    warranty_months = serializers.IntegerField(source="product.warranty_months", read_only=True, default=None)
     line_total = serializers.ReadOnlyField()
 
     class Meta:
         model = ServiceTicketPart
-        fields = ["id", "product", "product_name", "quantity", "unit_cost", "unit_price", "line_total", "from_stock"]
+        fields = ["id", "product", "product_name", "warranty_months", "quantity", "unit_cost", "unit_price", "line_total", "from_stock"]
 
 
 class TicketHistorySerializer(serializers.ModelSerializer):
