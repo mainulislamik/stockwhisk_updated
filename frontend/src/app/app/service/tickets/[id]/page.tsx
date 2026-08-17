@@ -319,7 +319,7 @@ export default function TicketDetailPage() {
               <div className="d-flex justify-content-between align-items-center mb-1">
                 <span className="text-secondary">Service charge</span>
                 {editingCharge ? (
-                  <div className="input-group input-group-sm" style={{ width: '130px' }}>
+                  <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '130px', marginLeft: '10px' }}>
                     <input type="number" step="0.01" className="form-control" value={chargeVal} onChange={e => setChargeVal(e.target.value)} />
                     <button className="btn btn-brand" onClick={updateCharge}><i className="bi bi-check2"></i></button>
                     <button className="btn btn-light border" onClick={() => { setEditingCharge(false); setChargeVal(ticket.service_charge); }}><i className="bi bi-x"></i></button>
@@ -342,7 +342,7 @@ export default function TicketDetailPage() {
               <div className="d-flex justify-content-between align-items-center mb-1 text-danger">
                 <span>Discount</span>
                 {editingDiscount ? (
-                  <div className="input-group input-group-sm" style={{ width: '130px' }}>
+                  <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '130px', marginLeft: '10px' }}>
                     <input type="number" step="0.01" className="form-control" value={discountVal} onChange={e => setDiscountVal(e.target.value)} />
                     <button className="btn btn-danger" onClick={updateDiscount}><i className="bi bi-check2"></i></button>
                     <button className="btn btn-light border" onClick={() => { setEditingDiscount(false); setDiscountVal(ticket.discount || "0"); }}><i className="bi bi-x"></i></button>
@@ -365,7 +365,7 @@ export default function TicketDetailPage() {
               <div className="d-flex justify-content-between align-items-center">
                 <span className="text-secondary">Paid</span>
                 {addingPayment ? (
-                  <div className="input-group input-group-sm" style={{ width: '150px' }}>
+                  <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '140px', marginLeft: '10px' }}>
                     <input type="number" step="0.01" className="form-control" placeholder="Amount" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
                     <button className="btn btn-brand" onClick={handleAddPayment} disabled={!payAmount}><i className="bi bi-check2"></i></button>
                     <button className="btn btn-light border" onClick={() => { setAddingPayment(false); setPayAmount(""); }}><i className="bi bi-x"></i></button>
