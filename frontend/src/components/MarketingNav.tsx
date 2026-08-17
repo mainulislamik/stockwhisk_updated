@@ -68,7 +68,7 @@ export default function MarketingNav() {
                   display: "flex", alignItems: "center", gap: 1, letterSpacing: "-0.02em" }}>
             {branding.logo ? (
               <Box sx={{ bgcolor: "#fff", borderRadius: "10px", px: 1, py: 0.5, display: "inline-flex", boxShadow: "0 1px 6px rgba(15,23,42,.12)" }}>
-                <Box component="img" src={branding.logo} alt="Logo" sx={{ height: 46, maxWidth: 220, objectFit: "contain", display: "block" }} />
+                <Box component="img" src={branding.logo} alt="Logo" sx={{ height: { xs: 32, sm: 46 }, maxWidth: { xs: 140, sm: 220 }, objectFit: "contain", display: "block" }} />
               </Box>
             ) : (
               <>
@@ -107,13 +107,8 @@ export default function MarketingNav() {
             <LanguageToggle />
           </Stack>
 
-          {/* Mobile nav: CTA + hamburger menu */}
+          {/* Mobile nav: Language + hamburger menu */}
           <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: 1 }}>
-            {mounted && isLoggedIn ? (
-              <Button component={Link} href="/app" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_dashboard")}</Button>
-            ) : (
-              <Button component={Link} href="/register" sx={{ ...cta, px: 2, fontSize: ".85rem" }}>{t("nav_signup")}</Button>
-            )}
             <LanguageToggle />
             <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text, ml: 1 }}>
               <i className="bi bi-list" style={{ fontSize: "1.6rem", lineHeight: 1 }} />
@@ -140,11 +135,22 @@ export default function MarketingNav() {
                   </MenuItem>
                 );
               })}
-              {!(mounted && isLoggedIn) && (
-                <MenuItem component={Link} href="/login" onClick={closeMenu}
-                  sx={{ fontWeight: 600, color: M.primary, py: 1.2 }}>
-                  {t("nav_login")}
+              {mounted && isLoggedIn ? (
+                <MenuItem component={Link} href="/app" onClick={closeMenu}
+                  sx={{ fontWeight: 700, color: M.primary, py: 1.5, mt: 1, borderTop: `1px solid ${M.border}` }}>
+                  {t("nav_dashboard")}
                 </MenuItem>
+              ) : (
+                <>
+                  <MenuItem component={Link} href="/login" onClick={closeMenu}
+                    sx={{ fontWeight: 600, color: M.text, py: 1.5, mt: 1, borderTop: `1px solid ${M.border}` }}>
+                    {t("nav_login")}
+                  </MenuItem>
+                  <MenuItem component={Link} href="/register" onClick={closeMenu}
+                    sx={{ fontWeight: 700, color: M.primary, py: 1.5 }}>
+                    {t("nav_signup")}
+                  </MenuItem>
+                </>
               )}
             </Menu>
           </Box>
