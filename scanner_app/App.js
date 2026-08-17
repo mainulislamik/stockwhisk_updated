@@ -7,6 +7,13 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+const SCAN_WIDTH = 280;
+const SCAN_HEIGHT = 180;
+// We roughly center the box. Adjust top offset if header is big.
+const SCAN_LEFT = (SCREEN_WIDTH - SCAN_WIDTH) / 2;
+const SCAN_TOP = (SCREEN_HEIGHT - SCAN_HEIGHT) / 2;
+
 const API_BASE = "https://stockwhisk.com/api"; 
 
 export default function App() {
@@ -129,7 +136,28 @@ export default function App() {
     }
   };
 
-  const handleBarCodeScanned = async ({ type, data }) => {
+  const handleBarCodeScanned = async (event) => {
+    const { type, data, bounds } = event;
+
+    // Check if barcode is within the box (if platform provides bounds)
+    if (bounds && bounds.origin) {
+      const { x, y } = bounds.origin;
+      const { width, height } = bounds.size || { width: 0, height: 0 };
+      
+      const barcodeCenterX = x + (width / 2);
+      const barcodeCenterY = y + (height / 2);
+      const padding = 30; // 30px forgiveness
+
+      if (
+        barcodeCenterX < SCAN_LEFT - padding ||
+        barcodeCenterX > SCAN_LEFT + SCAN_WIDTH + padding ||
+        barcodeCenterY < SCAN_TOP - padding ||
+        barcodeCenterY > SCAN_TOP + SCAN_HEIGHT + padding
+      ) {
+        return; // Ignore scans outside the box
+      }
+    }
+
     const now = Date.now();
     if (lastScanned.data === data && now - lastScanned.time < 3000) {
       return; 
@@ -148,8 +176,10 @@ export default function App() {
       if (!response.ok) {
         Alert.alert('Scan Error', 'Failed to send barcode to server.');
       }
-    } catch (e) {
-      Alert.alert('Network Error', e.message);
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    } finally {
+      setLoading(false);
     }
     setTimeout(() => setScanned(false), 1000);
   };
@@ -293,31 +323,42 @@ export default function App() {
           barcodeTypes: ["qr", "ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
         }}
       >
-        {/* Overlay UI */}
-        <SafeAreaView style={styles.cameraOverlay}>
-          <View style={styles.cameraHeader}>
-            <TouchableOpacity style={styles.backButton} onPress={() => setIsScanning(false)}>
-              <Ionicons name="close-outline" size={28} color="#ffffff" />
-            </TouchableOpacity>
-            <Text style={styles.cameraTitle}>Scan Barcode</Text>
-            <View style={{ width: 44 }} /> 
+        <View style={StyleSheet.absoluteFill}>
+          
+          <View style={styles.overlayTop}>
+            <SafeAreaView>
+              <View style={styles.cameraHeader}>
+                <TouchableOpacity style={styles.backButton} onPress={() => setIsScanning(false)}>
+                  <Ionicons name="close-outline" size={28} color="#ffffff" />
+                </TouchableOpacity>
+                <Text style={styles.cameraTitle}>Scan Barcode</Text>
+                <View style={{ width: 44 }} /> 
+              </View>
+            </SafeAreaView>
           </View>
-
-          {/* Scanner Guide Frame */}
-          <View style={styles.scannerFrame}>
-            <View style={[styles.frameCorner, styles.topLeft]} />
-            <View style={[styles.frameCorner, styles.topRight]} />
-            <View style={[styles.frameCorner, styles.bottomLeft]} />
-            <View style={[styles.frameCorner, styles.bottomRight]} />
-          </View>
-
-          {scanned && (
-            <View style={styles.sendingBadge}>
-              <ActivityIndicator size="small" color="#ffffff" style={{marginRight: 8}} />
-              <Text style={styles.sendingText}>Sending...</Text>
+          
+          <View style={styles.overlayRow}>
+            <View style={styles.overlaySide} />
+            <View style={styles.transparentScanBox}>
+              <View style={[styles.frameCorner, styles.topLeft]} />
+              <View style={[styles.frameCorner, styles.topRight]} />
+              <View style={[styles.frameCorner, styles.bottomLeft]} />
+              <View style={[styles.frameCorner, styles.bottomRight]} />
             </View>
-          )}
-        </SafeAreaView>
+            <View style={styles.overlaySide} />
+          </View>
+
+          <View style={styles.overlayBottom}>
+            {scanned && (
+              <SafeAreaView>
+                <View style={styles.sendingBadge}>
+                  <ActivityIndicator size="small" color="#ffffff" style={{marginRight: 8}} />
+                  <Text style={styles.sendingText}>Sending...</Text>
+                </View>
+              </SafeAreaView>
+            )}
+          </View>
+        </View>
       </CameraView>
     </View>
   );
@@ -415,7 +456,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
-  // Dashboard Styles
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -520,23 +560,41 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     lineHeight: 24,
   },
-  // Camera Styles
   cameraContainer: {
     flex: 1,
-    backgroundColor: '#000000',
+    backgroundColor: '#000',
   },
   camera: {
     flex: 1,
   },
-  cameraOverlay: {
+  overlayTop: {
     flex: 1,
-    justifyContent: 'space-between',
-    backgroundColor: 'rgba(0,0,0,0.3)',
+    backgroundColor: 'rgba(0,0,0,0.65)',
+  },
+  overlayRow: {
+    flexDirection: 'row',
+    height: SCAN_HEIGHT,
+  },
+  overlaySide: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+  },
+  overlayBottom: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'flex-end',
+    paddingBottom: 40,
+  },
+  transparentScanBox: {
+    width: SCAN_WIDTH,
+    height: SCAN_HEIGHT,
+    backgroundColor: 'transparent',
+    position: 'relative',
   },
   cameraHeader: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: Platform.OS === 'android' ? 40 : 20,
   },
@@ -553,22 +611,41 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '600',
   },
-  scannerFrame: {
-    width: 250,
-    height: 250,
-    alignSelf: 'center',
-    position: 'relative',
-  },
   frameCorner: {
     position: 'absolute',
     width: 40,
     height: 40,
-    borderColor: '#10b981',
+    borderColor: '#10b981', 
+    borderWidth: 4,
   },
-  topLeft: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 16 },
-  topRight: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 16 },
-  bottomLeft: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 16 },
-  bottomRight: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 16 },
+  topLeft: {
+    top: 0,
+    left: 0,
+    borderBottomWidth: 0,
+    borderRightWidth: 0,
+    borderTopLeftRadius: 16,
+  },
+  topRight: {
+    top: 0,
+    right: 0,
+    borderBottomWidth: 0,
+    borderLeftWidth: 0,
+    borderTopRightRadius: 16,
+  },
+  bottomLeft: {
+    bottom: 0,
+    left: 0,
+    borderTopWidth: 0,
+    borderRightWidth: 0,
+    borderBottomLeftRadius: 16,
+  },
+  bottomRight: {
+    bottom: 0,
+    right: 0,
+    borderTopWidth: 0,
+    borderLeftWidth: 0,
+    borderBottomRightRadius: 16,
+  },
   sendingBadge: {
     position: 'absolute',
     bottom: 50,
