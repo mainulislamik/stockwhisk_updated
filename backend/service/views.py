@@ -97,8 +97,8 @@ class ServiceTicketViewSet(TenantScopedViewSet):
         )
         advance = d.get("advance_paid", 0)
         if advance > 0:
-            from .services import collect_ticket_payment
-            collect_ticket_payment(ticket, amount=advance, method="cash", received_by=request.user)
+            from .services import add_ticket_payment
+            add_ticket_payment(ticket=ticket, amount=advance, method="cash", created_by=request.user)
         return Response(ServiceTicketSerializer(ticket).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])
@@ -136,10 +136,10 @@ class ServiceTicketViewSet(TenantScopedViewSet):
         amount = request.data.get("amount")
         if not amount:
             return Response({"detail": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
-        from .services import collect_ticket_payment
+        from .services import add_ticket_payment
         from decimal import Decimal
         try:
-            collect_ticket_payment(ticket, amount=Decimal(amount), method="cash", received_by=request.user)
+            add_ticket_payment(ticket=ticket, amount=Decimal(amount), method="cash", created_by=request.user)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         fresh = self.get_queryset().get(pk=ticket.pk)
