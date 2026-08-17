@@ -6,6 +6,7 @@ import MarketingNav from '@/components/MarketingNav';
 import MarketingFooter from '@/components/MarketingFooter';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { api, unwrap } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const LIGHT_COLORS = {
   surface: '#f8fafc',
@@ -41,6 +42,7 @@ export default function SoftwarePage() {
   const [mounted, setMounted] = useState(false);
   const [releases, setReleases] = useState<SoftwareRelease[]>([]);
   const [loading, setLoading] = useState(true);
+  const { lang } = useLanguage();
 
   const COLORS = mounted && mode === 'dark' ? DARK_COLORS : LIGHT_COLORS;
 
@@ -84,10 +86,10 @@ export default function SoftwarePage() {
               background: `linear-gradient(135deg, ${COLORS.onSurface}, ${COLORS.primary})`,
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent'
             }}>
-              Download StockWhisk
+              {lang === 'bn' ? 'স্টকহুইস্ক ডাউনলোড করুন' : 'Download StockWhisk'}
             </Typography>
             <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant, mb: 5, fontWeight: 400, maxWidth: 600, mx: 'auto' }}>
-              Get the latest version of the StockWhisk application for your device. Fast, secure, and always updated.
+              {lang === 'bn' ? 'আপনার ডিভাইসের জন্য স্টকহুইস্ক অ্যাপ্লিকেশনের সর্বশেষ সংস্করণ পান। দ্রুত, সুরক্ষিত এবং সবসময় আপডেট করা।' : 'Get the latest version of the StockWhisk application for your device. Fast, secure, and always updated.'}
             </Typography>
           </Container>
         </Box>
@@ -101,8 +103,8 @@ export default function SoftwarePage() {
               </Box>
             ) : releases.length === 0 ? (
               <Box sx={{ textAlign: 'center', py: 10 }}>
-                <Typography variant="h6" sx={{ color: COLORS.onSurfaceVariant }}>
-                  No software releases are currently available. Check back later!
+                <Typography variant="body1" sx={{ color: COLORS.onSurfaceVariant }}>
+                  {lang === 'bn' ? 'বর্তমানে কোনো সফটওয়্যার রিলিজ নেই। অনুগ্রহ করে পরে আবার চেক করুন!' : 'No software releases are currently available. Check back later!'}
                 </Typography>
               </Box>
             ) : (
@@ -132,22 +134,16 @@ export default function SoftwarePage() {
                             <Typography variant="h5" sx={{ fontWeight: 700, color: COLORS.onSurface }}>
                               {getPlatformName(release.platform)}
                             </Typography>
-                            <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontWeight: 600 }}>
-                              Version {release.version}
+                            <Typography variant="caption" sx={{ color: COLORS.onSurfaceVariant, mb: 2, display: 'block' }}>
+                              {lang === 'bn' ? 'সংস্করণ' : 'Version'} {release.version} • {new Date(release.created_at).toLocaleDateString(lang === 'bn' ? 'bn-BD' : 'en-US')}
                             </Typography>
                           </Box>
                         </Box>
 
                         <Box sx={{ flexGrow: 1, mb: 4 }}>
-                          {release.release_notes ? (
-                            <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, whiteSpace: 'pre-wrap' }}>
-                              {release.release_notes}
-                            </Typography>
-                          ) : (
-                            <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, fontStyle: 'italic' }}>
-                              No release notes available for this version.
-                            </Typography>
-                          )}
+                          <Typography variant="body2" sx={{ color: COLORS.onSurfaceVariant, mb: 3, display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                            {release.release_notes || (lang === 'bn' ? 'এই আপডেটে পারফরম্যান্স উন্নতি এবং বাগ ফিক্স অন্তর্ভুক্ত করা হয়েছে।' : 'Includes performance improvements and bug fixes.')}
+                          </Typography>
                         </Box>
                         
                         <Button 
@@ -170,11 +166,8 @@ export default function SoftwarePage() {
                           }}
                           fullWidth
                         >
-                          Download Now
+                          {lang === 'bn' ? 'ডাউনলোড' : 'Download'}
                         </Button>
-                        <Typography variant="caption" sx={{ mt: 2, textAlign: 'center', display: 'block', color: COLORS.onSurfaceVariant }}>
-                          Released on {new Date(release.created_at).toLocaleDateString()}
-                        </Typography>
                       </CardContent>
                     </Card>
                   </Grid>
