@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const API_BASE = "https://stockwhisk.com/api"; 
 
@@ -19,6 +20,40 @@ export default function App() {
   const [scanned, setScanned] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState({ data: null, time: 0 });
+  const [isInitializing, setIsInitializing] = useState(true);
+
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const savedToken = await AsyncStorage.getItem('token');
+        const savedShopId = await AsyncStorage.getItem('shopId');
+        const savedEmail = await AsyncStorage.getItem('email');
+        if (savedToken && savedShopId) {
+          setToken(savedToken);
+          setShopId(savedShopId);
+          if (savedEmail) setEmail(savedEmail);
+        }
+      } catch (e) {
+        console.error('Failed to load session');
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+    loadSession();
+  }, []);
+
+  const handleLogout = async () => {
+    try {
+      await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('shopId');
+      // Intentionally keeping the email stored so it prefills the login screen
+    } catch (e) {
+      console.error('Failed to clear session');
+    }
+    setToken(null);
+    setShopId(null);
+    setIsScanning(false);
+  };
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -34,9 +69,17 @@ export default function App() {
       });
       const data = await response.json();
       if (response.ok && data.access) {
+        const newShopId = data.shop_id || 1;
         setToken(data.access);
-        setShopId(data.shop_id || 1); 
+        setShopId(newShopId); 
         setIsScanning(false); 
+        try {
+          await AsyncStorage.setItem('token', data.access);
+          await AsyncStorage.setItem('shopId', String(newShopId));
+          await AsyncStorage.setItem('email', email);
+        } catch (e) {
+          console.error('Failed to save session');
+        }
       } else {
         Alert.alert('Login Failed', data.detail || 'Invalid credentials');
       }
@@ -71,6 +114,16 @@ export default function App() {
     }
     setTimeout(() => setScanned(false), 1000);
   };
+
+  if (isInitializing) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.container}>
+          <ActivityIndicator size="large" color="#2563eb" />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   // 1. Login Screen
   if (!token) {
@@ -135,12 +188,17 @@ export default function App() {
           
           <View style={styles.header}>
             <Image source={require('./assets/logo.png')} style={styles.headerLogo} resizeMode="contain" />
-            <TouchableOpacity onPress={() => setToken(null)} style={styles.logoutIcon}>
+            <TouchableOpacity onPress={handleLogout} style={styles.logoutIcon}>
               <Ionicons name="log-out-outline" size={24} color="#ef4444" />
             </TouchableOpacity>
           </View>
 
           <View style={styles.dashboardContent}>
+            <View style={styles.userBadge}>
+              <Ionicons name="person-circle-outline" size={20} color="#6b7280" />
+              <Text style={styles.userBadgeText}>{email}</Text>
+            </View>
+
             <Text style={styles.welcomeText}>Ready to scan!</Text>
             <Text style={styles.subText}>Tap the button below to open the camera and scan barcodes directly into your POS.</Text>
             
@@ -345,6 +403,21 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 80,
+  },
+  userBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#e5e7eb',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    marginBottom: 20,
+  },
+  userBadgeText: {
+    fontSize: 13,
+    color: '#4b5563',
+    marginLeft: 6,
+    fontWeight: '500',
   },
   welcomeText: {
     fontSize: 28,
