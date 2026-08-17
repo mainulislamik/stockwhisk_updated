@@ -60,6 +60,9 @@ export default function TicketDetailPage() {
     setTimeout(() => window.print(), 100);
   };
 
+  const [addingPayment, setAddingPayment] = useState(false);
+  const [payAmount, setPayAmount] = useState("");
+
   useEffect(() => {
     if (picked || prodSearch.trim().length < 1) { setProdHits([]); return; }
     let active = true;
@@ -132,6 +135,22 @@ export default function TicketDetailPage() {
       toast.success("Service charge updated");
     } catch (e: any) {
       toast.error(e.message || "Failed to update charge");
+    }
+  };
+
+  const handleAddPayment = async () => {
+    if (!payAmount || Number(payAmount) <= 0) return;
+    try {
+      const fresh = await api<Ticket>(`/service/tickets/${id}/add_payment/`, {
+        method: "POST",
+        body: { amount: payAmount }
+      });
+      setTicket(fresh);
+      setAddingPayment(false);
+      setPayAmount("");
+      toast.success("Payment collected successfully");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to collect payment");
     }
   };
 
@@ -303,9 +322,24 @@ export default function TicketDetailPage() {
                 <span>Bill total</span>
                 <span>{money(ticket.bill_total)}</span>
               </div>
-              <div className="d-flex justify-content-between">
+              <div className="d-flex justify-content-between align-items-center">
                 <span className="text-secondary">Paid</span>
-                <span>{money(ticket.paid)}</span>
+                {addingPayment ? (
+                  <div className="input-group input-group-sm" style={{ width: '150px' }}>
+                    <input type="number" step="0.01" className="form-control" placeholder="Amount" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                    <button className="btn btn-brand" onClick={handleAddPayment} disabled={!payAmount}><i className="bi bi-check2"></i></button>
+                    <button className="btn btn-light border" onClick={() => { setAddingPayment(false); setPayAmount(""); }}><i className="bi bi-x"></i></button>
+                  </div>
+                ) : (
+                  <span>
+                    {money(ticket.paid)}
+                    {canManage && Number(ticket.due) > 0 && (
+                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => { setAddingPayment(true); setPayAmount(ticket.due); }}>
+                        <i className="bi bi-plus-circle"></i> Add
+                      </button>
+                    )}
+                  </span>
+                )}
               </div>
               <div className="d-flex justify-content-between fw-semibold">
                 <span>Due</span>

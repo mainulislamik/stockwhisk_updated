@@ -35,7 +35,16 @@ export default function TicketsPage() {
   const canManage = isOwner || can("manage_service");
   const [page, setPage] = useState(1);
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState({ customer: "", customer_name: "", customer_phone: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
+  const [form, setForm] = useState({ 
+    customer: "", 
+    customer_name: "", 
+    customer_phone: "", 
+    device_description: "", 
+    complaint: "", 
+    service_charge: "", 
+    advance_paid: "",
+    estimated_delivery: "" 
+  });
   const [saving, setSaving] = useState(false);
 
   const PAGE_SIZE = 20;
@@ -61,10 +70,11 @@ export default function TicketsPage() {
           device_description: form.device_description,
           complaint: form.complaint,
           service_charge: form.service_charge || 0,
+          advance_paid: form.advance_paid || 0,
           estimated_delivery: form.estimated_delivery || null,
         },
       });
-      setForm({ customer: "", customer_name: "", customer_phone: "", device_description: "", complaint: "", service_charge: "", estimated_delivery: "" });
+      setForm({ customer: "", customer_name: "", customer_phone: "", device_description: "", complaint: "", service_charge: "", advance_paid: "", estimated_delivery: "" });
       setShowAdd(false);
       setPage(1);
       mutate();
@@ -124,6 +134,10 @@ export default function TicketsPage() {
               <div className="col-md-2">
                 <label className="small">Service charge</label>
                 <input type="number" step="0.01" className="form-control form-control-sm" value={form.service_charge} onChange={(e) => setForm({ ...form, service_charge: e.target.value })} />
+              </div>
+              <div className="col-md-2">
+                <label className="small">Advance paid</label>
+                <input type="number" step="0.01" className="form-control form-control-sm" value={form.advance_paid} onChange={(e) => setForm({ ...form, advance_paid: e.target.value })} />
               </div>
               <div className="col-md-2">
                 <label className="small">Est. delivery</label>

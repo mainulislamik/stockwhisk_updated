@@ -84,6 +84,7 @@ class TicketCreateSerializer(serializers.Serializer):
     device_description = serializers.CharField(max_length=200)
     complaint = serializers.CharField()
     service_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    advance_paid = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     estimated_delivery = serializers.DateField(required=False, allow_null=True)
 
 
