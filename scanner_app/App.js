@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  StyleSheet, Text, View, TextInput, TouchableOpacity, 
-  Alert, ActivityIndicator, Image, SafeAreaView, Platform, StatusBar
+  StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, 
+  ActivityIndicator, StatusBar, Image, SafeAreaView, Platform, Dimensions
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
@@ -322,8 +322,8 @@ export default function App() {
         barcodeScannerSettings={{
           barcodeTypes: ["qr", "ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
         }}
-      >
-        <View style={StyleSheet.absoluteFill}>
+      />
+      <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
           
           <View style={styles.overlayTop}>
             <SafeAreaView>
@@ -359,7 +359,6 @@ export default function App() {
             )}
           </View>
         </View>
-      </CameraView>
     </View>
   );
 }
