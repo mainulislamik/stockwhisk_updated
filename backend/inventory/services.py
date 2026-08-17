@@ -64,8 +64,18 @@ def apply_movement(
                     selling_price=product.selling_price,
                 )
         elif movement_type in ["adjust_out", "damage_out", "sale_out"]:
-            ProductUnit.all_objects.filter(shop_id=shop.id, product=product, barcode__in=clean).delete()
-
+            if clean:
+                ProductUnit.all_objects.filter(shop_id=shop.id, product=product, barcode__in=clean).delete()
+            elif movement_type in ["adjust_out", "damage_out"]:
+                # Fallback to FIFO deletion if no barcodes are explicitly provided,
+                # ensuring ProductUnits stay in sync with current_stock
+                fifo_ids = list(
+                    ProductUnit.all_objects.filter(
+                        shop_id=shop.id, product=product, status=ProductUnit.Status.IN_STOCK
+                    ).order_by("created_at").values_list("id", flat=True)[:int(abs(signed))]
+                )
+                if fifo_ids:
+                    ProductUnit.all_objects.filter(id__in=fifo_ids).delete()
     return movement
 
 
