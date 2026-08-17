@@ -449,7 +449,7 @@ def cancel_sale(*, sale, created_by=None):
 
 
 @transaction.atomic
-def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, created_by=None, correction_reason=""):
+def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, customer_id=None, customer_name=None, customer_phone=None, customer_address=None, created_by=None, correction_reason=""):
     """
     Edit a completed sale's line items + discount (item 12). Ledger-safe:
     reverses the old lines with SALE_RETURN_IN, deletes old SaleItems, then
@@ -534,7 +534,18 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cre
     # Store original state for audit if not already corrected
     if not sale.is_corrected:
         sale.original_total = old_total
-        
+
+    if customer_name is not None:
+        sale.customer_name = customer_name
+    if customer_phone is not None:
+        sale.customer_phone = customer_phone
+    if customer_address is not None:
+        sale.customer_address = customer_address
+    # Optionally update customer_id if provided. We handle 'None' as a valid update to remove the link, 
+    # but we must distinguish between "not provided" and "explicitly cleared". 
+    # To keep it simple, we check if it's explicitly in the payload in the view.
+    # The view will pass customer_id if it's sent.
+    
     sale.subtotal = subtotal
     sale.discount = discount
     sale.total = total

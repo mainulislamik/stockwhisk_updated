@@ -10,7 +10,7 @@ import Link from "next/link";
 
 type Product = { id: number; name: string; selling_price: string; current_stock: string; };
 type SaleItem = { id: number; product_id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; };
-type Sale = { id: number; invoice_no: string; sale_date: string; discount: string; tax: string; delivery_charge: string; paid: string; items: SaleItem[]; status: string; returns?: any[] };
+type Sale = { id: number; invoice_no: string; sale_date: string; discount: string; tax: string; delivery_charge: string; paid: string; customer_name: string; customer_phone: string; customer_address: string; items: SaleItem[]; status: string; returns?: any[] };
 
 type CartItem = {
     product_id: number;
@@ -32,6 +32,11 @@ export default function EditInvoicePage() {
     const [saleDiscount, setSaleDiscount] = useState(0);
     const [saleTax, setSaleTax] = useState(0);
     const [saleDelivery, setSaleDelivery] = useState(0);
+    
+    const [customerName, setCustomerName] = useState("");
+    const [customerPhone, setCustomerPhone] = useState("");
+    const [customerAddress, setCustomerAddress] = useState("");
+    
     const [reason, setReason] = useState("");
     const [submitting, setSubmitting] = useState(false);
     
@@ -69,6 +74,9 @@ export default function EditInvoicePage() {
                 setSaleDiscount(Number(data.discount));
                 setSaleTax(Number(data.tax || 0));
                 setSaleDelivery(Number(data.delivery_charge || 0));
+                setCustomerName(data.customer_name || "");
+                setCustomerPhone(data.customer_phone || "");
+                setCustomerAddress(data.customer_address || "");
                 
                 const initialCart: CartItem[] = data.items.map(item => ({
                     product_id: item.product_id,
@@ -169,6 +177,9 @@ export default function EditInvoicePage() {
                     discount: saleDiscount,
                     tax: saleTax,
                     delivery_charge: saleDelivery,
+                    customer_name: customerName,
+                    customer_phone: customerPhone,
+                    customer_address: customerAddress,
                     correction_reason: reason.trim()
                 })
             });
@@ -199,30 +210,57 @@ export default function EditInvoicePage() {
             </div>
 
             <div className="card shadow-sm mb-4">
+                <div className="card-header bg-light fw-bold">Customer Information</div>
                 <div className="card-body">
-                    <div className="position-relative mb-3">
-                        <input
-                            type="text"
-                            className="form-control"
-                            placeholder="Search products to add..."
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                        />
-                        {searching && <div className="position-absolute end-0 top-50 translate-middle-y me-3"><Spinner /></div>}
-                        {searchResults.length > 0 && (
-                            <ul className="list-group position-absolute w-100 mt-1 shadow-sm" style={{ zIndex: 1000, maxHeight: "200px", overflowY: "auto" }}>
-                                {searchResults.map(p => (
-                                    <button 
-                                        key={p.id} 
-                                        className="list-group-item list-group-item-action d-flex justify-content-between"
-                                        onClick={() => handleAddProduct(p)}
-                                    >
-                                        <span>{p.name}</span>
-                                        <span className="text-muted">{money(p.selling_price)}</span>
-                                    </button>
-                                ))}
-                            </ul>
-                        )}
+                    <div className="row g-3">
+                        <div className="col-md-4">
+                            <label className="form-label small text-muted">Name</label>
+                            <input type="text" className="form-control form-control-sm" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in Customer" />
+                        </div>
+                        <div className="col-md-4">
+                            <label className="form-label small text-muted">Phone</label>
+                            <input type="text" className="form-control form-control-sm" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
+                        </div>
+                        <div className="col-md-4">
+                            <label className="form-label small text-muted">Address</label>
+                            <input type="text" className="form-control form-control-sm" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div className="card shadow-sm mb-4">
+                <div className="card-body">
+                    <div className="d-flex gap-2 mb-3">
+                        <div className="position-relative flex-grow-1">
+                            <input
+                                type="text"
+                                className="form-control"
+                                placeholder="Search products to add..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                            {searching && <div className="position-absolute end-0 top-50 translate-middle-y me-3"><Spinner /></div>}
+                            {searchResults.length > 0 && (
+                                <ul className="list-group position-absolute w-100 mt-1 shadow-sm" style={{ zIndex: 1000, maxHeight: "200px", overflowY: "auto" }}>
+                                    {searchResults.map(p => (
+                                        <button 
+                                            key={p.id} 
+                                            type="button"
+                                            className="list-group-item list-group-item-action d-flex justify-content-between"
+                                            onClick={() => handleAddProduct(p)}
+                                        >
+                                            <span>{p.name}</span>
+                                            <span className="text-muted">{money(p.selling_price)}</span>
+                                        </button>
+                                    ))}
+                                </ul>
+                            )}
+                        </div>
+                        <Link href="/app/products" target="_blank" className="btn btn-outline-primary d-flex align-items-center gap-2">
+                            <i className="bi bi-plus-lg"></i>
+                            <span className="d-none d-md-inline">New Product</span>
+                        </Link>
                     </div>
 
                     <form onSubmit={handleSubmit}>

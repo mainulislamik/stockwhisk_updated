@@ -416,6 +416,9 @@ class SaleViewSet(
             discount = request.data.get("discount", 0)
             delivery_charge = request.data.get("delivery_charge", sale.delivery_charge)
             tax = request.data.get("tax", sale.tax)
+            customer_name = request.data.get("customer_name")
+            customer_phone = request.data.get("customer_phone")
+            customer_address = request.data.get("customer_address")
             
             with transaction.atomic():
                 locked_sale = Sale.objects.select_for_update().get(id=sale.id)
@@ -425,6 +428,9 @@ class SaleViewSet(
                     discount=discount, 
                     delivery_charge=delivery_charge,
                     tax=tax,
+                    customer_name=customer_name,
+                    customer_phone=customer_phone,
+                    customer_address=customer_address,
                     created_by=request.user,
                     correction_reason=correction_reason
                 )
