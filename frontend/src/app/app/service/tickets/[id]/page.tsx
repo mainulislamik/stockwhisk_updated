@@ -123,9 +123,14 @@ export default function TicketDetailPage() {
             {ticket.device_description} · received {fmtDate(ticket.received_at)}
           </div>
         </div>
-        <Link href="/app/service/tickets" className="btn btn-light btn-sm">
-          Back
-        </Link>
+        <div className="d-flex gap-2 d-print-none">
+          <button className="btn btn-brand btn-sm" onClick={() => window.print()}>
+            <i className="bi bi-printer me-1"></i> Print
+          </button>
+          <Link href="/app/service/tickets" className="btn btn-light btn-sm">
+            Back
+          </Link>
+        </div>
       </div>
 
       <div className="row g-3">
@@ -274,6 +279,26 @@ export default function TicketDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Print Styles */}
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media print {
+          @page { size: A4 portrait; margin: 15mm; }
+          .sidebar, .topbar, .offcanvas { display: none !important; }
+          .flex-grow-1 { margin: 0 !important; padding: 0 !important; width: 100% !important; }
+          body, .flex-grow-1, [data-bs-theme="dark"] body { background: #fff !important; color: #000 !important; }
+          .card { border: none !important; box-shadow: none !important; background: transparent !important; }
+          .card-body { padding: 0 !important; }
+          .text-brand, .text-primary { color: #000 !important; }
+          .btn, .form-select, input { display: none !important; }
+          .table { border-color: #dee2e6 !important; }
+          .table th, .table td { color: #000 !important; }
+          .row { display: flex !important; flex-wrap: nowrap !important; }
+          .col-lg-7 { width: 60% !important; }
+          .col-lg-5 { width: 40% !important; }
+          .d-print-none { display: none !important; }
+        }
+      `}} />
     </div>
   );
 }
