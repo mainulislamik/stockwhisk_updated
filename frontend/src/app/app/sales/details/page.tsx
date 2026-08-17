@@ -5,9 +5,9 @@ import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 
-type Item = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string };
-type Sale = { id: number; invoice_no: string; customer_name: string | null; sale_date: string; items: Item[] };
-type Page = { count: number; next: string | null; previous: string | null; results: Sale[] };
+type Item = { id: string; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string };
+type FlatRow = { saleId: number; type: string; invoice: string; customer: string; date: string; item: Item };
+type Page = { count: number; next: string | null; previous: string | null; results: FlatRow[] };
 
 const PAGE_SIZE = 25;
 
@@ -31,22 +31,16 @@ export default function SellingDetailsPage() {
     setLoading(true);
     const qs = new URLSearchParams({ page: String(page), page_size: String(PAGE_SIZE) });
     if (search) qs.set("search", search);
-    api<Page>(`/sales/sales/?${qs.toString()}`)
+    api<Page>(`/reports/selling-details/?${qs.toString()}`)
       .then((d) => { if (alive) { setData(d); setError(""); } })
       .catch((e: any) => { if (alive) setError(e?.message || "Failed to load selling details"); })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
   }, [page, search]);
 
-  // Flatten the current page's sales into one row per line item.
+  // The backend now returns the flattened rows directly.
   const rows = useMemo(() => {
-    const flat: { saleId: number; invoice: string; customer: string; date: string; item: Item }[] = [];
-    (data?.results || []).forEach((s) => {
-      (s.items || []).forEach((it) => {
-        flat.push({ saleId: s.id, invoice: s.invoice_no || `#${s.id}`, customer: s.customer_name || "Walk-in", date: s.sale_date, item: it });
-      });
-    });
-    return flat;
+    return data?.results || [];
   }, [data]);
 
   const count = data?.count ?? 0;
@@ -91,9 +85,9 @@ export default function SellingDetailsPage() {
                   </tr>
                 ) : (
                   rows.map((r, i) => (
-                    <tr key={`${r.saleId}-${r.item.id}-${i}`}>
+                    <tr key={r.item.id}>
                       <td>
-                        <Link href={`/app/sales/${r.saleId}`} className="text-decoration-none">{r.invoice}</Link>
+                        <Link href={r.type === 'ticket' ? `/app/service/tickets/${r.saleId}` : `/app/sales/${r.saleId}`} className="text-decoration-none">{r.invoice}</Link>
                       </td>
                       <td className="text-secondary">{fmtDate(r.date)}</td>
                       <td className="text-secondary">{r.customer}</td>

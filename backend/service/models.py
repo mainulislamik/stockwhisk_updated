@@ -143,6 +143,7 @@ class ServiceTicket(TenantScopedModel):
     )
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.RECEIVED)
     service_charge = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     paid = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     estimated_delivery = models.DateField(null=True, blank=True)
     actual_delivery = models.DateTimeField(null=True, blank=True)
@@ -171,8 +172,8 @@ class ServiceTicket(TenantScopedModel):
 
     @property
     def bill_total(self):
-        """Customer bill = labour (service_charge) + parts at their sell price."""
-        return (self.service_charge or Decimal("0")) + self.parts_total
+        """Customer bill = labour (service_charge) + parts at their sell price - discount."""
+        return max(Decimal("0"), (self.service_charge or Decimal("0")) + self.parts_total - (self.discount or Decimal("0")))
 
     @property
     def due(self):

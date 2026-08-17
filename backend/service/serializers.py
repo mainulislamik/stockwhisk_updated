@@ -60,7 +60,7 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
         fields = [
             "id", "ticket_no", "branch", "customer", "customer_name", "customer_phone",
             "device_description", "complaint",
-            "received_at", "technician", "status", "service_charge", "estimated_delivery",
+            "received_at", "technician", "status", "service_charge", "discount", "estimated_delivery",
             "actual_delivery", "is_overdue", "parts", "history", "created_at",
             "paid", "parts_total", "bill_total", "due",
         ]

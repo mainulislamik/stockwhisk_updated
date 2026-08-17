@@ -75,6 +75,15 @@ def change_ticket_status(*, ticket, new_status, note="", changed_by=None):
     ticket.status = new_status
     if new_status == ServiceTicket.Status.DELIVERED:
         ticket.actual_delivery = timezone.now()
+        # Add to customer dues if there is an outstanding amount
+        if ticket.customer_id:
+            customer = ticket.customer
+            due = ticket.due
+            if due > 0:
+                customer.due_balance = (customer.due_balance or 0) + due
+            customer.total_purchased = (customer.total_purchased or 0) + ticket.bill_total
+            if due > 0 or ticket.bill_total > 0:
+                customer.save(update_fields=["due_balance", "total_purchased"])
     ticket.save(update_fields=["status", "actual_delivery"])
 
     ServiceTicketStatusHistory.objects.create(
