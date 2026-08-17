@@ -106,9 +106,9 @@ export default function SoftwarePage() {
                 </Typography>
               </Box>
             ) : (
-              <Grid container spacing={4} justifyContent="center">
+              <Grid container spacing={4} sx={{ justifyContent: "center" }}>
                 {releases.map((release) => (
-                  <Grid item xs={12} sm={6} md={4} key={release.id}>
+                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={release.id}>
                     <Card sx={{ 
                       height: '100%', 
                       display: 'flex', 
