@@ -50,6 +50,10 @@ export default function TicketDetailPage() {
   const [price, setPrice] = useState("");
   const [addingPart, setAddingPart] = useState(false);
 
+  // Edit service charge state
+  const [editingCharge, setEditingCharge] = useState(false);
+  const [chargeVal, setChargeVal] = useState("");
+
   useEffect(() => {
     if (picked || prodSearch.trim().length < 1) { setProdHits([]); return; }
     let active = true;
@@ -91,6 +95,7 @@ export default function TicketDetailPage() {
       const t = await api<Ticket>(`/service/tickets/${id}/`);
       setTicket(t);
       setStatus(t.status);
+      setChargeVal(t.service_charge);
     } catch (e: any) {
       setError(e?.message || "Failed to load ticket");
     } finally {
@@ -109,6 +114,20 @@ export default function TicketDetailPage() {
       toast.error(e?.message || "Could not change status");
     }
   }
+
+  const updateCharge = async () => {
+    try {
+      const fresh = await api<Ticket>(`/service/tickets/${id}/`, {
+        method: "PATCH",
+        body: { service_charge: chargeVal || "0" }
+      });
+      setTicket(fresh);
+      setEditingCharge(false);
+      toast.success("Service charge updated");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to update charge");
+    }
+  };
 
   if (loading) return <Spinner label="Loading ticket…" />;
   if (error) return <ErrorState error={error} />;
@@ -245,11 +264,27 @@ export default function TicketDetailPage() {
               ) : (
                 <div className="mb-3"><span className="badge text-bg-secondary">{status.replace(/_/g, " ")}</span></div>
               )}
-              <div className="d-flex justify-content-between">
+              
+              <div className="d-flex justify-content-between align-items-center mb-1">
                 <span className="text-secondary">Service charge</span>
-                <span>{money(ticket.service_charge)}</span>
+                {editingCharge ? (
+                  <div className="input-group input-group-sm" style={{ width: '130px' }}>
+                    <input type="number" step="0.01" className="form-control" value={chargeVal} onChange={e => setChargeVal(e.target.value)} />
+                    <button className="btn btn-brand" onClick={updateCharge}><i className="bi bi-check2"></i></button>
+                    <button className="btn btn-light border" onClick={() => { setEditingCharge(false); setChargeVal(ticket.service_charge); }}><i className="bi bi-x"></i></button>
+                  </div>
+                ) : (
+                  <span>
+                    {money(ticket.service_charge)}
+                    {canManage && (
+                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingCharge(true)}>
+                        <i className="bi bi-pencil-square"></i> Edit
+                      </button>
+                    )}
+                  </span>
+                )}
               </div>
-              <div className="d-flex justify-content-between">
+              <div className="d-flex justify-content-between mb-1">
                 <span className="text-secondary">Products &amp; parts</span>
                 <span>{money(ticket.parts_total)}</span>
               </div>
