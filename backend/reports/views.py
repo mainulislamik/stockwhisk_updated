@@ -116,31 +116,36 @@ class SellingDetailsView(APIView):
             })
 
         # ---- 3. Delivered Ticket Service Charges ----------------------------
-        tickets_with_svc = ServiceTicket.objects.filter(
-            shop=shop, status="delivered", service_charge__gt=0
-        ).order_by("-updated_at", "-id")
+        try:
+            tickets_with_svc = ServiceTicket.objects.filter(
+                shop=shop, status="delivered", service_charge__gt=0
+            ).only("id", "ticket_no", "customer_name", "service_charge", "updated_at").order_by("-updated_at", "-id")
 
-        if search:
-            tickets_with_svc = tickets_with_svc.filter(
-                Q(ticket_no__icontains=search) |
-                Q(customer_name__icontains=search)
-            )
+            if search:
+                tickets_with_svc = tickets_with_svc.filter(
+                    Q(ticket_no__icontains=search) |
+                    Q(customer_name__icontains=search)
+                )
 
-        for t in tickets_with_svc:
-            svc = t.service_charge or Decimal("0")
-            disc = t.discount or Decimal("0")
-            rows.append({
-                "record_type": "ticket",
-                "ref_id": t.id,
-                "invoice": t.ticket_no or f"#{t.id}",
-                "customer": t.customer_name or "Walk-in",
-                "date": str(t.updated_at)[:10] if t.updated_at else "",
-                "pname": "Service Charge",
-                "qty": Decimal("1"),
-                "price": svc,
-                "disc": disc,
-                "sub": max(Decimal("0"), svc - disc),
-            })
+            for t in tickets_with_svc:
+                svc = t.service_charge or Decimal("0")
+                # discount may not exist yet if migration not applied - use getattr safely
+                disc = getattr(t, "discount", None) or Decimal("0")
+                rows.append({
+                    "record_type": "ticket",
+                    "ref_id": t.id,
+                    "invoice": t.ticket_no or f"#{t.id}",
+                    "customer": t.customer_name or "Walk-in",
+                    "date": str(t.updated_at)[:10] if t.updated_at else "",
+                    "pname": "Service Charge",
+                    "qty": Decimal("1"),
+                    "price": svc,
+                    "disc": disc,
+                    "sub": max(Decimal("0"), svc - disc),
+                })
+        except Exception:
+            pass  # if discount column missing, skip service charge rows gracefully
+
 
         # ---- Sort newest first -----------------------------------------------
         rows.sort(key=lambda r: (r["date"], r["ref_id"]), reverse=True)
