@@ -133,6 +133,7 @@ export default function App() {
       <CameraView
         style={styles.camera}
         facing="back"
+        autofocus="on"
         onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
         barcodeScannerSettings={{
           barcodeTypes: ["qr", "ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
