@@ -132,6 +132,7 @@ class CheckoutView(_POSBase):
             sale = create_sale(
                 shop=request.user.shop,
                 customer=customer,
+                sale_date=data.get("sale_date"),
                 discount=data.get("discount", 0),
                 tax=data.get("tax", 0),
                 note=data.get("note", ""),

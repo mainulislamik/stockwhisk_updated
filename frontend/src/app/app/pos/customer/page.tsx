@@ -62,6 +62,7 @@ export default function PosCustomerPage() {
     }
   }
   const [discount, setDiscount] = useState("");
+  const [saleDate, setSaleDate] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");
   const [method, setMethod] = useState("cash");
@@ -140,6 +141,7 @@ export default function PosCustomerPage() {
             unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
           })),
           payments: finalPaid > 0 ? [{ amount: finalPaid, method }] : [],
+          sale_date: user?.shop_offline_sale_mode && saleDate ? new Date(saleDate).toISOString() : undefined,
           is_emi: isEmi,
           emi_months: isEmi ? emiMonths : 0,
           down_payment: isEmi ? finalPaid : 0,
@@ -284,6 +286,27 @@ export default function PosCustomerPage() {
                 <div className="form-floating">
                   <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
                   <label htmlFor="walkAddress">{t("pos_checkout_address_opt")}</label>
+                </div>
+              </div>
+            )}
+
+            {user?.shop_offline_sale_mode && (
+              <div className="p-3 bg-warning bg-opacity-10 border border-warning rounded-3 vstack gap-2 mb-3 shadow-sm">
+                <div className="fw-bold text-warning-emphasis small">
+                  <i className="bi bi-exclamation-triangle-fill me-1"></i> Offline Sale Entry Mode Active
+                </div>
+                <div className="form-text mt-0 mb-1" style={{ fontSize: "0.75rem" }}>
+                  Stock validation is relaxed. You can optionally backdate this sale if recovering from an outage.
+                </div>
+                <div className="form-floating">
+                  <input
+                    type="datetime-local"
+                    className="form-control border-warning bg-white shadow-sm"
+                    id="saleDate"
+                    value={saleDate}
+                    onChange={(e) => setSaleDate(e.target.value)}
+                  />
+                  <label htmlFor="saleDate">Backdated Sale Time (Optional)</label>
                 </div>
               </div>
             )}

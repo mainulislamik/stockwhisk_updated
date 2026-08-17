@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, whatsapp_invoice_enabled: true, barcode_prefix: "" });
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, whatsapp_invoice_enabled: true, barcode_prefix: "", offline_sale_mode: false });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -44,6 +44,7 @@ export default function SettingsPage() {
           delivery_enabled: data.delivery_enabled !== false,
           whatsapp_invoice_enabled: data.whatsapp_invoice_enabled !== false,
           barcode_prefix: data.barcode_prefix || "",
+          offline_sale_mode: data.offline_sale_mode || false,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -84,6 +85,7 @@ export default function SettingsPage() {
       formData.append("delivery_enabled", shopForm.delivery_enabled.toString());
       formData.append("whatsapp_invoice_enabled", shopForm.whatsapp_invoice_enabled.toString());
       formData.append("barcode_prefix", shopForm.barcode_prefix);
+      formData.append("offline_sale_mode", shopForm.offline_sale_mode.toString());
 
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -268,6 +270,22 @@ export default function SettingsPage() {
                   <div className="form-check form-switch mt-2">
                     <input className="form-check-input" type="checkbox" role="switch" id="whatsappSwitch" checked={shopForm.whatsapp_invoice_enabled} onChange={e => setShopForm({...shopForm, whatsapp_invoice_enabled: e.target.checked})} />
                     <label className="form-check-label small" htmlFor="whatsappSwitch">{t("settings_wa_en")}</label>
+                  </div>
+                  <div className="form-check form-switch mt-3 pt-2 border-top">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      id="offlineSaleSwitch"
+                      checked={shopForm.offline_sale_mode}
+                      onChange={e => setShopForm({...shopForm, offline_sale_mode: e.target.checked})}
+                    />
+                    <label className="form-check-label small fw-semibold" htmlFor="offlineSaleSwitch">
+                      Enable Offline Sale Entry Mode
+                    </label>
+                    <div className="form-text" style={{ fontSize: "0.75rem" }}>
+                      ⚠️ When enabled: POS allows backdated sales (up to 30 days) and relaxes stock validation — use only when recovering from a network/PC outage.
+                    </div>
                   </div>
                 </div>
               </div>

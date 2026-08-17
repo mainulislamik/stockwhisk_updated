@@ -55,6 +55,7 @@ class UserSerializer(serializers.ModelSerializer):
     shop_whatsapp_enabled = serializers.BooleanField(source="shop.whatsapp_invoice_enabled", read_only=True, default=True)
     shop_is_demo = serializers.BooleanField(source="shop.is_demo", read_only=True, default=False)
     shop_barcode_prefix = serializers.CharField(source="shop.effective_barcode_prefix", read_only=True, default="")
+    shop_offline_sale_mode = serializers.BooleanField(source="shop.offline_sale_mode", read_only=True, default=False)
     # True when this user is an approved (active) reseller — lets the normal login
     # panel route them to the reseller portal instead of the (shop-less) app.
     is_reseller = serializers.SerializerMethodField()
@@ -64,10 +65,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
-            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff",
+            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "shop_offline_sale_mode", "branch", "is_staff",
             "is_reseller",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "branch", "is_staff", "is_reseller"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "shop_offline_sale_mode", "branch", "is_staff", "is_reseller"]
 
     def get_is_reseller(self, obj):
         profile = getattr(obj, "reseller_profile", None)
@@ -90,7 +91,7 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
         fields = [
             "id", "shop_code", "name", "phone", "email", "address", "business_type",
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
-            "invoice_settings", "logo", "emi_enabled", "delivery_enabled", "whatsapp_invoice_enabled", "barcode_prefix"
+            "invoice_settings", "logo", "emi_enabled", "delivery_enabled", "whatsapp_invoice_enabled", "barcode_prefix", "offline_sale_mode"
         ]
         read_only_fields = ["id", "shop_code"]
 

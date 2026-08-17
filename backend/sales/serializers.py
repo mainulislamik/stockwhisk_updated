@@ -144,6 +144,7 @@ class SaleCreateSerializer(serializers.Serializer):
     note = serializers.CharField(required=False, allow_blank=True, default="")
     items = SaleItemInputSerializer(many=True)
     payments = PaymentInputSerializer(many=True, required=False, default=list)
+    sale_date = serializers.DateTimeField(required=False, allow_null=True)
     
     # EMI Fields
     is_emi = serializers.BooleanField(default=False)

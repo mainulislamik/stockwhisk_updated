@@ -132,6 +132,10 @@ class Shop(TimeStampedModel):
     delivery_enabled = models.BooleanField(default=True)
     # Offer to send the invoice PDF over WhatsApp from the POS after-sale popup.
     whatsapp_invoice_enabled = models.BooleanField(default=True)
+    # Offline Sale Entry Mode: when enabled, POS allows backdated sales (up to 30 days)
+    # and relaxes stock-level validation so the owner can log sales made during
+    # a network/PC outage after the fact.
+    offline_sale_mode = models.BooleanField(default=False)
 
     # Short 2–5 char code prefixed to generated barcodes so labels are unique
     # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name

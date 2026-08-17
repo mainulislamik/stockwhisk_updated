@@ -73,6 +73,7 @@ def create_sale(
         }
 
     # Block the sale if any tracked product lacks enough stock (item 7).
+    # If offline_sale_mode is enabled, we bypass this block and allow negative stock.
     for row in items:
         product = row["product"]
         if product.track_inventory:
@@ -80,12 +81,13 @@ def create_sale(
             # Use the freshly-locked stock, not the possibly-stale instance value.
             on_hand = locked_stock.get(product.id, product.current_stock)
             product.current_stock = on_hand
-            if on_hand <= 0:
-                raise ValueError(f"'{product.name}' is out of stock.")
-            if qty > on_hand:
-                raise ValueError(
-                    f"Only {on_hand} of '{product.name}' in stock."
-                )
+            if not getattr(shop, "offline_sale_mode", False):
+                if on_hand <= 0:
+                    raise ValueError(f"'{product.name}' is out of stock.")
+                if qty > on_hand:
+                    raise ValueError(
+                        f"Only {on_hand} of '{product.name}' in stock."
+                    )
 
     discount = Decimal(discount or 0)
     delivery_charge = Decimal(delivery_charge or 0)
