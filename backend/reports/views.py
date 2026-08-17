@@ -13,6 +13,7 @@ from rest_framework.pagination import PageNumberPagination
 from django.db.models import F, Value, CharField, DecimalField, IntegerField, Q
 from django.db.models.functions import Cast, Coalesce
 from django.db.models import DateField
+from decimal import Decimal
 from sales.models import SaleItem
 from service.models import ServiceTicketPart, ServiceTicket
 
@@ -87,7 +88,7 @@ class SellingDetailsView(APIView):
             pname=Coalesce(F("product__name"), Value("", CharField())),
             qty=Cast("quantity", DecimalField()),
             price=Cast("unit_price", DecimalField()),
-            disc=Value(0, DecimalField()),
+            disc=Value(Decimal("0"), DecimalField()),
             sub=Cast(F("quantity") * F("unit_price"), DecimalField()),
         ).values("record_type", "ref_id", "invoice", "customer", "date", "pname", "qty", "price", "disc", "sub")
 
@@ -105,10 +106,10 @@ class SellingDetailsView(APIView):
             customer=Coalesce(F("customer_name"), Value("Walk-in", CharField())),
             date=Cast("updated_at", DateField()),
             pname=Value("Service Charge", CharField()),
-            qty=Value(1, DecimalField()),
+            qty=Value(Decimal("1"), DecimalField()),
             price=Cast("service_charge", DecimalField()),
-            disc=Coalesce(Cast("discount", DecimalField()), Value(0, DecimalField())),
-            sub=Cast(F("service_charge") - Coalesce(F("discount"), Value(0, DecimalField())), DecimalField()),
+            disc=Coalesce(Cast("discount", DecimalField()), Value(Decimal("0"), DecimalField())),
+            sub=Cast(F("service_charge") - Coalesce(F("discount"), Value(Decimal("0"), DecimalField())), DecimalField()),
         ).values("record_type", "ref_id", "invoice", "customer", "date", "pname", "qty", "price", "disc", "sub")
 
         if search:
