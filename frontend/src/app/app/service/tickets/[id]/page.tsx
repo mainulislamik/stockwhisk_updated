@@ -151,9 +151,11 @@ export default function TicketDetailPage() {
           </div>
         </div>
         <div className="d-flex flex-wrap gap-2 d-print-none">
-          <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
-            <i className="bi bi-receipt me-1"></i> Print Token
-          </button>
+          {ticket.status !== 'delivered' && ticket.status !== 'cancelled' && (
+            <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
+              <i className="bi bi-receipt me-1"></i> Print Token
+            </button>
+          )}
           <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")}>
             <i className="bi bi-printer me-1"></i> Print Invoice
           </button>
@@ -352,6 +354,30 @@ export default function TicketDetailPage() {
           {ticket.estimated_delivery && (
             <div className="token-row mt-2"><strong>Est. Delivery:</strong> {fmtDate(ticket.estimated_delivery)}</div>
           )}
+          
+          <div className="token-divider" />
+          <div className="token-row"><strong>Service Charge:</strong> {money(ticket.service_charge)}</div>
+          {ticket.parts.length > 0 && (
+            <div className="mt-2">
+              <strong>Parts:</strong>
+              {ticket.parts.map(p => (
+                <div key={p.id} className="d-flex justify-content-between" style={{ fontSize: '9pt' }}>
+                  <span>{p.quantity}x {p.product_name}</span>
+                  <span>{money(p.line_total)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="token-divider" />
+          <div className="d-flex justify-content-between fw-bold">
+            <span>Est. Total:</span>
+            <span>{money(ticket.bill_total)}</span>
+          </div>
+          <div className="d-flex justify-content-between">
+            <span>Advance Paid:</span>
+            <span>{money(ticket.paid)}</span>
+          </div>
+
           <div className="token-divider" />
           <div className="text-center mt-4" style={{ fontSize: '9pt' }}>
             <p className="mb-1 fw-semibold">Please keep this token safe.</p>
