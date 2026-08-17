@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Barcode from "react-barcode";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
@@ -376,6 +377,9 @@ export default function TicketDetailPage() {
             <div style={{ fontSize: '9pt', color: '#475569' }}>Service & Repair Token</div>
           </div>
           <div className="token-divider" />
+          <div className="text-center mb-2">
+            <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.2} height={30} displayValue={false} margin={0} background="transparent" />
+          </div>
           <div className="token-row"><strong>Ticket #:</strong> {ticket.ticket_no || `#${ticket.id}`}</div>
           <div className="token-row"><strong>Date:</strong> {fmtDate(ticket.received_at)}</div>
           <div className="token-row">
@@ -435,7 +439,13 @@ export default function TicketDetailPage() {
           </div>
           <div className="inv-meta-block">
             <div className="d-flex align-items-center justify-content-end gap-3 mb-2">
-              <div className="inv-title-text" style={{ fontSize: '18pt' }}>REPAIR TICKET</div>
+              <div className="inv-status-badge" style={{ background: "#2563eb1a", color: "#2563eb", borderColor: "#2563eb" }}>
+                ● REPAIR TICKET
+              </div>
+              <div className="inv-title-text" style={{ fontSize: '18pt' }}>INVOICE</div>
+            </div>
+            <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
+              <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
             </div>
             <table className="inv-meta-table">
               <tbody>

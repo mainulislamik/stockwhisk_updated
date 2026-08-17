@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import Barcode from "react-barcode";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { Spinner } from "@/components/ui";
@@ -162,6 +163,9 @@ export default function InvoicePage() {
                 ● {statusLabel}
               </div>
               <div className="inv-title-text">INVOICE</div>
+            </div>
+            <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
+              <Barcode value={sale.invoice_no} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
             </div>
             <table className="inv-meta-table">
               <tbody>
