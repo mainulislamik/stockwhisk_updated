@@ -25,6 +25,7 @@ type ShopDataOperation = {
   started_at: string;
   completed_at: string | null;
   error_message: string;
+  initiated_by_name: string | null;
 };
 
 type Shop = {
