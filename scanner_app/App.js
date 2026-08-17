@@ -40,7 +40,7 @@ export default function App() {
           } else {
             // Auto-fetch if missing from old session
             try {
-              const meResp = await fetch(`${API_BASE}/accounts/me/`, {
+              const meResp = await fetch(`${API_BASE}/auth/me/`, {
                 headers: { 'Authorization': `Bearer ${savedToken}` }
               });
               if (meResp.ok) {
@@ -95,7 +95,7 @@ export default function App() {
         
         let finalShopName = "My Shop";
         try {
-          const meResp = await fetch(`${API_BASE}/accounts/me/`, {
+          const meResp = await fetch(`${API_BASE}/auth/me/`, {
             headers: { 'Authorization': `Bearer ${data.access}` }
           });
           if (meResp.ok) {
