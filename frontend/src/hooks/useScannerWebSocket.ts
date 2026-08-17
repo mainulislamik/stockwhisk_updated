@@ -1,7 +1,12 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 export function useScannerWebSocket(shopId: number | null | undefined, onScan: (barcode: string) => void) {
   const [isConnected, setIsConnected] = useState(false);
+  const onScanRef = useRef(onScan);
+
+  useEffect(() => {
+    onScanRef.current = onScan;
+  }, [onScan]);
 
   useEffect(() => {
     if (!shopId) return;
@@ -19,7 +24,7 @@ export function useScannerWebSocket(shopId: number | null | undefined, onScan: (
       try {
         const data = JSON.parse(event.data);
         if (data.barcode) {
-          onScan(data.barcode);
+          onScanRef.current(data.barcode);
         }
       } catch (e) {
         console.error("Error parsing scanner WebSocket message", e);
@@ -34,7 +39,7 @@ export function useScannerWebSocket(shopId: number | null | undefined, onScan: (
     return () => {
       ws.close();
     };
-  }, [shopId, onScan]);
+  }, [shopId]); // Only re-run if shopId changes
 
   return { isConnected };
 }
