@@ -54,6 +54,12 @@ export default function TicketDetailPage() {
   const [editingCharge, setEditingCharge] = useState(false);
   const [chargeVal, setChargeVal] = useState("");
 
+  const [printMode, setPrintMode] = useState<"invoice" | "token">("invoice");
+  const handlePrint = (mode: "invoice" | "token") => {
+    setPrintMode(mode);
+    setTimeout(() => window.print(), 100);
+  };
+
   useEffect(() => {
     if (picked || prodSearch.trim().length < 1) { setProdHits([]); return; }
     let active = true;
@@ -144,9 +150,12 @@ export default function TicketDetailPage() {
             {ticket.device_description} · received {fmtDate(ticket.received_at)}
           </div>
         </div>
-        <div className="d-flex gap-2 d-print-none">
-          <button className="btn btn-brand btn-sm" onClick={() => window.print()}>
-            <i className="bi bi-printer me-1"></i> Print
+        <div className="d-flex flex-wrap gap-2 d-print-none">
+          <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
+            <i className="bi bi-receipt me-1"></i> Print Token
+          </button>
+          <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")}>
+            <i className="bi bi-printer me-1"></i> Print Invoice
           </button>
           <Link href="/app/service/tickets" className="btn btn-light btn-sm">
             Back
@@ -323,7 +332,36 @@ export default function TicketDetailPage() {
         </div>
       </div>
 
+      {/* ── POS Token Sheet (Print Only) ── */}
+      {printMode === "token" && (
+        <div className="token-page d-none d-print-block">
+          <div className="text-center mb-3">
+            <h4 className="fw-bold mb-1" style={{ fontSize: '14pt' }}>{isOwner ? user?.shop_name : "StockWhisk Shop"}</h4>
+            <div style={{ fontSize: '9pt', color: '#475569' }}>Service & Repair Token</div>
+          </div>
+          <div className="token-divider" />
+          <div className="token-row"><strong>Ticket #:</strong> {ticket.ticket_no || `#${ticket.id}`}</div>
+          <div className="token-row"><strong>Date:</strong> {fmtDate(ticket.received_at)}</div>
+          <div className="token-row">
+            <strong>Customer:</strong> {ticket.customer_name || "Walk-in"} 
+            {ticket.customer_phone && <div>{ticket.customer_phone}</div>}
+          </div>
+          <div className="token-divider" />
+          <div className="token-row"><strong>Device:</strong> {ticket.device_description}</div>
+          <div className="token-row"><strong>Complaint:</strong> {ticket.complaint}</div>
+          {ticket.estimated_delivery && (
+            <div className="token-row mt-2"><strong>Est. Delivery:</strong> {fmtDate(ticket.estimated_delivery)}</div>
+          )}
+          <div className="token-divider" />
+          <div className="text-center mt-4" style={{ fontSize: '9pt' }}>
+            <p className="mb-1 fw-semibold">Please keep this token safe.</p>
+            <p className="mb-0">You must present it to collect your device.</p>
+          </div>
+        </div>
+      )}
+
       {/* ── A4 Ticket Sheet (Print Only) ── */}
+      {printMode === "invoice" && (
       <div className="inv-page d-none d-print-block">
         <div className="inv-header">
           <div className="inv-shop-block">
@@ -421,6 +459,7 @@ export default function TicketDetailPage() {
           </div>
         </div>
       </div>
+      )}
 
       <style>{`
         /* ── Base ── */
@@ -480,11 +519,27 @@ export default function TicketDetailPage() {
         .inv-paid-row span { color: #16a34a !important; }
         .inv-grand-row { display: flex; justify-content: space-between; font-size: 14pt; font-weight: 800; color: #0f172a; padding: 8px 0; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; margin: 4px 0; }
 
+        /* ── Token ── */
+        .token-page {
+          background: #fff;
+          color: #000;
+          font-family: monospace, sans-serif;
+          font-size: 10pt;
+          width: 100%;
+          max-width: 80mm;
+          margin: 0 auto;
+          padding: 10px;
+          line-height: 1.4;
+        }
+        .token-divider { border-top: 1px dashed #000; margin: 10px 0; }
+        .token-row { margin-bottom: 4px; }
+
         @media print {
-          @page { size: A4; margin: 12mm 14mm; }
+          @page { size: ${printMode === "token" ? "80mm auto" : "A4"}; margin: ${printMode === "token" ? "0" : "12mm 14mm"}; }
           .d-print-none, .sidebar, .topbar, .offcanvas { display: none !important; }
           .inv-page { display: block !important; width: 100% !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; font-size: 9.5pt; }
-          body { background: #fff !important; }
+          .token-page { display: block !important; max-width: 100% !important; padding: 5mm !important; }
+          body { background: #fff !important; margin: 0 !important; }
           .flex-grow-1 { margin: 0 !important; padding: 0 !important; }
         }
       `}</style>
