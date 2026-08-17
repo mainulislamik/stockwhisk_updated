@@ -130,7 +130,8 @@ export default function TicketDetailPage() {
   }, [id]);
 
   async function changeStatus() {
-    if (status === "delivered" && ticket?.status !== "delivered") {
+    if (!ticket) return;
+    if (status === "delivered" && ticket.status !== "delivered") {
       setDeliveryDiscount(ticket.discount || "0");
       setDeliveryPayment("");
       setShowDeliveryModal(true);
