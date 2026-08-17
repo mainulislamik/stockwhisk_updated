@@ -67,7 +67,7 @@ export default function SoftwareAdminPage() {
       data.append("release_notes", formData.release_notes);
       data.append("file", file);
       
-      await api("/platform/software/", { method: "POST", body: data, asForm: true });
+      await api("/platform/software/", { method: "POST", body: data });
       
       toast.success("Software uploaded successfully!");
       setShowModal(false);
