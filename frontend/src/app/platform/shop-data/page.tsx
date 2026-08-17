@@ -91,11 +91,11 @@ export default function ShopDataPage() {
     try {
       await api("/platform/shop-data/clear/", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           shop_id: parseInt(selectedShopId),
           password,
           confirmation_text: confirmationText
-        })
+        }
       });
       toast.success("Clear operation queued successfully.");
       setShowClearModal(false);
@@ -117,10 +117,10 @@ export default function ShopDataPage() {
     try {
       await api("/platform/shop-data/restore/", {
         method: "POST",
-        body: JSON.stringify({
+        body: {
           backup_id: showRestoreModal,
           password
-        })
+        }
       });
       toast.success("Restore operation queued successfully.");
       setShowRestoreModal(null);
