@@ -23,8 +23,6 @@ class ReportExportView(APIView):
 
     def get(self, request):
         report_type = request.query_params.get("type")
-        # NB: 'format' is reserved by DRF content negotiation, so use a
-        # distinct param name for the export file format.
         fmt = request.query_params.get("export_format", "csv")
         builder = BUILDERS.get(report_type)
         if builder is None:
@@ -47,10 +45,20 @@ class ReportCatalogView(APIView):
         return Response({"reports": sorted(BUILDERS), "formats": ["csv", "excel", "pdf"]})
 
 
+def _check_discount_column_exists():
+    """Check if the discount column exists in the service_serviceticket table."""
+    from django.db import connection
+    with connection.cursor() as cursor:
+        try:
+            cursor.execute("SELECT discount FROM service_serviceticket LIMIT 0")
+            return True
+        except Exception:
+            return False
+
+
 class SellingDetailsView(APIView):
     """Unified cash-flow: POS sale items + delivered repair ticket parts + service charges.
-    Uses Python-level merging (not DB UNION) to avoid type-mismatch 500 errors across
-    different database engines.
+    Uses Python-level merging (not DB UNION) for compatibility.
     """
     permission_classes = [IsTenantMember]
 
@@ -62,90 +70,105 @@ class SellingDetailsView(APIView):
         search = request.query_params.get("search", "").strip()
 
         rows = []
+        ZERO = Decimal("0")
 
         # ---- 1. POS Sale Items -----------------------------------------------
-        sale_items = SaleItem.objects.filter(
-            sale__shop=shop
-        ).select_related("sale", "product").order_by("-sale__sale_date", "-sale__id")
-
-        if search:
-            sale_items = sale_items.filter(
-                Q(sale__invoice_no__icontains=search) |
-                Q(sale__customer_name__icontains=search) |
-                Q(product__name__icontains=search)
-            )
-
-        for si in sale_items:
-            rows.append({
-                "record_type": "sale",
-                "ref_id": si.sale_id,
-                "invoice": si.sale.invoice_no or f"#{si.sale_id}",
-                "customer": si.sale.customer_name or "Walk-in",
-                "date": str(si.sale.sale_date)[:10] if si.sale.sale_date else "",
-                "pname": si.product.name if si.product else "",
-                "qty": si.quantity,
-                "price": si.unit_price,
-                "disc": si.discount,
-                "sub": si.subtotal,
-            })
-
-        # ---- 2. Delivered Ticket Parts ---------------------------------------
-        ticket_parts = ServiceTicketPart.objects.filter(
-            ticket__shop=shop, ticket__status="delivered"
-        ).select_related("ticket", "product").order_by("-ticket__updated_at", "-ticket__id")
-
-        if search:
-            ticket_parts = ticket_parts.filter(
-                Q(ticket__ticket_no__icontains=search) |
-                Q(ticket__customer_name__icontains=search) |
-                Q(product__name__icontains=search)
-            )
-
-        for tp in ticket_parts:
-            rows.append({
-                "record_type": "ticket",
-                "ref_id": tp.ticket_id,
-                "invoice": tp.ticket.ticket_no or f"#{tp.ticket_id}",
-                "customer": tp.ticket.customer_name or "Walk-in",
-                "date": str(tp.ticket.updated_at)[:10] if tp.ticket.updated_at else "",
-                "pname": tp.product.name if tp.product else "",
-                "qty": tp.quantity,
-                "price": tp.unit_price,
-                "disc": Decimal("0"),
-                "sub": (tp.quantity or Decimal("0")) * (tp.unit_price or Decimal("0")),
-            })
-
-        # ---- 3. Delivered Ticket Service Charges ----------------------------
         try:
-            tickets_with_svc = ServiceTicket.objects.filter(
-                shop=shop, status="delivered", service_charge__gt=0
-            ).only("id", "ticket_no", "customer_name", "service_charge", "updated_at").order_by("-updated_at", "-id")
+            sale_items = SaleItem.objects.filter(
+                sale__shop=shop
+            ).select_related("sale", "product").order_by("-sale__sale_date", "-sale__id")
 
             if search:
-                tickets_with_svc = tickets_with_svc.filter(
+                sale_items = sale_items.filter(
+                    Q(sale__invoice_no__icontains=search) |
+                    Q(sale__customer_name__icontains=search) |
+                    Q(product__name__icontains=search)
+                )
+
+            for si in sale_items:
+                rows.append({
+                    "record_type": "sale",
+                    "ref_id": si.sale_id,
+                    "invoice": si.sale.invoice_no or f"#{si.sale_id}",
+                    "customer": si.sale.customer_name or "Walk-in",
+                    "date": str(si.sale.sale_date)[:10] if si.sale.sale_date else "",
+                    "pname": si.product.name if si.product else "",
+                    "qty": si.quantity,
+                    "price": si.unit_price,
+                    "disc": si.discount or ZERO,
+                    "sub": si.subtotal or ZERO,
+                })
+        except Exception as e:
+            return Response({"detail": f"Sale items error: {e}"}, status=500)
+
+        # ---- 2. Delivered Ticket Parts ---------------------------------------
+        try:
+            ticket_parts = ServiceTicketPart.objects.filter(
+                ticket__shop=shop, ticket__status="delivered"
+            ).select_related("ticket", "product").order_by("-ticket__updated_at", "-ticket__id")
+
+            if search:
+                ticket_parts = ticket_parts.filter(
+                    Q(ticket__ticket_no__icontains=search) |
+                    Q(ticket__customer_name__icontains=search) |
+                    Q(product__name__icontains=search)
+                )
+
+            for tp in ticket_parts:
+                qty = tp.quantity or ZERO
+                price = tp.unit_price or ZERO
+                rows.append({
+                    "record_type": "ticket",
+                    "ref_id": tp.ticket_id,
+                    "invoice": tp.ticket.ticket_no or f"#{tp.ticket_id}",
+                    "customer": tp.ticket.customer_name or "Walk-in",
+                    "date": str(tp.ticket.updated_at)[:10] if tp.ticket.updated_at else "",
+                    "pname": tp.product.name if tp.product else "",
+                    "qty": qty,
+                    "price": price,
+                    "disc": ZERO,
+                    "sub": qty * price,
+                })
+        except Exception as e:
+            return Response({"detail": f"Ticket parts error: {e}"}, status=500)
+
+        # ---- 3. Delivered Ticket Service Charges ----------------------------
+        # Check if discount column exists before querying it
+        discount_exists = _check_discount_column_exists()
+
+        try:
+            if discount_exists:
+                svc_qs = ServiceTicket.objects.filter(
+                    shop=shop, status="delivered", service_charge__gt=0
+                ).values("id", "ticket_no", "customer_name", "service_charge", "discount", "updated_at")
+            else:
+                svc_qs = ServiceTicket.objects.filter(
+                    shop=shop, status="delivered", service_charge__gt=0
+                ).values("id", "ticket_no", "customer_name", "service_charge", "updated_at")
+
+            if search:
+                svc_qs = svc_qs.filter(
                     Q(ticket_no__icontains=search) |
                     Q(customer_name__icontains=search)
                 )
 
-            for t in tickets_with_svc:
-                svc = t.service_charge or Decimal("0")
-                # discount may not exist yet if migration not applied - use getattr safely
-                disc = getattr(t, "discount", None) or Decimal("0")
+            for t in svc_qs.order_by("-updated_at", "-id"):
+                svc = t.get("service_charge") or ZERO
+                disc = t.get("discount") or ZERO if discount_exists else ZERO
                 rows.append({
                     "record_type": "ticket",
-                    "ref_id": t.id,
-                    "invoice": t.ticket_no or f"#{t.id}",
-                    "customer": t.customer_name or "Walk-in",
-                    "date": str(t.updated_at)[:10] if t.updated_at else "",
+                    "ref_id": t["id"],
+                    "invoice": t.get("ticket_no") or f"#{t['id']}",
+                    "customer": t.get("customer_name") or "Walk-in",
+                    "date": str(t["updated_at"])[:10] if t.get("updated_at") else "",
                     "pname": "Service Charge",
                     "qty": Decimal("1"),
                     "price": svc,
                     "disc": disc,
-                    "sub": max(Decimal("0"), svc - disc),
+                    "sub": max(ZERO, svc - disc),
                 })
-        except Exception:
-            pass  # if discount column missing, skip service charge rows gracefully
-
+        except Exception as e:
+            return Response({"detail": f"Service charge error: {e}"}, status=500)
 
         # ---- Sort newest first -----------------------------------------------
         rows.sort(key=lambda r: (r["date"], r["ref_id"]), reverse=True)
@@ -186,11 +209,11 @@ class SellingDetailsView(APIView):
             })
 
         base_url = request.build_absolute_uri(request.path)
-        qs = request.query_params.copy()
+        qs_copy = request.query_params.copy()
 
         def make_url(p):
-            qs["page"] = str(p)
-            return f"{base_url}?{'&'.join(f'{k}={v}' for k, v in qs.items())}"
+            qs_copy["page"] = str(p)
+            return f"{base_url}?{'&'.join(f'{k}={v}' for k, v in qs_copy.items())}"
 
         return Response({
             "count": total,
