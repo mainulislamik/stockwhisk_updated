@@ -39,6 +39,7 @@ export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isOwner, can, user } = useAuth();
   const canManage = isOwner || can("manage_service");  // status change is a write
+  const isEditable = canManage && ticket?.status !== "delivered" && ticket?.status !== "cancelled";
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -68,6 +69,12 @@ export default function TicketDetailPage() {
 
   const [addingPayment, setAddingPayment] = useState(false);
   const [payAmount, setPayAmount] = useState("");
+
+  // Delivery Modal state
+  const [showDeliveryModal, setShowDeliveryModal] = useState(false);
+  const [deliveryDiscount, setDeliveryDiscount] = useState("");
+  const [deliveryPayment, setDeliveryPayment] = useState("");
+  const [processingDelivery, setProcessingDelivery] = useState(false);
 
   useEffect(() => {
     if (picked || prodSearch.trim().length < 1) { setProdHits([]); return; }
@@ -123,6 +130,12 @@ export default function TicketDetailPage() {
   }, [id]);
 
   async function changeStatus() {
+    if (status === "delivered" && ticket?.status !== "delivered") {
+      setDeliveryDiscount(ticket.discount || "0");
+      setDeliveryPayment("");
+      setShowDeliveryModal(true);
+      return;
+    }
     try {
       await api(`/service/tickets/${id}/change_status/`, { method: "POST", body: { status } });
       await load();
@@ -130,6 +143,50 @@ export default function TicketDetailPage() {
       toast.error(e?.message || "Could not change status");
     }
   }
+
+  const confirmDelivery = async () => {
+    if (!ticket) return;
+    setProcessingDelivery(true);
+    try {
+      let t = ticket;
+      // 1. Update discount if changed
+      if (deliveryDiscount !== (ticket.discount || "0")) {
+        t = await api<Ticket>(`/service/tickets/${id}/`, {
+          method: "PATCH",
+          body: { discount: deliveryDiscount || "0" }
+        });
+      }
+      // 2. Add payment if entered
+      if (deliveryPayment && Number(deliveryPayment) > 0) {
+        t = await api<Ticket>(`/service/tickets/${id}/add_payment/`, {
+          method: "POST",
+          body: { amount: deliveryPayment }
+        });
+      }
+      // 3. Finalize status
+      t = await api<Ticket>(`/service/tickets/${id}/change_status/`, {
+        method: "POST",
+        body: { status: "delivered" }
+      });
+      setTicket(t);
+      setStatus("delivered");
+      setShowDeliveryModal(false);
+      toast.success("Ticket delivered and closed successfully!");
+    } catch (e: any) {
+      toast.error(e.message || "Failed to process delivery");
+    } finally {
+      setProcessingDelivery(false);
+    }
+  };
+
+  const calcDeliveryDue = () => {
+    if (!ticket) return 0;
+    const sc = Number(ticket.service_charge) || 0;
+    const parts = Number(ticket.parts_total) || 0;
+    const d = Number(deliveryDiscount) || 0;
+    const paid = Number(ticket.paid) || 0;
+    return Math.max(0, sc + parts - d - paid);
+  };
 
   const updateCharge = async () => {
     try {
@@ -249,7 +306,7 @@ export default function TicketDetailPage() {
                 </table>
               )}
 
-              {canManage && (
+              {isEditable && (
                 <form onSubmit={addPart} className="border-top pt-3 mt-2">
                   <div className="fw-semibold small mb-2">Sell a product to this customer</div>
                   <div className="position-relative mb-2">
@@ -299,7 +356,7 @@ export default function TicketDetailPage() {
           <div className="card shadow-sm">
             <div className="card-body">
               <div className="fw-semibold mb-2">Status</div>
-              {canManage ? (
+              {isEditable ? (
                 <div className="input-group input-group-sm mb-3">
                   <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
                     {STATUSES.map((s) => (
@@ -313,7 +370,7 @@ export default function TicketDetailPage() {
                   </button>
                 </div>
               ) : (
-                <div className="mb-3"><span className="badge text-bg-secondary">{status.replace(/_/g, " ")}</span></div>
+                <div className="mb-3"><span className="badge text-bg-secondary">{ticket.status.replace(/_/g, " ")}</span></div>
               )}
               
               <div className="d-flex justify-content-between align-items-center mb-1">
@@ -327,7 +384,7 @@ export default function TicketDetailPage() {
                 ) : (
                   <span>
                     {money(ticket.service_charge)}
-                    {canManage && (
+                    {isEditable && (
                       <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingCharge(true)}>
                         <i className="bi bi-pencil-square"></i> Edit
                       </button>
@@ -350,7 +407,7 @@ export default function TicketDetailPage() {
                 ) : (
                   <span>
                     -{money(ticket.discount || "0")}
-                    {canManage && (
+                    {isEditable && (
                       <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingDiscount(true)}>
                         <i className="bi bi-pencil-square"></i> Edit
                       </button>
@@ -373,7 +430,7 @@ export default function TicketDetailPage() {
                 ) : (
                   <span>
                     {money(ticket.paid)}
-                    {canManage && Number(ticket.due) > 0 && (
+                    {isEditable && Number(ticket.due) > 0 && (
                       <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => { setAddingPayment(true); setPayAmount(""); }}>
                         <i className="bi bi-plus-circle"></i> Add
                       </button>
@@ -662,6 +719,48 @@ export default function TicketDetailPage() {
           .flex-grow-1 { margin: 0 !important; padding: 0 !important; }
         }
       `}</style>
+      {showDeliveryModal && (
+        <>
+          <div className="modal-backdrop fade show"></div>
+          <div className="modal d-block" tabIndex={-1}>
+            <div className="modal-dialog modal-dialog-centered">
+              <div className="modal-content">
+                <div className="modal-header">
+                  <h5 className="modal-title">Confirm Delivery & Payment</h5>
+                  <button type="button" className="btn-close" onClick={() => setShowDeliveryModal(false)}></button>
+                </div>
+                <div className="modal-body">
+                  <p className="small text-secondary mb-3">
+                    You are marking this ticket as <b>Delivered</b>. Once delivered, the ticket will be closed and no further edits can be made.
+                  </p>
+                  
+                  <div className="mb-3">
+                    <label className="form-label small mb-1">Discount</label>
+                    <input type="number" step="0.01" className="form-control" value={deliveryDiscount} onChange={e => setDeliveryDiscount(e.target.value)} />
+                  </div>
+
+                  <div className="mb-3 d-flex justify-content-between align-items-center text-danger">
+                    <span className="fw-semibold">Final Due Amount:</span>
+                    <span className="fw-semibold">{money(calcDeliveryDue())}</span>
+                  </div>
+
+                  <div className="mb-3">
+                    <label className="form-label small mb-1">Collect Payment Now (if any)</label>
+                    <input type="number" step="0.01" className="form-control" placeholder="0.00" value={deliveryPayment} onChange={e => setDeliveryPayment(e.target.value)} />
+                  </div>
+                  
+                </div>
+                <div className="modal-footer">
+                  <button type="button" className="btn btn-light border" onClick={() => setShowDeliveryModal(false)} disabled={processingDelivery}>Cancel</button>
+                  <button type="button" className="btn btn-brand" onClick={confirmDelivery} disabled={processingDelivery}>
+                    {processingDelivery ? "Processing..." : "Confirm & Deliver"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </>
   );
 }
