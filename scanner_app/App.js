@@ -21,6 +21,7 @@ export default function App() {
   const [isScanning, setIsScanning] = useState(false);
   const [lastScanned, setLastScanned] = useState({ data: null, time: 0 });
   const [isInitializing, setIsInitializing] = useState(true);
+  const [shopName, setShopName] = useState('');
 
   useEffect(() => {
     const loadSession = async () => {
@@ -28,10 +29,12 @@ export default function App() {
         const savedToken = await AsyncStorage.getItem('token');
         const savedShopId = await AsyncStorage.getItem('shopId');
         const savedEmail = await AsyncStorage.getItem('email');
+        const savedShopName = await AsyncStorage.getItem('shopName');
         if (savedToken && savedShopId) {
           setToken(savedToken);
           setShopId(savedShopId);
           if (savedEmail) setEmail(savedEmail);
+          if (savedShopName) setShopName(savedShopName);
         }
       } catch (e) {
         console.error('Failed to load session');
@@ -46,12 +49,14 @@ export default function App() {
     try {
       await AsyncStorage.removeItem('token');
       await AsyncStorage.removeItem('shopId');
+      await AsyncStorage.removeItem('shopName');
       // Intentionally keeping the email stored so it prefills the login screen
     } catch (e) {
       console.error('Failed to clear session');
     }
     setToken(null);
     setShopId(null);
+    setShopName('');
     setIsScanning(false);
   };
 
@@ -69,14 +74,30 @@ export default function App() {
       });
       const data = await response.json();
       if (response.ok && data.access) {
+        
+        let finalShopName = "My Shop";
+        try {
+          const meResp = await fetch(`${API_BASE}/accounts/me/`, {
+            headers: { 'Authorization': `Bearer ${data.access}` }
+          });
+          if (meResp.ok) {
+            const meData = await meResp.json();
+            finalShopName = meData.shop_name || "My Shop";
+          }
+        } catch(e) {
+          console.error("Failed to fetch shop name");
+        }
+
         const newShopId = data.shop_id || 1;
         setToken(data.access);
         setShopId(newShopId); 
+        setShopName(finalShopName);
         setIsScanning(false); 
         try {
           await AsyncStorage.setItem('token', data.access);
           await AsyncStorage.setItem('shopId', String(newShopId));
           await AsyncStorage.setItem('email', email);
+          await AsyncStorage.setItem('shopName', finalShopName);
         } catch (e) {
           console.error('Failed to save session');
         }
@@ -195,8 +216,8 @@ export default function App() {
 
           <View style={styles.dashboardContent}>
             <View style={styles.userBadge}>
-              <Ionicons name="person-circle-outline" size={20} color="#6b7280" />
-              <Text style={styles.userBadgeText}>{email}</Text>
+              <Ionicons name="storefront-outline" size={20} color="#6b7280" />
+              <Text style={styles.userBadgeText}>{shopName || email}</Text>
             </View>
 
             <Text style={styles.welcomeText}>Ready to scan!</Text>
