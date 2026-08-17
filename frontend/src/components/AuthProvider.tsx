@@ -20,6 +20,7 @@ export type User = {
   shop_whatsapp_enabled?: boolean;
   shop_is_demo?: boolean;
   shop_barcode_prefix?: string;
+  shop_offline_sale_mode?: boolean;
   branch: number | null;
   is_staff: boolean;
   is_reseller?: boolean;
