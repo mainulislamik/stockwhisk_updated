@@ -254,12 +254,10 @@ export default function PosPage() {
         setQuery("");
         setTimeout(() => inputRef.current?.focus(), 50);
       } else {
-        // Truly unknown barcode → offer to assign it to a product.
-        setScanMsg(null);
-        setAssignBarcode(code);
-        setAssignSearch("");
-        setAssignSelected(null);
-        setShowAssign(true);
+        // Unknown barcode -> show error message instead of assignment popup
+        flash(t("pos_product_not_found"), false);
+        setQuery("");
+        setTimeout(() => inputRef.current?.focus(), 50);
       }
     } finally {
       setScanning(false);

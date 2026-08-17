@@ -8,6 +8,7 @@ type Translations = {
 
 export const translations: Translations = {
   en: {
+    pos_product_not_found: "Product not found",
     // Navigation
     nav_home: "Home",
     nav_pricing: "Pricing",
@@ -635,6 +636,7 @@ export const translations: Translations = {
     usr_no_perm: "No permissions."
   },
   bn: {
+    pos_product_not_found: "প্রোডাক্ট পাওয়া যায়নি",
     // Navigation
     nav_home: "হোম",
     nav_pricing: "প্রাইসিং",
