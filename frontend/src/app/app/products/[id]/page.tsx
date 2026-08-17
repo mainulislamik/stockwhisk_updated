@@ -142,14 +142,16 @@ export default function ProductProfilePage() {
       <div className="row g-3">
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Cost</div>
-            <div className="fs-5 fw-bold">{money(p.cost_price)}</div>
+            <div className="small text-secondary">Total Cost Value</div>
+            <div className="fs-5 fw-bold">{money(Number(p.cost_price || 0) * Number(p.current_stock || 0))}</div>
+            <div className="small text-secondary mt-1" style={{ fontSize: "0.75rem" }}>Unit: {money(p.cost_price)}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Selling price</div>
-            <div className="fs-5 fw-bold">{money(p.selling_price)}</div>
+            <div className="small text-secondary">Total Retail Value</div>
+            <div className="fs-5 fw-bold">{money(Number(p.selling_price || 0) * Number(p.current_stock || 0))}</div>
+            <div className="small text-secondary mt-1" style={{ fontSize: "0.75rem" }}>Unit: {money(p.selling_price)}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
