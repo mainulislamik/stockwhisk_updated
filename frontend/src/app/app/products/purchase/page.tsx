@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
-import { XMarkIcon, PlusIcon } from "@heroicons/react/24/outline";
 import toast from "react-hot-toast";
 import { useAuth } from "@/components/AuthProvider";
 import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
