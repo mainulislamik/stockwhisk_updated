@@ -115,8 +115,10 @@ export default function TicketDetailPage() {
   if (!ticket) return null;
 
   return (
-    <div className="vstack gap-3">
-      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+    <>
+      {/* ── Screen layout (hidden on print) ── */}
+      <div className="vstack gap-3 d-print-none">
+        <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div>
           <h1 className="h4 fw-bold text-brand mb-0">Ticket {ticket.ticket_no || `#${ticket.id}`}</h1>
           <div className="text-secondary small">
@@ -278,27 +280,167 @@ export default function TicketDetailPage() {
             </div>
           </div>
         </div>
+        </div>
       </div>
 
-      {/* Print Styles */}
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media print {
-          @page { size: A4 portrait; margin: 15mm; }
-          .sidebar, .topbar, .offcanvas { display: none !important; }
-          .flex-grow-1 { margin: 0 !important; padding: 0 !important; width: 100% !important; }
-          body, .flex-grow-1, [data-bs-theme="dark"] body { background: #fff !important; color: #000 !important; }
-          .card { border: none !important; box-shadow: none !important; background: transparent !important; }
-          .card-body { padding: 0 !important; }
-          .text-brand, .text-primary { color: #000 !important; }
-          .btn, .form-select, input { display: none !important; }
-          .table { border-color: #dee2e6 !important; }
-          .table th, .table td { color: #000 !important; }
-          .row { display: flex !important; flex-wrap: nowrap !important; }
-          .col-lg-7 { width: 60% !important; }
-          .col-lg-5 { width: 40% !important; }
-          .d-print-none { display: none !important; }
+      {/* ── A4 Ticket Sheet (Print Only) ── */}
+      <div className="inv-page d-none d-print-block">
+        <div className="inv-header">
+          <div className="inv-shop-block">
+            <div className="d-flex align-items-center gap-2 mb-1">
+              <div className="inv-shop-icon">🏪</div>
+              <div>
+                <div className="inv-shop-name">{isOwner ? user?.shop_name : "StockWhisk Shop"}</div>
+                <div className="inv-shop-sub">Service & Repair Center</div>
+              </div>
+            </div>
+          </div>
+          <div className="inv-meta-block">
+            <div className="d-flex align-items-center justify-content-end gap-3 mb-2">
+              <div className="inv-title-text" style={{ fontSize: '18pt' }}>REPAIR TICKET</div>
+            </div>
+            <table className="inv-meta-table">
+              <tbody>
+                <tr><td className="inv-meta-label">TICKET #</td><td className="inv-meta-val">{ticket.ticket_no || `#${ticket.id}`}</td></tr>
+                <tr><td className="inv-meta-label">DATE</td><td className="inv-meta-val">{fmtDate(ticket.received_at)}</td></tr>
+                <tr><td className="inv-meta-label">STATUS</td><td className="inv-meta-val">{ticket.status.replace(/_/g, " ").toUpperCase()}</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="inv-divider" />
+
+        <div className="inv-bill-to">
+          <div className="inv-section-label">CUSTOMER DETAILS</div>
+          <div className="inv-customer-name">{ticket.customer_name || "Walk-in customer"}</div>
+          {ticket.customer_phone && <div className="inv-customer-detail">📞 {ticket.customer_phone}</div>}
+        </div>
+
+        <div className="mt-4 mb-3">
+          <div className="inv-section-label">DEVICE & COMPLAINT</div>
+          <div style={{ fontSize: '11pt', fontWeight: 600, color: '#0f172a' }}>{ticket.device_description}</div>
+          <div style={{ fontSize: '9.5pt', color: '#475569', marginTop: '4px' }}>{ticket.complaint}</div>
+        </div>
+
+        <table className="inv-table mt-4">
+          <thead>
+            <tr>
+              <th style={{ width: "65%" }}>Description</th>
+              <th className="inv-th-center" style={{ width: "10%" }}>Qty</th>
+              <th className="inv-th-right" style={{ width: "25%" }}>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span className="inv-product-name">Service Charge</span></td>
+              <td className="inv-td-center">1</td>
+              <td className="inv-td-right"><span className="inv-line-total">{money(ticket.service_charge)}</span></td>
+            </tr>
+            {ticket.parts.map(p => (
+              <tr key={p.id}>
+                <td><span className="inv-product-name">{p.product_name}</span></td>
+                <td className="inv-td-center">{p.quantity}</td>
+                <td className="inv-td-right"><span className="inv-line-total">{money(p.line_total)}</span></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        <div className="inv-footer-row">
+          <div className="inv-notes">
+            {ticket.estimated_delivery && (
+              <div className="inv-note-text">
+                <strong>Estimated Delivery:</strong> {fmtDate(ticket.estimated_delivery)}
+              </div>
+            )}
+            <div className="inv-note-text mt-2" style={{ fontStyle: 'italic' }}>
+              Please bring this ticket when collecting your device.
+            </div>
+          </div>
+          <div className="inv-totals">
+            <div className="inv-total-row">
+              <span>Bill Total</span>
+              <span>{money(ticket.bill_total)}</span>
+            </div>
+            <div className="inv-total-row inv-paid-row">
+              <span>Paid</span>
+              <span>{money(ticket.paid)}</span>
+            </div>
+            <div className="inv-grand-row">
+              <span>Due</span>
+              <span style={{ color: Number(ticket.due) > 0 ? '#ef4444' : '#16a34a' }}>{money(ticket.due)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <style>{`
+        /* ── Base ── */
+        .inv-page {
+          background: #fff;
+          color: #1a1a2e;
+          font-family: 'Segoe UI', system-ui, sans-serif;
+          font-size: 10.5pt;
+          max-width: 794px;
+          margin: 0 auto;
+          padding: 32px 36px;
         }
-      `}} />
-    </div>
+
+        /* ── Header ── */
+        .inv-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 20px; }
+        .inv-shop-icon { font-size: 2rem; line-height: 1; }
+        .inv-shop-name { font-size: 18pt; font-weight: 700; color: #0f172a; line-height: 1.1; }
+        .inv-shop-sub { font-size: 8.5pt; color: #64748b; }
+
+        /* Right meta */
+        .inv-meta-block { text-align: right; flex-shrink: 0; }
+        .inv-title-text { font-size: 22pt; font-weight: 800; color: #2563eb; letter-spacing: .05em; }
+        .inv-meta-table { margin-left: auto; }
+        .inv-meta-label { font-size: 7.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; padding-right: 12px; white-space: nowrap; }
+        .inv-meta-val { font-size: 9pt; font-weight: 600; text-align: right; white-space: nowrap; }
+
+        /* ── Divider ── */
+        .inv-divider { border: none; border-top: 1.5px solid #e2e8f0; margin: 16px 0; }
+
+        /* ── Bill To ── */
+        .inv-bill-to { margin-bottom: 16px; }
+        .inv-section-label { font-size: 7.5pt; color: #94a3b8; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+        .inv-customer-name { font-size: 12pt; font-weight: 700; color: #0f172a; }
+        .inv-customer-detail { font-size: 8.5pt; color: #475569; margin-top: 2px; }
+
+        /* ── Items Table ── */
+        .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 0; font-size: 9pt; }
+        .inv-table thead tr { background: #1e293b; color: #fff; }
+        .inv-table th { padding: 7px 10px; font-size: 8pt; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; }
+        .inv-th-center { text-align: center; }
+        .inv-th-right { text-align: right; }
+        .inv-table td { padding: 6px 10px; vertical-align: middle; border-bottom: 1px solid #f1f5f9; }
+        .inv-product-name { font-weight: 500; color: #1e293b; }
+        .inv-td-center { text-align: center; }
+        .inv-td-right { text-align: right; }
+        .inv-line-total { font-weight: 700; color: #0f172a; }
+
+        /* ── Footer row ── */
+        .inv-footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-top: 20px; border-top: 1.5px solid #e2e8f0; padding-top: 16px; }
+        .inv-notes { flex: 1; max-width: 55%; }
+        .inv-note-text { font-size: 8.5pt; color: #475569; line-height: 1.5; margin-top: 4px; }
+
+        /* Totals */
+        .inv-totals { min-width: 240px; }
+        .inv-total-row { display: flex; justify-content: space-between; font-size: 9pt; padding: 3px 0; color: #475569; border-bottom: 1px solid #f1f5f9; }
+        .inv-total-row span:last-child { font-weight: 500; color: #1e293b; }
+        .inv-paid-row span { color: #16a34a !important; }
+        .inv-grand-row { display: flex; justify-content: space-between; font-size: 14pt; font-weight: 800; color: #0f172a; padding: 8px 0; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; margin: 4px 0; }
+
+        @media print {
+          @page { size: A4; margin: 12mm 14mm; }
+          .d-print-none, .sidebar, .topbar, .offcanvas { display: none !important; }
+          .inv-page { display: block !important; width: 100% !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; font-size: 9.5pt; }
+          body { background: #fff !important; }
+          .flex-grow-1 { margin: 0 !important; padding: 0 !important; }
+        }
+      `}</style>
+    </>
   );
 }
