@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, TextInput, Button, Alert, ActivityIndicator } from 'react-native';
+import { StyleSheet, Text, View, TextInput, Button, Alert, ActivityIndicator, Image, TouchableOpacity } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 
 const API_BASE = "https://stockwhisk.com/api"; 
@@ -12,6 +12,9 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  
+  // New state to toggle between Dashboard and Camera
+  const [isScanning, setIsScanning] = useState(false);
 
   useEffect(() => {
     if (permission && !permission.granted) {
@@ -20,6 +23,10 @@ export default function App() {
   }, [permission]);
 
   const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Validation Error', 'Please enter both email and password.');
+      return;
+    }
     setLoading(true);
     try {
       const response = await fetch(`${API_BASE}/auth/token/`, {
@@ -31,6 +38,7 @@ export default function App() {
       if (response.ok && data.access) {
         setToken(data.access);
         setShopId(data.shop_id || 1); // fallback
+        setIsScanning(false); // Make sure we start at the dashboard
       } else {
         Alert.alert('Login Failed', data.detail || 'Invalid credentials');
       }
@@ -62,10 +70,13 @@ export default function App() {
     setTimeout(() => setScanned(false), 1000);
   };
 
+  // 1. Login Screen
   if (!token) {
     return (
       <View style={styles.container}>
-        <Text style={styles.title}>StockWhisk Scanner</Text>
+        <View style={styles.logoContainer}>
+          <Image source={require('./assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        </View>
         <TextInput
           style={styles.input}
           placeholder="Email"
@@ -86,14 +97,37 @@ export default function App() {
     );
   }
 
+  // 2. Dashboard Screen (after login, before scanning)
+  if (!isScanning) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.logoContainer}>
+          <Image source={require('./assets/logo.png')} style={styles.logo} resizeMode="contain" />
+        </View>
+        <Text style={styles.welcomeText}>You are logged in.</Text>
+        
+        <TouchableOpacity style={styles.scanButton} onPress={() => setIsScanning(true)}>
+          <Text style={styles.scanButtonText}>Start Grid Scan</Text>
+        </TouchableOpacity>
+        
+        <View style={styles.spacer} />
+        <Button title="Logout" onPress={() => setToken(null)} color="#ef4444" />
+      </View>
+    );
+  }
+
+  // 3. Camera Screen
   if (!permission) {
     return <View />;
   }
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="grant permission" />
+        <Text style={{ textAlign: 'center', marginBottom: 20 }}>We need your permission to show the camera.</Text>
+        <Button onPress={requestPermission} title="Grant Permission" />
+        <View style={{ marginTop: 20 }}>
+           <Button title="Go Back" onPress={() => setIsScanning(false)} color="#6b7280" />
+        </View>
       </View>
     );
   }
@@ -108,14 +142,18 @@ export default function App() {
           barcodeTypes: ["qr", "ean13", "ean8", "upc_a", "upc_e", "code128", "code39"],
         }}
       />
+      
+      {/* Top overlay to go back */}
+      <View style={styles.topBar}>
+        <Button title="Back to Home" onPress={() => setIsScanning(false)} color="#374151" />
+      </View>
+
+      {/* Sending Indicator */}
       {scanned && (
         <View style={styles.overlay}>
           <Text style={styles.overlayText}>Sending...</Text>
         </View>
       )}
-      <View style={styles.bottomBar}>
-         <Button title="Logout" onPress={() => setToken(null)} color="#ef4444" />
-      </View>
     </View>
   );
 }
@@ -127,6 +165,44 @@ const styles = StyleSheet.create({
     padding: 20,
     backgroundColor: '#f9fafb',
   },
+  logoContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logo: {
+    width: 250,
+    height: 80,
+  },
+  welcomeText: {
+    fontSize: 18,
+    textAlign: 'center',
+    marginBottom: 30,
+    color: '#374151',
+  },
+  scanButton: {
+    backgroundColor: '#10b981',
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  scanButtonText: {
+    color: 'white',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  spacer: {
+    height: 30,
+  },
+  input: {
+    height: 50,
+    borderColor: '#d1d5db',
+    borderWidth: 1,
+    marginBottom: 15,
+    paddingHorizontal: 15,
+    borderRadius: 8,
+    backgroundColor: 'white',
+    fontSize: 16,
+  },
   cameraContainer: {
     flex: 1,
     backgroundColor: 'black',
@@ -134,21 +210,10 @@ const styles = StyleSheet.create({
   camera: {
     flex: 1,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-    color: '#111827',
-  },
-  input: {
-    height: 50,
-    borderColor: '#d1d5db',
-    borderWidth: 1,
-    marginBottom: 15,
-    paddingHorizontal: 10,
-    borderRadius: 8,
-    backgroundColor: 'white',
+  topBar: {
+    position: 'absolute',
+    top: 40,
+    left: 20,
   },
   overlay: {
     position: 'absolute',
@@ -163,10 +228,4 @@ const styles = StyleSheet.create({
     color: 'white',
     fontSize: 18,
   },
-  bottomBar: {
-    position: 'absolute',
-    bottom: 40,
-    left: 20,
-    right: 20,
-  }
 });
