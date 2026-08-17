@@ -266,7 +266,7 @@ export default function PosPage() {
     }
   }, [shown, query, tryAdd, cart, debouncedQuery, gridLoading]);
 
-  useScannerWebSocket(user?.shop_id, (barcode) => {
+  useScannerWebSocket(user?.shop, (barcode) => {
     processCode(barcode);
   });
 

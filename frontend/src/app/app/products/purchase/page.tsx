@@ -49,7 +49,7 @@ export default function PurchaseProductPage() {
   const [qtyTouched, setQtyTouched] = useState(false);
 
   const { user } = useAuth();
-  useScannerWebSocket(user?.shop_id, (barcode) => {
+  useScannerWebSocket(user?.shop ?? undefined, (barcode) => {
     setBarcodeText((prev) => (prev ? `${prev}\n${barcode}` : barcode));
   });
 

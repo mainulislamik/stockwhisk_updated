@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 
-export function useScannerWebSocket(shopId: number | undefined, onScan: (barcode: string) => void) {
+export function useScannerWebSocket(shopId: number | null | undefined, onScan: (barcode: string) => void) {
   useEffect(() => {
     if (!shopId) return;
 
