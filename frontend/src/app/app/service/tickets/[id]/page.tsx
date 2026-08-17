@@ -39,8 +39,8 @@ export default function TicketDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isOwner, can, user } = useAuth();
   const canManage = isOwner || can("manage_service");  // status change is a write
-  const isEditable = canManage && ticket?.status !== "delivered" && ticket?.status !== "cancelled";
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const isEditable = canManage && ticket?.status !== "delivered" && ticket?.status !== "cancelled";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
