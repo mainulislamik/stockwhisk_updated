@@ -45,8 +45,8 @@ class ReportCatalogView(APIView):
         return Response({"reports": sorted(BUILDERS), "formats": ["csv", "excel", "pdf"]})
 
 
-def _check_discount_column_exists():
-    """Check if the discount column exists in the service_serviceticket table."""
+def _discount_column_exists():
+    """Check if the discount column exists in service_serviceticket table."""
     from django.db import connection
     with connection.cursor() as cursor:
         try:
@@ -62,15 +62,23 @@ class SellingDetailsView(APIView):
     """
     permission_classes = [IsTenantMember]
 
+    def initial(self, request, *args, **kwargs):
+        # CRITICAL: must set tenant context so TenantManager auto-filter works
+        set_current_tenant(getattr(request.user, "shop", None))
+        request.tenant = getattr(request.user, "shop", None)
+        super().initial(request, *args, **kwargs)
+
     def get(self, request):
         from sales.models import SaleItem
         from service.models import ServiceTicketPart, ServiceTicket
 
         shop = getattr(request.user, "shop", None)
-        search = request.query_params.get("search", "").strip()
+        if shop is None:
+            return Response({"detail": "No shop associated with this user."}, status=400)
 
-        rows = []
+        search = request.query_params.get("search", "").strip()
         ZERO = Decimal("0")
+        rows = []
 
         # ---- 1. POS Sale Items -----------------------------------------------
         try:
@@ -93,8 +101,8 @@ class SellingDetailsView(APIView):
                     "customer": si.sale.customer_name or "Walk-in",
                     "date": str(si.sale.sale_date)[:10] if si.sale.sale_date else "",
                     "pname": si.product.name if si.product else "",
-                    "qty": si.quantity,
-                    "price": si.unit_price,
+                    "qty": si.quantity or ZERO,
+                    "price": si.unit_price or ZERO,
                     "disc": si.discount or ZERO,
                     "sub": si.subtotal or ZERO,
                 })
@@ -133,11 +141,10 @@ class SellingDetailsView(APIView):
             return Response({"detail": f"Ticket parts error: {e}"}, status=500)
 
         # ---- 3. Delivered Ticket Service Charges ----------------------------
-        # Check if discount column exists before querying it
-        discount_exists = _check_discount_column_exists()
-
         try:
-            if discount_exists:
+            has_discount = _discount_column_exists()
+
+            if has_discount:
                 svc_qs = ServiceTicket.objects.filter(
                     shop=shop, status="delivered", service_charge__gt=0
                 ).values("id", "ticket_no", "customer_name", "service_charge", "discount", "updated_at")
@@ -153,8 +160,8 @@ class SellingDetailsView(APIView):
                 )
 
             for t in svc_qs.order_by("-updated_at", "-id"):
-                svc = t.get("service_charge") or ZERO
-                disc = t.get("discount") or ZERO if discount_exists else ZERO
+                svc = Decimal(str(t.get("service_charge") or 0))
+                disc = Decimal(str(t.get("discount") or 0)) if has_discount else ZERO
                 rows.append({
                     "record_type": "ticket",
                     "ref_id": t["id"],
