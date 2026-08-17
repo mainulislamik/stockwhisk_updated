@@ -21,6 +21,23 @@ class Command(BaseCommand):
                 self.stdout.write(f"Fixed {p.name} (ID: {p.id}): marked {excess} excess units as SOLD. (was {unit_count}, target {max(current, 0)})")
                 fixed += 1
             elif unit_count < current:
-                self.stdout.write(f"Notice: {p.name} (ID: {p.id}) has {current} current_stock but only {unit_count} IN_STOCK units. We cannot create missing units because they need valid barcodes.")
+                missing = current - unit_count
+                import time
+                timestamp = int(time.time())
+                new_units = []
+                for i in range(missing):
+                    barcode = f"SYNC-{p.id}-{timestamp}-{i+1:03d}"
+                    new_units.append(ProductUnit(
+                        shop_id=p.shop_id,
+                        product=p,
+                        barcode=barcode,
+                        status=ProductUnit.Status.IN_STOCK,
+                        cost_price=p.cost_price,
+                        selling_price=p.selling_price
+                    ))
+                if new_units:
+                    ProductUnit.all_objects.bulk_create(new_units)
+                self.stdout.write(f"Fixed {p.name} (ID: {p.id}): auto-created {missing} missing units with SYNC- barcodes.")
+                fixed += 1
                 
         self.stdout.write(self.style.SUCCESS(f"Successfully synced units for {fixed} products."))
