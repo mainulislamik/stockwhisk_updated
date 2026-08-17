@@ -37,7 +37,7 @@ type SoftwareRelease = {
 };
 
 export default function SoftwarePage() {
-  const mode = "light"; // Hardcoded default for simplicity, can be dynamic
+  const mode: string = "light"; // Hardcoded default for simplicity, can be dynamic
   const [mounted, setMounted] = useState(false);
   const [releases, setReleases] = useState<SoftwareRelease[]>([]);
   const [loading, setLoading] = useState(true);
