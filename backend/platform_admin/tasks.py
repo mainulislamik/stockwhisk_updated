@@ -16,6 +16,7 @@ from django.core import serializers
 from django.core.files.base import ContentFile
 from django.db import transaction
 from django.apps import apps
+from django.utils import timezone
 
 logger = logging.getLogger(__name__)
 
@@ -272,7 +273,9 @@ def restore_shop_data_task(backup_id, user_id):
             raise ValueError("Backup file missing.")
 
         backup.backup_file.open("r")
-        json_data = backup.backup_file.read().decode('utf-8')
+        json_data = backup.backup_file.read()
+        if isinstance(json_data, bytes):
+            json_data = json_data.decode('utf-8')
         backup.backup_file.close()
 
         with transaction.atomic():
