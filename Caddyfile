@@ -6,7 +6,7 @@
 stockwhisk.com, www.stockwhisk.com {
 	# Reject oversized request bodies early (cheap DoS via huge uploads).
 	request_body {
-		max_size 20MB
+		max_size 150MB
 	}
 
 	handle_path /media/* {
