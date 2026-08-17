@@ -449,7 +449,7 @@ def cancel_sale(*, sale, created_by=None):
 
 
 @transaction.atomic
-def edit_sale(*, sale, items, discount=ZERO, created_by=None):
+def edit_sale(*, sale, items, discount=ZERO, created_by=None, correction_reason=""):
     """
     Edit a completed sale's line items + discount (item 12). Ledger-safe:
     reverses the old lines with SALE_RETURN_IN, deletes old SaleItems, then
@@ -460,6 +460,15 @@ def edit_sale(*, sale, items, discount=ZERO, created_by=None):
         raise ValueError("This sale can no longer be edited.")
     if not items:
         raise ValueError("A sale needs at least one item.")
+    if hasattr(sale, "emi_schedule"):
+        raise ValueError("EMI sales cannot be corrected. Please cancel and recreate.")
+    if not correction_reason:
+        raise ValueError("A correction reason is required.")
+        
+    local_sale_date = timezone.localtime(sale.sale_date).date()
+    local_today = timezone.localtime(timezone.now()).date()
+    if local_sale_date != local_today:
+        raise ValueError("Invoice locked: correction is only available on the day of creation.")
 
     old_total = sale.total or ZERO
     paid = sale.paid or ZERO
@@ -516,15 +525,22 @@ def edit_sale(*, sale, items, discount=ZERO, created_by=None):
             )
 
     total = subtotal - discount + (sale.tax or ZERO)
+    
+    # Store original state for audit if not already corrected
+    if not sale.is_corrected:
+        sale.original_total = old_total
+        
     sale.subtotal = subtotal
     sale.discount = discount
     sale.total = total
     sale.status = _resolve_status(total, paid)
+    sale.is_corrected = True
+    sale.correction_reason = correction_reason
     # Include updated_at so the optimistic-lock token (web.sale_edit compares the
     # sale's updated_at) actually advances on every edit — otherwise a concurrent
     # stale save would not be detected. auto_now fields aren't bumped when left
     # out of update_fields.
-    sale.save(update_fields=["subtotal", "discount", "total", "status", "updated_at"])
+    sale.save(update_fields=["subtotal", "discount", "total", "status", "updated_at", "is_corrected", "correction_reason", "original_total"])
 
     # 4. Adjust the customer's cached due + total by the deltas.
     if sale.customer_id:

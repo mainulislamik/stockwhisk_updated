@@ -40,6 +40,9 @@ class Sale(TenantScopedModel):
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DUE)
     note = models.CharField(max_length=255, blank=True)
+    is_corrected = models.BooleanField(default=False)
+    correction_reason = models.CharField(max_length=255, blank=True)
+    original_total = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
     # Client-supplied token that makes checkout idempotent: a rapid double-click
     # (or a refresh/retry mid-request) reuses the same key, so the second request
     # returns the first sale instead of creating a duplicate.

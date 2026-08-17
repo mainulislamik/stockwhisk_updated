@@ -362,6 +362,74 @@ class SaleViewSet(
                     customer.save(update_fields=["due_balance", "total_purchased"])
 
                 return Response({"detail": "Unit exchanged with price adjustment.", "new_total": total})
+    @action(detail=True, methods=["post"])
+    def correct(self, request, pk=None):
+        from .services import edit_sale
+        from django.db import transaction
+        from catalog.models import Product, ProductVariation
+        from django.utils import timezone
+        
+        sale = self.get_object()
+        
+        if not request.user.has_perm_code("is_shop_owner"):
+            return Response({"detail": "Only the Shop Owner can correct invoices."}, status=status.HTTP_403_FORBIDDEN)
+            
+        items_data = request.data.get("items", [])
+        if not items_data:
+            return Response({"detail": "At least one item is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        correction_reason = request.data.get("correction_reason", "").strip()
+        if not correction_reason:
+            return Response({"detail": "Correction reason is required."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        # Block if returns exist
+        if sale.returns.exists():
+            return Response({"detail": "Invoices with existing returns cannot be corrected."}, status=status.HTTP_400_BAD_REQUEST)
+            
+        try:
+            parsed_items = []
+            for idx, row in enumerate(items_data):
+                product_id = row.get("product_id") or row.get("product", {}).get("id")
+                variation_id = row.get("variation_id")
+                try:
+                    product = Product.all_objects.get(id=product_id, shop_id=sale.shop_id)
+                except Product.DoesNotExist:
+                    return Response({"detail": f"Product ID {product_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
+                    
+                variation = None
+                if variation_id:
+                    try:
+                        variation = ProductVariation.all_objects.get(id=variation_id, product_id=product.id)
+                    except ProductVariation.DoesNotExist:
+                        return Response({"detail": f"Variation ID {variation_id} not found."}, status=status.HTTP_400_BAD_REQUEST)
+                        
+                parsed_items.append({
+                    "product": product,
+                    "variation": variation,
+                    "quantity": row.get("quantity", 1),
+                    "unit_price": row.get("unit_price", product.selling_price),
+                    "discount": row.get("discount", 0)
+                })
+                
+            discount = request.data.get("discount", 0)
+            
+            with transaction.atomic():
+                locked_sale = Sale.objects.select_for_update().get(id=sale.id)
+                updated_sale = edit_sale(
+                    sale=locked_sale, 
+                    items=parsed_items, 
+                    discount=discount, 
+                    created_by=request.user,
+                    correction_reason=correction_reason
+                )
+                
+            return Response(self.get_serializer(updated_sale).data)
+            
+        except ValueError as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            import traceback
+            return Response({"detail": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):

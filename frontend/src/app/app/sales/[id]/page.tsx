@@ -28,6 +28,10 @@ type Sale = {
   note: string;
   items: SaleItem[];
   payments: Payment[];
+  is_corrected?: boolean;
+  correction_reason?: string;
+  original_total?: string;
+  returns?: any[];
 };
 
 export default function SaleDetailPage() {
@@ -60,9 +64,39 @@ export default function SaleDetailPage() {
           <h1 className="h4 fw-bold text-brand mb-0">Invoice {sale.invoice_no || `#${sale.id}`}</h1>
           <div className="text-secondary small">
             {sale.customer_name || "Walk-in"} · {fmtDate(sale.sale_date)}
+            {sale.is_corrected && <span className="badge bg-warning text-dark ms-2">Corrected</span>}
           </div>
+          {sale.is_corrected && sale.correction_reason && (
+             <div className="text-muted small mt-1 fst-italic">Reason: {sale.correction_reason}</div>
+          )}
         </div>
-        <div className="d-flex gap-2">
+        <div className="d-flex gap-2 align-items-center">
+          {(() => {
+            if (!user?.permissions?.includes("is_shop_owner")) return null;
+            
+            const saleDate = new Date(sale.sale_date).toLocaleDateString();
+            const today = new Date().toLocaleDateString();
+            const isSameDay = saleDate === today;
+            const hasReturns = sale.returns && sale.returns.length > 0;
+            
+            if (hasReturns) {
+                return <span className="badge bg-secondary">Locked: Has returns</span>;
+            }
+            
+            if (isSameDay) {
+                return (
+                    <Link href={`/app/sales/${sale.id}/edit`} className="btn btn-warning btn-sm">
+                        ✏️ Correct Invoice
+                    </Link>
+                );
+            } else {
+                return (
+                    <span className="badge bg-secondary" title="Invoice correction is only available on the day of creation.">
+                        🔒 Locked
+                    </span>
+                );
+            }
+          })()}
           {user?.shop_whatsapp_enabled !== false && (() => {
             const digits = (sale.bill_phone || "").replace(/\D/g, "");
             const intl = digits.startsWith("880") ? digits
