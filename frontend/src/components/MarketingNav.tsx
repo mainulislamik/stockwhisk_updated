@@ -14,7 +14,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 export default function MarketingNav() {
   const pathname = usePathname();
   const branding = useBranding();
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
@@ -46,7 +46,7 @@ export default function MarketingNav() {
     { href: "/", label: t("nav_home") },
     { href: "/pricing", label: t("nav_pricing") },
     { href: "/demo", label: t("nav_demo") },
-    { href: "/software", label: "Software" },
+    { href: "/software", label: lang === 'bn' ? "সফটওয়্যার" : "Software" },
     { href: "/reseller", label: t("nav_reseller") },
     { href: "/blog", label: t("nav_blog") },
     { href: "/contact", label: t("nav_contact") },
