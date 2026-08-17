@@ -196,7 +196,7 @@ export default function TicketDetailPage() {
               <i className="bi bi-receipt me-1"></i> Print Token
             </button>
           )}
-          <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")}>
+          <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")} disabled={ticket.status !== 'delivered'}>
             <i className="bi bi-printer me-1"></i> Print Invoice
           </button>
           <Link href="/app/service/tickets" className="btn btn-light btn-sm">
