@@ -256,6 +256,14 @@ export default function DashboardPage() {
             </div>
           </Card>
         </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("dash_receivables")} (Total Due)</div>
+            <div className="fs-4 fw-bold text-warning">
+              {money(data.position.receivables)}
+            </div>
+          </Card>
+        </div>
       </div>
 
       <div className="row g-3 mb-3">
