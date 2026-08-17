@@ -200,7 +200,7 @@ export default function EditInvoicePage() {
                             value={searchQuery}
                             onChange={(e) => setSearchQuery(e.target.value)}
                         />
-                        {searching && <div className="position-absolute end-0 top-50 translate-middle-y me-3"><Spinner size="sm" /></div>}
+                        {searching && <div className="position-absolute end-0 top-50 translate-middle-y me-3"><Spinner /></div>}
                         {searchResults.length > 0 && (
                             <ul className="list-group position-absolute w-100 mt-1 shadow-sm" style={{ zIndex: 1000, maxHeight: "200px", overflowY: "auto" }}>
                                 {searchResults.map(p => (
@@ -320,7 +320,7 @@ export default function EditInvoicePage() {
                             className="btn btn-warning w-100 fw-bold" 
                             disabled={submitting || cart.length === 0 || !reason.trim()}
                         >
-                            {submitting ? <Spinner size="sm" className="me-2" /> : "💾 Submit Correction"}
+                            {submitting ? <Spinner /> : "💾 Submit Correction"}
                         </button>
                     </form>
                 </div>
