@@ -166,7 +166,7 @@ export default function EMIPage() {
           <div className="modal-content border-0 shadow">
             <div className="modal-header border-bottom-0 bg-light">
               <h5 className="modal-title fw-bold">
-                {t("emi_inst_title", { invoice: selectedSchedule?.sale_invoice_no })}
+                {t("emi_inst_title", { invoice: selectedSchedule?.sale_invoice_no || "" })}
               </h5>
               <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
