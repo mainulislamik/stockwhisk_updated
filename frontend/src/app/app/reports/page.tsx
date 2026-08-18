@@ -60,17 +60,6 @@ type ProfitabilityAnalytics = {
   sales_trend: SalesTrendPoint[];
 };
 
-const PROFIT_RANGES: { key: string; label: string }[] = [
-  { key: "today", label: t("rep_filter_today") },
-  { key: "yesterday", label: t("rep_filter_yesterday") },
-  { key: "7d", label: t("rep_filter_7d") },
-  { key: "30d", label: t("rep_filter_30d") },
-  { key: "this_month", label: t("rep_filter_this_month") },
-  { key: "last_month", label: t("rep_filter_last_month") },
-  { key: "this_quarter", label: t("rep_filter_this_quarter") },
-  { key: "this_year", label: t("rep_filter_this_year") },
-];
-
 type DashboardData = {
   trend: DayTrend[];
   payment_methods: PaymentMethod[];
@@ -87,6 +76,18 @@ type DashboardData = {
 
 export default function ReportsPage() {
   const { t } = useLanguage();
+  
+  const PROFIT_RANGES: { key: string; label: string }[] = [
+    { key: "today", label: t("rep_filter_today") },
+    { key: "yesterday", label: t("rep_filter_yesterday") },
+    { key: "7d", label: t("rep_filter_7d") },
+    { key: "30d", label: t("rep_filter_30d") },
+    { key: "this_month", label: t("rep_filter_this_month") },
+    { key: "last_month", label: t("rep_filter_last_month") },
+    { key: "this_quarter", label: t("rep_filter_this_quarter") },
+    { key: "this_year", label: t("rep_filter_this_year") },
+  ];
+
   const [data, setData] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<SalesOverview | null>(null);
   const [reports, setReports] = useState<string[]>([]);
