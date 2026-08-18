@@ -1,6 +1,7 @@
 "use client";
 
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import React, { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
@@ -12,6 +13,7 @@ type Supplier = { id: number; name: string; phone: string; email: string; addres
 const BLANK = { name: "", phone: "", email: "", address: "" };
 
 export default function SuppliersPage() {
+  const { t } = useLanguage();
   const { can, isOwner } = useAuth();
   const canManage = isOwner || can("manage_purchasing");
   const [rows, setRows] = useState<Supplier[]>([]);

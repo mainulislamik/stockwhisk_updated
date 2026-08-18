@@ -8,6 +8,7 @@ import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
 import { useAuth } from "@/components/AuthProvider";
 import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Product = {
   id: number; name: string; sku: string; barcode: string;
@@ -21,6 +22,7 @@ type ReceiveLine = { product: Product; quantity: number; unit_cost: number; barc
 const PAY_METHODS: Record<string, string> = { cash: "💵 Cash", bkash: "📱 bKash", nagad: "📱 Nagad", bank: "🏦 Bank" };
 
 export default function PurchaseProductPage() {
+  const { t } = useLanguage();
   const router = useRouter();
 
   // Product search

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { api, useApi, useApiAll, Paginated } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Expense = { id: number; category: number | null; category_name: string | null; amount: string; spent_on: string; payment_method: string; note: string };
 type Cat = { id: number; name: string };
@@ -11,6 +12,7 @@ type Cat = { id: number; name: string };
 const PAGE_SIZE = 20;
 
 export default function ExpensesPage() {
+  const { t } = useLanguage();
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({ category: "", amount: "", spent_on: new Date().toISOString().slice(0, 10), payment_method: "CASH", note: "" });
   const [saving, setSaving] = useState(false);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, ErrorState, Spinner } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Dash = {
   open_by_status: { status: string; n: number }[];
@@ -12,6 +13,7 @@ type Dash = {
 };
 
 export default function WarrantyCoveragePage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<Dash | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

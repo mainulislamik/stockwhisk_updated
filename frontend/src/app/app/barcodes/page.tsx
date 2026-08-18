@@ -3,8 +3,10 @@
 import { useState } from "react";
 import Barcode from "react-barcode";
 import { useAuth } from "@/components/AuthProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function BarcodesGeneratorPage() {
+  const { t } = useLanguage();
   const { user } = useAuth();
   const shopPrefix = (user?.shop_barcode_prefix || "").toUpperCase();
   const [quantity, setQuantity] = useState<number>(10);

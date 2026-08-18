@@ -1,6 +1,7 @@
 "use client";
 
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
@@ -21,6 +22,7 @@ type Settlement = {
 };
 
 export default function DailySettlementPage() {
+  const { t } = useLanguage();
   const [current, setCurrent] = useState<Settlement | null>(null);
   const [history, setHistory] = useState<Settlement[]>([]);
   const [loading, setLoading] = useState(true);

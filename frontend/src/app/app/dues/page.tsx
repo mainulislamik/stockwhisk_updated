@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import Swal from "sweetalert2";
 import { showSuccess, showError } from "@/lib/dialogs";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Customer = {
   id: number;
@@ -18,6 +19,7 @@ type Customer = {
 const PAGE_SIZE = 20;
 
 export default function DuesPage() {
+  const { t } = useLanguage();
   const { isOwner, can } = useAuth();
   const canCollect = isOwner || can("manage_customers");  // pay-due is a write
   const [page, setPage] = useState(1);

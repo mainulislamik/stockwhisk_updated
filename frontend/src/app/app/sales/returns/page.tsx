@@ -5,8 +5,10 @@ import { api } from "@/lib/api";
 import { money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function ReturnsPage() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"return" | "replace">("return");
   
   // Return State

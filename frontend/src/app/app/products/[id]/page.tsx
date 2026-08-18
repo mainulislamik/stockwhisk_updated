@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { Card, ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Product = {
   id: number;
@@ -61,6 +62,7 @@ function repairBadge(status?: string | null) {
 }
 
 export default function ProductProfilePage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const [p, setP] = useState<Product | null>(null);
   const [moves, setMoves] = useState<Movement[]>([]);

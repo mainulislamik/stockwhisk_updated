@@ -8,6 +8,7 @@ import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Part = { id: number; product_name: string; warranty_months?: number; quantity: string; unit_cost: string; unit_price: string; line_total: string };
 type History = { id: number; from_status: string; to_status: string; note: string; created_at: string };
@@ -36,6 +37,7 @@ type ProductHit = { id: number; name: string; sku: string; selling_price: string
 const STATUSES = ["received", "diagnosing", "awaiting_parts", "in_repair", "ready_for_pickup", "delivered", "cancelled"];
 
 export default function TicketDetailPage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const { isOwner, can, user } = useAuth();
   const canManage = isOwner || can("manage_service");  // status change is a write

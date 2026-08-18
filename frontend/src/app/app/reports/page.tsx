@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type DayTrend = { day: string; revenue: string; discount: string; tax: string };
 type PaymentMethod = { method: string; total: string };
@@ -85,6 +86,7 @@ type DashboardData = {
 };
 
 export default function ReportsPage() {
+  const { t } = useLanguage();
   const [data, setData] = useState<DashboardData | null>(null);
   const [overview, setOverview] = useState<SalesOverview | null>(null);
   const [reports, setReports] = useState<string[]>([]);

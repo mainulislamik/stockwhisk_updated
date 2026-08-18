@@ -7,6 +7,7 @@ import { ErrorState, Spinner, money } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import toast from "react-hot-toast";
 import Link from "next/link";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Product = { id: number; name: string; selling_price: string; current_stock: string; };
 type SaleItem = { id: number; product_id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; };
@@ -21,6 +22,7 @@ type CartItem = {
 };
 
 export default function EditInvoicePage() {
+  const { t } = useLanguage();
     const { id } = useParams<{ id: string }>();
     const router = useRouter();
     const { user } = useAuth();

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { money } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Installment = {
   id: number;
@@ -29,6 +30,7 @@ type EMISchedule = {
 };
 
 export default function EMIPage() {
+  const { t } = useLanguage();
   const [schedules, setSchedules] = useState<EMISchedule[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

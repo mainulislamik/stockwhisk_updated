@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner, fmtDateTime } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Note = { id: number; type: string; title: string; message: string; is_read: boolean; created_at: string };
 type Paged = { results: Note[]; next: string | null; count: number };
@@ -19,6 +20,7 @@ const TYPE_ICON: Record<string, string> = {
 };
 
 export default function NotificationsPage() {
+  const { t } = useLanguage();
   const [rows, setRows] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);

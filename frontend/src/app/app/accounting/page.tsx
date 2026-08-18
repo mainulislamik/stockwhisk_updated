@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, ErrorState, Spinner, money } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Profit = {
   revenue: string;
@@ -17,6 +18,7 @@ type Profit = {
 type Position = { cash_balance: string; bank_balance: string; receivables: string; payables: string };
 
 export default function AccountingPage() {
+  const { t } = useLanguage();
   const [profit, setProfit] = useState<Profit | null>(null);
   const [position, setPosition] = useState<Position | null>(null);
   const [loading, setLoading] = useState(true);

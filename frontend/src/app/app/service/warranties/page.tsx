@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useApi, Paginated } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, fmtDate, usePagination } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Warranty = {
   id: number;
@@ -33,6 +34,7 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function WarrantiesPage() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"products" | "issued">("products");
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");

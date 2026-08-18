@@ -6,6 +6,7 @@ import { api, useApi, useApiAll, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Ticket = {
   id: number;
@@ -32,6 +33,7 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function TicketsPage() {
+  const { t } = useLanguage();
   const { can, isOwner } = useAuth();
   const canManage = isOwner || can("manage_service");
   const [page, setPage] = useState(1);

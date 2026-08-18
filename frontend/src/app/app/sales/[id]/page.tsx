@@ -6,6 +6,7 @@ import { useParams } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
 type Payment = { id: number; amount: string; method: string; paid_at: string; note: string };
@@ -35,6 +36,7 @@ type Sale = {
 };
 
 export default function SaleDetailPage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
   const [sale, setSale] = useState<Sale | null>(null);

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Spinner, ErrorState } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type TutorialVideo = {
   id: number;
@@ -16,6 +17,7 @@ type TutorialVideo = {
 };
 
 export default function TutorialsPage() {
+  const { t } = useLanguage();
   const [videos, setVideos] = useState<TutorialVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");

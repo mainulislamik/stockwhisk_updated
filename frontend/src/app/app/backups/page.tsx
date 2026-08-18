@@ -1,6 +1,7 @@
 "use client";
 
 export default function BackupsPage() {
+  const { t } = useLanguage();
   return (
     <div className="vstack gap-3" style={{ maxWidth: "48rem" }}>
       <h1 className="h4 fw-bold text-brand mb-0">{t("bku_title")}</h1>
