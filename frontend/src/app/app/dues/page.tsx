@@ -33,41 +33,41 @@ export default function DuesPage() {
 
   const receivePayment = async (customer: Customer) => {
     const { value: formValues, isConfirmed } = await Swal.fire({
-      title: 'Receive Payment',
+      title: t("due_pay_title"),
       html: `
         <div class="mb-3 text-start">
-          <label class="form-label fw-bold">Amount to Pay</label>
+          <label class="form-label fw-bold">${t("due_amt_to_pay")}</label>
           <div class="input-group">
             <span class="input-group-text">৳</span>
             <input id="swal-amount" type="number" step="0.01" class="form-control" value="${customer.due_balance}" max="${customer.due_balance}" min="0.01">
           </div>
         </div>
         <div class="mb-3 text-start">
-          <label class="form-label fw-bold">Payment Method</label>
+          <label class="form-label fw-bold">${t("due_pay_method")}</label>
           <select id="swal-method" class="form-select">
-            <option value="cash">Cash</option>
-            <option value="bank">Bank / Card</option>
-            <option value="mobile">Mobile Banking (bKash/Nagad)</option>
+            <option value="cash">${t("due_method_cash")}</option>
+            <option value="bank">${t("due_method_bank")}</option>
+            <option value="mobile">${t("due_method_mobile")}</option>
           </select>
         </div>
         <div class="mb-3 text-start">
-          <label class="form-label fw-bold">Note (Optional)</label>
-          <textarea id="swal-note" class="form-control" placeholder="Enter any transaction notes..."></textarea>
+          <label class="form-label fw-bold">${t("due_note_opt")}</label>
+          <textarea id="swal-note" class="form-control" placeholder="${t("due_note_ph")}"></textarea>
         </div>
       `,
       focusConfirm: false,
       showCancelButton: true,
-      confirmButtonText: 'Settle Payment',
+      confirmButtonText: t("due_btn_settle"),
       confirmButtonColor: '#28a745',
       preConfirm: () => {
         const amount = (document.getElementById('swal-amount') as HTMLInputElement).value;
         const method = (document.getElementById('swal-method') as HTMLSelectElement).value;
         const note = (document.getElementById('swal-note') as HTMLTextAreaElement).value;
         if (!amount || Number(amount) <= 0) {
-          Swal.showValidationMessage('Please enter a valid amount');
+          Swal.showValidationMessage(t("due_err_valid_amt"));
         }
         if (Number(amount) > Number(customer.due_balance)) {
-          Swal.showValidationMessage('Amount cannot exceed the total due balance');
+          Swal.showValidationMessage(t("due_err_exceed"));
         }
         return { amount, method, note };
       }
@@ -79,22 +79,22 @@ export default function DuesPage() {
           method: "POST",
           body: formValues
         });
-        await showSuccess("Payment Received", `Successfully collected ৳${formValues.amount} from ${customer.name}.`);
+        await showSuccess(t("due_pay_recv"), t("due_pay_succ", { amount: formValues.amount, name: customer.name }));
         await loadDues();
       } catch (e: any) {
-        await showError("Payment Failed", e.data?.detail || e.message || "An error occurred");
+        await showError(t("due_pay_fail"), e.data?.detail || e.message || t("due_err_occurred"));
       }
     }
   };
 
-  if (loading) return <Spinner label="Loading dues…" />;
+  if (loading) return <Spinner label={t("due_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
       <div className="card shadow-sm">
         <div className="card-body d-flex justify-content-between align-items-center">
-          <span className="fw-semibold">Total receivables</span>
+          <span className="fw-semibold">{t("due_tot_recv")}</span>
           <span className="fs-4 fw-bold text-danger">{money(total)}</span>
         </div>
       </div>
@@ -103,11 +103,11 @@ export default function DuesPage() {
           <table className="table table-striped table-sm align-middle mb-0">
             <thead className="thead-5">
               <tr>
-                <th>Customer</th>
-                <th>Phone</th>
-                <th>Last purchase</th>
-                <th className="text-end">Due</th>
-                <th className="text-end">Actions</th>
+                <th>{t("due_col_cust")}</th>
+                <th>{t("due_col_phone")}</th>
+                <th>{t("due_col_last_purch")}</th>
+                <th className="text-end">{t("due_col_due")}</th>
+                <th className="text-end">{t("due_col_actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -115,7 +115,7 @@ export default function DuesPage() {
                 <tr data-empty="">
                   <td colSpan={5} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>💰</div>
-                    No outstanding dues.
+                    {t("due_no_dues")}
                   </td>
                 </tr>
               ) : (

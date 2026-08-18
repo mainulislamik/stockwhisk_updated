@@ -32,7 +32,7 @@ export default function SuppliersPage() {
   async function load() {
     setLoading(true);
     try { setRows(await fetchAll<Supplier>("/purchasing/suppliers/")); }
-    catch (e: any) { setError(e?.message || "Failed to load suppliers"); }
+    catch (e: any) { setError(e?.message || t("sup_err_load")); }
     finally { setLoading(false); }
   }
   useEffect(() => { load(); }, []);
@@ -45,7 +45,7 @@ export default function SuppliersPage() {
       setForm({ ...BLANK });
       setShowAdd(false);
       await load();
-    } catch (e: any) { toast.error(e?.message || "Could not save supplier"); }
+    } catch (e: any) { toast.error(e?.message || t("sup_err_save")); }
     finally { setSaving(false); }
   }
 
@@ -56,7 +56,7 @@ export default function SuppliersPage() {
       await api(`/purchasing/suppliers/${id}/`, { method: "PATCH", body: editForm });
       setEditing(null);
       await load();
-    } catch (e: any) { toast.error(e?.message || "Could not update supplier"); }
+    } catch (e: any) { toast.error(e?.message || t("sup_err_update")); }
     finally { setSaving(false); }
   }
 
@@ -76,24 +76,24 @@ export default function SuppliersPage() {
         }
       });
       
-      toast.success(payForm.type === "settlement" ? "Settlement recorded successfully!" : "Payment recorded successfully!");
+      toast.success(payForm.type === "settlement" ? t("sup_succ_settlement") : t("sup_succ_payment"));
       setPaying(null);
       
       // Update row in state
       setRows(r => r.map(x => x.id === s.id ? updatedSupplier : x));
     } catch (e: any) { 
-      toast.error(e?.message || "Could not process payment"); 
+      toast.error(e?.message || t("sup_err_pay")); 
     } finally { 
       setSaving(false); 
     }
   }
 
   async function remove(s: Supplier) {
-    if (!(await confirmAction(`Delete supplier "${s.name}"? This cannot be undone.`))) return;
+    if (!(await confirmAction(t("sup_msg_delete", { name: s.name })))) return;
     try {
       await api(`/purchasing/suppliers/${s.id}/`, { method: "DELETE" });
       setRows((r) => r.filter((x) => x.id !== s.id));
-    } catch (e: any) { toast.error(e?.message || "Could not delete supplier"); }
+    } catch (e: any) { toast.error(e?.message || t("sup_err_delete")); }
   }
 
   function startEdit(s: Supplier) {
@@ -116,30 +116,30 @@ export default function SuppliersPage() {
   });
   const { paged, page, setPage, totalPages, total } = usePagination(shown, [filter]);
 
-  if (loading) return <Spinner label="Loading suppliers…" />;
+  if (loading) return <Spinner label={t("sup_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   const SupplierForm = ({ values, onChange, onSubmit, label }: { values: typeof BLANK; onChange: (v: typeof BLANK) => void; onSubmit: (e: React.FormEvent) => void; label: string }) => (
     <form onSubmit={onSubmit} className="row g-3">
       <div className="col-md-3">
-        <label className="small fw-medium">Name *</label>
+        <label className="small fw-medium">{t("sup_lbl_name")}</label>
         <input required className="form-control form-control-sm" value={values.name} onChange={(e) => onChange({ ...values, name: e.target.value })} />
       </div>
       <div className="col-md-2">
-        <label className="small fw-medium">Phone</label>
+        <label className="small fw-medium">{t("sup_lbl_phone")}</label>
         <input className="form-control form-control-sm" value={values.phone} onChange={(e) => onChange({ ...values, phone: e.target.value })} />
       </div>
       <div className="col-md-3">
-        <label className="small fw-medium">Email</label>
+        <label className="small fw-medium">{t("sup_lbl_email")}</label>
         <input type="email" className="form-control form-control-sm" value={values.email} onChange={(e) => onChange({ ...values, email: e.target.value })} />
       </div>
       <div className="col-md-4">
-        <label className="small fw-medium">Warehouse / Address</label>
-        <input className="form-control form-control-sm" value={values.address} onChange={(e) => onChange({ ...values, address: e.target.value })} placeholder="Location or warehouse address…" />
+        <label className="small fw-medium">{t("sup_lbl_address")}</label>
+        <input className="form-control form-control-sm" value={values.address} onChange={(e) => onChange({ ...values, address: e.target.value })} placeholder={t("sup_ph_address")} />
       </div>
       <div className="col-12 d-flex gap-2">
-        <button className="btn btn-brand btn-sm" disabled={saving}>{saving ? "Saving…" : label}</button>
-        <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => { setEditing(null); setShowAdd(false); }}>Cancel</button>
+        <button className="btn btn-brand btn-sm" disabled={saving}>{saving ? t("sup_btn_saving") : label}</button>
+        <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => { setEditing(null); setShowAdd(false); }}>{t("sup_btn_cancel")}</button>
       </div>
     </form>
   );
@@ -147,7 +147,7 @@ export default function SuppliersPage() {
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <input placeholder="Filter name/phone/email…" className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
+        <input placeholder={t("sup_ph_filter")} className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
           <button onClick={() => { setShowAdd((s) => !s); setEditing(null); setPaying(null); }} className="btn btn-brand btn-sm">
             + New supplier
@@ -157,9 +157,9 @@ export default function SuppliersPage() {
 
       {showAdd && canManage && (
         <div className="card shadow-sm">
-          <div className="card-header fw-semibold small">Add new supplier</div>
+          <div className="card-header fw-semibold small">{t("sup_title_add")}</div>
           <div className="card-body">
-            <SupplierForm values={form} onChange={setForm} onSubmit={save} label="Save supplier" />
+            <SupplierForm values={form} onChange={setForm} onSubmit={save} label={t("sup_btn_save")} />
           </div>
         </div>
       )}
@@ -169,11 +169,11 @@ export default function SuppliersPage() {
           <table className="table table-striped table-sm align-middle mb-0">
             <thead className="thead-4">
               <tr>
-                <th>Name</th>
-                <th>Phone</th>
-                <th>Email</th>
-                <th>Warehouse / Address</th>
-                <th className="text-end">Payable</th>
+                <th>{t("sup_col_name")}</th>
+                <th>{t("sup_col_phone")}</th>
+                <th>{t("sup_col_email")}</th>
+                <th>{t("sup_col_address")}</th>
+                <th className="text-end">{t("sup_col_payable")}</th>
                 {canManage && <th></th>}
               </tr>
             </thead>
@@ -182,7 +182,7 @@ export default function SuppliersPage() {
                 <tr data-empty="">
                   <td colSpan={canManage ? 6 : 5} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>🚚</div>
-                    No suppliers yet.
+                    {t("sup_no_sup")}
                   </td>
                 </tr>
               ) : paged.map((s) => (
@@ -196,7 +196,7 @@ export default function SuppliersPage() {
                     {canManage && (
                       <td className="text-end text-nowrap">
                         {Number(s.due_balance) > 0 && (
-                          <button className="btn btn-brand btn-sm py-0 px-2 me-2" style={{ fontSize: "0.8rem" }} onClick={() => startPay(s)}>Pay / Settle</button>
+                          <button className="btn btn-brand btn-sm py-0 px-2 me-2" style={{ fontSize: "0.8rem" }} onClick={() => startPay(s)}>{t("sup_btn_pay")}</button>
                         )}
                         <button className="btn btn-link btn-sm p-0 me-2" onClick={() => startEdit(s)}>Edit</button>
                         <button className="btn btn-link btn-sm text-danger p-0" onClick={() => remove(s)}>Delete</button>
@@ -252,7 +252,7 @@ export default function SuppliersPage() {
                             <button type="submit" className="btn btn-success btn-sm w-100" disabled={saving}>
                               {saving ? "Processing…" : "Submit"}
                             </button>
-                            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>Cancel</button>
+                            <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>{t("sup_btn_cancel")}</button>
                           </div>
                         </form>
                       </td>

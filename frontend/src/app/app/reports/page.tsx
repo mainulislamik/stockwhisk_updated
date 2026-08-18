@@ -60,14 +60,14 @@ type ProfitabilityAnalytics = {
 };
 
 const PROFIT_RANGES: { key: string; label: string }[] = [
-  { key: "today", label: "Today" },
-  { key: "yesterday", label: "Yesterday" },
-  { key: "7d", label: "Last 7 Days" },
-  { key: "30d", label: "Last 30 Days" },
-  { key: "this_month", label: "This Month" },
-  { key: "last_month", label: "Last Month" },
-  { key: "this_quarter", label: "This Quarter" },
-  { key: "this_year", label: "This Year" },
+  { key: "today", label: t("rep_filter_today") },
+  { key: "yesterday", label: t("rep_filter_yesterday") },
+  { key: "7d", label: t("rep_filter_7d") },
+  { key: "30d", label: t("rep_filter_30d") },
+  { key: "this_month", label: t("rep_filter_this_month") },
+  { key: "last_month", label: t("rep_filter_last_month") },
+  { key: "this_quarter", label: t("rep_filter_this_quarter") },
+  { key: "this_year", label: t("rep_filter_this_year") },
 ];
 
 type DashboardData = {
@@ -566,13 +566,13 @@ export default function ReportsPage() {
   const changeBadge = (value: number | null | undefined, opts?: { pts?: boolean; goodWhenUp?: boolean }) => {
     const pts = opts?.pts ?? false;
     const goodWhenUp = opts?.goodWhenUp ?? true;
-    if (value === null || value === undefined) return <span className="small text-secondary">No previous data</span>;
+    if (value === null || value === undefined) return <span className="small text-secondary">{t("rep_no_prev_data")}</span>;
     const up = value > 0, down = value < 0;
     const good = (up && goodWhenUp) || (down && !goodWhenUp);
     const cls = value === 0 ? "text-secondary" : good ? "text-success" : "text-danger";
     const arrow = up ? "↑" : down ? "↓" : "→";
     const val = pts ? `${Math.abs(value).toFixed(2)} pts` : `${Math.abs(value).toFixed(1)}%`;
-    return <span className={`small fw-medium ${cls}`}>{arrow} {val} <span className="text-secondary fw-normal">vs prev</span></span>;
+    return <span className={`small fw-medium ${cls}`}>{arrow} {val} <span className="text-secondary fw-normal">{t("rep_vs_prev")}</span></span>;
   };
 
   const overviewCards = overview ? [
@@ -590,9 +590,9 @@ export default function ReportsPage() {
     <div className="vstack gap-4">
       {/* Sales Overview — headline KPI cards */}
       <section aria-labelledby="sales-overview-heading">
-        <h2 id="sales-overview-heading" className="h5 fw-bold mb-3">Sales Overview</h2>
+        <h2 id="sales-overview-heading" className="h5 fw-bold mb-3">{t("rep_sales_over")}</h2>
         {!overview ? (
-          <div className="text-secondary small">Unable to load the sales overview. Please refresh the page.</div>
+          <div className="text-secondary small">{t("rep_sales_over_err")}</div>
         ) : (
           <div className="row g-3">
             {overviewCards.map((c) => (
@@ -619,8 +619,8 @@ export default function ReportsPage() {
       <section aria-labelledby="profit-overview-heading">
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <h2 id="profit-overview-heading" className="h5 fw-bold mb-0">Profit Overview</h2>
-            <div className="small text-secondary">Track revenue, costs, profit margins, and profitability trends over time.</div>
+            <h2 id="profit-overview-heading" className="h5 fw-bold mb-0">{t("rep_profit_over")}</h2>
+            <div className="small text-secondary">{t("rep_profit_over_desc")}</div>
           </div>
           <select className="form-select form-select-sm" style={{ width: "auto" }} value={profitRange}
             onChange={(e) => setProfitRange(e.target.value)} aria-label="Profit date range">
@@ -631,7 +631,7 @@ export default function ReportsPage() {
         {profitError ? (
           <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
             <span>{profitError}</span>
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => setProfitReload((x) => x + 1)}>Retry</button>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setProfitReload((x) => x + 1)}>{t("rep_retry")}</button>
           </div>
         ) : !profit ? (
           <div className="text-center py-5"><span className="spinner-border" /></div>
@@ -662,16 +662,14 @@ export default function ReportsPage() {
             </div>
 
             {profit.trend.length === 0 ? (
-              <div className="card border-0 shadow-sm"><div className="card-body text-center text-secondary py-5">
-                No profit data available for this period.
-              </div></div>
+              <div className="card border-0 shadow-sm"><div className="card-body text-center text-secondary py-5">{t("rep_no_profit")}</div></div>
             ) : (
               <>
                 {/* Profit Trend */}
                 <div className="card border-0 shadow-sm">
                   <div className="card-body">
-                    <div className="fw-semibold">Profit Trend</div>
-                    <div className="small text-secondary mb-3">Revenue, cost, and gross profit over time</div>
+                    <div className="fw-semibold">{t("rep_profit_trend")}</div>
+                    <div className="small text-secondary mb-3">{t("rep_profit_trend_desc")}</div>
                     <div style={{ height: 300 }}><canvas ref={pTrendRef} /></div>
                   </div>
                 </div>
@@ -680,7 +678,7 @@ export default function ReportsPage() {
                   <div className="col-12 col-lg-7">
                     <div className="card border-0 shadow-sm h-100">
                       <div className="card-body">
-                        <div className="fw-semibold mb-3">Revenue vs Cost vs Profit</div>
+                        <div className="fw-semibold mb-3">{t("rep_rev_cost_profit")}</div>
                         <div style={{ height: 280 }}><canvas ref={pBarRef} /></div>
                       </div>
                     </div>
@@ -688,8 +686,8 @@ export default function ReportsPage() {
                   <div className="col-12 col-lg-5">
                     <div className="card border-0 shadow-sm h-100">
                       <div className="card-body">
-                        <div className="fw-semibold">Profit Margin Trend</div>
-                        <div className="small text-secondary mb-3">How efficiently sales convert to profit</div>
+                        <div className="fw-semibold">{t("rep_margin_trend")}</div>
+                        <div className="small text-secondary mb-3">{t("rep_margin_trend_desc")}</div>
                         <div style={{ height: 280 }}><canvas ref={pMarginRef} /></div>
                       </div>
                     </div>
@@ -698,8 +696,8 @@ export default function ReportsPage() {
 
                 <div className="card border-0 shadow-sm">
                   <div className="card-body">
-                    <div className="fw-semibold">Average Profit Per Order</div>
-                    <div className="small text-secondary mb-3">Profitability per completed order</div>
+                    <div className="fw-semibold">{t("rep_avg_profit")}</div>
+                    <div className="small text-secondary mb-3">{t("rep_avg_profit_desc")}</div>
                     <div style={{ height: 260 }}><canvas ref={pAvgRef} /></div>
                   </div>
                 </div>
@@ -713,8 +711,8 @@ export default function ReportsPage() {
       <section aria-labelledby="profitability-heading">
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <h2 id="profitability-heading" className="h5 fw-bold mb-0">Profitability Performance</h2>
-            <div className="small text-secondary">Identify your most profitable products, biggest loss-making products, and products with the lowest profit margins.</div>
+            <h2 id="profitability-heading" className="h5 fw-bold mb-0">{t("rep_profit_perf")}</h2>
+            <div className="small text-secondary">{t("rep_profit_perf_desc")}</div>
           </div>
           <select className="form-select form-select-sm" style={{ width: "auto" }} value={perfRange}
             onChange={(e) => setPerfRange(e.target.value)} aria-label="Profitability date range">
@@ -725,7 +723,7 @@ export default function ReportsPage() {
         {perfError ? (
           <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
             <span>{perfError}</span>
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPerfReload((x) => x + 1)}>Retry</button>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPerfReload((x) => x + 1)}>{t("rep_retry")}</button>
           </div>
         ) : !perf ? (
           <div className="text-center py-5"><span className="spinner-border" /></div>
@@ -736,15 +734,15 @@ export default function ReportsPage() {
               <div className="col-12 col-lg-6">
                 <div className="card border-0 shadow-sm h-100">
                   <div className="card-body">
-                    <div className="fw-semibold">Top Profitable Products</div>
-                    <div className="small text-secondary mb-3">Highest profit-generating products</div>
+                    <div className="fw-semibold">{t("rep_top_prof")}</div>
+                    <div className="small text-secondary mb-3">{t("rep_top_prof_desc")}</div>
                     {perf.top_profitable_products.length === 0 ? (
-                      <div className="text-secondary small py-4 text-center">No profitability data available for this period.</div>
+                      <div className="text-secondary small py-4 text-center">{t("rep_no_profit_data")}</div>
                     ) : (
                       <>
                         <div style={{ height: 240 }}><canvas ref={profRef} /></div>
                         <div className="small text-secondary mt-2">
-                          <b>{perf.top_profitable_products[0].product_name}</b> generated {money(String(perf.top_profitable_products[0].profit))} profit.
+                          <b>{perf.top_profitable_products[0].product_name}</b> {t("rep_generated_profit", { profit: money(String(perf.top_profitable_products[0].profit)) })}
                         </div>
                       </>
                     )}
@@ -755,15 +753,15 @@ export default function ReportsPage() {
               <div className="col-12 col-lg-6">
                 <div className="card border-0 shadow-sm h-100">
                   <div className="card-body">
-                    <div className="fw-semibold">Top Loss Products</div>
-                    <div className="small text-secondary mb-3">Products generating the highest losses</div>
+                    <div className="fw-semibold">{t("rep_top_loss")}</div>
+                    <div className="small text-secondary mb-3">{t("rep_top_loss_desc")}</div>
                     {perf.top_loss_products.length === 0 ? (
-                      <div className="text-secondary small py-4 text-center">No loss-making products found for this period.</div>
+                      <div className="text-secondary small py-4 text-center">{t("rep_no_loss_data")}</div>
                     ) : (
                       <>
                         <div style={{ height: 240 }}><canvas ref={lossRef} /></div>
                         <div className="small text-danger mt-2">
-                          <b>{perf.top_loss_products[0].product_name}</b> had the highest loss of {money(String(perf.top_loss_products[0].loss ?? -perf.top_loss_products[0].profit))}.
+                          <b>{perf.top_loss_products[0].product_name}</b> {t("rep_highest_loss", { loss: money(String(perf.top_loss_products[0].loss ?? -perf.top_loss_products[0].profit)) })}
                         </div>
                       </>
                     )}
@@ -775,15 +773,15 @@ export default function ReportsPage() {
             {/* Lowest Margin */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <div className="fw-semibold">Lowest Margin Products</div>
-                <div className="small text-secondary mb-3">Products with the weakest profit margins</div>
+                <div className="fw-semibold">{t("rep_low_margin")}</div>
+                <div className="small text-secondary mb-3">{t("rep_low_margin_desc")}</div>
                 {perf.lowest_margin_products.length === 0 ? (
-                  <div className="text-secondary small py-4 text-center">No profitability data available for this period.</div>
+                  <div className="text-secondary small py-4 text-center">{t("rep_no_profit_data")}</div>
                 ) : (
                   <>
                     <div style={{ height: 260 }}><canvas ref={marginRef} /></div>
                     <div className="small text-secondary mt-2">
-                      <b>{perf.lowest_margin_products[0].product_name}</b> has the lowest margin at {perf.lowest_margin_products[0].margin.toFixed(2)}%.
+                      <b>{perf.lowest_margin_products[0].product_name}</b> {t("rep_lowest_margin", { margin: perf.lowest_margin_products[0].margin.toFixed(2) })}
                     </div>
                   </>
                 )}
@@ -797,8 +795,8 @@ export default function ReportsPage() {
       <section aria-labelledby="product-performance-heading">
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <h2 id="product-performance-heading" className="h5 fw-bold mb-0">Product Performance</h2>
-            <div className="small text-secondary">Track your best-selling products and identify products that need immediate inventory attention.</div>
+            <h2 id="product-performance-heading" className="h5 fw-bold mb-0">{t("rep_prod_perf")}</h2>
+            <div className="small text-secondary">{t("rep_prod_perf_desc")}</div>
           </div>
           <select className="form-select form-select-sm" style={{ width: "auto" }} value={ppRange}
             onChange={(e) => setPpRange(e.target.value)} aria-label="Product performance date range">
@@ -809,7 +807,7 @@ export default function ReportsPage() {
         {ppError ? (
           <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
             <span>{ppError}</span>
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPpReload((x) => x + 1)}>Retry</button>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPpReload((x) => x + 1)}>{t("rep_retry")}</button>
           </div>
         ) : !pp ? (
           <div className="text-center py-5"><span className="spinner-border" /></div>
@@ -820,10 +818,10 @@ export default function ReportsPage() {
               <div className="col-12 col-lg-6">
                 <div className="card border-0 shadow-sm h-100">
                   <div className="card-body">
-                    <div className="fw-semibold">Most Sold Products</div>
-                    <div className="small text-secondary mb-3">Highest sales quantity during the selected period</div>
+                    <div className="fw-semibold">{t("rep_most_sold")}</div>
+                    <div className="small text-secondary mb-3">{t("rep_most_sold_desc")}</div>
                     {pp.most_sold_products.length === 0 ? (
-                      <div className="text-secondary small py-4 text-center">No sales data available for this period.</div>
+                      <div className="text-secondary small py-4 text-center">{t("rep_no_sales_data")}</div>
                     ) : (
                       <div style={{ height: 240 }}><canvas ref={mostSoldRef} /></div>
                     )}
@@ -834,10 +832,10 @@ export default function ReportsPage() {
               <div className="col-12 col-lg-6">
                 <div className="card border-0 shadow-sm h-100">
                   <div className="card-body">
-                    <div className="fw-semibold">Low Stock Products</div>
-                    <div className="small text-secondary mb-3">Approaching their minimum stock level (current inventory)</div>
+                    <div className="fw-semibold">{t("rep_low_stock")}</div>
+                    <div className="small text-secondary mb-3">{t("rep_low_stock_desc")}</div>
                     {pp.low_stock_products.length === 0 ? (
-                      <div className="text-secondary small py-4 text-center">No low-stock products found.</div>
+                      <div className="text-secondary small py-4 text-center">{t("rep_no_low_stock")}</div>
                     ) : (
                       <div className="vstack gap-2">
                         {pp.low_stock_products.map((p) => {
@@ -867,10 +865,10 @@ export default function ReportsPage() {
             {/* Out of Stock */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <div className="fw-semibold">Out of Stock Products</div>
-                <div className="small text-secondary mb-3">No available inventory — ranked by recent sales</div>
+                <div className="fw-semibold">{t("rep_out_stock_prod")}</div>
+                <div className="small text-secondary mb-3">{t("rep_out_stock_prod_desc")}</div>
                 {pp.out_of_stock_products.length === 0 ? (
-                  <div className="text-secondary small py-4 text-center">All products are currently in stock.</div>
+                  <div className="text-secondary small py-4 text-center">{t("rep_all_in_stock")}</div>
                 ) : (
                   <div className="row g-2">
                     {pp.out_of_stock_products.map((p) => (
@@ -879,9 +877,9 @@ export default function ReportsPage() {
                           <div style={{ minWidth: 0 }}>
                             <div className="fw-medium text-truncate" title={p.product_name}>{p.product_name}</div>
                             {p.sku && <div className="small text-secondary">SKU: {p.sku}</div>}
-                            <div className="small text-secondary">Recent sales: {p.recent_units_sold} units · {money(String(p.recent_revenue))}</div>
+                            <div className="small text-secondary">{t("rep_recent_sales", { units: p.recent_units_sold, revenue: money(String(p.recent_revenue)) })}</div>
                           </div>
-                          <span className="badge text-bg-danger flex-shrink-0">OUT</span>
+                          <span className="badge text-bg-danger flex-shrink-0">{t("rep_out")}</span>
                         </div>
                       </div>
                     ))}
@@ -897,8 +895,8 @@ export default function ReportsPage() {
       <section aria-labelledby="profitability-analytics-heading">
         <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
           <div>
-            <h2 id="profitability-analytics-heading" className="h5 fw-bold mb-0">Profitability Analytics</h2>
-            <div className="small text-secondary">Monitor payment completion, pending payments, cancellations and sales performance.</div>
+            <h2 id="profitability-analytics-heading" className="h5 fw-bold mb-0">{t("rep_prof_analytics")}</h2>
+            <div className="small text-secondary">{t("rep_prof_analytics_desc")}</div>
           </div>
           <select className="form-select form-select-sm" style={{ width: "auto" }} value={paRange}
             onChange={(e) => setPaRange(e.target.value)} aria-label="Profitability analytics date range">
@@ -909,7 +907,7 @@ export default function ReportsPage() {
         {paError ? (
           <div className="alert alert-warning d-flex justify-content-between align-items-center py-2">
             <span>{paError}</span>
-            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPaReload((x) => x + 1)}>Retry</button>
+            <button className="btn btn-sm btn-outline-secondary" onClick={() => setPaReload((x) => x + 1)}>{t("rep_retry")}</button>
           </div>
         ) : !pa ? (
           <div className="text-center py-5"><span className="spinner-border" /></div>
@@ -936,7 +934,7 @@ export default function ReportsPage() {
                               <div className={`small text-${c.color}`}>{c.label}</div>
                             </div>
                           </div>
-                          <div className="small text-secondary">{c.count} / {c.m.total_count} orders</div>
+                          <div className="small text-secondary">{t("rep_orders_count", { count: c.count, total: c.m.total_count })}</div>
                         </>
                       )}
                     </div>
@@ -948,9 +946,9 @@ export default function ReportsPage() {
             {/* Sales Trend */}
             <div className="card border-0 shadow-sm">
               <div className="card-body">
-                <div className="fw-semibold mb-1">Sales Trend</div>
+                <div className="fw-semibold mb-1">{t("rep_sales_trend")}</div>
                 {pa.sales_trend.length === 0 || pa.sales_trend.every((p) => p.sales === 0) ? (
-                  <div className="text-secondary small py-5 text-center">No sales data available for this period.</div>
+                  <div className="text-secondary small py-5 text-center">{t("rep_no_sales_data")}</div>
                 ) : (
                   <>
                     {(() => {
@@ -961,9 +959,9 @@ export default function ReportsPage() {
                       const fmtLbl = (d: string) => new Date(d).toLocaleDateString(undefined, pa.range.bucket === "month" ? { month: "short", year: "2-digit" } : { month: "short", day: "numeric" });
                       return (
                         <div className="row g-2 mb-3 small">
-                          <div className="col-4"><div className="text-secondary">Total Sales</div><div className="fw-bold">{money(String(total))}</div></div>
-                          <div className="col-4"><div className="text-secondary">Average</div><div className="fw-bold">{money(String(avg))}</div></div>
-                          <div className="col-4"><div className="text-secondary">Best {pa.range.bucket === "hour" ? "hour" : "day"}</div><div className="fw-bold">{best && best.sales > 0 ? `${fmtLbl(best.date)}` : "—"}</div></div>
+                          <div className="col-4"><div className="text-secondary">{t("rep_total_sales")}</div><div className="fw-bold">{money(String(total))}</div></div>
+                          <div className="col-4"><div className="text-secondary">{t("rep_average")}</div><div className="fw-bold">{money(String(avg))}</div></div>
+                          <div className="col-4"><div className="text-secondary">{t("rep_best_day", { bucket: pa.range.bucket === "hour" ? "hour" : "day" })}</div><div className="fw-bold">{best && best.sales > 0 ? `${fmtLbl(best.date)}` : "—"}</div></div>
                         </div>
                       );
                     })()}
@@ -981,7 +979,7 @@ export default function ReportsPage() {
         <div className="col-12 col-md-3">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="small text-secondary">Gross Revenue (30d)</div>
+              <div className="small text-secondary">{t("rep_gross_rev")}</div>
               <div className="fs-4 fw-bold text-dark">{money(data.metrics.revenue)}</div>
             </div>
           </div>
@@ -989,7 +987,7 @@ export default function ReportsPage() {
         <div className="col-12 col-md-3">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="small text-secondary">Net Profit (30d)</div>
+              <div className="small text-secondary">{t("rep_net_profit")}</div>
               <div className="fs-4 fw-bold text-success">{money(data.metrics.net_profit)}</div>
             </div>
           </div>
@@ -997,7 +995,7 @@ export default function ReportsPage() {
         <div className="col-12 col-md-3">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="small text-secondary">Total Orders (30d)</div>
+              <div className="small text-secondary">{t("rep_total_orders")}</div>
               <div className="fs-4 fw-bold text-primary">{data.metrics.sales_count}</div>
             </div>
           </div>
@@ -1005,7 +1003,7 @@ export default function ReportsPage() {
         <div className="col-12 col-md-3">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="small text-secondary">Discounts Given (30d)</div>
+              <div className="small text-secondary">{t("rep_discounts_given")}</div>
               <div className="fs-4 fw-bold text-warning">
                 {money(data.trend.reduce((acc, t) => acc + Number(t.discount), 0).toString())}
               </div>
@@ -1019,7 +1017,7 @@ export default function ReportsPage() {
         <div className="col-lg-8">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Revenue & Discount Trend (Last 30 Days)</div>
+              <div className="fw-semibold mb-3">{t("rep_rev_discount_trend")}</div>
               <div style={{ height: 300 }}>
                 <canvas ref={trendChartRef}></canvas>
               </div>
@@ -1029,7 +1027,7 @@ export default function ReportsPage() {
         <div className="col-lg-4">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Revenue by Payment Method</div>
+              <div className="fw-semibold mb-3">{t("rep_rev_method")}</div>
               <div style={{ height: 300 }}>
                 <canvas ref={paymentChartRef}></canvas>
               </div>
@@ -1043,7 +1041,7 @@ export default function ReportsPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Customer Acquisition (New vs. Returning)</div>
+              <div className="fw-semibold mb-3">{t("rep_cust_acq")}</div>
               <div style={{ height: 300 }}>
                 <canvas ref={acqChartRef}></canvas>
               </div>
@@ -1053,7 +1051,7 @@ export default function ReportsPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Top Selling Products</div>
+              <div className="fw-semibold mb-3">{t("rep_top_selling")}</div>
               <div style={{ height: 300 }}>
                 <canvas ref={topProdChartRef}></canvas>
               </div>
@@ -1067,7 +1065,7 @@ export default function ReportsPage() {
         <div className="col-lg-4">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Sales by Category</div>
+              <div className="fw-semibold mb-3">{t("rep_sales_cat")}</div>
               <div style={{ height: 300 }}>
                 <canvas ref={catChartRef}></canvas>
               </div>
@@ -1077,21 +1075,21 @@ export default function ReportsPage() {
         <div className="col-lg-8">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Recent Transactions</div>
+              <div className="fw-semibold mb-3">{t("rep_recent_tx")}</div>
               <div className="table-responsive">
                 <table className="table table-striped table-sm mb-0">
                   <thead className="thead-3">
                     <tr>
-                      <th>Date</th>
-                      <th>Invoice</th>
-                      <th>Customer</th>
-                      <th>Method</th>
-                      <th className="text-end">Amount</th>
+                      <th>{t("rep_date")}</th>
+                      <th>{t("rep_invoice")}</th>
+                      <th>{t("rep_customer")}</th>
+                      <th>{t("rep_method")}</th>
+                      <th className="text-end">{t("rep_amount")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.recent_transactions.length === 0 ? (
-                      <tr><td colSpan={5} className="text-secondary">No transactions.</td></tr>
+                      <tr><td colSpan={5} className="text-secondary">{t("rep_no_tx")}</td></tr>
                     ) : (
                       data.recent_transactions.map((t) => (
                         <tr key={t.id}>
@@ -1116,19 +1114,19 @@ export default function ReportsPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Top Customers (Lifetime Value)</div>
+              <div className="fw-semibold mb-3">{t("rep_top_cust")}</div>
               <div className="table-responsive" style={{ maxHeight: 300 }}>
                 <table className="table table-striped table-sm mb-0">
                   <thead className="thead-3 sticky-top">
                     <tr>
-                      <th>Customer</th>
-                      <th className="text-end">Orders</th>
-                      <th className="text-end">Total Spent</th>
+                      <th>{t("rep_customer")}</th>
+                      <th className="text-end">{t("rep_orders")}</th>
+                      <th className="text-end">{t("rep_total_spent")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.top_customers.length === 0 ? (
-                      <tr><td colSpan={3} className="text-secondary">No customer data.</td></tr>
+                      <tr><td colSpan={3} className="text-secondary">{t("rep_no_cust")}</td></tr>
                     ) : (
                       data.top_customers.map((c) => (
                         <tr key={c.customer__id}>
@@ -1147,19 +1145,19 @@ export default function ReportsPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm h-100">
             <div className="card-body">
-              <div className="fw-semibold mb-3">High Return Rate Products</div>
+              <div className="fw-semibold mb-3">{t("rep_high_return")}</div>
               <div className="table-responsive" style={{ maxHeight: 300 }}>
                 <table className="table table-striped table-sm mb-0">
                   <thead className="thead-3 sticky-top">
                     <tr>
-                      <th>Product</th>
-                      <th className="text-end">Qty Returned</th>
-                      <th className="text-end">Refund Amount</th>
+                      <th>{t("rep_product")}</th>
+                      <th className="text-end">{t("rep_qty_return")}</th>
+                      <th className="text-end">{t("rep_refund_amt")}</th>
                     </tr>
                   </thead>
                   <tbody>
                     {data.top_returns.length === 0 ? (
-                      <tr><td colSpan={3} className="text-secondary">No return data.</td></tr>
+                      <tr><td colSpan={3} className="text-secondary">{t("rep_no_return")}</td></tr>
                     ) : (
                       data.top_returns.map((r, i) => (
                         <tr key={i}>
@@ -1180,16 +1178,16 @@ export default function ReportsPage() {
       {/* Row 5: Low Stock Alerts */}
       <div className="card shadow-sm">
         <div className="card-body">
-          <div className="fw-semibold mb-3 text-danger"><i className="bi bi-exclamation-triangle-fill me-2"></i>Inventory Status (Low & Out of Stock)</div>
+          <div className="fw-semibold mb-3 text-danger"><i className="bi bi-exclamation-triangle-fill me-2"></i>{t("rep_inv_status")}</div>
           <div className="table-responsive">
             <table className="table table-striped table-sm mb-0">
               <thead className="thead-3">
                 <tr>
-                  <th>Product</th>
-                  <th>SKU</th>
-                  <th className="text-end">Current Stock</th>
-                  <th className="text-end">Reorder Level</th>
-                  <th className="text-end">Status</th>
+                  <th>{t("rep_product")}</th>
+                  <th>{t("rep_sku")}</th>
+                  <th className="text-end">{t("rep_curr_stock")}</th>
+                  <th className="text-end">{t("rep_reorder_lvl")}</th>
+                  <th className="text-end">{t("rep_status")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -1199,7 +1197,7 @@ export default function ReportsPage() {
                     ...data.low_stock.map(i => ({ ...i, _out: false })),
                   ];
                   if (combined.length === 0) {
-                    return <tr><td colSpan={5} className="text-secondary text-center">All inventory levels are healthy.</td></tr>;
+                    return <tr><td colSpan={5} className="text-secondary text-center">{t("rep_inv_healthy")}</td></tr>;
                   }
                   const PER = 20;
                   const pages = Math.ceil(combined.length / PER);
@@ -1213,8 +1211,8 @@ export default function ReportsPage() {
                       <td className="text-end">{item.reorder_level}</td>
                       <td className="text-end">
                         {item._out
-                          ? <span className="badge bg-danger">Out of Stock</span>
-                          : <span className="badge bg-warning text-dark">Low Stock</span>}
+                          ? <span className="badge bg-danger">{t("rep_out_of_stock")}</span>
+                          : <span className="badge bg-warning text-dark">{t("rep_low_stock_badge")}</span>}
                       </td>
                     </tr>
                   ));
@@ -1232,12 +1230,12 @@ export default function ReportsPage() {
             return (
               <div className="d-flex align-items-center justify-content-between mt-3 flex-wrap gap-2">
                 <span className="text-secondary small">
-                  Showing {(page - 1) * PER + 1}–{Math.min(page * PER, total)} of {total}
+                  {t("rep_showing", { start: (page - 1) * PER + 1, end: Math.min(page * PER, total), total: total })}
                 </span>
                 <div className="btn-group btn-group-sm">
-                  <button className="btn btn-outline-secondary" disabled={page <= 1} onClick={() => setInvPage(page - 1)}>← Prev</button>
-                  <button className="btn btn-outline-secondary disabled">Page {page} / {pages}</button>
-                  <button className="btn btn-outline-secondary" disabled={page >= pages} onClick={() => setInvPage(page + 1)}>Next →</button>
+                  <button className="btn btn-outline-secondary" disabled={page <= 1} onClick={() => setInvPage(page - 1)}>{t("rep_prev")}</button>
+                  <button className="btn btn-outline-secondary disabled">{t("rep_page", { page: page, pages: pages })}</button>
+                  <button className="btn btn-outline-secondary" disabled={page >= pages} onClick={() => setInvPage(page + 1)}>{t("rep_next")}</button>
                 </div>
               </div>
             );
@@ -1248,16 +1246,16 @@ export default function ReportsPage() {
       {/* Legacy Reports Export */}
       <div className="card shadow-sm">
         <div className="card-body">
-          <div className="fw-semibold mb-3">Export Reports</div>
+          <div className="fw-semibold mb-3">{t("rep_export")}</div>
           {reports.length === 0 ? (
-            <div className="text-secondary small">No report types available.</div>
+            <div className="text-secondary small">{t("rep_no_reports")}</div>
           ) : (
             <div className="table-responsive">
               <table className="table table-sm align-middle mb-0">
                 <thead className="thead-6">
                   <tr>
-                    <th>Report</th>
-                    <th className="text-end">Download</th>
+                    <th>{t("rep_report")}</th>
+                    <th className="text-end">{t("rep_download")}</th>
                   </tr>
                 </thead>
                 <tbody>

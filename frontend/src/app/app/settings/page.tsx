@@ -281,10 +281,10 @@ export default function SettingsPage() {
                       onChange={e => setShopForm({...shopForm, offline_sale_mode: e.target.checked})}
                     />
                     <label className="form-check-label small fw-semibold" htmlFor="offlineSaleSwitch">
-                      Enable Offline Sale Entry Mode
+                      {t("settings_offline_en")}
                     </label>
                     <div className="form-text" style={{ fontSize: "0.75rem" }}>
-                      ⚠️ When enabled: POS allows backdated sales (up to 30 days) and relaxes stock validation — use only when recovering from a network/PC outage.
+                      {t("settings_offline_help")}
                     </div>
                   </div>
                 </div>

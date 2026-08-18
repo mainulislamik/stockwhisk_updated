@@ -42,7 +42,7 @@ export default function DailySettlementPage() {
         setHistory(hist.results.filter(s => s.status === "closed"));
       }
     } catch (e: any) {
-      setError(e.data?.error || e.data?.detail || e.message || "Failed to load settlement data");
+      setError(e.data?.error || e.data?.detail || e.message || t("stl_err_load"));
     } finally {
       setLoading(false);
     }
@@ -53,7 +53,7 @@ export default function DailySettlementPage() {
   }, []);
 
   useEffect(() => {
-    document.getElementById("page-heading")!.innerText = "Daily Settlement";
+    document.getElementById("page-heading")!.innerText = t("stl_title");
   }, []);
 
   const openShift = async (e: React.FormEvent) => {
@@ -67,7 +67,7 @@ export default function DailySettlementPage() {
       });
       await loadData();
     } catch (e: any) {
-      setError(e.data?.error || e.data?.detail || e.message || "Failed to open shift");
+      setError(e.data?.error || e.data?.detail || e.message || t("stl_err_open"));
     } finally {
       setSubmitting(false);
     }
@@ -75,7 +75,7 @@ export default function DailySettlementPage() {
 
   const closeShift = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!(await confirmAction("Are you sure you want to close this shift? This action cannot be undone."))) return;
+    if (!(await confirmAction(t("stl_confirm_close")))) return;
     setSubmitting(true);
     setError("");
     try {
@@ -86,14 +86,14 @@ export default function DailySettlementPage() {
       setActualCash("");
       await loadData();
     } catch (e: any) {
-      setError(e.data?.error || e.data?.detail || e.message || "Failed to close shift");
+      setError(e.data?.error || e.data?.detail || e.message || t("stl_err_close"));
     } finally {
       setSubmitting(false);
     }
   };
 
   const reopenShift = async () => {
-    if (!(await confirmAction("Are you sure you want to reopen today's shift? This will clear the previous closing metrics so you can close it again later."))) return;
+    if (!(await confirmAction(t("stl_confirm_reopen")))) return;
     setSubmitting(true);
     setError("");
     try {
@@ -102,13 +102,13 @@ export default function DailySettlementPage() {
       });
       await loadData();
     } catch (e: any) {
-      setError(e.data?.error || e.data?.detail || e.message || "Failed to reopen shift");
+      setError(e.data?.error || e.data?.detail || e.message || t("stl_err_reopen"));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <div>{t("stl_loading")}</div>;
 
   const filteredHistory = filterDate 
     ? history.filter(s => new Date(s.opened_at).toLocaleDateString("en-CA") === filterDate)
@@ -122,13 +122,13 @@ export default function DailySettlementPage() {
         <div className="col-lg-6">
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
-              <h5 className="card-title fw-bold mb-4">Current Shift</h5>
+              <h5 className="card-title fw-bold mb-4">{t("stl_current_shift")}</h5>
               
               {!current ? (
                 <div className="text-center py-5">
                   <div className="display-1 text-muted mb-3">🏪</div>
-                  <h4 className="fw-semibold">No active shift</h4>
-                  <p className="text-muted">Open a shift to start tracking today's expected cash.</p>
+                  <h4 className="fw-semibold">{t("stl_no_active")}</h4>
+                  <p className="text-muted">{t("stl_no_active_desc")}</p>
                   <form onSubmit={openShift} className="mt-4 max-w-sm mx-auto">
                     <button type="submit" className="btn btn-primary w-100 rounded-pill" disabled={submitting}>
                       Start New Day
@@ -138,26 +138,26 @@ export default function DailySettlementPage() {
               ) : current.status === "closed" ? (
                 <div>
                   <div className="alert alert-success mb-4">
-                    <h5 className="alert-heading fw-bold">✓ Today's Shift is Closed</h5>
-                    <p className="mb-0">You have already closed the settlement for today at {new Date(current.closed_at!).toLocaleTimeString()}. A new shift will automatically start at midnight.</p>
+                    <h5 className="alert-heading fw-bold">{t("stl_closed_title")}</h5>
+                    <p className="mb-0">{t("stl_closed_desc", { time: new Date(current.closed_at!).toLocaleTimeString() })}</p>
                   </div>
                   
                   <div className="row g-3 mb-4">
                     <div className="col-12 col-md-4">
                       <div className="bg-light rounded p-3 text-center border" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>
-                        <div className="small text-uppercase fw-semibold mb-1 text-muted">Expected</div>
+                        <div className="small text-uppercase fw-semibold mb-1 text-muted">{t("stl_expected")}</div>
                         <div className="fs-4 fw-bold">{current.expected_cash}</div>
                       </div>
                     </div>
                     <div className="col-12 col-md-4">
                       <div className="bg-light rounded p-3 text-center border" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>
-                        <div className="small text-uppercase fw-semibold mb-1 text-muted">Actual Counted</div>
+                        <div className="small text-uppercase fw-semibold mb-1 text-muted">{t("stl_actual_counted")}</div>
                         <div className="fs-4 fw-bold">{current.actual_cash}</div>
                       </div>
                     </div>
                     <div className="col-12 col-md-4">
                       <div className={`rounded p-3 text-center border ${parseFloat(current.discrepancy) < 0 ? 'bg-danger bg-opacity-10 border-danger' : 'bg-success bg-opacity-10 border-success'}`}>
-                        <div className="small text-uppercase fw-semibold mb-1">Discrepancy</div>
+                        <div className="small text-uppercase fw-semibold mb-1">{t("stl_discrepancy")}</div>
                         <div className="fs-4 fw-bold">{parseFloat(current.discrepancy) > 0 ? '+' : ''}{current.discrepancy}</div>
                       </div>
                     </div>
@@ -172,20 +172,20 @@ export default function DailySettlementPage() {
               ) : (
                 <div>
                   <div className="d-flex justify-content-between mb-3 text-muted small">
-                    <span>Opened at: {new Date(current.opened_at).toLocaleString()}</span>
+                    <span>{t("stl_opened_at")} {new Date(current.opened_at).toLocaleString()}</span>
                   </div>
                   
                   <div className="row g-3 mb-4">
                     <div className="col-12">
                       <div className="bg-primary bg-opacity-10 rounded p-3 text-center h-100 border border-primary border-opacity-25">
-                        <div className="text-primary small text-uppercase fw-semibold mb-1">Expected Cash</div>
+                        <div className="text-primary small text-uppercase fw-semibold mb-1">{t("stl_expected_cash")}</div>
                         <div className="fs-3 fw-bold text-primary">{current.expected_cash}</div>
                       </div>
                     </div>
                   </div>
 
                   <form onSubmit={closeShift}>
-                    <label className="form-label fw-semibold">Counted Cash in Drawer</label>
+                    <label className="form-label fw-semibold">{t("stl_counted_cash")}</label>
                     <div className="input-group input-group-lg mb-3">
                       <span className="input-group-text" style={{ backgroundColor: "var(--bs-tertiary-bg)" }}>৳</span>
                       <input 
@@ -203,7 +203,7 @@ export default function DailySettlementPage() {
                     {actualCash && (
                       <div className={`alert mb-3 py-2 ${parseFloat(actualCash) - parseFloat(current.expected_cash) < 0 ? 'alert-danger' : 'alert-success'}`}>
                         <div className="d-flex justify-content-between align-items-center">
-                          <span className="fw-semibold">Discrepancy:</span>
+                          <span className="fw-semibold">{t("stl_discrepancy")}:</span>
                           <span className="fw-bold fs-5">
                             {(parseFloat(actualCash) - parseFloat(current.expected_cash)).toFixed(2)}
                           </span>
@@ -225,7 +225,7 @@ export default function DailySettlementPage() {
           <div className="card shadow-sm border-0 h-100">
             <div className="card-body">
               <div className="d-flex justify-content-between align-items-center mb-4">
-                <h5 className="card-title fw-bold mb-0">Shift History</h5>
+                <h5 className="card-title fw-bold mb-0">{t("stl_history_title")}</h5>
                 <input 
                   type="date" 
                   className="form-control form-control-sm w-auto"
@@ -237,18 +237,18 @@ export default function DailySettlementPage() {
               
               {filteredHistory.length === 0 ? (
                 <div className="text-center py-5 text-muted">
-                  {filterDate ? `No shifts found for ${filterDate}.` : "No past shifts found."}
+                  {filterDate ? t("stl_no_shifts_date", { date: filterDate }) : t("stl_no_past")}
                 </div>
               ) : (
                 <div className="table-responsive">
                   <table className="table table-hover align-middle">
                     <thead>
                       <tr className="text-muted small text-uppercase">
-                        <th>Date</th>
-                        <th className="text-end">Expected</th>
-                        <th className="text-end">Actual</th>
-                        <th className="text-end">Diff</th>
-                        <th>Closed By</th>
+                        <th>{t("stl_col_date")}</th>
+                        <th className="text-end">{t("stl_expected")}</th>
+                        <th className="text-end">{t("stl_col_actual")}</th>
+                        <th className="text-end">{t("stl_col_diff")}</th>
+                        <th>{t("stl_col_closed_by")}</th>
                       </tr>
                     </thead>
                     <tbody>

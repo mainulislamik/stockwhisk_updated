@@ -47,7 +47,7 @@ export default function EditInvoicePage() {
     useEffect(() => {
         if (!user) return;
         if (user.role !== "owner") {
-            setError("Only Shop Owners can correct invoices.");
+            setError(t("edit_err_owner_only"));
             setLoading(false);
             return;
         }
@@ -57,7 +57,7 @@ export default function EditInvoicePage() {
                 const data = await api<Sale>(`/sales/sales/${id}/`);
                 
                 if (data.returns && data.returns.length > 0) {
-                    setError("Invoices with returns cannot be corrected.");
+                    setError(t("edit_err_has_returns"));
                     setLoading(false);
                     return;
                 }
@@ -65,7 +65,7 @@ export default function EditInvoicePage() {
                 const saleDate = new Date(data.sale_date).toLocaleDateString();
                 const today = new Date().toLocaleDateString();
                 if (saleDate !== today) {
-                    setError("Invoice locked: correction is only available on the day of creation.");
+                    setError(t("edit_err_locked"));
                     setLoading(false);
                     return;
                 }
@@ -88,7 +88,7 @@ export default function EditInvoicePage() {
                 setCart(initialCart);
                 
             } catch (e: any) {
-                setError(e?.message || "Failed to load invoice");
+                setError(e?.message || t("edit_err_load"));
             } finally {
                 setLoading(false);
             }
@@ -151,15 +151,15 @@ export default function EditInvoicePage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (cart.length === 0) {
-            toast.error("Cart is empty");
+            toast.error(t("edit_err_cart_empty"));
             return;
         }
         if (!reason.trim()) {
-            toast.error("Correction reason is required");
+            toast.error(t("edit_err_reason_req"));
             return;
         }
         
-        if (!confirm("Are you sure you want to correct this invoice? This will recalculate stock and payments.")) {
+        if (!confirm(t("edit_confirm"))) {
             return;
         }
 
@@ -183,20 +183,20 @@ export default function EditInvoicePage() {
                     correction_reason: reason.trim()
                 })
             });
-            toast.success("Invoice corrected successfully");
+            toast.success(t("edit_success"));
             router.push(`/app/sales/${id}`);
         } catch (err: any) {
-            toast.error(err.message || "Failed to correct invoice");
+            toast.error(err.message || t("edit_failed"));
             setSubmitting(false);
         }
     };
 
-    if (loading) return <Spinner label="Loading invoice for editing…" />;
+    if (loading) return <Spinner label={t("edit_loading")} />;
     if (error) return (
         <div className="container py-5">
             <ErrorState error={error} />
             <div className="mt-3 text-center">
-                <Link href={`/app/sales/${id}`} className="btn btn-secondary">Go Back</Link>
+                <Link href={`/app/sales/${id}`} className="btn btn-secondary">{t("edit_btn_back")}</Link>
             </div>
         </div>
     );
@@ -205,24 +205,24 @@ export default function EditInvoicePage() {
     return (
         <div className="container py-4" style={{ maxWidth: "800px" }}>
             <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1 className="h4 fw-bold text-brand mb-0">Correct Invoice: {sale.invoice_no}</h1>
-                <Link href={`/app/sales/${id}`} className="btn btn-outline-secondary btn-sm">Cancel</Link>
+                <h1 className="h4 fw-bold text-brand mb-0">{t("edit_title")} {sale.invoice_no}</h1>
+                <Link href={`/app/sales/${id}`} className="btn btn-outline-secondary btn-sm">{t("edit_btn_cancel")}</Link>
             </div>
 
             <div className="card shadow-sm mb-4">
-                <div className="card-header bg-light fw-bold">Customer Information</div>
+                <div className="card-header bg-light fw-bold">{t("edit_cust_info")}</div>
                 <div className="card-body">
                     <div className="row g-3">
                         <div className="col-md-4">
-                            <label className="form-label small text-muted">Name</label>
-                            <input type="text" className="form-control form-control-sm" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder="Walk-in Customer" />
+                            <label className="form-label small text-muted">{t("edit_cust_name")}</label>
+                            <input type="text" className="form-control form-control-sm" value={customerName} onChange={e => setCustomerName(e.target.value)} placeholder={t("edit_cust_ph_name")} />
                         </div>
                         <div className="col-md-4">
-                            <label className="form-label small text-muted">Phone</label>
+                            <label className="form-label small text-muted">{t("edit_cust_phone")}</label>
                             <input type="text" className="form-control form-control-sm" value={customerPhone} onChange={e => setCustomerPhone(e.target.value)} />
                         </div>
                         <div className="col-md-4">
-                            <label className="form-label small text-muted">Address</label>
+                            <label className="form-label small text-muted">{t("edit_cust_address")}</label>
                             <input type="text" className="form-control form-control-sm" value={customerAddress} onChange={e => setCustomerAddress(e.target.value)} />
                         </div>
                     </div>
@@ -236,7 +236,7 @@ export default function EditInvoicePage() {
                             <input
                                 type="text"
                                 className="form-control"
-                                placeholder="Search products to add..."
+                                placeholder={t("edit_search_ph")}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                             />
@@ -259,7 +259,7 @@ export default function EditInvoicePage() {
                         </div>
                         <Link href="/app/products" target="_blank" className="btn btn-outline-primary d-flex align-items-center gap-2">
                             <i className="bi bi-plus-lg"></i>
-                            <span className="d-none d-md-inline">New Product</span>
+                            <span className="d-none d-md-inline">{t("edit_btn_new_prod")}</span>
                         </Link>
                     </div>
 
@@ -268,11 +268,11 @@ export default function EditInvoicePage() {
                             <table className="table table-sm align-middle">
                                 <thead className="table-light">
                                     <tr>
-                                        <th>Product</th>
-                                        <th style={{ width: "100px" }}>Qty</th>
-                                        <th style={{ width: "120px" }}>Unit Price</th>
-                                        <th style={{ width: "100px" }}>Discount</th>
-                                        <th className="text-end">Line Total</th>
+                                        <th>{t("edit_col_product")}</th>
+                                        <th style={{ width: "100px" }}>{t("edit_col_qty")}</th>
+                                        <th style={{ width: "120px" }}>{t("edit_col_unit_price")}</th>
+                                        <th style={{ width: "100px" }}>{t("edit_col_discount")}</th>
+                                        <th className="text-end">{t("edit_col_line_total")}</th>
                                         <th></th>
                                     </tr>
                                 </thead>
@@ -313,7 +313,7 @@ export default function EditInvoicePage() {
                                         )
                                     })}
                                     {cart.length === 0 && (
-                                        <tr><td colSpan={6} className="text-center text-muted py-3">Cart is empty</td></tr>
+                                        <tr><td colSpan={6} className="text-center text-muted py-3">{t("edit_err_cart_empty")}</td></tr>
                                     )}
                                 </tbody>
                             </table>
@@ -324,11 +324,11 @@ export default function EditInvoicePage() {
                                 <table className="table table-sm table-borderless">
                                     <tbody>
                                         <tr>
-                                            <td>Subtotal</td>
+                                            <td>{t("edit_lbl_subtotal")}</td>
                                             <td className="text-end">{money(subtotal)}</td>
                                         </tr>
                                         <tr>
-                                            <td className="align-middle">Sale Discount</td>
+                                            <td className="align-middle">{t("edit_lbl_sale_disc")}</td>
                                             <td className="text-end">
                                                 <input 
                                                     type="number" className="form-control form-control-sm text-end"
@@ -338,7 +338,7 @@ export default function EditInvoicePage() {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="align-middle">Tax / VAT</td>
+                                            <td className="align-middle">{t("edit_lbl_tax")}</td>
                                             <td className="text-end">
                                                 <input 
                                                     type="number" className="form-control form-control-sm text-end"
@@ -348,7 +348,7 @@ export default function EditInvoicePage() {
                                             </td>
                                         </tr>
                                         <tr>
-                                            <td className="align-middle">Delivery Charge</td>
+                                            <td className="align-middle">{t("edit_lbl_delivery")}</td>
                                             <td className="text-end">
                                                 <input 
                                                     type="number" className="form-control form-control-sm text-end"
@@ -358,15 +358,15 @@ export default function EditInvoicePage() {
                                             </td>
                                         </tr>
                                         <tr className="border-top border-dark fw-bold">
-                                            <td>New Total</td>
+                                            <td>{t("edit_lbl_new_total")}</td>
                                             <td className="text-end text-brand">{money(total)}</td>
                                         </tr>
                                         <tr className="text-secondary">
-                                            <td>Previously Paid</td>
+                                            <td>{t("edit_lbl_prev_paid")}</td>
                                             <td className="text-end">{money(previouslyPaid)}</td>
                                         </tr>
                                         <tr className={`fw-bold ${newDue < 0 ? 'text-warning' : (newDue > 0 ? 'text-danger' : 'text-success')}`}>
-                                            <td>{newDue < 0 ? 'Refund Owed' : 'New Due'}</td>
+                                            <td>{newDue < 0 ? t("edit_lbl_refund_owed") : t("edit_lbl_new_due")}</td>
                                             <td className="text-end">{money(Math.abs(newDue))}</td>
                                         </tr>
                                     </tbody>
@@ -375,17 +375,17 @@ export default function EditInvoicePage() {
                         </div>
 
                         <div className="mb-4">
-                            <label className="form-label fw-bold">Correction Reason <span className="text-danger">*</span></label>
+                            <label className="form-label fw-bold">{t("edit_reason_title")} <span className="text-danger">*</span></label>
                             <textarea 
                                 className="form-control" 
                                 rows={2} 
                                 value={reason} 
                                 onChange={(e) => setReason(e.target.value)}
-                                placeholder="Why is this invoice being corrected? (e.g., Wrong quantity entered, wrong product selected)"
+                                placeholder={t("edit_reason_ph")}
                                 required
                             />
                             <div className="form-text text-warning">
-                                <i className="bi bi-exclamation-triangle"></i> This action will securely reverse stock from the original invoice and deduct stock for the new items.
+                                <i className="bi bi-exclamation-triangle"></i> {t("edit_reason_warn")}
                             </div>
                         </div>
 
@@ -394,7 +394,7 @@ export default function EditInvoicePage() {
                             className="btn btn-warning w-100 fw-bold" 
                             disabled={submitting || cart.length === 0 || !reason.trim()}
                         >
-                            {submitting ? <Spinner /> : "💾 Submit Correction"}
+                            {submitting ? <Spinner /> : t("edit_btn_submit")}
                         </button>
                     </form>
                 </div>

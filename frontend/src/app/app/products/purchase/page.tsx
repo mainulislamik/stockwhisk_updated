@@ -135,7 +135,7 @@ export default function PurchaseProductPage() {
       // also add to receive list automatically
       setLines((prev) => [...prev, { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: [] }]);
     } catch (e: any) {
-      toast.error(e?.message || "Could not create product");
+      toast.error(e?.message || t("pp_err_create_prod"));
     } finally { setSavingProd(false); }
   }
 
@@ -336,8 +336,8 @@ export default function PurchaseProductPage() {
           <div className="card-body">
             <div className="d-flex align-items-start justify-content-between mb-1">
               <div>
-                <h1 className="h5 fw-bold mb-0">Purchase New Product</h1>
-                <div className="text-secondary small">Ingest new inventory and update stock levels.</div>
+                <h1 className="h5 fw-bold mb-0">{t("pp_title")}</h1>
+                <div className="text-secondary small">{t("pp_subtitle")}</div>
               </div>
               <div className="small fw-semibold d-flex align-items-center gap-1 bg-white px-3 py-1 rounded shadow-sm border border-light">
                 <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
@@ -346,7 +346,7 @@ export default function PurchaseProductPage() {
                 </span>
               </div>
               <div className="d-flex gap-2">
-                <button className="btn btn-outline-secondary btn-sm" onClick={() => router.back()}>Cancel</button>
+                <button className="btn btn-outline-secondary btn-sm" onClick={() => router.back()}>{t("pp_btn_cancel")}</button>
                 <button className="btn btn-outline-brand btn-sm" onClick={() => { setShowNewProduct(true); setSearchResults(null); }}>
                   + New Product Record
                 </button>
@@ -358,32 +358,32 @@ export default function PurchaseProductPage() {
         {/* New product modal card */}
         {showNewProduct && (
           <div className="card shadow-sm border-brand mb-3">
-            <div className="card-header fw-semibold small text-brand">Create New Product</div>
+            <div className="card-header fw-semibold small text-brand">{t("pp_new_prod_title")}</div>
             <div className="card-body">
               <form onSubmit={createProduct} className="row g-2">
                 <div className="col-md-6">
-                  <label className="small fw-medium">Product name *</label>
+                  <label className="small fw-medium">{t("pp_lbl_prod_name")}</label>
                   <input required className="form-control form-control-sm" value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} placeholder="e.g. DVR High Resolution" />
                 </div>
                 <div className="col-md-6">
-                  <label className="small fw-medium">SKU <span className="text-secondary">(auto if blank)</span></label>
+                  <label className="small fw-medium">{t("pp_lbl_sku_auto")}</label>
                   <input className="form-control form-control-sm" value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="auto-generated" />
                 </div>
                 <div className="col-md-3">
-                  <label className="small fw-medium">Cost price</label>
+                  <label className="small fw-medium">{t("pp_lbl_cost")}</label>
                   <input type="number" step="0.01" className="form-control form-control-sm" value={newProd.cost_price} onChange={(e) => setNewProd({ ...newProd, cost_price: e.target.value })} placeholder="0" />
                 </div>
                 <div className="col-md-3">
-                  <label className="small fw-medium">Selling price</label>
+                  <label className="small fw-medium">{t("pp_lbl_selling")}</label>
                   <input type="number" step="0.01" className="form-control form-control-sm" value={newProd.selling_price} onChange={(e) => setNewProd({ ...newProd, selling_price: e.target.value })} placeholder="0" />
                 </div>
                 <div className="col-md-3">
-                  <label className="small fw-medium">Reorder level</label>
+                  <label className="small fw-medium">{t("pp_lbl_reorder")}</label>
                   <input type="number" step="1" min="0" className="form-control form-control-sm" value={newProd.reorder_level} onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })} />
                 </div>
                 <div className="col-md-3 d-flex align-items-end gap-2">
                   <button className="btn btn-brand btn-sm" disabled={savingProd}>{savingProd ? "Creating…" : "Create & add"}</button>
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewProduct(false)}>Cancel</button>
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewProduct(false)}>{t("pp_btn_cancel")}</button>
                 </div>
               </form>
             </div>
@@ -396,7 +396,7 @@ export default function PurchaseProductPage() {
             <h2 className="h6 fw-bold mb-3 text-brand">🔍 Advanced Product Search</h2>
             <div className="row g-2 mb-2">
               <div className="col-md-6">
-                <label className="small fw-medium">Product Name</label>
+                <label className="small fw-medium">{t("pp_lbl_prod_name_search")}</label>
                 <input
                   className="form-control form-control-sm"
                   placeholder="e.g. DVR High Resolution"
@@ -405,7 +405,7 @@ export default function PurchaseProductPage() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">Barcode / SKU</label>
+                <label className="small fw-medium">{t("pp_lbl_barcode_sku")}</label>
                 <input
                   className="form-control form-control-sm"
                   placeholder="Scan or type barcode…"
@@ -415,7 +415,7 @@ export default function PurchaseProductPage() {
               </div>
             </div>
 
-            {searching && <div className="text-secondary small py-2">Searching…</div>}
+            {searching && <div className="text-secondary small py-2">{t("pp_searching")}</div>}
 
             {searchResults !== null && !searching && (
               <div className="border rounded">
@@ -439,7 +439,7 @@ export default function PurchaseProductPage() {
                     <input type="checkbox" className="form-check-input mt-0" readOnly checked={selected?.id === p.id} />
                     <div>
                       <div className="fw-semibold">{p.name}</div>
-                      <div className="small text-secondary">SKU: {p.sku || "—"} &bull; Stock: {p.current_stock}</div>
+                      <div className="small text-secondary">{t("pp_sku")}: {p.sku || "—"} &bull; {t("pp_stock")}: {p.current_stock}</div>
                     </div>
                   </label>
                 ))}
@@ -450,7 +450,7 @@ export default function PurchaseProductPage() {
               <div className="mt-2 p-2 border rounded bg-secondary bg-opacity-10 d-flex align-items-center justify-content-between">
                 <div>
                   <span className="fw-semibold">✓ {selected.name}</span>
-                  <span className="text-secondary small ms-2">SKU: {selected.sku || "—"} · Stock: {selected.current_stock}</span>
+                  <span className="text-secondary small ms-2">{t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {selected.current_stock}</span>
                 </div>
                 <div className="d-flex gap-2">
                   <button className="btn btn-brand btn-sm" onClick={addManualLine}>+ Add to receive</button>
@@ -467,7 +467,7 @@ export default function PurchaseProductPage() {
             <h2 className="h6 fw-bold mb-3 text-brand">💰 Pricing Information</h2>
             <div className="row g-3">
               <div className="col-md-6">
-                <label className="small fw-medium">Cost Price (BDT)</label>
+                <label className="small fw-medium">{t("pp_lbl_cost_bdt")}</label>
                 <input
                   className="form-control" type="number" step="0.01"
                   value={selected ? cost : ""}
@@ -480,7 +480,7 @@ export default function PurchaseProductPage() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">Selling Price (BDT)</label>
+                <label className="small fw-medium">{t("pp_lbl_sell_bdt")}</label>
                 <input
                   className="form-control" type="number" step="0.01"
                   value={selected ? sell : ""}
@@ -491,10 +491,10 @@ export default function PurchaseProductPage() {
                     setLines((prev) => prev.map((l) => l.product.id === selected.id ? { ...l, product: { ...l.product, selling_price: e.target.value } } : l));
                   }}
                 />
-                <div className="small text-muted mt-1">Margin: <strong>{margin}%</strong> · Profit: <strong>BDT {profit}/unit</strong></div>
+                <div className="small text-muted mt-1">{t("pp_lbl_margin")}: <strong>{margin}%</strong> · {t("pp_lbl_profit")}: <strong>{t("pp_bdt")} {profit}/{t("pp_unit")}</strong></div>
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">Warranty duration (months)</label>
+                <label className="small fw-medium">{t("pp_lbl_warranty")}</label>
                 <input
                   className="form-control" type="number" min="0"
                   value={selected?.warranty_months ?? ""}
@@ -506,10 +506,10 @@ export default function PurchaseProductPage() {
                     setLines((prev) => prev.map((l) => l.product.id === selected.id ? { ...l, product: { ...l.product, warranty_months: val } } : l));
                   }}
                 />
-                <div className="small text-muted mt-1">Applied to every unit received in this batch.</div>
+                <div className="small text-muted mt-1">{t("pp_lbl_warranty_hint")}</div>
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">Quantity (units to receive)</label>
+                <label className="small fw-medium">{t("pp_lbl_qty")}</label>
                 <input
                   type="number" min={1} step={1}
                   className={`form-control ${tooManyBarcodes ? "is-invalid" : ""}`}
@@ -551,16 +551,16 @@ export default function PurchaseProductPage() {
               <div className="col-md-5">
                 <div className="border rounded p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-2">
                   <div className="fs-3">🖨️</div>
-                  <div className="fw-semibold small">Continuous Scan Mode</div>
-                  <div className="text-secondary small">Focus the cursor in the field to start scanning</div>
+                  <div className="fw-semibold small">{t("pp_scan_mode")}</div>
+                  <div className="text-secondary small">{t("pp_scan_hint")}</div>
                   <div className="d-flex align-items-center gap-2 mt-2">
-                    <span className="small">Digits/code</span>
+                    <span className="small">{t("pp_digits_code")}</span>
                     <input type="number" className="form-control form-control-sm" style={{ width: "5rem" }} value={digitsPerCode} min={8} max={20} onChange={(e) => setDigitsPerCode(Number(e.target.value) || 13)} />
                   </div>
                   <button className="btn btn-outline-primary btn-sm w-100 mt-1 d-md-none" onClick={() => setShowScanner(true)}>
                     📷 Scan with Camera
                   </button>
-                  <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => { setBarcodeText(""); setBulkQty(""); setQtyTouched(false); }}>Clear List</button>
+                  <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => { setBarcodeText(""); setBulkQty(""); setQtyTouched(false); }}>{t("pp_btn_clear_list")}</button>
                 </div>
               </div>
             </div>
@@ -578,13 +578,13 @@ export default function PurchaseProductPage() {
         <div className="card shadow-sm" style={{ position: "sticky", top: "1rem" }}>
           <div className="card-header text-white fw-semibold" style={{ background: "var(--brand-900, #1a2433)" }}>
             <div>📦 To Receive</div>
-            <div className="small fw-normal opacity-75">Pending Stock Injection</div>
+            <div className="small fw-normal opacity-75">{t("pp_pending_inject")}</div>
           </div>
           <div className="card-body p-0">
             {lines.length === 0 ? (
               <div className="text-center text-secondary py-4 px-3">
                 <div className="fs-2 mb-2">📦</div>
-                <div className="small">Add products to see them queued for stock injection.</div>
+                <div className="small">{t("pp_pending_empty")}</div>
               </div>
             ) : (
               <div className="table-responsive">
@@ -619,31 +619,31 @@ export default function PurchaseProductPage() {
             )}
 
             <div className="border-top px-3 py-2">
-              <div className="d-flex justify-content-between small mb-1"><span className="text-secondary">Subtotal</span><span>{money(subtotal)}</span></div>
-              <div className="d-flex justify-content-between fw-bold mb-3"><span>Total Value</span><span>{money(subtotal)}</span></div>
+              <div className="d-flex justify-content-between small mb-1"><span className="text-secondary">{t("pp_subtotal")}</span><span>{money(subtotal)}</span></div>
+              <div className="d-flex justify-content-between fw-bold mb-3"><span>{t("pp_total_val")}</span><span>{money(subtotal)}</span></div>
 
-              <label className="form-label small fw-medium">Paid to supplier now</label>
+              <label className="form-label small fw-medium">{t("pp_lbl_paid_now")}</label>
               <div className="input-group input-group-sm mb-1">
-                <span className="input-group-text">BDT</span>
+                <span className="input-group-text">{t("pp_bdt")}</span>
                 <input type="number" min={0} step="0.01" className="form-control" value={payAmount}
                   onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
-                <button className="btn btn-outline-secondary" onClick={() => setPayAmount(String(subtotal))}>Pay full</button>
+                <button className="btn btn-outline-secondary" onClick={() => setPayAmount(String(subtotal))}>{t("pp_btn_pay_full")}</button>
               </div>
               <select className="form-select form-select-sm mb-3" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
                 {Object.entries(PAY_METHODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
               </select>
 
               <div className="d-flex justify-content-between small mb-1">
-                <span className="text-secondary">Supplier due after payment</span>
+                <span className="text-secondary">{t("pp_due_after")}</span>
                 <span className="fw-semibold text-success">{money(supplierDue)}</span>
               </div>
             </div>
 
             {/* Purchase Summary */}
             <div className="border-top px-3 py-3">
-              <div className="fw-bold small mb-2">PURCHASE SUMMARY</div>
+              <div className="fw-bold small mb-2">{t("pp_summary_title")}</div>
               <div className="mb-2">
-                <label className="small fw-medium">Vendor</label>
+                <label className="small fw-medium">{t("pp_lbl_vendor")}</label>
                 <div className="d-flex gap-2 align-items-center">
                   <select className="form-select form-select-sm" value={supplier} onChange={(e) => setSupplier(e.target.value)}>
                     <option value="">— none —</option>
@@ -660,7 +660,7 @@ export default function PurchaseProductPage() {
                   <input className="form-control form-control-sm mb-2" placeholder="Phone Number" value={newVendor.phone} onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })} />
                   <input className="form-control form-control-sm mb-3" placeholder="Warehouse / Address" value={newVendor.address} onChange={(e) => setNewVendor({ ...newVendor, address: e.target.value })} />
                   <div className="d-flex gap-2 justify-content-end">
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewVendor(false)}>Cancel</button>
+                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewVendor(false)}>{t("pp_btn_cancel")}</button>
                     <button className="btn btn-brand btn-sm" disabled={savingVendor}>{savingVendor ? "Adding…" : "Add Vendor"}</button>
                   </div>
                 </form>
@@ -668,7 +668,7 @@ export default function PurchaseProductPage() {
 
               {branches.length > 0 && (
                 <div>
-                  <label className="small fw-medium">Warehouse</label>
+                  <label className="small fw-medium">{t("pp_lbl_warehouse")}</label>
                   <select className="form-select form-select-sm" value={branch} onChange={(e) => setBranch(e.target.value)}>
                     <option value="">— default —</option>
                     {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}

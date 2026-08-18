@@ -44,7 +44,7 @@ export default function NotificationsPage() {
       ]);
       setUnreadTotal(unread.unread ?? 0);
     } catch (e: any) {
-      setError(e?.message || "Failed to load notifications");
+      setError(e?.message || t("notif_err_load"));
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,7 @@ export default function NotificationsPage() {
     try {
       await loadPage(page + 1, true);
     } catch {
-      toast.error("Could not load more");
+      toast.error(t("notif_err_more"));
     } finally {
       setLoadingMore(false);
     }
@@ -70,7 +70,7 @@ export default function NotificationsPage() {
       setUnreadTotal((c) => Math.max(0, c - 1));
       window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
-      toast.error(e?.message || "Could not update");
+      toast.error(e?.message || t("notif_err_update"));
     }
   }
 
@@ -81,18 +81,18 @@ export default function NotificationsPage() {
       setUnreadTotal(0);
       window.dispatchEvent(new Event("notifications_updated"));
     } catch (e: any) {
-      toast.error(e?.message || "Could not update");
+      toast.error(e?.message || t("notif_err_update"));
     }
   }
 
-  if (loading) return <Spinner label="Loading notifications…" />;
+  if (loading) return <Spinner label={t("notif_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
       <PageHeader
-        title="Notifications"
-        subtitle={unreadTotal > 0 ? `${unreadTotal} unread` : "All caught up"}
+        title={t("notif_title")}
+        subtitle={unreadTotal > 0 ? t("notif_unread_count", { count: unreadTotal }) : t("notif_all_caught")}
         actions={
           unreadTotal > 0 ? (
             <button className="btn btn-outline-brand btn-sm" onClick={markAll}>
@@ -107,8 +107,8 @@ export default function NotificationsPage() {
           {rows.length === 0 ? (
             <div className="text-center text-secondary py-5">
               <div style={{ fontSize: "2.5rem" }}>🔔</div>
-              <div className="mt-2">No notifications yet.</div>
-              <div className="small mt-1">You'll see low-stock alerts and other updates here.</div>
+              <div className="mt-2">{t("notif_no_notes_title")}</div>
+              <div className="small mt-1">{t("notif_no_notes_desc")}</div>
             </div>
           ) : (
             rows.map((n) => (
@@ -123,7 +123,7 @@ export default function NotificationsPage() {
                   <span style={{ fontSize: "1.3rem", lineHeight: 1.2 }}>{TYPE_ICON[n.type] || "🔔"}</span>
                   <div>
                     <div className="fw-medium">
-                      {!n.is_read && <span className="badge text-bg-danger me-2">New</span>}
+                      {!n.is_read && <span className="badge text-bg-danger me-2">{t("notif_badge_new")}</span>}
                       {n.title}
                     </div>
                     {n.message && (
@@ -151,7 +151,7 @@ export default function NotificationsPage() {
       {hasMore && (
         <div className="text-center">
           <button className="btn btn-outline-brand btn-sm px-4" onClick={loadMore} disabled={loadingMore}>
-            {loadingMore ? <><span className="spinner-border spinner-border-sm me-2" />Loading…</> : "Load more"}
+            {loadingMore ? <><span className="spinner-border spinner-border-sm me-2" />{t("notif_loading_more")}</> : t("notif_btn_load_more")}
           </button>
         </div>
       )}

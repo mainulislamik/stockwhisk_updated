@@ -37,25 +37,25 @@ export default function ExpensesPage() {
       mutate();
       mutateTotal();
     } catch (err: any) {
-      toast.error(err?.message || "Could not save expense");
+      toast.error(err?.message || t("exp_err_save"));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <Spinner label="Loading expenses…" />;
+  if (loading) return <Spinner label={t("exp_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
       <div className="card shadow-sm">
         <div className="card-body">
-          <div className="fw-semibold mb-3">Record expense</div>
+          <div className="fw-semibold mb-3">{t("exp_rec_exp")}</div>
           <form onSubmit={save} className="row g-2 align-items-end">
             <div className="col-md-3">
-              <label className="small">Category</label>
+              <label className="small">{t("exp_lbl_cat")}</label>
               <select className="form-select form-select-sm" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
-                <option value="">— none —</option>
+                <option value="">{t("exp_opt_none")}</option>
                 {(cats || []).map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -64,28 +64,28 @@ export default function ExpensesPage() {
               </select>
             </div>
             <div className="col-md-2">
-              <label className="small">Amount</label>
+              <label className="small">{t("exp_lbl_amt")}</label>
               <input required type="number" step="0.01" className="form-control form-control-sm" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} />
             </div>
             <div className="col-md-2">
-              <label className="small">Date</label>
+              <label className="small">{t("exp_lbl_date")}</label>
               <input type="date" className="form-control form-control-sm" value={form.spent_on} onChange={(e) => setForm({ ...form, spent_on: e.target.value })} />
             </div>
             <div className="col-md-2">
-              <label className="small">Method</label>
+              <label className="small">{t("exp_lbl_method")}</label>
               <select className="form-select form-select-sm" value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })}>
-                <option value="CASH">Cash</option>
-                <option value="BANK">Bank</option>
-                <option value="MOBILE">Mobile</option>
+                <option value="CASH">{t("exp_opt_cash_val")}</option>
+                <option value="BANK">{t("exp_opt_bank_val")}</option>
+                <option value="MOBILE">{t("exp_opt_mobile_val")}</option>
               </select>
             </div>
             <div className="col-md-2">
-              <label className="small">Note</label>
+              <label className="small">{t("exp_lbl_note")}</label>
               <input className="form-control form-control-sm" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} />
             </div>
             <div className="col-md-1">
               <button className="btn btn-brand btn-sm w-100" disabled={saving}>
-                {saving ? "…" : "Add"}
+                {saving ? "…" : t("exp_btn_add")}
               </button>
             </div>
           </form>
@@ -94,7 +94,7 @@ export default function ExpensesPage() {
 
       <div className="card shadow-sm">
         <div className="card-body d-flex justify-content-between align-items-center">
-          <span className="fw-semibold">Total expenses</span>
+          <span className="fw-semibold">{t("exp_tot_exp")}</span>
           <span className="fs-4 fw-bold text-danger">{money(total)}</span>
         </div>
       </div>
@@ -104,11 +104,11 @@ export default function ExpensesPage() {
           <table className="table table-striped table-sm mb-0">
             <thead className="thead-5">
               <tr>
-                <th>Date</th>
-                <th>Category</th>
-                <th>Method</th>
+                <th>{t("exp_lbl_date")}</th>
+                <th>{t("exp_lbl_cat")}</th>
+                <th>{t("exp_lbl_method")}</th>
                 <th>Note</th>
-                <th className="text-end">Amount</th>
+                <th className="text-end">{t("exp_lbl_amt")}</th>
               </tr>
             </thead>
             <tbody>

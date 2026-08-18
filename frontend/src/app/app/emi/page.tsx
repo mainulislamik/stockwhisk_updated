@@ -47,7 +47,7 @@ export default function EMIPage() {
       const res = await api<{ results: EMISchedule[] }>("/sales/emi/");
       setSchedules(res.results || []);
     } catch (err: any) {
-      setError("Failed to load EMI schedules.");
+      setError(t("emi_err_load"));
     } finally {
       setLoading(false);
     }
@@ -73,7 +73,7 @@ export default function EMIPage() {
       setPayInstallment(null);
       setPayAmount("");
     } catch (err: any) {
-      setPayError(err?.data?.detail || err?.message || "Payment failed.");
+      setPayError(err?.data?.detail || err?.message || t("emi_err_pay"));
     } finally {
       setPaying(false);
     }
@@ -83,8 +83,8 @@ export default function EMIPage() {
     <div className="container-fluid py-4">
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
-          <h1 className="h3 mb-1 fw-bold text-dark">EMI Management</h1>
-          <p className="text-secondary mb-0">Track and manage customer installments</p>
+          <h1 className="h3 mb-1 fw-bold text-dark">{t("emi_title")}</h1>
+          <p className="text-secondary mb-0">{t("emi_subtitle")}</p>
         </div>
       </div>
 
@@ -95,13 +95,13 @@ export default function EMIPage() {
           <table className="table table-hover align-middle mb-0">
             <thead className="table-light">
               <tr>
-                <th className="ps-4">Sale Invoice</th>
-                <th>Customer</th>
-                <th>Total Principal</th>
-                <th>Total Due</th>
-                <th>Duration</th>
-                <th>Status</th>
-                <th className="text-end pe-4">Actions</th>
+                <th className="ps-4">{t("emi_col_inv")}</th>
+                <th>{t("emi_col_cust")}</th>
+                <th>{t("emi_col_tot_prin")}</th>
+                <th>{t("emi_col_tot_due")}</th>
+                <th>{t("emi_col_dur")}</th>
+                <th>{t("emi_col_status")}</th>
+                <th className="text-end pe-4">{t("emi_col_actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -114,7 +114,7 @@ export default function EMIPage() {
               ) : schedules.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-5 text-secondary">
-                    No EMI schedules found.
+                    {t("emi_no_schedules")}
                   </td>
                 </tr>
               ) : (
@@ -124,7 +124,7 @@ export default function EMIPage() {
                     <td className="fw-semibold">{schedule.customer_name}</td>
                     <td>{money(schedule.total_principal)}</td>
                     <td className="text-danger fw-bold">{money(schedule.total_due)}</td>
-                    <td>{schedule.months} Months</td>
+                    <td>{t("emi_months", { num: schedule.months })}</td>
                     <td>
                       {schedule.status.toLowerCase() === 'completed' ? (
                         <span className="badge rounded-pill bg-success bg-opacity-10 text-success border border-success fw-semibold px-3 py-2">
@@ -164,7 +164,7 @@ export default function EMIPage() {
           <div className="modal-content border-0 shadow">
             <div className="modal-header border-bottom-0 bg-light">
               <h5 className="modal-title fw-bold">
-                Installments for Invoice #{selectedSchedule?.sale_invoice_no}
+                {t("emi_inst_title", { invoice: selectedSchedule?.sale_invoice_no })}
               </h5>
               <button type="button" className="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -172,12 +172,12 @@ export default function EMIPage() {
               <table className="table table-sm mb-0">
                 <thead className="table-light">
                   <tr>
-                    <th className="ps-3">Month</th>
-                    <th>Due Date</th>
-                    <th>Amount</th>
-                    <th>Paid</th>
-                    <th>Status</th>
-                    <th className="text-end pe-3">Action</th>
+                    <th className="ps-3">{t("emi_col_month")}</th>
+                    <th>{t("emi_col_due_date")}</th>
+                    <th>{t("emi_col_amt")}</th>
+                    <th>{t("emi_col_paid")}</th>
+                    <th>{t("emi_col_status")}</th>
+                    <th className="text-end pe-3">{t("emi_col_action")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -185,7 +185,7 @@ export default function EMIPage() {
                     const dueAmt = Number(inst.amount) - Number(inst.paid_amount);
                     return (
                       <tr key={inst.id}>
-                        <td className="ps-3">Month {inst.month_number}</td>
+                        <td className="ps-3">{t("emi_lbl_month_num", { num: inst.month_number })}</td>
                         <td>{new Date(inst.due_date).toLocaleDateString()}</td>
                         <td>{money(inst.amount)}</td>
                         <td className="text-success">{money(inst.paid_amount)}</td>
@@ -228,14 +228,14 @@ export default function EMIPage() {
               {payInstallment && (
                 <div className="p-3 m-3 bg-light rounded border border-primary border-opacity-25">
                   <h6 className="fw-bold mb-3 text-primary">
-                    Pay Month {payInstallment.month_number} Installment
+                    {t("emi_pay_inst_title", { num: payInstallment.month_number })}
                   </h6>
                   
                   {payError && <div className="alert alert-danger py-2 small">{payError}</div>}
                   
                   <div className="row g-2 align-items-end">
                     <div className="col-md-4">
-                      <label className="form-label small">Amount (৳)</label>
+                      <label className="form-label small">{t("emi_lbl_amt_taka")}</label>
                       <input 
                         type="number" 
                         className="form-control"
@@ -245,13 +245,13 @@ export default function EMIPage() {
                       />
                     </div>
                     <div className="col-md-4">
-                      <label className="form-label small">Method</label>
+                      <label className="form-label small">{t("emi_lbl_method")}</label>
                       <select className="form-select" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                        <option value="cash">💵 Cash</option>
-                        <option value="card">💳 Card</option>
-                        <option value="bkash">📱 bKash</option>
-                        <option value="nagad">📱 Nagad</option>
-                        <option value="bank">🏦 Bank</option>
+                        <option value="cash">{t("emi_opt_cash")}</option>
+                        <option value="card">{t("emi_opt_card")}</option>
+                        <option value="bkash">{t("emi_opt_bkash")}</option>
+                        <option value="nagad">{t("emi_opt_nagad")}</option>
+                        <option value="bank">{t("emi_opt_bank")}</option>
                       </select>
                     </div>
                     <div className="col-md-4 d-flex gap-2">
@@ -259,7 +259,7 @@ export default function EMIPage() {
                         Cancel
                       </button>
                       <button className="btn btn-primary w-50" onClick={handlePay} disabled={paying || !payAmount}>
-                        {paying ? "..." : "Confirm"}
+                        {paying ? "..." : t("emi_btn_confirm")}
                       </button>
                     </div>
                   </div>
@@ -267,7 +267,7 @@ export default function EMIPage() {
               )}
             </div>
             <div className="modal-footer border-top-0">
-              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+              <button type="button" className="btn btn-secondary" data-bs-dismiss="modal">{t("emi_btn_close")}</button>
             </div>
           </div>
         </div>

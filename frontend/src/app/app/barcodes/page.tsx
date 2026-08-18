@@ -87,17 +87,17 @@ export default function BarcodesGeneratorPage() {
       <div className="vstack gap-4 no-print">
         <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
           <div>
-            <h4 className="fw-semibold mb-1">Barcode Generator</h4>
+            <h4 className="fw-semibold mb-1">{t("bar_title")}</h4>
             <div className="text-secondary small">
-              Generate unique barcodes for printing on 38x25mm labels.
+              {t("bar_desc1")}
               {shopPrefix && (
-                <> Each code is prefixed with your shop code <span className="badge text-bg-primary">{shopPrefix}</span> for uniqueness.</>
+                <> {t("bar_desc2")} <span className="badge text-bg-primary">{shopPrefix}</span> {t("bar_desc3")}</>
               )}
             </div>
           </div>
           {generatedCodes.length > 0 && (
             <button className="btn btn-brand shadow-sm fw-medium px-4" onClick={printAll}>
-              <span className="me-2">🖨️</span> Print All ({generatedCodes.length})
+              {t("bar_btn_print_all", { count: generatedCodes.length })}
             </button>
           )}
         </div>
@@ -106,7 +106,7 @@ export default function BarcodesGeneratorPage() {
           <div className="card-body p-4">
             <div className="row g-3 align-items-end">
               <div className="col-md-4">
-                <label className="form-label small fw-medium text-secondary">Number of barcodes</label>
+                <label className="form-label small fw-medium text-secondary">{t("bar_lbl_num")}</label>
                 <input
                   type="number"
                   className="form-control"
@@ -118,12 +118,12 @@ export default function BarcodesGeneratorPage() {
               </div>
               <div className="col-md-4">
                 <button className="btn btn-primary w-100 fw-medium" onClick={generateBarcodes}>
-                  Generate Unique Barcodes
+                  {t("bar_btn_gen")}
                 </button>
               </div>
               <div className="col-md-4">
                  <div className="text-secondary small h-100 d-flex align-items-center">
-                    These barcodes are dynamically generated and won't be saved to the database.
+                    {t("bar_lbl_note")}
                  </div>
               </div>
             </div>
@@ -140,7 +140,7 @@ export default function BarcodesGeneratorPage() {
                        <Barcode value={code} width={1.2} height={40} fontSize={12} background="transparent" />
                     </div>
                     <button className="btn btn-sm btn-outline-secondary w-100" onClick={() => printOne(idx)}>
-                      Print Target
+                      {t("bar_btn_print_target")}
                     </button>
                   </div>
                 </div>
@@ -151,8 +151,8 @@ export default function BarcodesGeneratorPage() {
           <div className="card shadow-sm border-0 bg-white">
              <div className="card-body p-5 text-center text-secondary">
                  <div style={{ fontSize: "2rem", marginBottom: "1rem" }}>🖨️</div>
-                 <h5>No barcodes generated yet</h5>
-                 <p className="mb-0">Enter a quantity above and click Generate.</p>
+                 <h5>{t("bar_no_gen_title")}</h5>
+                 <p className="mb-0">{t("bar_no_gen_desc")}</p>
              </div>
           </div>
         )}

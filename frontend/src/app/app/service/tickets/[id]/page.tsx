@@ -251,15 +251,11 @@ export default function TicketDetailPage() {
         <div className="d-flex flex-wrap gap-2 d-print-none">
           {ticket.status !== 'delivered' && ticket.status !== 'cancelled' && (
             <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
-              <i className="bi bi-receipt me-1"></i> Print Token
-            </button>
+              <i className="bi bi-receipt me-1"></i>{t("tktd_print_token")}</button>
           )}
           <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")} disabled={ticket.status !== 'delivered'}>
-            <i className="bi bi-printer me-1"></i> Print Invoice
-          </button>
-          <Link href="/app/service/tickets" className="btn btn-light btn-sm">
-            Back
-          </Link>
+            <i className="bi bi-printer me-1"></i>{t("tktd_print_invoice")}</button>
+          <Link href="/app/service/tickets" className="btn btn-light btn-sm">{t("tktd_back")}</Link>
         </div>
       </div>
 
@@ -269,24 +265,24 @@ export default function TicketDetailPage() {
             <div className="card-body">
               {(ticket.customer_name || ticket.customer_phone) && (
                 <div className="mb-3">
-                  <div className="fw-semibold mb-1">Customer</div>
-                  <div>{ticket.customer_name || "Walk-in"}</div>
+                  <div className="fw-semibold mb-1">{t("tktd_customer")}</div>
+                  <div>{ticket.customer_name || t("tkt_walkin")}</div>
                   {ticket.customer_phone && <div className="text-secondary small">📞 {ticket.customer_phone}</div>}
                 </div>
               )}
-              <div className="fw-semibold mb-2">Complaint</div>
+              <div className="fw-semibold mb-2">{t("tktd_complaint")}</div>
               <p className="mb-3">{ticket.complaint}</p>
-              <div className="fw-semibold mb-2">Products &amp; parts</div>
+              <div className="fw-semibold mb-2">{t("tktd_products_parts")}</div>
               {ticket.parts.length === 0 ? (
-                <div className="text-secondary small mb-2">No products added.</div>
+                <div className="text-secondary small mb-2">{t("tktd_no_products")}</div>
               ) : (
                 <table className="table table-sm mb-2">
                   <thead>
                     <tr className="text-secondary small">
-                      <th>Product</th>
-                      <th className="text-end">Qty</th>
-                      <th className="text-end">Price</th>
-                      <th className="text-end">Total</th>
+                      <th>{t("tktd_product")}</th>
+                      <th className="text-end">{t("tktd_qty")}</th>
+                      <th className="text-end">{t("tktd_price")}</th>
+                      <th className="text-end">{t("tktd_total")}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -309,16 +305,16 @@ export default function TicketDetailPage() {
 
               {isEditable && (
                 <form onSubmit={addPart} className="border-top pt-3 mt-2">
-                  <div className="fw-semibold small mb-2">Sell a product to this customer</div>
+                  <div className="fw-semibold small mb-2">{t("tktd_sell_product")}</div>
                   <div className="position-relative mb-2">
                     {picked ? (
                       <div className="d-flex align-items-center justify-content-between border rounded px-2 py-1">
                         <span className="small"><b>{picked.name}</b> {picked.sku && <span className="text-secondary">· {picked.sku}</span>}</span>
-                        <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => { setPicked(null); setPrice(""); }}>Change</button>
+                        <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => { setPicked(null); setPrice(""); }}>{t("tktd_change")}</button>
                       </div>
                     ) : (
                       <>
-                        <input className="form-control form-control-sm" placeholder="Search product by name / SKU…"
+                        <input className="form-control form-control-sm" placeholder={t("tktd_search_product")}
                           value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} />
                         {prodHits.length > 0 && (
                           <div className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}>
@@ -335,16 +331,16 @@ export default function TicketDetailPage() {
                   </div>
                   <div className="row g-2 align-items-end">
                     <div className="col-4">
-                      <label className="small">Qty</label>
+                      <label className="small">{t("tktd_qty")}</label>
                       <input type="number" step="1" min="1" className="form-control form-control-sm" value={qty} onChange={(e) => setQty(e.target.value)} />
                     </div>
                     <div className="col-4">
-                      <label className="small">Sell price</label>
+                      <label className="small">{t("tktd_sell_price")}</label>
                       <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={price} onChange={(e) => setPrice(e.target.value)} />
                     </div>
                     <div className="col-4">
                       <button className="btn btn-brand btn-sm w-100" disabled={addingPart || !picked}>
-                        {addingPart ? "Adding…" : "Add product"}
+                        {addingPart ? "Adding..." : t("tktd_add_product")}
                       </button>
                     </div>
                   </div>
@@ -356,7 +352,7 @@ export default function TicketDetailPage() {
         <div className="col-lg-5">
           <div className="card shadow-sm">
             <div className="card-body">
-              <div className="fw-semibold mb-2">Status</div>
+              <div className="fw-semibold mb-2">{t("tktd_status")}</div>
               {isEditable ? (
                 <div className="input-group input-group-sm mb-3">
                   <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
@@ -366,16 +362,14 @@ export default function TicketDetailPage() {
                       </option>
                     ))}
                   </select>
-                  <button className="btn btn-brand" onClick={changeStatus}>
-                    Update
-                  </button>
+                  <button className="btn btn-brand" onClick={changeStatus}>{t("tktd_update")}</button>
                 </div>
               ) : (
                 <div className="mb-3"><span className="badge text-bg-secondary">{ticket.status.replace(/_/g, " ")}</span></div>
               )}
               
               <div className="d-flex justify-content-between align-items-center mb-1">
-                <span className="text-secondary">Service charge</span>
+                <span className="text-secondary">{t("tktd_service_charge")}</span>
                 {editingCharge ? (
                   <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '130px', marginLeft: '10px' }}>
                     <input type="number" step="0.01" className="form-control" value={chargeVal} onChange={e => setChargeVal(e.target.value)} />
@@ -387,18 +381,17 @@ export default function TicketDetailPage() {
                     {money(ticket.service_charge)}
                     {isEditable && (
                       <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingCharge(true)}>
-                        <i className="bi bi-pencil-square"></i> Edit
-                      </button>
+                        <i className="bi bi-pencil-square"></i>{t("tktd_edit")}</button>
                     )}
                   </span>
                 )}
               </div>
               <div className="d-flex justify-content-between mb-1">
-                <span className="text-secondary">Products &amp; parts</span>
+                <span className="text-secondary">{t("tktd_products_parts")}</span>
                 <span>{money(ticket.parts_total)}</span>
               </div>
               <div className="d-flex justify-content-between align-items-center mb-1 text-danger">
-                <span>Discount</span>
+                <span>{t("tktd_discount")}</span>
                 {editingDiscount ? (
                   <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '130px', marginLeft: '10px' }}>
                     <input type="number" step="0.01" className="form-control" value={discountVal} onChange={e => setDiscountVal(e.target.value)} />
@@ -410,21 +403,20 @@ export default function TicketDetailPage() {
                     -{money(ticket.discount || "0")}
                     {isEditable && (
                       <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingDiscount(true)}>
-                        <i className="bi bi-pencil-square"></i> Edit
-                      </button>
+                        <i className="bi bi-pencil-square"></i>{t("tktd_edit")}</button>
                     )}
                   </span>
                 )}
               </div>
               <div className="d-flex justify-content-between fw-semibold border-top pt-1 mt-1">
-                <span>Bill total</span>
+                <span>{t("tktd_bill_total")}</span>
                 <span>{money(ticket.bill_total)}</span>
               </div>
               <div className="d-flex justify-content-between align-items-center">
-                <span className="text-secondary">Paid</span>
+                <span className="text-secondary">{t("tktd_paid")}</span>
                 {addingPayment ? (
                   <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '140px', marginLeft: '10px' }}>
-                    <input type="number" step="0.01" className="form-control" placeholder="Amount" value={payAmount} onChange={e => setPayAmount(e.target.value)} />
+                    <input type="number" step="0.01" className="form-control" placeholder={t("tktd_amount")} value={payAmount} onChange={e => setPayAmount(e.target.value)} />
                     <button className="btn btn-brand" onClick={handleAddPayment} disabled={!payAmount}><i className="bi bi-check2"></i></button>
                     <button className="btn btn-light border" onClick={() => { setAddingPayment(false); setPayAmount(""); }}><i className="bi bi-x"></i></button>
                   </div>
@@ -433,24 +425,23 @@ export default function TicketDetailPage() {
                     {money(ticket.paid)}
                     {isEditable && Number(ticket.due) > 0 && (
                       <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => { setAddingPayment(true); setPayAmount(""); }}>
-                        <i className="bi bi-plus-circle"></i> Add
-                      </button>
+                        <i className="bi bi-plus-circle"></i>{t("tktd_add")}</button>
                     )}
                   </span>
                 )}
               </div>
               <div className="d-flex justify-content-between fw-semibold">
-                <span>Due</span>
+                <span>{t("tktd_due")}</span>
                 <span className={Number(ticket.due) > 0 ? "text-danger" : "text-success"}>{money(ticket.due)}</span>
               </div>
               <div className="d-flex justify-content-between mt-1">
-                <span className="text-secondary">Est. delivery</span>
+                <span className="text-secondary">{t("tktd_est_delivery")}</span>
                 <span>{fmtDate(ticket.estimated_delivery)}</span>
               </div>
 
-              <div className="fw-semibold mt-3 mb-2">History</div>
+              <div className="fw-semibold mt-3 mb-2">{t("tktd_history")}</div>
               {ticket.history.length === 0 ? (
-                <div className="text-secondary small">No status changes.</div>
+                <div className="text-secondary small">{t("tktd_no_history")}</div>
               ) : (
                 <ul className="list-unstyled small mb-0">
                   {ticket.history.map((h) => (
@@ -471,32 +462,32 @@ export default function TicketDetailPage() {
         <div className="token-page d-none d-print-block">
           <div className="text-center mb-3">
             <h4 className="fw-bold mb-1" style={{ fontSize: '14pt' }}>{isOwner ? user?.shop_name : "StockWhisk Shop"}</h4>
-            <div style={{ fontSize: '9pt', color: '#475569' }}>Service & Repair Token</div>
+            <div style={{ fontSize: '9pt', color: '#475569' }}>{t("tktd_repair_token")}</div>
           </div>
           <div className="token-divider" />
           <div className="text-center mb-2">
             <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.2} height={30} displayValue={false} margin={0} background="transparent" />
           </div>
-          <div className="token-row"><strong>Ticket #:</strong> {ticket.ticket_no || `#${ticket.id}`}</div>
-          <div className="token-row"><strong>Date:</strong> {fmtDate(ticket.received_at)}</div>
+          <div className="token-row"><strong>{t("tktd_ticket_hash")}</strong> {ticket.ticket_no || `#${ticket.id}`}</div>
+          <div className="token-row"><strong>{t("tktd_date")}</strong> {fmtDate(ticket.received_at)}</div>
           <div className="token-row">
-            <strong>Customer:</strong> {ticket.customer_name || "Walk-in"} 
+            <strong>{t("tktd_customer_colon")}</strong> {ticket.customer_name || t("tkt_walkin")} 
             {ticket.customer_phone && <div>{ticket.customer_phone}</div>}
           </div>
           <div className="token-divider" />
-          <div className="token-row"><strong>Device:</strong> {ticket.device_description}</div>
-          <div className="token-row"><strong>Complaint:</strong> {ticket.complaint}</div>
+          <div className="token-row"><strong>{t("tktd_device_colon")}</strong> {ticket.device_description}</div>
+          <div className="token-row"><strong>{t("tktd_complaint_colon")}</strong> {ticket.complaint}</div>
           {ticket.estimated_delivery && (
-            <div className="token-row mt-2"><strong>Est. Delivery:</strong> {fmtDate(ticket.estimated_delivery)}</div>
+            <div className="token-row mt-2"><strong>{t("tktd_est_delivery_colon")}</strong> {fmtDate(ticket.estimated_delivery)}</div>
           )}
           <div className="token-divider" />
-          <div className="token-row"><strong>Service Charge:</strong> {money(ticket.service_charge)}</div>
+          <div className="token-row"><strong>{t("tktd_service_charge_colon")}</strong> {money(ticket.service_charge)}</div>
           {Number(ticket.discount) > 0 && (
-            <div className="token-row text-danger"><strong>Discount:</strong> -{money(ticket.discount)}</div>
+            <div className="token-row text-danger"><strong>{t("tktd_discount_colon")}</strong> -{money(ticket.discount)}</div>
           )}
           {ticket.parts.length > 0 && (
             <div className="mt-2">
-              <strong>Parts:</strong>
+              <strong>{t("tktd_parts_colon")}</strong>
               {ticket.parts.map(p => (
                 <div key={p.id} className="d-flex justify-content-between" style={{ fontSize: '9pt' }}>
                   <span>{p.quantity}x {p.product_name}</span>
@@ -507,18 +498,18 @@ export default function TicketDetailPage() {
           )}
           <div className="token-divider" />
           <div className="d-flex justify-content-between fw-bold">
-            <span>Est. Total:</span>
+            <span>{t("tktd_est_total_colon")}</span>
             <span>{money(ticket.bill_total)}</span>
           </div>
           <div className="d-flex justify-content-between">
-            <span>Advance Paid:</span>
+            <span>{t("tktd_advance_paid")}</span>
             <span>{money(ticket.paid)}</span>
           </div>
 
           <div className="token-divider" />
           <div className="text-center mt-4" style={{ fontSize: '9pt' }}>
-            <p className="mb-1 fw-semibold">Please keep this token safe.</p>
-            <p className="mb-0">You must present it to collect your device.</p>
+            <p className="mb-1 fw-semibold">{t("tktd_keep_safe")}</p>
+            <p className="mb-0">{t("tktd_present_collect")}</p>
           </div>
         </div>
       )}
@@ -532,25 +523,23 @@ export default function TicketDetailPage() {
               <div className="inv-shop-icon">🏪</div>
               <div>
                 <div className="inv-shop-name">{isOwner ? user?.shop_name : "StockWhisk Shop"}</div>
-                <div className="inv-shop-sub">Service & Repair Center</div>
+                <div className="inv-shop-sub">{t("tktd_repair_center")}</div>
               </div>
             </div>
           </div>
           <div className="inv-meta-block">
             <div className="d-flex align-items-center justify-content-end gap-3 mb-2">
-              <div className="inv-status-badge" style={{ background: "#2563eb1a", color: "#2563eb", borderColor: "#2563eb" }}>
-                ● REPAIR TICKET
-              </div>
-              <div className="inv-title-text" style={{ fontSize: '18pt' }}>INVOICE</div>
+              <div className="inv-status-badge" style={{ background: "#2563eb1a", color: "#2563eb", borderColor: "#2563eb" }}>{t("tktd_repair_ticket_heading")}</div>
+              <div className="inv-title-text" style={{ fontSize: '18pt' }}>{t("tktd_invoice_heading")}</div>
             </div>
             <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
               <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
             </div>
             <table className="inv-meta-table">
               <tbody>
-                <tr><td className="inv-meta-label">TICKET #</td><td className="inv-meta-val">{ticket.ticket_no || `#${ticket.id}`}</td></tr>
-                <tr><td className="inv-meta-label">DATE</td><td className="inv-meta-val">{fmtDate(ticket.received_at)}</td></tr>
-                <tr><td className="inv-meta-label">STATUS</td><td className="inv-meta-val">{ticket.status.replace(/_/g, " ").toUpperCase()}</td></tr>
+                <tr><td className="inv-meta-label">{t("tktd_ticket_hash_heading")}</td><td className="inv-meta-val">{ticket.ticket_no || `#${ticket.id}`}</td></tr>
+                <tr><td className="inv-meta-label">{t("tktd_date_heading")}</td><td className="inv-meta-val">{fmtDate(ticket.received_at)}</td></tr>
+                <tr><td className="inv-meta-label">{t("tktd_status_heading")}</td><td className="inv-meta-val">{ticket.status.replace(/_/g, " ").toUpperCase()}</td></tr>
               </tbody>
             </table>
           </div>
@@ -559,13 +548,13 @@ export default function TicketDetailPage() {
         <div className="inv-divider" />
 
         <div className="inv-bill-to">
-          <div className="inv-section-label">CUSTOMER DETAILS</div>
-          <div className="inv-customer-name">{ticket.customer_name || "Walk-in customer"}</div>
+          <div className="inv-section-label">{t("tktd_customer_details")}</div>
+          <div className="inv-customer-name">{ticket.customer_name || t("tkt_walkin")}</div>
           {ticket.customer_phone && <div className="inv-customer-detail">📞 {ticket.customer_phone}</div>}
         </div>
 
         <div className="mt-4 mb-3">
-          <div className="inv-section-label">DEVICE & COMPLAINT</div>
+          <div className="inv-section-label">{t("tktd_device_complaint")}</div>
           <div style={{ fontSize: '11pt', fontWeight: 600, color: '#0f172a' }}>{ticket.device_description}</div>
           <div style={{ fontSize: '9.5pt', color: '#475569', marginTop: '4px' }}>{ticket.complaint}</div>
         </div>
@@ -573,14 +562,14 @@ export default function TicketDetailPage() {
         <table className="inv-table mt-4">
           <thead>
             <tr>
-              <th style={{ width: "65%" }}>Description</th>
-              <th className="inv-th-center" style={{ width: "10%" }}>Qty</th>
-              <th className="inv-th-right" style={{ width: "25%" }}>Total</th>
+              <th style={{ width: "65%" }}>{t("tktd_description")}</th>
+              <th className="inv-th-center" style={{ width: "10%" }}>{t("tktd_qty")}</th>
+              <th className="inv-th-right" style={{ width: "25%" }}>{t("tktd_total")}</th>
             </tr>
           </thead>
           <tbody>
             <tr>
-              <td><span className="inv-product-name">Service Charge</span></td>
+              <td><span className="inv-product-name">{t("tktd_service_charge")}</span></td>
               <td className="inv-td-center">1</td>
               <td className="inv-td-right"><span className="inv-line-total">{money(ticket.service_charge)}</span></td>
             </tr>
@@ -590,7 +579,7 @@ export default function TicketDetailPage() {
                   <span className="inv-product-name">{p.product_name}</span>
                   {p.warranty_months ? (
                     <div style={{ fontSize: "8pt", color: "#16a34a", marginTop: "2px", fontStyle: "italic" }}>
-                      Warranty: {p.warranty_months} months
+                      {t("tktd_warranty_months", { count: p.warranty_months })}
                     </div>
                   ) : null}
                 </td>
@@ -613,24 +602,22 @@ export default function TicketDetailPage() {
           <div className="inv-notes">
             {ticket.estimated_delivery && (
               <div className="inv-note-text">
-                <strong>Estimated Delivery:</strong> {fmtDate(ticket.estimated_delivery)}
+                <strong>{t("tktd_est_delivery_colon")}</strong> {fmtDate(ticket.estimated_delivery)}
               </div>
             )}
-            <div className="inv-note-text mt-2" style={{ fontStyle: 'italic' }}>
-              Please bring this ticket when collecting your device.
-            </div>
+            <div className="inv-note-text mt-2" style={{ fontStyle: 'italic' }}>{t("tktd_bring_ticket")}</div>
           </div>
           <div className="inv-totals">
             <div className="inv-total-row">
-              <span>Bill Total</span>
+              <span>{t("tktd_bill_total")}</span>
               <span>{money(ticket.bill_total)}</span>
             </div>
             <div className="inv-total-row inv-paid-row">
-              <span>Paid</span>
+              <span>{t("tktd_paid")}</span>
               <span>{money(ticket.paid)}</span>
             </div>
             <div className="inv-grand-row">
-              <span>Due</span>
+              <span>{t("tktd_due")}</span>
               <span style={{ color: Number(ticket.due) > 0 ? '#ef4444' : '#16a34a' }}>{money(ticket.due)}</span>
             </div>
           </div>
@@ -727,34 +714,33 @@ export default function TicketDetailPage() {
             <div className="modal-dialog modal-dialog-centered">
               <div className="modal-content">
                 <div className="modal-header">
-                  <h5 className="modal-title">Confirm Delivery & Payment</h5>
+                  <h5 className="modal-title">{t("tktd_confirm_delivery")}</h5>
                   <button type="button" className="btn-close" onClick={() => setShowDeliveryModal(false)}></button>
                 </div>
                 <div className="modal-body">
                   <p className="small text-secondary mb-3">
-                    You are marking this ticket as <b>Delivered</b>. Once delivered, the ticket will be closed and no further edits can be made.
-                  </p>
+                    You are marking this ticket as <b>{t("tktd_delivered")}</b>{t("tktd_once_delivered")}</p>
                   
                   <div className="mb-3">
-                    <label className="form-label small mb-1">Discount</label>
+                    <label className="form-label small mb-1">{t("tktd_discount")}</label>
                     <input type="number" step="0.01" className="form-control" value={deliveryDiscount} onChange={e => setDeliveryDiscount(e.target.value)} />
                   </div>
 
                   <div className="mb-3 d-flex justify-content-between align-items-center text-danger">
-                    <span className="fw-semibold">Final Due Amount:</span>
+                    <span className="fw-semibold">{t("tktd_final_due")}</span>
                     <span className="fw-semibold">{money(calcDeliveryDue())}</span>
                   </div>
 
                   <div className="mb-3">
-                    <label className="form-label small mb-1">Collect Payment Now (if any)</label>
+                    <label className="form-label small mb-1">{t("tktd_collect_payment")}</label>
                     <input type="number" step="0.01" className="form-control" placeholder="0.00" value={deliveryPayment} onChange={e => setDeliveryPayment(e.target.value)} />
                   </div>
                   
                 </div>
                 <div className="modal-footer">
-                  <button type="button" className="btn btn-light border" onClick={() => setShowDeliveryModal(false)} disabled={processingDelivery}>Cancel</button>
+                  <button type="button" className="btn btn-light border" onClick={() => setShowDeliveryModal(false)} disabled={processingDelivery}>{t("tktd_cancel")}</button>
                   <button type="button" className="btn btn-brand" onClick={confirmDelivery} disabled={processingDelivery}>
-                    {processingDelivery ? "Processing..." : "Confirm & Deliver"}
+                    {processingDelivery ? t("tktd_processing") : t("tktd_confirm_and_deliver")}
                   </button>
                 </div>
               </div>

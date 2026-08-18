@@ -5,10 +5,12 @@ import { useParams, useRouter } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { ErrorState, Spinner } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Named = { id: number; name: string };
 
 export default function ProductEditPage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [form, setForm] = useState<any>(null);
@@ -30,7 +32,7 @@ export default function ProductEditPage() {
         setCategories(unwrap<Named>(c));
         setBrands(unwrap<Named>(b));
       } catch (e: any) {
-        setError(e?.message || "Failed to load product");
+        setError(e?.message || t("pe_err_load"));
       } finally {
         setLoading(false);
       }
@@ -59,12 +61,12 @@ export default function ProductEditPage() {
       });
       router.push(`/app/products/${id}`);
     } catch (e: any) {
-      toast.error(e?.message || "Could not save");
+      toast.error(e?.message || t("pe_err_save"));
       setSaving(false);
     }
   }
 
-  if (loading) return <Spinner label="Loading product…" />;
+  if (loading) return <Spinner label={t("pe_loading")} />;
   if (error) return <ErrorState error={error} />;
   if (!form) return null;
 
@@ -72,22 +74,22 @@ export default function ProductEditPage() {
 
   return (
     <div className="vstack gap-3" style={{ maxWidth: "48rem" }}>
-      <h1 className="h4 fw-bold text-brand mb-0">Edit product</h1>
+      <h1 className="h4 fw-bold text-brand mb-0">{t("pe_title")}</h1>
       <div className="card shadow-sm">
         <div className="card-body">
           <form onSubmit={save} className="row g-3">
             <div className="col-md-6">
-              <label className="small">Product name</label>
+              <label className="small">{t("pe_lbl_name")}</label>
               <input required className="form-control form-control-sm" value={form.name || ""} onChange={set("name")} />
             </div>
             <div className="col-md-6">
-              <label className="small">SKU</label>
+              <label className="small">{t("pe_lbl_sku")}</label>
               <input className="form-control form-control-sm" value={form.sku || ""} onChange={set("sku")} />
             </div>
             <div className="col-md-6">
-              <label className="small">Category</label>
+              <label className="small">{t("pe_lbl_cat")}</label>
               <select className="form-select form-select-sm" value={form.category || ""} onChange={set("category")}>
-                <option value="">— none —</option>
+                <option value="">{t("pe_opt_none")}</option>
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
@@ -96,9 +98,9 @@ export default function ProductEditPage() {
               </select>
             </div>
             <div className="col-md-6">
-              <label className="small">Brand</label>
+              <label className="small">{t("pe_lbl_brand")}</label>
               <select className="form-select form-select-sm" value={form.brand || ""} onChange={set("brand")}>
-                <option value="">— none —</option>
+                <option value="">{t("pe_opt_none")}</option>
                 {brands.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.name}
@@ -107,43 +109,43 @@ export default function ProductEditPage() {
               </select>
             </div>
             <div className="col-md-3">
-              <label className="small">Cost</label>
+              <label className="small">{t("pe_lbl_cost")}</label>
               <input type="number" step="0.01" className="form-control form-control-sm" value={form.cost_price || ""} onChange={set("cost_price")} />
             </div>
             <div className="col-md-3">
-              <label className="small">Selling price</label>
+              <label className="small">{t("pe_lbl_selling")}</label>
               <input type="number" step="0.01" className="form-control form-control-sm" value={form.selling_price || ""} onChange={set("selling_price")} />
             </div>
             <div className="col-md-3">
-              <label className="small">Reorder level</label>
+              <label className="small">{t("pe_lbl_reorder")}</label>
               <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
             </div>
             <div className="col-md-3">
-              <label className="small">Warranty (months)</label>
+              <label className="small">{t("pe_lbl_warranty")}</label>
               <input type="number" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} />
             </div>
             <div className="col-md-6">
-              <label className="small">Barcode</label>
+              <label className="small">{t("pe_lbl_barcode")}</label>
               <input className="form-control form-control-sm" value={form.barcode || ""} onChange={set("barcode")} />
             </div>
             <div className="col-md-6 d-flex align-items-end">
               <div className="form-check">
                 <input className="form-check-input" type="checkbox" id="isActive" checked={!!form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
                 <label className="form-check-label" htmlFor="isActive">
-                  Active
+                  {t("pe_lbl_active")}
                 </label>
               </div>
             </div>
             <div className="col-12">
-              <label className="small">Description</label>
+              <label className="small">{t("pe_lbl_desc")}</label>
               <textarea className="form-control form-control-sm" rows={3} value={form.description || ""} onChange={set("description")} />
             </div>
             <div className="col-12 d-flex gap-2">
               <button className="btn btn-brand btn-sm" disabled={saving}>
-                {saving ? "Saving…" : "Save changes"}
+                {saving ? t("pe_btn_saving") : t("pe_btn_save")}
               </button>
               <button type="button" className="btn btn-light btn-sm" onClick={() => router.back()}>
-                Cancel
+                {t("pe_btn_cancel")}
               </button>
             </div>
           </form>

@@ -80,13 +80,13 @@ export default function TicketsPage() {
       setPage(1);
       mutate();
     } catch (e: any) {
-      toast.error(e?.message || "Could not create ticket");
+      toast.error(e?.message || t("tkt_err_create"));
     } finally {
       setSaving(false);
     }
   }
 
-  if (loading) return <Spinner label="Loading tickets…" />;
+  if (loading) return <Spinner label={t("tkt_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
@@ -94,7 +94,7 @@ export default function TicketsPage() {
       <div className="d-flex justify-content-end">
         {canManage && (
           <button className="btn btn-outline-brand btn-sm" onClick={() => setShowAdd((s) => !s)}>
-            + New ticket
+            {t("tkt_btn_new")}
           </button>
         )}
       </div>
@@ -104,9 +104,9 @@ export default function TicketsPage() {
           <div className="card-body">
             <form onSubmit={save} className="row g-3">
               <div className="col-md-4">
-                <label className="small">Customer</label>
+                <label className="small">{t("tkt_lbl_cust")}</label>
                 <select className="form-select form-select-sm" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
-                  <option value="">Walk-in</option>
+                  <option value="">{t("tkt_walkin")}</option>
                   {(customers || []).map((c) => (
                     <option key={c.id} value={c.id}>
                       {c.name}
@@ -117,40 +117,40 @@ export default function TicketsPage() {
               {!form.customer && (
                 <>
                   <div className="col-md-4">
-                    <label className="small">Walk-in name</label>
-                    <input className="form-control form-control-sm" placeholder="Customer name"
+                    <label className="small">{t("tkt_lbl_walkin_name")}</label>
+                    <input className="form-control form-control-sm" placeholder={t("tkt_ph_cust_name")}
                       value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="small">Walk-in phone</label>
-                    <input className="form-control form-control-sm" placeholder="Phone number"
+                    <label className="small">{t("tkt_lbl_walkin_phone")}</label>
+                    <input className="form-control form-control-sm" placeholder={t("tkt_ph_phone")}
                       value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
                   </div>
                 </>
               )}
               <div className="col-md-4">
-                <label className="small">Device</label>
+                <label className="small">{t("tkt_lbl_device")}</label>
                 <input required className="form-control form-control-sm" value={form.device_description} onChange={(e) => setForm({ ...form, device_description: e.target.value })} />
               </div>
               <div className="col-md-2">
-                <label className="small">Service charge</label>
+                <label className="small">{t("tkt_lbl_charge")}</label>
                 <input type="number" step="0.01" className="form-control form-control-sm" value={form.service_charge} onChange={(e) => setForm({ ...form, service_charge: e.target.value })} />
               </div>
               <div className="col-md-2">
-                <label className="small">Advance paid</label>
+                <label className="small">{t("tkt_lbl_advance")}</label>
                 <input type="number" step="0.01" className="form-control form-control-sm" value={form.advance_paid} onChange={(e) => setForm({ ...form, advance_paid: e.target.value })} />
               </div>
               <div className="col-md-2">
-                <label className="small">Est. delivery</label>
+                <label className="small">{t("tkt_lbl_est_del")}</label>
                 <input type="date" className="form-control form-control-sm" value={form.estimated_delivery} onChange={(e) => setForm({ ...form, estimated_delivery: e.target.value })} />
               </div>
               <div className="col-12">
-                <label className="small">Complaint</label>
+                <label className="small">{t("tkt_lbl_complaint")}</label>
                 <textarea required className="form-control form-control-sm" rows={2} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} />
               </div>
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
-                  {saving ? "Saving…" : "Create ticket"}
+                  {saving ? t("tkt_btn_saving") : t("tkt_btn_create")}
                 </button>
               </div>
             </form>
@@ -163,11 +163,11 @@ export default function TicketsPage() {
           <table className="table table-striped table-sm align-middle mb-0">
             <thead className="thead-6">
               <tr>
-                <th>Ticket #</th>
-                <th>Device</th>
-                <th>Received</th>
-                <th className="text-end">Charge</th>
-                <th>Status</th>
+                <th>{t("tkt_col_ticket")}</th>
+                <th>{t("tkt_col_device")}</th>
+                <th>{t("tkt_col_received")}</th>
+                <th className="text-end">{t("tkt_col_charge")}</th>
+                <th>{t("tkt_col_status")}</th>
                 <th></th>
               </tr>
             </thead>
@@ -176,7 +176,7 @@ export default function TicketsPage() {
                 <tr data-empty="">
                   <td colSpan={6} className="text-center text-secondary py-5">
                     <div style={{ fontSize: "2.5rem" }}>🔧</div>
-                    No repair tickets yet.
+                    {t("tkt_no_tickets")}
                   </td>
                 </tr>
               ) : (

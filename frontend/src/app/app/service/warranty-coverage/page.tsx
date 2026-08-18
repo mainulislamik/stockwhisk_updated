@@ -21,14 +21,14 @@ export default function WarrantyCoveragePage() {
       try {
         setData(await api<Dash>("/service/dashboard/"));
       } catch (e: any) {
-        setError(e?.message || "Failed to load coverage");
+        setError(e?.message || t("wcov_err_load"));
       } finally {
         setLoading(false);
       }
     })();
   }, []);
 
-  if (loading) return <Spinner label="Loading coverage…" />;
+  if (loading) return <Spinner label={t("wcov_loading")} />;
   if (error) return <ErrorState error={error} />;
   if (!data) return null;
 
@@ -39,25 +39,25 @@ export default function WarrantyCoveragePage() {
       <div className="row g-3">
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Open tickets</div>
+            <div className="small text-secondary">{t("wcov_open_tickets")}</div>
             <div className="fs-4 fw-bold">{openTotal}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Overdue</div>
+            <div className="small text-secondary">{t("wcov_overdue")}</div>
             <div className="fs-4 fw-bold text-danger">{data.overdue_tickets}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Warranties expiring soon</div>
+            <div className="small text-secondary">{t("wcov_expiring")}</div>
             <div className="fs-4 fw-bold text-warning">{data.warranties_expiring_soon}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Technicians engaged</div>
+            <div className="small text-secondary">{t("wcov_techs")}</div>
             <div className="fs-4 fw-bold">{data.technician_workload.length}</div>
           </Card>
         </div>
@@ -67,12 +67,12 @@ export default function WarrantyCoveragePage() {
         <div className="col-lg-6">
           <div className="card shadow-sm">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Open tickets by status</div>
+              <div className="fw-semibold mb-3">{t("wcov_open_status")}</div>
               <table className="table table-sm mb-0">
                 <tbody>
                   {data.open_by_status.length === 0 ? (
                     <tr>
-                      <td className="text-secondary">No open tickets.</td>
+                      <td className="text-secondary">{t("wcov_no_open")}</td>
                     </tr>
                   ) : (
                     data.open_by_status.map((r) => (
@@ -90,12 +90,12 @@ export default function WarrantyCoveragePage() {
         <div className="col-lg-6">
           <div className="card shadow-sm">
             <div className="card-body">
-              <div className="fw-semibold mb-3">Technician workload</div>
+              <div className="fw-semibold mb-3">{t("wcov_workload")}</div>
               <table className="table table-sm mb-0">
                 <tbody>
                   {data.technician_workload.length === 0 ? (
                     <tr>
-                      <td className="text-secondary">No assigned technicians.</td>
+                      <td className="text-secondary">{t("wcov_no_techs")}</td>
                     </tr>
                   ) : (
                     data.technician_workload.map((r, i) => (

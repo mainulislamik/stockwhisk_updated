@@ -28,19 +28,19 @@ export default function TutorialsPage() {
         setLoading(false);
       })
       .catch((e: any) => {
-        setError(e?.message || "Failed to load tutorials");
+        setError(e?.message || t("tut_err_load"));
         setLoading(false);
       });
   }, []);
 
-  if (loading) return <Spinner label="Loading tutorials…" />;
+  if (loading) return <Spinner label={t("tut_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
     <div className="vstack gap-3">
-      <h1 className="h4 fw-bold text-brand mb-0">Video tutorials</h1>
+      <h1 className="h4 fw-bold text-brand mb-0">{t("tut_title")}</h1>
       {videos.length === 0 ? (
-        <div className="text-secondary mt-3">No tutorials available at the moment.</div>
+        <div className="text-secondary mt-3">{t("tut_no_tut")}</div>
       ) : (
         <div className="row g-3">
           {videos.map((v) => (
@@ -97,7 +97,7 @@ export default function TutorialsPage() {
                       ></iframe>
                     ) : (
                       <div className="d-flex align-items-center justify-content-center text-white">
-                        <a href={activeVideo.youtube_url} target="_blank" rel="noreferrer" className="btn btn-brand">Open in YouTube</a>
+                        <a href={activeVideo.youtube_url} target="_blank" rel="noreferrer" className="btn btn-brand">{t("tut_open_yt")}</a>
                       </div>
                     )}
                   </div>

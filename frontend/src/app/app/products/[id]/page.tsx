@@ -38,7 +38,7 @@ type ProductUnit = {
   warranty_status?: string | null;
   repair_status?: string | null;
 };
-function warrantyBadge(status?: string | null) {
+function warrantyBadge(status: string | null | undefined, t: any) {
   if (!status) return <span className="text-secondary small">—</span>;
   const map: Record<string, [string, string]> = {
     active: ["bg-success-subtle text-success", "Active"],
@@ -93,7 +93,7 @@ export default function ProductProfilePage() {
       setUnits(unwrap(un));
       setEditingUnit(null);
     } catch (e: any) {
-      toast.error(e.message || "Failed to update unit");
+      toast.error(e.message || t("prd_err_update_unit"));
     }
   };
 
@@ -111,14 +111,14 @@ export default function ProductProfilePage() {
         setUnits(unwrap<ProductUnit>(un));
         setSoldUnits(unwrap<ProductUnit>(sold));
       } catch (e: any) {
-        setError(e?.message || "Failed to load product");
+        setError(e?.message || t("prd_err_load"));
       } finally {
         setLoading(false);
       }
     })();
   }, [id]);
 
-  if (loading) return <Spinner label="Loading product…" />;
+  if (loading) return <Spinner label={t("prd_loading")} />;
   if (error) return <ErrorState error={error} />;
   if (!p) return null;
 
@@ -142,25 +142,25 @@ export default function ProductProfilePage() {
       <div className="row g-3">
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Total Cost Value</div>
+            <div className="small text-secondary">{t("prd_lbl_cost_val")}</div>
             <div className="fs-5 fw-bold">{money(Number(p.cost_price || 0) * Number(p.current_stock || 0))}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Total Retail Value</div>
+            <div className="small text-secondary">{t("prd_lbl_retail_val")}</div>
             <div className="fs-5 fw-bold">{money(Number(p.selling_price || 0) * Number(p.current_stock || 0))}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">In stock</div>
+            <div className="small text-secondary">{t("prd_lbl_in_stock")}</div>
             <div className={`fs-5 fw-bold ${p.is_low_stock ? "text-danger" : ""}`}>{p.current_stock}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="small text-secondary">Reorder level</div>
+            <div className="small text-secondary">{t("prd_lbl_reorder")}</div>
             <div className="fs-5 fw-bold">{p.reorder_level}</div>
           </Card>
         </div>
@@ -169,7 +169,7 @@ export default function ProductProfilePage() {
       {p.description && (
         <div className="card shadow-sm">
           <div className="card-body">
-            <div className="fw-semibold mb-1">Description</div>
+            <div className="fw-semibold mb-1">{t("prd_lbl_desc")}</div>
             <div className="text-secondary">{p.description}</div>
           </div>
         </div>
@@ -178,18 +178,18 @@ export default function ProductProfilePage() {
       {units.length > 0 && (
         <div className="card shadow-sm">
           <div className="card-body">
-            <h2 className="h6 fw-bold mb-3 text-brand">📦 Individual Units (In Stock)</h2>
+            <h2 className="h6 fw-bold mb-3 text-brand">{t("prd_title_units")}</h2>
             <div className="table-responsive">
               <table className="table table-hover table-sm align-middle mb-0">
                 <thead className="thead-6">
                   <tr>
-                    <th>Date Received</th>
-                    <th>Barcode / Serial</th>
-                    <th className="text-end">Cost Price</th>
-                    <th className="text-end">Selling Price</th>
-                    <th className="text-end">Warranty (Months)</th>
-                    <th className="text-end">Status</th>
-                    <th className="text-end">Actions</th>
+                    <th>{t("prd_col_date_rec")}</th>
+                    <th>{t("prd_col_barcode")}</th>
+                    <th className="text-end">{t("prd_col_cost")}</th>
+                    <th className="text-end">{t("prd_col_sell")}</th>
+                    <th className="text-end">{t("prd_col_warranty")}</th>
+                    <th className="text-end">{t("prd_col_status")}</th>
+                    <th className="text-end">{t("prd_col_actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -243,11 +243,11 @@ export default function ProductProfilePage() {
                         <td className="text-end">
                           {isEditing ? (
                             <div className="btn-group btn-group-sm">
-                              <button className="btn btn-primary" onClick={() => saveUnit(u)}>Save</button>
-                              <button className="btn btn-light" onClick={() => setEditingUnit(null)}>Cancel</button>
+                              <button className="btn btn-primary" onClick={() => saveUnit(u)}>{t("prd_btn_save")}</button>
+                              <button className="btn btn-light" onClick={() => setEditingUnit(null)}>{t("prd_btn_cancel")}</button>
                             </div>
                           ) : (
-                            <button className="btn btn-sm btn-light" onClick={() => startEditing(u)}>Edit</button>
+                            <button className="btn btn-sm btn-light" onClick={() => startEditing(u)}>{t("prd_btn_edit")}</button>
                           )}
                         </td>
                       </tr>
@@ -263,16 +263,16 @@ export default function ProductProfilePage() {
       {soldUnits.length > 0 && (
         <div className="card shadow-sm">
           <div className="card-body">
-            <h2 className="h6 fw-bold mb-3" style={{ color: "#b45309" }}>🧾 Sold Units</h2>
+            <h2 className="h6 fw-bold mb-3" style={{ color: "#b45309" }}>{t("prd_title_sold")}</h2>
             <div className="table-responsive">
               <table className="table table-hover table-sm align-middle mb-0">
                 <thead className="thead-6">
                   <tr>
-                    <th>Sold On</th>
-                    <th>Barcode / Serial</th>
-                    <th>Invoice</th>
-                    <th className="text-center">Warranty</th>
-                    <th className="text-center">Repair</th>
+                    <th>{t("prd_col_sold_on")}</th>
+                    <th>{t("prd_col_barcode")}</th>
+                    <th>{t("prd_col_invoice")}</th>
+                    <th className="text-center">{t("prd_col_warranty").replace(" (Months)", "").replace(" (মাস)", "")}</th>
+                    <th className="text-center">{t("prd_col_repair")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -289,7 +289,7 @@ export default function ProductProfilePage() {
                           </a>
                         ) : <span className="text-secondary">—</span>}
                       </td>
-                      <td className="text-center">{warrantyBadge(u.warranty_status)}</td>
+                      <td className="text-center">{warrantyBadge(u.warranty_status, t)}</td>
                       <td className="text-center">{repairBadge(u.repair_status)}</td>
                     </tr>
                   ))}
@@ -302,21 +302,21 @@ export default function ProductProfilePage() {
 
       <div className="card shadow-sm">
         <div className="card-body">
-          <div className="fw-semibold mb-3">Stock movements</div>
+          <div className="fw-semibold mb-3">{t("prd_title_moves")}</div>
           <div className="table-responsive">
             <table className="table table-striped table-sm mb-0">
               <thead className="thead-6">
                 <tr>
-                  <th>Date</th>
-                  <th>Type</th>
-                  <th className="text-end">Qty</th>
-                  <th>Note</th>
+                  <th>{t("prd_col_date")}</th>
+                  <th>{t("prd_col_type")}</th>
+                  <th className="text-end">{t("prd_col_qty")}</th>
+                  <th>{t("prd_col_note")}</th>
                 </tr>
               </thead>
               <tbody>
                 {moves.length === 0 ? (
                   <tr data-empty="">
-                    <td colSpan={4} className="text-center text-secondary py-4">No movements.</td>
+                    <td colSpan={4} className="text-center text-secondary py-4">{t("prd_no_moves")}</td>
                   </tr>
                 ) : (
                   moves.map((m) => (

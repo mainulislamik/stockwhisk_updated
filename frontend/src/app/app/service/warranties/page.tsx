@@ -64,7 +64,7 @@ export default function WarrantiesPage() {
 
   const loading = activeTab === "products" ? loadingP : loadingW;
   const error = activeTab === "products" ? errorP : errorW;
-  if (loading) return <Spinner label="Loading warranty data…" />;
+  if (loading) return <Spinner label={t("war_loading")} />;
   if (error) return <ErrorState error={error} />;
 
   return (
@@ -87,7 +87,7 @@ export default function WarrantiesPage() {
         </div>
         
         <input 
-          placeholder={activeTab === "products" ? "Filter products/sku…" : "Filter product/serial/customer…"} 
+          placeholder={activeTab === "products" ? t("war_filter_prod") : t("war_filter_rec")} 
           className="form-control form-control-sm rounded-pill px-3 shadow-sm border-0" 
           style={{ maxWidth: "22rem" }} 
           value={filter} 
@@ -101,19 +101,19 @@ export default function WarrantiesPage() {
             <thead className="table-light border-bottom">
               {activeTab === "products" ? (
                 <tr>
-                  <th className="ps-4 py-3">Product Name</th>
-                  <th className="py-3">SKU</th>
-                  <th className="py-3 text-center">Warranty Period</th>
-                  <th className="pe-4 py-3 text-end">In-Stock Units</th>
+                  <th className="ps-4 py-3">{t("war_col_prod_name")}</th>
+                  <th className="py-3">{t("war_col_sku")}</th>
+                  <th className="py-3 text-center">{t("war_col_period")}</th>
+                  <th className="pe-4 py-3 text-end">{t("war_col_stock")}</th>
                 </tr>
               ) : (
                 <tr>
-                  <th className="ps-4 py-3">Product</th>
-                  <th className="py-3">Serial</th>
-                  <th className="py-3">Customer</th>
-                  <th className="py-3">Start</th>
-                  <th className="py-3">Expiry</th>
-                  <th className="pe-4 py-3">Status</th>
+                  <th className="ps-4 py-3">{t("war_col_prod")}</th>
+                  <th className="py-3">{t("war_col_serial")}</th>
+                  <th className="py-3">{t("war_col_customer")}</th>
+                  <th className="py-3">{t("war_col_start")}</th>
+                  <th className="py-3">{t("war_col_expiry")}</th>
+                  <th className="pe-4 py-3">{t("war_col_status")}</th>
                 </tr>
               )}
             </thead>
@@ -123,8 +123,8 @@ export default function WarrantiesPage() {
                   <tr data-empty="">
                     <td colSpan={4} className="text-center text-secondary py-5">
                       <div className="display-4 mb-3">🛍️</div>
-                      <h5>No products with warranty</h5>
-                      <p className="text-muted">Edit products in your catalog to add warranty periods.</p>
+                      <h5>{t("war_no_prod_title")}</h5>
+                      <p className="text-muted">{t("war_no_prod_desc")}</p>
                     </td>
                   </tr>
                 ) : (
@@ -134,10 +134,10 @@ export default function WarrantiesPage() {
                       <td className="text-secondary">{p.sku || "—"}</td>
                       <td className="text-center">
                         <span className="badge bg-primary bg-opacity-10 text-primary rounded-pill px-3 py-2">
-                          {p.warranty_months} {p.warranty_months === 1 ? 'Month' : 'Months'}
+                          {p.warranty_months} {p.warranty_months === 1 ? t("war_month") : t("war_months")}
                         </span>
                       </td>
-                      <td className="pe-4 text-end fw-semibold">{p.count} unit{p.count === 1 ? "" : "s"}</td>
+                      <td className="pe-4 text-end fw-semibold">{p.count} {p.count === 1 ? t("war_unit") : t("war_units")}</td>
                     </tr>
                   ))
                 )
@@ -146,8 +146,8 @@ export default function WarrantiesPage() {
                   <tr data-empty="">
                     <td colSpan={6} className="text-center text-secondary py-5">
                       <div className="display-4 mb-3">🛡️</div>
-                      <h5>No warranties recorded</h5>
-                      <p className="text-muted">Sell products via POS to automatically record warranty coverage.</p>
+                      <h5>{t("war_no_rec_title")}</h5>
+                      <p className="text-muted">{t("war_no_rec_desc")}</p>
                     </td>
                   </tr>
                 ) : (

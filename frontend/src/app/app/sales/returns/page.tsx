@@ -46,9 +46,9 @@ export default function ReturnsPage() {
     try {
       const res = await api<any>(`/sales/sales/scan-return/?barcode=${encodeURIComponent(barcode.trim())}`);
       setScanResult(res);
-      toast.success("Barcode found");
+      toast.success(t("ret_barcode_found"));
     } catch (err: any) {
-      toast.error(err?.message || "Invalid or unsold barcode");
+      toast.error(err?.message || t("ret_invalid_barcode"));
     } finally {
       setLoading(false);
       setBarcode("");
@@ -68,11 +68,11 @@ export default function ReturnsPage() {
           refund_method: refundMethod
         }
       });
-      toast.success("Product returned successfully!");
+      toast.success(t("ret_success"));
       setScanResult(null);
       returnInputRef.current?.focus();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to process return");
+      toast.error(err?.message || t("ret_failed"));
     } finally {
       setProcessing(false);
     }
@@ -92,7 +92,7 @@ export default function ReturnsPage() {
       if (type === "old") {
         const res = await api<any>(`/sales/sales/scan-return/?barcode=${encodeURIComponent(val)}`);
         setOldScanResult(res);
-        toast.success("Original unit found");
+        toast.success(t("ret_orig_found"));
         setOldBarcode("");
         newBarcodeRef.current?.focus();
       } else {
@@ -101,17 +101,17 @@ export default function ReturnsPage() {
         const list = Array.isArray(res) ? res : (res?.results ?? []);
         const unit = list[0];
         if (!unit) {
-          throw new Error("New barcode not found in stock.");
+          throw new Error(t("ret_new_not_found"));
         }
         if (String(unit.status).toLowerCase() !== "in_stock") {
-          throw new Error(`Replacement unit isn't in stock (status: ${unit.status}). Pick an unsold unit.`);
+          throw new Error(t("ret_new_not_in_stock"));
         }
         setNewScanResult(unit);
-        toast.success("Replacement unit found");
+        toast.success(t("ret_new_found"));
         setNewBarcode("");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Invalid barcode");
+      toast.error(err?.message || t("ret_invalid_barcode_gen"));
     } finally {
       setLoading(false);
     }
@@ -128,12 +128,12 @@ export default function ReturnsPage() {
           new_barcode: newScanResult.barcode
         }
       });
-      toast.success("Product replaced successfully!");
+      toast.success(t("ret_replace_success"));
       setOldScanResult(null);
       setNewScanResult(null);
       oldBarcodeRef.current?.focus();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to process replacement");
+      toast.error(err?.message || t("ret_replace_failed"));
     } finally {
       setProcessing(false);
     }
@@ -148,7 +148,7 @@ export default function ReturnsPage() {
   return (
     <div className="vstack gap-4" style={{ maxWidth: "800px", margin: "0 auto" }}>
       <div className="d-flex align-items-center justify-content-between mb-2">
-        <h4 className="fw-bold m-0">Returns & Replacements</h4>
+        <h4 className="fw-bold m-0">{t("ret_title")}</h4>
       </div>
 
       <ul className="nav nav-pills gap-2 mb-2">
@@ -157,7 +157,7 @@ export default function ReturnsPage() {
             className={`nav-link fw-medium ${activeTab === "return" ? "active" : "bg-secondary bg-opacity-10 text-body border shadow-sm"}`}
             onClick={() => setActiveTab("return")}
           >
-            <i className="bi bi-arrow-return-left me-2"></i> Return & Refund
+            <i className="bi bi-arrow-return-left me-2"></i> {t("ret_tab_return")}
           </button>
         </li>
         <li className="nav-item flex-fill text-center">
@@ -165,7 +165,7 @@ export default function ReturnsPage() {
             className={`nav-link fw-medium ${activeTab === "replace" ? "active" : "bg-secondary bg-opacity-10 text-body border shadow-sm"}`}
             onClick={() => setActiveTab("replace")}
           >
-            <i className="bi bi-arrow-left-right me-2"></i> Replace / Exchange
+            <i className="bi bi-arrow-left-right me-2"></i> {t("ret_tab_replace")}
           </button>
         </li>
       </ul>
@@ -181,14 +181,14 @@ export default function ReturnsPage() {
                     ref={returnInputRef}
                     type="text"
                     className="form-control form-control-lg ps-5"
-                    placeholder="Scan product barcode to return..."
+                    placeholder={t("ret_scan_return_ph")}
                     value={barcode}
                     onChange={(e) => setBarcode(e.target.value)}
                     disabled={loading || processing}
                   />
                 </div>
                 <button type="submit" className="btn btn-brand btn-lg px-4" disabled={!barcode.trim() || loading || processing}>
-                  {loading ? <span className="spinner-border spinner-border-sm"></span> : "Scan"}
+                  {loading ? <span className="spinner-border spinner-border-sm"></span> : t("ret_scan_btn")}
                 </button>
               </form>
             </div>
@@ -198,21 +198,21 @@ export default function ReturnsPage() {
             <div className="card shadow-sm border-0 border-top border-brand border-4">
               <div className="card-body p-4 vstack gap-4">
                 <div>
-                  <h5 className="fw-bold mb-3 border-bottom pb-2">Item Details</h5>
+                  <h5 className="fw-bold mb-3 border-bottom pb-2">{t("ret_item_details")}</h5>
                   <div className="row g-3">
                     <div className="col-sm-6">
-                      <div className="text-secondary small mb-1">Product</div>
+                      <div className="text-secondary small mb-1">{t("ret_product")}</div>
                       <div className="fw-medium">{scanResult.unit.product_name}</div>
                       {scanResult.unit.variation_name && (
                         <div className="small text-muted">{scanResult.unit.variation_name}</div>
                       )}
                     </div>
                     <div className="col-sm-3">
-                      <div className="text-secondary small mb-1">Barcode</div>
+                      <div className="text-secondary small mb-1">{t("ret_barcode")}</div>
                       <div className="fw-medium font-monospace">{scanResult.unit.barcode}</div>
                     </div>
                     <div className="col-sm-3">
-                      <div className="text-secondary small mb-1">Selling Price</div>
+                      <div className="text-secondary small mb-1">{t("ret_selling_price")}</div>
                       <div className="fw-bold text-success">{money(scanResult.unit.selling_price || 0)}</div>
                     </div>
                   </div>
@@ -220,18 +220,18 @@ export default function ReturnsPage() {
 
                 <div className="bg-secondary bg-opacity-10 border rounded p-3">
                   <div className="d-flex justify-content-between align-items-center mb-2">
-                    <div className="fw-bold">Original Sale Invoice</div>
+                    <div className="fw-bold">{t("ret_orig_invoice")}</div>
                     <Link href={`/app/sales/${scanResult.sale.id}`} target="_blank" className="btn btn-sm btn-outline-secondary">
-                      View Invoice <i className="bi bi-box-arrow-up-right ms-1"></i>
+                      {t("ret_view_invoice")} <i className="bi bi-box-arrow-up-right ms-1"></i>
                     </Link>
                   </div>
                   <div className="row g-3">
                     <div className="col-sm-4">
-                      <div className="text-secondary small">Invoice No</div>
+                      <div className="text-secondary small">{t("ret_invoice_no")}</div>
                       <div>{scanResult.sale.invoice_no || `#${scanResult.sale.id}`}</div>
                     </div>
                     <div className="col-sm-4">
-                      <div className="text-secondary small">Date</div>
+                      <div className="text-secondary small">{t("ret_date")}</div>
                       <div>{fmtDate(scanResult.sale.sale_date)}</div>
                     </div>
                     <div className="col-sm-4">
@@ -242,33 +242,33 @@ export default function ReturnsPage() {
                 </div>
 
                 <div>
-                  <h5 className="fw-bold mb-3 border-bottom pb-2">Return Action</h5>
+                  <h5 className="fw-bold mb-3 border-bottom pb-2">{t("ret_action_title")}</h5>
                   <div className="row g-3">
                     <div className="col-md-6">
-                      <label className="form-label fw-medium">Unit Condition</label>
+                      <label className="form-label fw-medium">{t("ret_cond_title")}</label>
                       <select 
                         className="form-select" 
                         value={action} 
                         onChange={e => setAction(e.target.value)}
                         disabled={processing}
                       >
-                        <option value="restock">Good - Restock to Inventory</option>
-                        <option value="defective">Defective / Damaged</option>
-                        <option value="return_supplier">Return to Supplier</option>
+                        <option value="restock">{t("ret_cond_restock")}</option>
+                        <option value="defective">{t("ret_cond_defective")}</option>
+                        <option value="return_supplier">{t("ret_cond_supplier")}</option>
                       </select>
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label fw-medium">Refund Method</label>
+                      <label className="form-label fw-medium">{t("ret_refund_title")}</label>
                       <select 
                         className="form-select" 
                         value={refundMethod} 
                         onChange={e => setRefundMethod(e.target.value)}
                         disabled={processing}
                       >
-                        <option value="cash">Cash</option>
-                        <option value="bkash">bKash</option>
-                        <option value="card">Card / Bank</option>
-                        <option value="wallet">Customer Wallet</option>
+                        <option value="cash">{t("ret_ref_cash")}</option>
+                        <option value="bkash">{t("ret_ref_bkash")}</option>
+                        <option value="card">{t("ret_ref_card")}</option>
+                        <option value="wallet">{t("ret_ref_wallet")}</option>
                       </select>
                     </div>
                   </div>
@@ -289,7 +289,7 @@ export default function ReturnsPage() {
                     onClick={processReturn}
                     disabled={processing}
                   >
-                    {processing ? <span className="spinner-border spinner-border-sm"></span> : "Process Return & Refund"}
+                    {processing ? <span className="spinner-border spinner-border-sm"></span> : t("ret_btn_process")}
                   </button>
                 </div>
               </div>
@@ -302,7 +302,7 @@ export default function ReturnsPage() {
             <div className="col-md-6">
               <div className="card shadow-sm border-0 h-100">
                 <div className="card-header bg-secondary bg-opacity-10 fw-bold text-danger border-bottom-0 pt-3">
-                  1. Scan Original Unit
+                  {t("ret_rep_step1")}
                 </div>
                 <div className="card-body p-4">
                   {!oldScanResult ? (
@@ -313,7 +313,7 @@ export default function ReturnsPage() {
                           ref={oldBarcodeRef}
                           type="text"
                           className="form-control"
-                          placeholder="Scan sold barcode..."
+                          placeholder={t("ret_rep_scan_old_ph")}
                           value={oldBarcode}
                           onChange={(e) => setOldBarcode(e.target.value)}
                           disabled={loading || processing}
@@ -331,7 +331,7 @@ export default function ReturnsPage() {
                       </div>
                       <div className="text-end">
                         <div className="fw-bold">{money(oldScanResult.unit.selling_price)}</div>
-                        <div className="small">Invoice {oldScanResult.sale.invoice_no}</div>
+                        <div className="small">{t("ret_rep_inv")} {oldScanResult.sale.invoice_no}</div>
                       </div>
                     </div>
                   )}
@@ -342,7 +342,7 @@ export default function ReturnsPage() {
             <div className="col-md-6">
               <div className="card shadow-sm border-0 h-100">
                 <div className="card-header bg-secondary bg-opacity-10 fw-bold text-success border-bottom-0 pt-3">
-                  2. Scan Replacement Unit
+                  {t("ret_rep_step2")}
                 </div>
                 <div className="card-body p-4">
                   {!newScanResult ? (
@@ -353,7 +353,7 @@ export default function ReturnsPage() {
                           ref={newBarcodeRef}
                           type="text"
                           className="form-control"
-                          placeholder="Scan new barcode..."
+                          placeholder={t("ret_rep_scan_new_ph")}
                           value={newBarcode}
                           onChange={(e) => setNewBarcode(e.target.value)}
                           disabled={loading || processing || !oldScanResult}
@@ -371,7 +371,7 @@ export default function ReturnsPage() {
                       </div>
                       <div className="text-end">
                         <div className="fw-bold">{money(newScanResult.selling_price)}</div>
-                        <div className="small">IN STOCK</div>
+                        <div className="small">{t("ret_rep_in_stock")}</div>
                       </div>
                     </div>
                   )}
@@ -386,7 +386,7 @@ export default function ReturnsPage() {
                 <div>
                   {oldScanResult && newScanResult && (
                     <div className="fw-medium">
-                      Difference: 
+                      {t("ret_rep_diff")} 
                       <span className={Number(newScanResult.selling_price) > Number(oldScanResult.unit.selling_price) ? "text-danger fw-bold ms-2" : "text-success fw-bold ms-2"}>
                         {money(Number(newScanResult.selling_price) - Number(oldScanResult.unit.selling_price))}
                       </span>
@@ -403,7 +403,7 @@ export default function ReturnsPage() {
                     onClick={processReplace} 
                     disabled={!oldScanResult || !newScanResult || processing}
                   >
-                    {processing ? <span className="spinner-border spinner-border-sm"></span> : "Process Exchange"}
+                    {processing ? <span className="spinner-border spinner-border-sm"></span> : t("ret_btn_exchange")}
                   </button>
                 </div>
               </div>
