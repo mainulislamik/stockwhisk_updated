@@ -539,7 +539,6 @@ export default function PurchaseProductPage() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* ── Right panel ───────────────────────────────────────────────────── */}
       <div className="col-lg-4">
