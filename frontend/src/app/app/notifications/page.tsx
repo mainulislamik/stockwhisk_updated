@@ -9,7 +9,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 type Note = { id: number; type: string; title: string; message: string; is_read: boolean; created_at: string };
 type Paged = { results: Note[]; next: string | null; count: number };
 
-const PAGE_SIZE = 30;
+const PAGE_SIZE = 15;
 
 const TYPE_ICON: Record<string, string> = {
   low_stock: "📦",

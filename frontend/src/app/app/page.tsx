@@ -114,6 +114,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, can, isOwner } = useAuth();
   const { t } = useLanguage();
+  const [chartLoaded, setChartLoaded] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); return; }
+    const timer = setInterval(() => { if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); clearInterval(timer); } }, 200);
+    return () => clearInterval(timer);
+  }, []);
   const canDashboard = isOwner || can("view_reports");
   const canProfit = isOwner || can("view_profit");
   const [data, setData] = useState<Summary | null>(null);
@@ -178,7 +184,7 @@ export default function DashboardPage() {
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
     });
     return () => chartInst.current?.destroy();
-  }, [data, t]);
+  }, [data, t, chartLoaded]);
 
   if (!canDashboard) return <Spinner label={t("dash_redirecting")} />;
   if (loading) return <Spinner label={t("dash_loading")} />;

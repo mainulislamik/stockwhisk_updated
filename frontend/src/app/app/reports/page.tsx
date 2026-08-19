@@ -76,6 +76,12 @@ type DashboardData = {
 
 export default function ReportsPage() {
   const { t } = useLanguage();
+  const [chartLoaded, setChartLoaded] = useState(false);
+  useEffect(() => {
+    if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); return; }
+    const timer = setInterval(() => { if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); clearInterval(timer); } }, 200);
+    return () => clearInterval(timer);
+  }, []);
   
   const PROFIT_RANGES: { key: string; label: string }[] = [
     { key: "today", label: t("rep_filter_today") },
@@ -251,7 +257,7 @@ export default function ReportsPage() {
       pTrendInst.current?.destroy(); pBarInst.current?.destroy();
       pMarginInst.current?.destroy(); pAvgInst.current?.destroy();
     };
-  }, [profit]);
+  }, [profit, chartLoaded]);
 
   // Profitability Performance: refetch on range change.
   useEffect(() => {
@@ -309,7 +315,7 @@ export default function ReportsPage() {
     ], true);
 
     return () => { profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy(); };
-  }, [perf]);
+  }, [perf, chartLoaded]);
 
   // Product Performance: refetch on range change.
   useEffect(() => {
@@ -350,7 +356,7 @@ export default function ReportsPage() {
       } else { mostSoldInst.current = null; }
     }
     return () => { mostSoldInst.current?.destroy(); };
-  }, [pp]);
+  }, [pp, chartLoaded]);
 
   // Profitability Analytics: refetch on range change.
   useEffect(() => {
@@ -410,7 +416,7 @@ export default function ReportsPage() {
     } else { saleTrendInst.current?.destroy(); }
 
     return () => { fulfillInst.current?.destroy(); pendingInst.current?.destroy(); cancelInst.current?.destroy(); saleTrendInst.current?.destroy(); };
-  }, [pa]);
+  }, [pa, chartLoaded]);
 
   useEffect(() => {
     const Chart = (window as any).Chart;
@@ -543,7 +549,7 @@ export default function ReportsPage() {
       catChartInst.current?.destroy();
       topProdChartInst.current?.destroy();
     };
-  }, [data]);
+  }, [data, chartLoaded]);
 
   async function download(type: string, fmt: string) {
     try {
