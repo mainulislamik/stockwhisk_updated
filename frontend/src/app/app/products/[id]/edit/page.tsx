@@ -124,10 +124,7 @@ export default function ProductEditPage() {
               <label className="small">{t("pe_lbl_warranty")}</label>
               <input type="number" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} />
             </div>
-            <div className="col-md-6">
-              <label className="small">{t("pe_lbl_barcode")}</label>
-              <input className="form-control form-control-sm" value={form.barcode || ""} onChange={set("barcode")} />
-            </div>
+
             <div className="col-md-6 d-flex align-items-end">
               <div className="form-check">
                 <input className="form-check-input" type="checkbox" id="isActive" checked={!!form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />

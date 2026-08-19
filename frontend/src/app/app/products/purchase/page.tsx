@@ -407,10 +407,10 @@ export default function PurchaseProductPage() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_barcode_sku")}</label>
+                <label className="small fw-medium">{t("pp_sku")}</label>
                 <input
                   className="form-control form-control-sm"
-                  placeholder="Scan or type barcode…"
+                  placeholder="Scan or type SKU…"
                   value={searchBarcode}
                   onChange={(e) => setSearchBarcode(e.target.value)}
                 />
@@ -531,45 +531,11 @@ export default function PurchaseProductPage() {
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-
-        {/* Bulk Barcode Scan */}
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h2 className="h6 fw-bold mb-0 text-brand">▦ Bulk Barcode Scan</h2>
-              <span className="badge text-bg-secondary">{parsedBarcodes.length} BARCODES ADDED</span>
-            </div>
-            <div className="row g-3">
-              <div className="col-md-7">
-                <textarea
-                  className="form-control font-monospace" rows={6}
-                  placeholder={"Scan or paste barcodes — each completed code separates automatically. One code per line."}
-                  value={barcodeText}
-                  onChange={handleBarcodeInput}
-                />
+              <div className="col-12 mt-3">
+                <button className="btn btn-brand w-100" disabled={busy || tooManyBarcodes || (parsedBarcodes.length === 0 && !hasBulkQty)} onClick={addScannedUnits}>
+                  {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "+ "}Add {effQty} unit(s) to receive
+                </button>
               </div>
-              <div className="col-md-5">
-                <div className="border rounded p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-2">
-                  <div className="fs-3">🖨️</div>
-                  <div className="fw-semibold small">{t("pp_scan_mode")}</div>
-                  <div className="text-secondary small">{t("pp_scan_hint")}</div>
-                  <div className="d-flex align-items-center gap-2 mt-2">
-                    <span className="small">{t("pp_digits_code")}</span>
-                    <input type="number" className="form-control form-control-sm" style={{ width: "5rem" }} value={digitsPerCode} min={8} max={20} onChange={(e) => setDigitsPerCode(Number(e.target.value) || 13)} />
-                  </div>
-                  <button className="btn btn-outline-primary btn-sm w-100 mt-1 d-md-none" onClick={() => setShowScanner(true)}>
-                    📷 Scan with Camera
-                  </button>
-                  <button className="btn btn-outline-secondary btn-sm w-100 mt-1" onClick={() => { setBarcodeText(""); setBulkQty(""); setQtyTouched(false); }}>{t("pp_btn_clear_list")}</button>
-                </div>
-              </div>
-            </div>
-            <div className="mt-3">
-              <button className="btn btn-brand w-100" disabled={busy || tooManyBarcodes || (parsedBarcodes.length === 0 && !hasBulkQty)} onClick={addScannedUnits}>
-                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "+ "}Add {effQty} unit(s) to receive
-              </button>
             </div>
           </div>
         </div>

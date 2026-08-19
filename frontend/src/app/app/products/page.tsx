@@ -159,16 +159,13 @@ export default function ProductsPage() {
                 <label className="small">{t("prod_list_name")}</label>
                 <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </div>
-              <div className="col-md-2">
+              <div className="col-md-4">
                 <label className="small">
                   {t("prod_list_sku")} <span className="text-secondary">{t("prod_list_auto")}</span>
                 </label>
                 <input placeholder={t("prod_list_auto_gen")} className="form-control form-control-sm" value={form.sku} onChange={(e) => setForm({ ...form, sku: e.target.value })} />
               </div>
-              <div className="col-md-2">
-                <label className="small">{t("prod_list_barcode")}</label>
-                <input placeholder={t("prod_list_scan_type")} className="form-control form-control-sm" value={form.barcode} onChange={(e) => setForm({ ...form, barcode: e.target.value })} />
-              </div>
+
               <div className="col-md-4">
                 <label className="small">{t("prod_list_category")}</label>
                 <select className="form-select form-select-sm mb-1" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>

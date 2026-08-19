@@ -129,7 +129,7 @@ export default function ProductProfilePage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div>
           <h1 className="h4 fw-bold text-brand mb-0">{p.name}</h1>
-          <div className="text-secondary small">SKU {p.sku || "—"} · Barcode {p.barcode || "—"}</div>
+          <div className="text-secondary small">SKU {p.sku || "—"}</div>
         </div>
         <div className="d-flex gap-2">
           <Link href={`/app/products/${p.id}/edit`} className="btn btn-outline-brand btn-sm">
