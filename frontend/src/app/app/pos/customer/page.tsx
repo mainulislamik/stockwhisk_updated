@@ -23,7 +23,7 @@ const PAY_METHODS = [
 
 export default function PosCustomerPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, reload } = useAuth();
   const { t } = useLanguage();
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -77,6 +77,8 @@ export default function PosCustomerPage() {
     if (!saved) { router.replace("/app/pos"); return; }
     try { setCart(JSON.parse(saved)); } catch { router.replace("/app/pos"); }
     fetchAll<Customer>("/crm/customers/").then(setCustomers).catch(() => {});
+    // Reload user so EMI/delivery/offline settings are always fresh
+    reload().catch(() => {});
   }, [router]);
 
   const discountNum = Number(discount) || 0;
@@ -395,6 +397,7 @@ export default function PosCustomerPage() {
               {deliveryCharge > 0 && <div className="d-flex justify-content-between text-info mb-2"><span>{t("pos_checkout_delivery").replace(" (৳)", "")}</span><span>+ {money(deliveryCharge)}</span></div>}
               <div className="d-flex justify-content-between fw-bold fs-5 mb-2"><span>{t("pos_checkout_total")}</span><span>{money(total)}</span></div>
               {change > 0 && <div className="d-flex justify-content-between text-info fw-semibold border-top pt-2 mt-2"><span>{t("pos_checkout_change_due")}</span><span>{money(change)}</span></div>}
+              {paid !== "" && paidNum < total && <div className="d-flex justify-content-between text-danger fw-semibold border-top pt-2 mt-2"><span>{t("sales_list_col_due") || "Due"}</span><span>{money(total - paidNum)}</span></div>}
             </div>
 
             <div className="d-grid mt-4">
