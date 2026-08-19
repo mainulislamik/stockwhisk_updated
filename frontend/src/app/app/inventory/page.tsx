@@ -1,10 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { api, fetchAll } from "@/lib/api";
-import { useAuth } from "@/components/AuthProvider";
+import { api } from "@/lib/api";
 import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
-import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type InvSummary = {
@@ -24,15 +22,10 @@ type Movement = {
 };
 
 export default function InventoryPage() {
-  const { can, isOwner } = useAuth();
   const { t } = useLanguage();
-  const canAdjust = isOwner || can("manage_inventory");
   const [inv, setInv] = useState<InvSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [adj, setAdj] = useState({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
-  const [products, setProducts] = useState<{ id: number; name: string }[]>([]);
-  const [saving, setSaving] = useState(false);
 
   // Stock movements: server-side paginated (only the current page is fetched).
   const [moveData, setMoveData] = useState<{ count: number; next: string | null; previous: string | null; results: Movement[] } | null>(null);
@@ -43,13 +36,8 @@ export default function InventoryPage() {
   async function load() {
     setLoading(true);
     try {
-      const [i, p] = await Promise.all([
-        api<InvSummary>("/analytics/inventory/"),
-        // light=1 → products without their (potentially thousands of) units.
-        fetchAll<{ id: number; name: string }>("/catalog/products/?light=1").catch(() => []),
-      ]);
+      const i = await api<InvSummary>("/analytics/inventory/");
       setInv(i);
-      setProducts(p);
     } catch (e: any) {
       setError(e?.message || t("inv_err_load"));
     } finally {
@@ -67,33 +55,6 @@ export default function InventoryPage() {
       .finally(() => { if (alive) setMovLoading(false); });
     return () => { alive = false; };
   }, [movePageNo, movTick]);
-
-  async function submitAdjust(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      const parsedBarcodes = adj.barcodes?.split("\n").map(b => b.trim()).filter(Boolean) || [];
-      await api("/inventory/stock-movements/adjust/", {
-        method: "POST",
-        body: {
-          product: Number(adj.product),
-          movement_type: adj.movement_type,
-          quantity: Math.max(0, Math.round(Number(adj.quantity) || 0)),
-          unit_cost: adj.unit_cost || 0,
-          note: adj.note,
-          barcodes: parsedBarcodes,
-        },
-      });
-      setAdj({ product: "", movement_type: "adjust_in", quantity: "", unit_cost: "", note: "", barcodes: "" });
-      await load();
-      setMovePageNo(1);
-      setMovTick((t) => t + 1);
-    } catch (e: any) {
-      toast.error(e?.message || t("inv_err_adjust"));
-    } finally {
-      setSaving(false);
-    }
-  }
 
   const lowStock = usePagination(inv?.low_stock ?? []);
   const outStock = usePagination(inv?.out_of_stock ?? []);
@@ -133,88 +94,7 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {canAdjust && (
-        <div className="card shadow-sm">
-          <div className="card-body">
-            <div className="fw-semibold mb-3">{t("inv_adj_title")}</div>
-            <form onSubmit={submitAdjust} className="row g-2 align-items-start">
-              <div className="col-md-3">
-                <label className="small">{t("inv_adj_prod")}</label>
-                <select required className="form-select form-select-sm" value={adj.product} onChange={(e) => setAdj({ ...adj, product: e.target.value })}>
-                  <option value="">{t("inv_adj_sel")}</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div className="col-md-2">
-                <label className="small">{t("inv_adj_type")}</label>
-                <select className="form-select form-select-sm" value={adj.movement_type} onChange={(e) => setAdj({ ...adj, movement_type: e.target.value })}>
-                  <option value="adjust_in">{t("inv_adj_in")}</option>
-                  <option value="adjust_out">{t("inv_adj_out")}</option>
-                  <option value="damage_out">{t("inv_adj_dmg")}</option>
-                  <option value="opening">{t("inv_adj_open")}</option>
-                </select>
-              </div>
-              <div className="col-md-1">
-                <label className="small">{t("inv_adj_qty")}</label>
-                <input required type="number" step="1" min="1" className="form-control form-control-sm" value={adj.quantity} onChange={(e) => setAdj({ ...adj, quantity: e.target.value })} />
-              </div>
-              <div className="col-md-2">
-                <label className="small">{t("inv_adj_cost")}</label>
-                <input type="number" step="0.01" className="form-control form-control-sm" value={adj.unit_cost} onChange={(e) => setAdj({ ...adj, unit_cost: e.target.value })} />
-              </div>
-              <div className="col-md-4">
-                <label className="small">{t("inv_adj_bar")}</label>
-                <textarea 
-                  className="form-control form-control-sm font-monospace" 
-                  rows={3} 
-                  placeholder={t("inv_adj_bar_ph")}
-                  value={adj.barcodes || ""} 
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    const parts = val.split("\n");
-                    const last = parts[parts.length - 1];
-                    // Optional auto-newline after 8+ chars (simple continuous scan support)
-                    if (last.length >= 13) {
-                      setAdj({ ...adj, barcodes: val.trimEnd() + "\n" });
-                    } else {
-                      setAdj({ ...adj, barcodes: val });
-                    }
-                  }} 
-                />
-                {adj.barcodes && (
-                  <div className={`small mt-1 ${
-                    adj.barcodes.split("\n").filter(b => b.trim()).length !== Number(adj.quantity || 0) 
-                      ? "text-danger fw-bold" 
-                      : "text-success fw-bold"
-                  }`}>
-                    {t("inv_adj_bar_scan", { count: adj.barcodes.split("\n").filter(b => b.trim()).length })}
-                    {adj.barcodes.split("\n").filter(b => b.trim()).length !== Number(adj.quantity || 0) && t("inv_adj_bar_match")}
-                  </div>
-                )}
-              </div>
-              
-              <div className="col-md-6 mt-2">
-                <label className="small">{t("inv_adj_note")}</label>
-                <input className="form-control form-control-sm" value={adj.note} onChange={(e) => setAdj({ ...adj, note: e.target.value })} placeholder={t("inv_adj_note_ph")} />
-              </div>
-              <div className="col-md-6 mt-2 d-flex align-items-end justify-content-end">
-                <button 
-                  className="btn btn-brand btn-sm w-100" 
-                  disabled={saving || (
-                    adj.barcodes?.trim() ? adj.barcodes.split("\n").filter(b => b.trim()).length !== Number(adj.quantity || 0) : false
-                  )}
-                >
-                  {saving ? t("inv_adj_saving") : t("inv_adj_save")}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+
 
       <div className="row g-3">
         <div className="col-lg-6">
