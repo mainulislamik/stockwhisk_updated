@@ -7,6 +7,7 @@ import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui
 import Swal from "sweetalert2";
 import { showSuccess, showError } from "@/lib/dialogs";
 import { useLanguage } from "@/contexts/LanguageContext";
+import Link from "next/link";
 
 type Customer = {
   id: number;
@@ -123,7 +124,7 @@ export default function DuesPage() {
               ) : (
                 rows.map((c) => (
                   <tr key={c.id}>
-                    <td className="fw-medium">{c.name}</td>
+                    <td className="fw-medium"><Link href={`/app/customers/${c.id}`} className="text-decoration-none text-brand">{c.name}</Link></td>
                     <td className="text-secondary">{c.phone || "—"}</td>
                     <td className="text-secondary">{fmtDate(c.last_purchase_at)}</td>
                     <td className="text-end text-danger fw-semibold">{money(c.due_balance)}</td>
@@ -133,7 +134,7 @@ export default function DuesPage() {
                           className="btn btn-sm btn-outline-success fw-semibold rounded-pill px-3"
                           onClick={() => receivePayment(c)}
                         >
-                          Receive Payment
+                          {t("cust_btn_pay")}
                         </button>
                       )}
                     </td>

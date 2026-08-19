@@ -467,6 +467,7 @@ export const translations: Translations = {
     sales_status_partial: "PARTIAL",
     sales_status_due: "DUE",
     sales_status_cancelled: "CANCELLED",
+    sales_status_returned: "RETURNED",
 
     // Inventory
     inv_err_load: "Failed to load inventory",

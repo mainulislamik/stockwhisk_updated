@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import Link from "next/link";
 
 type Customer = {
   id: number;
@@ -158,7 +159,7 @@ export default function CustomersPage() {
                 rows.map((c) => (
                   <React.Fragment key={c.id}>
                     <tr>
-                      <td className="fw-medium">{c.name}</td>
+                      <td className="fw-medium"><Link href={`/app/customers/${c.id}`} className="text-decoration-none text-brand">{c.name}</Link></td>
                       <td className="text-secondary">{c.phone || "—"}</td>
                       <td className="text-end">{money(c.total_purchased)}</td>
                       <td className={`text-end ${Number(c.due_balance) > 0 ? "text-danger fw-semibold" : ""}`}>{money(c.due_balance)}</td>

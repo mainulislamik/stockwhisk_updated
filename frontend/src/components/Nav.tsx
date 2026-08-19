@@ -123,6 +123,8 @@ export default function Nav({
         </NavGroup>
       )}
 
+      {showReports && <Item href="/app/reports" icon="bi-graph-up" label={t("nav_reports")} />}
+
       {showFinance && (
         <NavGroup id="finance" icon="bi-bank" label={t("nav_finance")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
           {(isOwner || can("manage_expenses")) && <Item href="/app/expenses" icon="bi-cash-stack" label={t("nav_expenses")} />}
@@ -132,7 +134,6 @@ export default function Nav({
               <Item href="/app/accounting/settlement" icon="bi-journal-check" label={t("nav_daily_settlement")} />
             </>
           )}
-          {(isOwner || can("view_reports")) && <Item href="/app/reports" icon="bi-graph-up" label={t("nav_reports")} />}
         </NavGroup>
       )}
 
