@@ -87,6 +87,8 @@ class LedgerEntry(TenantScopedModel):
         return f"{self.account} {self.amount}"
 
 
+from django.utils import timezone
+
 class DailySettlement(TenantScopedModel):
     """
     End of Day (EOD) / Shift closing record. Tracks expected vs actual cash.
@@ -96,7 +98,7 @@ class DailySettlement(TenantScopedModel):
         OPEN = "open", "Open"
         CLOSED = "closed", "Closed"
 
-    opened_at = models.DateTimeField(auto_now_add=True)
+    opened_at = models.DateTimeField(default=timezone.now, db_index=True)
     closed_at = models.DateTimeField(null=True, blank=True)
     opening_cash = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     expected_cash = models.DecimalField(max_digits=14, decimal_places=2, default=0)

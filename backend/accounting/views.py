@@ -92,65 +92,70 @@ class DailySettlementViewSet(TenantScopedViewSet):
     required_perm = "view_profit"
 
     def get_queryset(self):
-        return DailySettlement.objects.all()
+        return DailySettlement.objects.all().order_by("-opened_at", "-id")
 
     def _auto_close_past_settlements(self, shop):
-        """Auto-close past unclosed shifts and backfill all missing intermediate dates up to yesterday."""
+        """Auto-close past unclosed shifts, normalize opened_at, and backfill ALL dates up to yesterday."""
         from datetime import datetime, time, timedelta
         from django.utils import timezone
 
         today = timezone.localdate()
         yesterday = today - timedelta(days=1)
 
-        # 1. Close any open settlements from before today
-        past_open = DailySettlement.objects.filter(
-            shop=shop, 
-            status=DailySettlement.Status.OPEN,
-            opened_at__date__lt=today
-        ).order_by("opened_at")
-
-        for past in past_open:
+        # 1. Normalize and close any past settlements
+        past_settlements = list(DailySettlement.objects.filter(shop=shop, opened_at__date__lt=today).order_by("opened_at", "id"))
+        seen_dates = {}
+        for past in past_settlements:
             p_date = timezone.localdate(past.opened_at)
             day_start = timezone.make_aware(datetime.combine(p_date, time.min))
             day_end = timezone.make_aware(datetime.combine(p_date, time.max))
-            
-            cash_in = LedgerEntry.objects.filter(
-                shop=shop, 
-                account=LedgerEntry.Account.CASH, 
-                created_at__range=(day_start, day_end),
-                amount__gt=0
-            ).aggregate(t=Sum("amount"))["t"] or 0
-            
-            cash_out = abs(LedgerEntry.objects.filter(
-                shop=shop, 
-                account=LedgerEntry.Account.CASH, 
-                created_at__range=(day_start, day_end),
-                amount__lt=0
-            ).aggregate(t=Sum("amount"))["t"] or 0)
-            
-            net_cash = float(cash_in) - float(cash_out)
-            expected_cash = float(past.opening_cash) + net_cash
-            sales_sum = Sale.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total"))["t"] or 0
-            expenses_sum = Expense.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("amount"))["t"] or 0
-            refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
-            
-            past.expected_cash = expected_cash
-            actual = max(0.0, expected_cash)
-            past.actual_cash = actual
-            past.discrepancy = actual - expected_cash
-            past.total_sales = sales_sum
-            past.total_expenses = expenses_sum
-            past.total_refunds = refunds_sum
-            past.status = DailySettlement.Status.CLOSED
-            past.closed_at = day_end
-            past.save()
 
-        # 2. Find earliest settlement or transaction and backfill any missing days
+            if p_date in seen_dates:
+                # Remove duplicate for same date
+                past.delete()
+                continue
+
+            if past.status == DailySettlement.Status.OPEN:
+                cash_in = LedgerEntry.objects.filter(
+                    shop=shop, 
+                    account=LedgerEntry.Account.CASH, 
+                    created_at__range=(day_start, day_end),
+                    amount__gt=0
+                ).aggregate(t=Sum("amount"))["t"] or 0
+                
+                cash_out = abs(LedgerEntry.objects.filter(
+                    shop=shop, 
+                    account=LedgerEntry.Account.CASH, 
+                    created_at__range=(day_start, day_end),
+                    amount__lt=0
+                ).aggregate(t=Sum("amount"))["t"] or 0)
+                
+                net_cash = float(cash_in) - float(cash_out)
+                expected_cash = float(past.opening_cash) + net_cash
+                sales_sum = Sale.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total"))["t"] or 0
+                expenses_sum = Expense.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("amount"))["t"] or 0
+                refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
+                
+                past.expected_cash = expected_cash
+                actual = max(0.0, expected_cash)
+                past.actual_cash = actual
+                past.discrepancy = actual - expected_cash
+                past.total_sales = sales_sum
+                past.total_expenses = expenses_sum
+                past.total_refunds = refunds_sum
+                past.status = DailySettlement.Status.CLOSED
+
+            past.opened_at = day_start
+            past.closed_at = day_end
+            past.save(update_fields=["opened_at", "closed_at", "status", "expected_cash", "actual_cash", "discrepancy", "total_sales", "total_expenses", "total_refunds"])
+            seen_dates[p_date] = past
+
+        # 2. Find earliest date (earliest activity or Aug 1, 2026) and fill every missing date
         earliest_settle = DailySettlement.objects.filter(shop=shop).order_by("opened_at").first()
         earliest_ledger = LedgerEntry.objects.filter(shop=shop).order_by("created_at").first()
         earliest_sale = Sale.objects.filter(shop=shop).order_by("created_at").first()
 
-        dates = []
+        dates = [datetime(2026, 8, 1).date()]
         if earliest_settle and earliest_settle.opened_at:
             dates.append(timezone.localdate(earliest_settle.opened_at))
         if earliest_ledger and earliest_ledger.created_at:
@@ -158,60 +163,59 @@ class DailySettlementViewSet(TenantScopedViewSet):
         if earliest_sale and earliest_sale.created_at:
             dates.append(timezone.localdate(earliest_sale.created_at))
 
-        if dates:
-            start_date = min(dates)
-            existing_dates = set(
-                DailySettlement.objects.filter(shop=shop).values_list("opened_at__date", flat=True)
-            )
+        start_date = min(dates)
+        existing_dates = set(
+            DailySettlement.objects.filter(shop=shop).values_list("opened_at__date", flat=True)
+        )
 
-            curr_date = start_date
-            while curr_date <= yesterday:
-                if curr_date not in existing_dates:
-                    day_start = timezone.make_aware(datetime.combine(curr_date, time.min))
-                    day_end = timezone.make_aware(datetime.combine(curr_date, time.max))
+        curr_date = start_date
+        while curr_date <= yesterday:
+            if curr_date not in existing_dates:
+                day_start = timezone.make_aware(datetime.combine(curr_date, time.min))
+                day_end = timezone.make_aware(datetime.combine(curr_date, time.max))
 
-                    cash_in = LedgerEntry.objects.filter(
-                        shop=shop, account=LedgerEntry.Account.CASH,
-                        created_at__range=(day_start, day_end), amount__gt=0
-                    ).aggregate(t=Sum("amount"))["t"] or 0
+                cash_in = LedgerEntry.objects.filter(
+                    shop=shop, account=LedgerEntry.Account.CASH,
+                    created_at__range=(day_start, day_end), amount__gt=0
+                ).aggregate(t=Sum("amount"))["t"] or 0
 
-                    cash_out = abs(LedgerEntry.objects.filter(
-                        shop=shop, account=LedgerEntry.Account.CASH,
-                        created_at__range=(day_start, day_end), amount__lt=0
-                    ).aggregate(t=Sum("amount"))["t"] or 0)
+                cash_out = abs(LedgerEntry.objects.filter(
+                    shop=shop, account=LedgerEntry.Account.CASH,
+                    created_at__range=(day_start, day_end), amount__lt=0
+                ).aggregate(t=Sum("amount"))["t"] or 0)
 
-                    net_cash = float(cash_in) - float(cash_out)
-                    sales_sum = Sale.objects.filter(
-                        shop=shop, created_at__range=(day_start, day_end)
-                    ).aggregate(t=Sum("total"))["t"] or 0
+                net_cash = float(cash_in) - float(cash_out)
+                sales_sum = Sale.objects.filter(
+                    shop=shop, created_at__range=(day_start, day_end)
+                ).aggregate(t=Sum("total"))["t"] or 0
 
-                    expenses_sum = Expense.objects.filter(
-                        shop=shop, created_at__range=(day_start, day_end)
-                    ).aggregate(t=Sum("amount"))["t"] or 0
+                expenses_sum = Expense.objects.filter(
+                    shop=shop, created_at__range=(day_start, day_end)
+                ).aggregate(t=Sum("amount"))["t"] or 0
 
-                    refunds_sum = SaleReturn.objects.filter(
-                        shop=shop, created_at__range=(day_start, day_end)
-                    ).aggregate(t=Sum("total_refund"))["t"] or 0
+                refunds_sum = SaleReturn.objects.filter(
+                    shop=shop, created_at__range=(day_start, day_end)
+                ).aggregate(t=Sum("total_refund"))["t"] or 0
 
-                    actual = max(0.0, net_cash)
-                    disc = actual - net_cash
-                    settle = DailySettlement.objects.create(
-                        shop=shop,
-                        opening_cash=0,
-                        expected_cash=net_cash,
-                        actual_cash=actual,
-                        discrepancy=disc,
-                        total_sales=sales_sum,
-                        total_expenses=expenses_sum,
-                        total_refunds=refunds_sum,
-                        status=DailySettlement.Status.CLOSED,
-                        closed_at=day_end,
-                    )
-                    settle.opened_at = day_start
-                    settle.save(update_fields=["opened_at"])
-                    existing_dates.add(curr_date)
+                actual = max(0.0, net_cash)
+                disc = actual - net_cash
+                settle = DailySettlement.objects.create(
+                    shop=shop,
+                    opening_cash=0,
+                    expected_cash=net_cash,
+                    actual_cash=actual,
+                    discrepancy=disc,
+                    total_sales=sales_sum,
+                    total_expenses=expenses_sum,
+                    total_refunds=refunds_sum,
+                    status=DailySettlement.Status.CLOSED,
+                    closed_at=day_end,
+                )
+                settle.opened_at = day_start
+                settle.save(update_fields=["opened_at"])
+                existing_dates.add(curr_date)
 
-                curr_date += timedelta(days=1)
+            curr_date += timedelta(days=1)
 
     def list(self, request, *args, **kwargs):
         import traceback

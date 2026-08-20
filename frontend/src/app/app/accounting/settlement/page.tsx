@@ -62,7 +62,7 @@ export default function DailySettlementPage() {
       const cur = await api<Settlement | null>("/api/accounting/daily-settlements/current/");
       setCurrent(cur || null);
 
-      const hist = await api<any>("/api/accounting/daily-settlements/?page_size=100");
+      const hist = await api<any>("/api/accounting/daily-settlements/?page_size=200");
       const list = Array.isArray(hist) ? hist : hist?.results || [];
       setHistory(list.filter((s: Settlement) => s.status === "closed"));
     } catch (e: any) {
@@ -175,6 +175,11 @@ export default function DailySettlementPage() {
   const filteredHistory = filterDate
     ? history.filter((s) => new Date(s.opened_at).toLocaleDateString("en-CA") === filterDate)
     : history;
+
+  // Explicitly sort newest first
+  const sortedHistory = [...filteredHistory].sort(
+    (a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()
+  );
 
   const currentExpected = current ? Number(current.expected_cash) || 0 : 0;
   const currentActual = actualCash !== "" ? Number(actualCash) : 0;
@@ -458,14 +463,14 @@ export default function DailySettlementPage() {
                 </div>
               </div>
 
-              {filteredHistory.length === 0 ? (
+              {sortedHistory.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   {filterDate ? t("stl_no_shifts_date", { date: filterDate }) : t("stl_no_past")}
                 </div>
               ) : (
-                <div className="table-responsive">
+                <div className="table-responsive" style={{ maxHeight: "560px", overflowY: "auto" }}>
                   <table className="table table-hover align-middle mb-0">
-                    <thead>
+                    <thead className="sticky-top bg-white">
                       <tr className="text-secondary small text-uppercase">
                         <th>{t("stl_col_date")}</th>
                         <th className="text-end">{t("stl_expected")}</th>
@@ -476,7 +481,7 @@ export default function DailySettlementPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredHistory.map((s) => (
+                      {sortedHistory.map((s) => (
                         <tr key={s.id}>
                           <td>
                             <div className="fw-medium">{fmtDate(s.opened_at)}</div>
