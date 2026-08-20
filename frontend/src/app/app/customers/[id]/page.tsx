@@ -70,8 +70,8 @@ export default function CustomerProfilePage() {
         api<{ results: ServiceTicketItem[] }>(`/service/tickets/?customer=${id}&page_size=50`).catch(() => ({ results: [] })),
       ]);
       setCustomer(cust);
-      setSales((salesData as any).results || []);
-      setTickets((ticketsData as any).results || []);
+      setSales(Array.isArray(salesData) ? salesData : (salesData as any)?.results || []);
+      setTickets(Array.isArray(ticketsData) ? ticketsData : (ticketsData as any)?.results || []);
     } catch (e: any) {
       setError(e?.message || "Failed to load customer");
     } finally {
