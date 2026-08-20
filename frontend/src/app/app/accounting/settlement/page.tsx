@@ -62,7 +62,7 @@ export default function DailySettlementPage() {
       const cur = await api<Settlement | null>("/api/accounting/daily-settlements/current/");
       setCurrent(cur || null);
 
-      const hist = await api<any>("/api/accounting/daily-settlements/?page_size=200");
+      const hist = await api<any>("/api/accounting/daily-settlements/?page_size=300");
       const list = Array.isArray(hist) ? hist : hist?.results || [];
       setHistory(list.filter((s: Settlement) => s.status === "closed"));
     } catch (e: any) {
@@ -172,13 +172,22 @@ export default function DailySettlementPage() {
 
   if (loading) return <Spinner label={t("stl_loading")} />;
 
+  // Helper to extract true date of the shift
+  const getShiftTime = (s: Settlement) => {
+    const dt = s.closed_at || s.opened_at;
+    return new Date(dt).getTime();
+  };
+
   const filteredHistory = filterDate
-    ? history.filter((s) => new Date(s.opened_at).toLocaleDateString("en-CA") === filterDate)
+    ? history.filter((s) => {
+        const dt = s.closed_at || s.opened_at;
+        return new Date(dt).toLocaleDateString("en-CA") === filterDate;
+      })
     : history;
 
-  // Explicitly sort newest first
+  // STRICT NEWEST ON TOP SORTING (Descending by timestamp)
   const sortedHistory = [...filteredHistory].sort(
-    (a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime()
+    (a, b) => getShiftTime(b) - getShiftTime(a)
   );
 
   const currentExpected = current ? Number(current.expected_cash) || 0 : 0;
@@ -481,39 +490,47 @@ export default function DailySettlementPage() {
                       </tr>
                     </thead>
                     <tbody>
-                      {sortedHistory.map((s) => (
-                        <tr key={s.id}>
-                          <td>
-                            <div className="fw-medium">{fmtDate(s.opened_at)}</div>
-                            <div className="small text-secondary">
-                              {s.closed_at ? new Date(s.closed_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : ""}
-                            </div>
-                          </td>
-                          <td className="text-end">{money(s.expected_cash)}</td>
-                          <td className="text-end fw-semibold">{money(s.actual_cash)}</td>
-                          <td
-                            className={`text-end fw-bold ${
-                              parseFloat(s.discrepancy) < 0 ? "text-danger" : "text-success"
-                            }`}
-                          >
-                            {parseFloat(s.discrepancy) > 0 ? "+" : ""}
-                            {money(s.discrepancy)}
-                          </td>
-                          <td className="small text-secondary">{s.closed_by_name || "Admin"}</td>
-                          <td className="text-end">
-                            <button
-                              className="btn btn-outline-secondary btn-sm py-0 px-2"
-                              style={{ fontSize: "0.75rem" }}
-                              onClick={() => {
-                                setAdjustingShift(s);
-                                setAdjustCash(s.actual_cash);
-                              }}
+                      {sortedHistory.map((s) => {
+                        const shiftDate = s.closed_at || s.opened_at;
+                        return (
+                          <tr key={s.id}>
+                            <td>
+                              <div className="fw-medium">{fmtDate(shiftDate)}</div>
+                              <div className="small text-secondary">
+                                {s.closed_at
+                                  ? new Date(s.closed_at).toLocaleTimeString([], {
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    })
+                                  : ""}
+                              </div>
+                            </td>
+                            <td className="text-end">{money(s.expected_cash)}</td>
+                            <td className="text-end fw-semibold">{money(s.actual_cash)}</td>
+                            <td
+                              className={`text-end fw-bold ${
+                                parseFloat(s.discrepancy) < 0 ? "text-danger" : "text-success"
+                              }`}
                             >
-                              {t("stl_adjust_shift")}
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                              {parseFloat(s.discrepancy) > 0 ? "+" : ""}
+                              {money(s.discrepancy)}
+                            </td>
+                            <td className="small text-secondary">{s.closed_by_name || "Admin"}</td>
+                            <td className="text-end">
+                              <button
+                                className="btn btn-outline-secondary btn-sm py-0 px-2"
+                                style={{ fontSize: "0.75rem" }}
+                                onClick={() => {
+                                  setAdjustingShift(s);
+                                  setAdjustCash(s.actual_cash);
+                                }}
+                              >
+                                {t("stl_adjust_shift")}
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -537,7 +554,7 @@ export default function DailySettlementPage() {
                 <div className="modal-body">
                   <div className="mb-3">
                     <span className="small text-secondary">তারিখ: </span>
-                    <strong>{fmtDate(adjustingShift.opened_at)}</strong>
+                    <strong>{fmtDate(adjustingShift.closed_at || adjustingShift.opened_at)}</strong>
                   </div>
                   <div className="d-flex justify-content-between p-2 bg-light rounded border mb-3 small">
                     <span>{t("stl_expected_cash")}:</span>
