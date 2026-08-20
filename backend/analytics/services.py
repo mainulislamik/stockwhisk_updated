@@ -168,30 +168,22 @@ def dead_stock(shop, days=90):
 # ---------------------------------------------------------------------------
 
 def sales_rollups(shop):
+    from accounting.services import profit_summary
     out = {}
     for kind in ("today", "week", "month", "quarter", "year"):
         start, end = period_bounds(kind)
-        items = _sale_items(shop, start, end)
-        revenue = _sum(items, "subtotal") - _sale_discount_total(shop, start, end)
+        ps = profit_summary(shop, start=start, end=end)
         out[kind] = {
-            "revenue": revenue,
-            "cogs": _sum(items, ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC)),
+            "revenue": ps["revenue"],
+            "cogs": ps["cogs"],
+            "profit": ps["gross_profit"],
         }
-        out[kind]["profit"] = out[kind]["revenue"] - out[kind]["cogs"]
     return out
 
 
 def sales_overview(shop):
     """The 8 headline sales KPIs for the report page (total / this-month /
-    today / last-month × sales-amount & order-count).
-
-    Sales amount reuses ``accounting.profit_summary`` so every card matches the
-    dashboard "Revenue" exactly (revenue = Σ item subtotals − invoice discounts
-    over non-cancelled sales). Order count = non-cancelled sales in the period.
-    All queries are shop-scoped by ``shop.id`` (tenant isolation). Calendar
-    months use the app timezone; "last month" is the full previous calendar
-    month, not a rolling 30 days.
-    """
+    today / last-month × sales-amount & order-count)."""
     from accounting.services import profit_summary
 
     now = timezone.now()
@@ -201,12 +193,7 @@ def sales_overview(shop):
     last_month_end = month_start - timedelta(seconds=1)  # inclusive end of prev month
 
     def _orders(start, end):
-        qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
-        if start is not None:
-            qs = qs.filter(sale_date__gte=start)
-        if end is not None:
-            qs = qs.filter(sale_date__lte=end)
-        return qs.count()
+        return _completed_orders(shop, start, end)
 
     def _sales(start, end):
         return profit_summary(shop, start=start, end=end)["revenue"]
@@ -225,11 +212,14 @@ def sales_overview(shop):
 
 def _completed_orders(shop, start=None, end=None):
     qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+    t_qs = ServiceTicket.all_objects.filter(shop_id=shop.id).exclude(status=ServiceTicket.Status.CANCELLED)
     if start is not None:
         qs = qs.filter(sale_date__gte=start)
+        t_qs = t_qs.filter(received_at__gte=start)
     if end is not None:
         qs = qs.filter(sale_date__lte=end)
-    return qs.count()
+        t_qs = t_qs.filter(received_at__lte=end)
+    return qs.count() + t_qs.count()
 
 
 def _pct_change(cur, prev):
@@ -278,8 +268,16 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
         py = start - relativedelta(years=1)
         prev_start, prev_end = py, py + (now - start)
     elif key == "all_time":
-        start, end = None, now
-        prev_start, prev_end = None, None
+        first_sale = Sale.all_objects.filter(shop_id=shop.id).order_by("sale_date").first()
+        first_ticket = ServiceTicket.all_objects.filter(shop_id=shop.id).order_by("received_at").first()
+        earliest_dates = []
+        if first_sale and first_sale.sale_date:
+            earliest_dates.append(first_sale.sale_date)
+        if first_ticket and first_ticket.received_at:
+            earliest_dates.append(first_ticket.received_at)
+        start = min(earliest_dates) if earliest_dates else (day - timedelta(days=30))
+        end = now
+        prev_start, prev_end = start, end
     elif key == "custom":
         from datetime import datetime as _dt, time as _time
         from django.utils.dateparse import parse_date, parse_datetime
@@ -315,7 +313,9 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
 
 def _profit_trend(shop, start, end, bucket):
     """Per-bucket revenue / cost / gross-profit / orders (gross of returns —
-    the summary KPIs carry the return-adjusted figures). Two grouped queries."""
+    the summary KPIs carry the return-adjusted figures)."""
+    from service.models import ServiceTicket, ServiceTicketPart
+
     trunc = TruncMonth if bucket == "month" else TruncDate
     item_rows = (
         _sale_items(shop, start, end)
@@ -331,17 +331,53 @@ def _profit_trend(shop, start, end, bucket):
         .annotate(b=trunc("sale_date")).values("b")
         .annotate(discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC), orders=Count("id"))
     )
+
+    ticket_base = (
+        ServiceTicket.all_objects.filter(shop_id=shop.id).exclude(status=ServiceTicket.Status.CANCELLED)
+        .filter(received_at__gte=start, received_at__lte=end)
+    )
+    ticket_rows = (
+        ticket_base
+        .annotate(b=trunc("received_at")).values("b")
+        .annotate(
+            service_charge=Coalesce(Sum("service_charge", output_field=_DEC), ZERO, output_field=_DEC),
+            discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC),
+            orders=Count("id"),
+        )
+    )
+    ticket_part_rows = (
+        ServiceTicketPart.all_objects.filter(ticket__in=ticket_base)
+        .annotate(b=trunc("ticket__received_at")).values("b")
+        .annotate(
+            parts_revenue=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_price"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
+            parts_cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
+        )
+    )
+
     buckets = {}
     for r in item_rows:
         buckets.setdefault(r["b"], {}).update(subtotal=r["subtotal"], cost=r["cost"])
     for r in sale_rows:
         buckets.setdefault(r["b"], {}).update(discount=r["discount"], orders=r["orders"])
 
+    for r in ticket_rows:
+        b = buckets.setdefault(r["b"], {})
+        b["service_charge"] = b.get("service_charge", ZERO) + r["service_charge"]
+        b["ticket_discount"] = b.get("ticket_discount", ZERO) + r["discount"]
+        b["orders"] = b.get("orders", 0) + r["orders"]
+
+    for r in ticket_part_rows:
+        b = buckets.setdefault(r["b"], {})
+        b["parts_revenue"] = b.get("parts_revenue", ZERO) + r["parts_revenue"]
+        b["parts_cost"] = b.get("parts_cost", ZERO) + r["parts_cost"]
+
     out = []
     for k in sorted(b for b in buckets if b is not None):
         v = buckets[k]
-        revenue = float(v.get("subtotal", ZERO) - v.get("discount", ZERO))
-        cost = float(v.get("cost", ZERO))
+        sale_rev = v.get("subtotal", ZERO) - v.get("discount", ZERO)
+        svc_rev = v.get("service_charge", ZERO) + v.get("parts_revenue", ZERO) - v.get("ticket_discount", ZERO)
+        revenue = float(max(ZERO, sale_rev) + max(ZERO, svc_rev))
+        cost = float(v.get("cost", ZERO) + v.get("parts_cost", ZERO))
         orders = int(v.get("orders", 0))
         profit = revenue - cost
         out.append({
@@ -793,15 +829,50 @@ def product_performance(shop, product_id, period="month"):
 
 
 def sales_trend(shop, days=30):
+    from service.models import ServiceTicket, ServiceTicketPart
+
     start = timezone.now() - timedelta(days=days)
-    return list(
+    sale_days = (
         Sale.all_objects.filter(shop_id=shop.id, sale_date__gte=start)
         .exclude(status=Sale.Status.CANCELLED)
         .annotate(day=TruncDate("sale_date"))
         .values("day")
         .annotate(revenue=Coalesce(Sum("total", output_field=_DEC), ZERO, output_field=_DEC))
-        .order_by("day")
     )
+    ticket_base = (
+        ServiceTicket.all_objects.filter(shop_id=shop.id, received_at__gte=start)
+        .exclude(status=ServiceTicket.Status.CANCELLED)
+    )
+    ticket_days = (
+        ticket_base
+        .annotate(day=TruncDate("received_at"))
+        .values("day")
+        .annotate(
+            charge=Coalesce(Sum("service_charge", output_field=_DEC), ZERO, output_field=_DEC),
+            discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC),
+        )
+    )
+    ticket_part_days = (
+        ServiceTicketPart.all_objects.filter(ticket__in=ticket_base)
+        .annotate(day=TruncDate("ticket__received_at"))
+        .values("day")
+        .annotate(
+            parts_total=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_price"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC)
+        )
+    )
+
+    day_rev = {}
+    for r in sale_days:
+        day_rev[r["day"]] = day_rev.get(r["day"], ZERO) + r["revenue"]
+    for r in ticket_days:
+        day_rev[r["day"]] = day_rev.get(r["day"], ZERO) + max(ZERO, r["charge"] - r["discount"])
+    for r in ticket_part_days:
+        day_rev[r["day"]] = day_rev.get(r["day"], ZERO) + r["parts_total"]
+
+    return [
+        {"day": k, "revenue": day_rev[k]}
+        for k in sorted(day_rev.keys())
+    ]
 
 
 # ---------------------------------------------------------------------------

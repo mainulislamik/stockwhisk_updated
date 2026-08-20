@@ -81,6 +81,8 @@ def create_ticket(*, shop, customer, device_description, complaint, branch=None,
     ServiceTicketStatusHistory.objects.create(
         shop=shop, ticket=ticket, from_status="", to_status=ticket.status, changed_by=created_by
     )
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(shop.id)
     return ticket
 
 
@@ -146,6 +148,8 @@ def change_ticket_status(*, ticket, new_status, note="", changed_by=None):
             template_key="service_ticket_update",
             params=[ticket.ticket_no, ticket.get_status_display()],
         )
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(ticket.shop_id)
     return ticket
 
 
@@ -166,6 +170,8 @@ def add_ticket_part(*, ticket, product, quantity=1, unit_cost=None, unit_price=N
             quantity=quantity, unit_cost=unit_cost, reference_type="ServiceTicket",
             reference_id=ticket.id, note=f"Part used on {ticket.ticket_no}", created_by=created_by,
         )
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(ticket.shop_id)
     return part
 
 
@@ -195,6 +201,8 @@ def add_ticket_payment(*, ticket, amount, method="cash", created_by=None):
         source_type="ServiceTicket", source_id=str(ticket.id),
         description=f"Payment for ticket {ticket.ticket_no}",
     )
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(ticket.shop_id)
     return ticket
 
 

@@ -27,7 +27,10 @@ def _sum(qs, expr):
 
 
 def profit_summary(shop, start=None, end=None):
-    """Return a dict with revenue, COGS, gross/net profit, expenses for a range."""
+    """Return a dict with revenue, COGS, gross/net profit, expenses for a range,
+    including both product sales and service/repair revenue."""
+    from service.models import ServiceTicket, ServiceTicketPart
+
     sales = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
     items = SaleItem.all_objects.filter(shop_id=shop.id).exclude(
         sale__status=Sale.Status.CANCELLED
@@ -35,6 +38,9 @@ def profit_summary(shop, start=None, end=None):
     returns = SaleReturn.all_objects.filter(shop_id=shop.id)
     expenses = Expense.all_objects.filter(shop_id=shop.id)
     payments = Payment.all_objects.filter(shop_id=shop.id)
+    tickets = ServiceTicket.all_objects.filter(shop_id=shop.id).exclude(
+        status=ServiceTicket.Status.CANCELLED
+    )
 
     if start is not None:
         sales = sales.filter(sale_date__gte=start)
@@ -42,33 +48,49 @@ def profit_summary(shop, start=None, end=None):
         returns = returns.filter(created_at__gte=start)
         expenses = expenses.filter(spent_on__gte=start)
         payments = payments.filter(paid_at__gte=start)
+        tickets = tickets.filter(received_at__gte=start)
     if end is not None:
         sales = sales.filter(sale_date__lte=end)
         items = items.filter(sale__sale_date__lte=end)
         returns = returns.filter(created_at__lte=end)
         expenses = expenses.filter(spent_on__lte=end)
         payments = payments.filter(paid_at__lte=end)
+        tickets = tickets.filter(received_at__lte=end)
 
-    # Revenue is net of the invoice-level discount (item.subtotal only carries
-    # line discounts) and excludes VAT (a pass-through liability, not income).
-    revenue = _sum(items, "subtotal") - _sum(sales, "discount")
-    cogs = _sum(
+    # Product sales revenue & COGS
+    sales_revenue = _sum(items, "subtotal") - _sum(sales, "discount")
+    sales_cogs = _sum(
         items,
         ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC),
     )
     returns_amount = _sum(returns, "total_refund")
-    # Returned goods that were restocked weren't really sold: credit their
-    # snapshotted COGS back, otherwise profit is understated (and the cost is
-    # double-counted against the re-added inventory value).
     returned_cogs = _sum(
         SaleReturnItem.all_objects.filter(
             sale_return__in=returns.filter(restocked=True)
         ),
         ExpressionWrapper(F("quantity") * F("sale_item__unit_cost"), output_field=_DEC),
     )
+
+    # Service / repair ticket revenue & parts COGS
+    ticket_service_charges = _sum(tickets, "service_charge")
+    ticket_discounts = _sum(tickets, "discount")
+    ticket_parts = ServiceTicketPart.all_objects.filter(ticket__in=tickets)
+    ticket_parts_revenue = _sum(
+        ticket_parts,
+        ExpressionWrapper(F("quantity") * F("unit_price"), output_field=_DEC),
+    )
+    ticket_parts_cogs = _sum(
+        ticket_parts,
+        ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC),
+    )
+    service_revenue = max(ZERO, ticket_service_charges + ticket_parts_revenue - ticket_discounts)
+
+    # Total combined revenue and COGS
+    revenue = sales_revenue + service_revenue
+    cogs = (sales_cogs - returned_cogs) + ticket_parts_cogs
     total_expenses = _sum(expenses, "amount")
 
-    gross_profit = (revenue - returns_amount) - (cogs - returned_cogs)
+    gross_profit = (revenue - returns_amount) - cogs
     net_profit = gross_profit - total_expenses
     
     payment_totals_qs = payments.values("method").annotate(total=Sum("amount"))
@@ -77,11 +99,11 @@ def profit_summary(shop, start=None, end=None):
     return {
         "revenue": revenue,
         "returns": returns_amount,
-        "cogs": cogs - returned_cogs,
+        "cogs": cogs,
         "gross_profit": gross_profit,
         "expenses": total_expenses,
         "net_profit": net_profit,
-        "sales_count": sales.count(),
+        "sales_count": sales.count() + tickets.count(),
         "payment_methods": payment_methods,
     }
 
