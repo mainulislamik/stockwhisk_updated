@@ -22,6 +22,7 @@ type Ticket = {
   discount?: string;
   received_at: string;
   estimated_delivery: string | null;
+  actual_delivery?: string | null;
   is_overdue: boolean;
   customer?: number | null;
   customer_name?: string;
@@ -41,8 +42,9 @@ export default function TicketDetailPage() {
   const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const { isOwner, can, user } = useAuth();
-  const canManage = isOwner || can("manage_service");  // status change is a write
+  const canManage = isOwner || can("manage_service");
   const [ticket, setTicket] = useState<Ticket | null>(null);
+  const [customerInfo, setCustomerInfo] = useState<any>(null);
   const isEditable = canManage && ticket?.status !== "delivered" && ticket?.status !== "cancelled";
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -82,13 +84,13 @@ export default function TicketDetailPage() {
   useEffect(() => {
     if (picked || prodSearch.trim().length < 1) { setProdHits([]); return; }
     let active = true;
-    const t = setTimeout(async () => {
+    const tm = setTimeout(async () => {
       try {
         const d = await api<{ results: ProductHit[] }>(`/catalog/products/`, { params: { search: prodSearch.trim(), page_size: 8, light: 1 } });
         if (active) setProdHits(d.results || []);
       } catch { if (active) setProdHits([]); }
     }, 250);
-    return () => { active = false; clearTimeout(t); };
+    return () => { active = false; clearTimeout(tm); };
   }, [prodSearch, picked]);
 
   async function addPart(e: React.FormEvent) {
@@ -117,17 +119,23 @@ export default function TicketDetailPage() {
 
   async function load() {
     try {
-      const t = await api<Ticket>(`/service/tickets/${id}/`);
-      setTicket(t);
-      setStatus(t.status);
-      setChargeVal(t.service_charge);
-      setDiscountVal(t.discount || "0");
+      const res = await api<Ticket>(`/service/tickets/${id}/`);
+      setTicket(res);
+      setStatus(res.status);
+      setChargeVal(res.service_charge);
+      setDiscountVal(res.discount || "0");
+      if (res.customer) {
+        api<any>(`/crm/customers/${res.customer}/`)
+          .then(setCustomerInfo)
+          .catch(() => {});
+      }
     } catch (e: any) {
       setError(e?.message || "Failed to load ticket");
     } finally {
       setLoading(false);
     }
   }
+
   useEffect(() => {
     load();
   }, [id]);
@@ -143,328 +151,425 @@ export default function TicketDetailPage() {
     try {
       await api(`/service/tickets/${id}/change_status/`, { method: "POST", body: { status } });
       await load();
+      toast.success("Status updated");
     } catch (e: any) {
       toast.error(e?.message || "Could not change status");
     }
   }
 
-  const confirmDelivery = async () => {
+  async function saveCharge() {
+    const val = Number(chargeVal);
+    if (isNaN(val) || val < 0) { toast.error("Invalid service charge"); return; }
+    try {
+      await api(`/service/tickets/${id}/`, { method: "PATCH", body: { service_charge: val } });
+      setEditingCharge(false);
+      await load();
+      toast.success("Service charge updated");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update service charge");
+    }
+  }
+
+  async function saveDiscount() {
+    const val = Number(discountVal);
+    if (isNaN(val) || val < 0) { toast.error("Invalid discount"); return; }
+    try {
+      await api(`/service/tickets/${id}/`, { method: "PATCH", body: { discount: val } });
+      setEditingDiscount(false);
+      await load();
+      toast.success("Discount updated");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not update discount");
+    }
+  }
+
+  async function recordPayment() {
+    const amt = Number(payAmount);
+    if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
+    if (ticket && amt > Number(ticket.due)) {
+      toast.error(`Amount cannot exceed remaining due of ${money(ticket.due)}`);
+      return;
+    }
+    try {
+      await api(`/service/tickets/${id}/add_payment/`, { method: "POST", body: { amount: amt } });
+      setPayAmount("");
+      setAddingPayment(false);
+      await load();
+      toast.success("Payment recorded");
+    } catch (e: any) {
+      toast.error(e?.message || "Could not record payment");
+    }
+  }
+
+  function calcDeliveryDue() {
+    if (!ticket) return "0";
+    const partsTotal = Number(ticket.parts_total || 0);
+    const serviceCharge = Number(ticket.service_charge || 0);
+    const discount = Number(deliveryDiscount || 0);
+    const paid = Number(ticket.paid || 0);
+    const due = Math.max(0, serviceCharge + partsTotal - discount - paid);
+    return due.toFixed(2);
+  }
+
+  async function confirmDelivery() {
     if (!ticket) return;
     setProcessingDelivery(true);
     try {
-      let t = ticket;
-      // 1. Update discount if changed
-      if (deliveryDiscount !== (ticket.discount || "0")) {
-        t = await api<Ticket>(`/service/tickets/${id}/`, {
-          method: "PATCH",
-          body: { discount: deliveryDiscount || "0" }
-        });
+      const discountNum = Number(deliveryDiscount);
+      if (!isNaN(discountNum) && discountNum >= 0 && String(discountNum) !== String(ticket.discount || 0)) {
+        await api(`/service/tickets/${id}/`, { method: "PATCH", body: { discount: discountNum } });
       }
-      // 2. Add payment if entered
-      if (deliveryPayment && Number(deliveryPayment) > 0) {
-        t = await api<Ticket>(`/service/tickets/${id}/add_payment/`, {
-          method: "POST",
-          body: { amount: deliveryPayment }
-        });
+      const payNum = Number(deliveryPayment);
+      if (!isNaN(payNum) && payNum > 0) {
+        await api(`/service/tickets/${id}/add_payment/`, { method: "POST", body: { amount: payNum } });
       }
-      // 3. Finalize status
-      t = await api<Ticket>(`/service/tickets/${id}/change_status/`, {
-        method: "POST",
-        body: { status: "delivered" }
-      });
-      setTicket(t);
-      setStatus("delivered");
+      await api(`/service/tickets/${id}/change_status/`, { method: "POST", body: { status: "delivered" } });
       setShowDeliveryModal(false);
-      toast.success("Ticket delivered and closed successfully!");
+      await load();
+      toast.success("Ticket marked as DELIVERED");
     } catch (e: any) {
-      toast.error(e.message || "Failed to process delivery");
+      toast.error(e?.message || "Failed to deliver ticket");
     } finally {
       setProcessingDelivery(false);
     }
-  };
+  }
 
-  const calcDeliveryDue = () => {
-    if (!ticket) return 0;
-    const sc = Number(ticket.service_charge) || 0;
-    const parts = Number(ticket.parts_total) || 0;
-    const d = Number(deliveryDiscount) || 0;
-    const paid = Number(ticket.paid) || 0;
-    return Math.max(0, sc + parts - d - paid);
-  };
+  if (loading) return <Spinner label={t("tkt_loading")} />;
+  if (error || !ticket) return <ErrorState error={error || "Ticket not found"} />;
 
-  const updateCharge = async () => {
-    try {
-      const fresh = await api<Ticket>(`/service/tickets/${id}/`, {
-        method: "PATCH",
-        body: { service_charge: chargeVal || "0" }
-      });
-      setTicket(fresh);
-      setEditingCharge(false);
-      toast.success("Service charge updated");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update charge");
-    }
-  };
-
-  const updateDiscount = async () => {
-    try {
-      const fresh = await api<Ticket>(`/service/tickets/${id}/`, {
-        method: "PATCH",
-        body: { discount: discountVal || "0" }
-      });
-      setTicket(fresh);
-      setEditingDiscount(false);
-      toast.success("Discount updated");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to update discount");
-    }
-  };
-
-  const handleAddPayment = async () => {
-    if (!payAmount || Number(payAmount) <= 0) return;
-    try {
-      const fresh = await api<Ticket>(`/service/tickets/${id}/add_payment/`, {
-        method: "POST",
-        body: { amount: payAmount }
-      });
-      setTicket(fresh);
-      setAddingPayment(false);
-      setPayAmount("");
-      toast.success("Payment collected successfully");
-    } catch (e: any) {
-      toast.error(e.message || "Failed to collect payment");
-    }
-  };
-
-  if (loading) return <Spinner label="Loading ticket…" />;
-  if (error) return <ErrorState error={error} />;
-  if (!ticket) return null;
+  const shopName = user?.shop_name || "StockWhisk Shop";
+  const shopPhone = user?.shop_phone || user?.phone || "";
+  const shopEmail = user?.email || "";
 
   return (
     <>
       {/* ── Screen layout (hidden on print) ── */}
       <div className="vstack gap-3 d-print-none">
         <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <div>
-          <h1 className="h4 fw-bold text-brand mb-0">Ticket {ticket.ticket_no || `#${ticket.id}`}</h1>
-          <div className="text-secondary small">
-            {ticket.device_description} · received {fmtDate(ticket.received_at)}
+          <div>
+            <h1 className="h4 fw-bold text-brand mb-0">{ticket.ticket_no}</h1>
+            <div className="text-secondary small">{ticket.device_description}</div>
+          </div>
+          <div className="d-flex flex-wrap gap-2 d-print-none">
+            <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
+              <i className="bi bi-receipt me-1"></i>{t("tktd_print_token")}
+            </button>
+            <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")} disabled={ticket.status !== 'delivered'}>
+              <i className="bi bi-printer me-1"></i>{t("tktd_print_invoice")}
+            </button>
+            <Link href="/app/service/tickets" className="btn btn-light btn-sm border">{t("tktd_back")}</Link>
           </div>
         </div>
-        <div className="d-flex flex-wrap gap-2 d-print-none">
-          {ticket.status !== 'delivered' && ticket.status !== 'cancelled' && (
-            <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
-              <i className="bi bi-receipt me-1"></i>{t("tktd_print_token")}</button>
-          )}
-          <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")} disabled={ticket.status !== 'delivered'}>
-            <i className="bi bi-printer me-1"></i>{t("tktd_print_invoice")}</button>
-          <Link href="/app/service/tickets" className="btn btn-light btn-sm">{t("tktd_back")}</Link>
-        </div>
-      </div>
 
-      <div className="row g-3">
-        <div className="col-lg-7">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              {(ticket.customer_name || ticket.customer_phone) && (
-                <div className="mb-3">
-                  <div className="fw-semibold mb-1">{t("tktd_customer")}</div>
-                  <div>
-                    {ticket.customer ? (
-                      <Link href={`/app/customers/${ticket.customer}`} className="text-decoration-none text-brand fw-semibold">
-                        {ticket.customer_name || t("tkt_walkin")}
-                      </Link>
-                    ) : (
-                      <span className="fw-semibold">{ticket.customer_name || t("tkt_walkin")}</span>
+        <div className="row g-3">
+          <div className="col-lg-7">
+            <div className="card shadow-sm">
+              <div className="card-body">
+                {(customerInfo?.name || ticket.customer_name || ticket.customer_phone) && (
+                  <div className="mb-3">
+                    <div className="fw-semibold mb-1">{t("tktd_customer")}</div>
+                    <div>
+                      {ticket.customer ? (
+                        <Link href={`/app/customers/${ticket.customer}`} className="text-decoration-none text-brand fw-semibold">
+                          {customerInfo?.name || ticket.customer_name || t("tkt_walkin")}
+                        </Link>
+                      ) : (
+                        <span className="fw-semibold">{ticket.customer_name || t("tkt_walkin")}</span>
+                      )}
+                    </div>
+                    {(customerInfo?.phone || ticket.customer_phone) && (
+                      <div className="text-secondary small">📞 {customerInfo?.phone || ticket.customer_phone}</div>
+                    )}
+                    {customerInfo?.address && (
+                      <div className="text-secondary small">📍 {customerInfo.address}</div>
                     )}
                   </div>
-                  {ticket.customer_phone && <div className="text-secondary small">📞 {ticket.customer_phone}</div>}
-                </div>
-              )}
-              <div className="fw-semibold mb-2">{t("tktd_complaint")}</div>
-              <p className="mb-3">{ticket.complaint}</p>
-              <div className="fw-semibold mb-2">{t("tktd_products_parts")}</div>
-              {ticket.parts.length === 0 ? (
-                <div className="text-secondary small mb-2">{t("tktd_no_products")}</div>
-              ) : (
-                <table className="table table-sm mb-2">
-                  <thead>
-                    <tr className="text-secondary small">
-                      <th>{t("tktd_product")}</th>
-                      <th className="text-end">{t("tktd_qty")}</th>
-                      <th className="text-end">{t("tktd_price")}</th>
-                      <th className="text-end">{t("tktd_total")}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ticket.parts.map((p) => (
-                      <tr key={p.id}>
-                        <td>
-                          {p.product_name}
-                          {p.warranty_months ? (
-                            <div className="text-success" style={{ fontSize: "0.75rem" }}>{p.warranty_months} months warranty</div>
-                          ) : null}
-                        </td>
-                        <td className="text-end">{p.quantity}</td>
-                        <td className="text-end">{money(p.unit_price)}</td>
-                        <td className="text-end">{money(p.line_total)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
+                )}
+                <div className="fw-semibold mb-2">{t("tktd_complaint")}</div>
+                <p className="mb-3">{ticket.complaint}</p>
+                <div className="fw-semibold mb-2">{t("tktd_products_parts")}</div>
+                {ticket.parts.length === 0 ? (
+                  <div className="text-secondary small mb-2">{t("tktd_no_products")}</div>
+                ) : (
+                  <div className="table-responsive mb-2">
+                    <table className="table table-sm align-middle mb-0">
+                      <thead>
+                        <tr>
+                          <th>{t("tktd_product")}</th>
+                          <th className="text-end">{t("tktd_qty")}</th>
+                          <th className="text-end">{t("tktd_price")}</th>
+                          <th className="text-end">{t("tktd_total")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {ticket.parts.map((p) => (
+                          <tr key={p.id}>
+                            <td>
+                              <div>{p.product_name}</div>
+                              {p.warranty_months ? (
+                                <div className="text-success small fst-italic">
+                                  {t("tktd_warranty_months", { count: p.warranty_months })}
+                                </div>
+                              ) : null}
+                            </td>
+                            <td className="text-end">{p.quantity}</td>
+                            <td className="text-end">{money(p.unit_price)}</td>
+                            <td className="text-end fw-semibold">{money(p.line_total)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
-              {isEditable && (
-                <form onSubmit={addPart} className="border-top pt-3 mt-2">
-                  <div className="fw-semibold small mb-2">{t("tktd_sell_product")}</div>
-                  <div className="position-relative mb-2">
-                    {picked ? (
-                      <div className="d-flex align-items-center justify-content-between border rounded px-2 py-1">
-                        <span className="small"><b>{picked.name}</b> {picked.sku && <span className="text-secondary">· {picked.sku}</span>}</span>
-                        <button type="button" className="btn btn-sm btn-link text-danger p-0" onClick={() => { setPicked(null); setPrice(""); }}>{t("tktd_change")}</button>
-                      </div>
-                    ) : (
-                      <>
-                        <input className="form-control form-control-sm" placeholder={t("tktd_search_product")}
-                          value={prodSearch} onChange={(e) => setProdSearch(e.target.value)} />
-                        {prodHits.length > 0 && (
-                          <div className="list-group position-absolute w-100 shadow-sm" style={{ zIndex: 20, maxHeight: 220, overflowY: "auto" }}>
+                {isEditable && (
+                  <form onSubmit={addPart} className="border-top pt-3 mt-2">
+                    <div className="fw-semibold small mb-2">{t("tktd_sell_product")}</div>
+                    <div className="vstack gap-2">
+                      <div className="position-relative">
+                        <input
+                          className="form-control form-control-sm"
+                          placeholder={t("tktd_search_product")}
+                          value={picked ? `${picked.name} (${picked.sku})` : prodSearch}
+                          onChange={(e) => { setPicked(null); setProdSearch(e.target.value); }}
+                          disabled={addingPart}
+                        />
+                        {picked && (
+                          <button
+                            type="button"
+                            className="btn btn-sm btn-link text-secondary position-absolute top-50 end-0 translate-middle-y me-1 py-0"
+                            onClick={() => { setPicked(null); setProdSearch(""); setPrice(""); }}
+                          >
+                            {t("tktd_change")}
+                          </button>
+                        )}
+                        {prodHits.length > 0 && !picked && (
+                          <div className="list-group position-absolute w-100 shadow-sm mt-1 z-3" style={{ maxHeight: 200, overflowY: "auto" }}>
                             {prodHits.map((h) => (
-                              <button type="button" key={h.id} className="list-group-item list-group-item-action py-1 small"
-                                onClick={() => { setPicked(h); setPrice(String(h.selling_price ?? "")); setProdHits([]); setProdSearch(""); }}>
-                                <b>{h.name}</b> {h.sku && <span className="text-secondary">· {h.sku}</span>} <span className="float-end">{money(h.selling_price)}</span>
+                              <button
+                                type="button"
+                                key={h.id}
+                                className="list-group-item list-group-item-action py-1 small"
+                                onClick={() => {
+                                  setPicked(h);
+                                  setPrice(h.selling_price || "");
+                                  setProdHits([]);
+                                }}
+                              >
+                                <div className="fw-semibold">{h.name}</div>
+                                <div className="text-secondary" style={{ fontSize: "0.75rem" }}>
+                                  SKU: {h.sku} · {money(h.selling_price)}
+                                </div>
                               </button>
                             ))}
                           </div>
                         )}
-                      </>
-                    )}
-                  </div>
-                  <div className="row g-2 align-items-end">
-                    <div className="col-4">
-                      <label className="small">{t("tktd_qty")}</label>
-                      <input type="number" step="1" min="1" className="form-control form-control-sm" value={qty} onChange={(e) => setQty(e.target.value)} />
+                      </div>
+                      {picked && (
+                        <div className="row g-2 align-items-end">
+                          <div className="col-4">
+                            <label className="form-label small mb-1">{t("tktd_qty")}</label>
+                            <input
+                              type="number"
+                              min="1"
+                              step="1"
+                              className="form-control form-control-sm"
+                              value={qty}
+                              onChange={(e) => setQty(e.target.value)}
+                              disabled={addingPart}
+                            />
+                          </div>
+                          <div className="col-4">
+                            <label className="form-label small mb-1">{t("tktd_sell_price")}</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0"
+                              className="form-control form-control-sm"
+                              value={price}
+                              onChange={(e) => setPrice(e.target.value)}
+                              disabled={addingPart}
+                            />
+                          </div>
+                          <div className="col-4">
+                            <button className="btn btn-brand btn-sm w-100" disabled={addingPart}>
+                              {addingPart ? t("tktd_processing") : t("tktd_add_product")}
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div className="col-4">
-                      <label className="small">{t("tktd_sell_price")}</label>
-                      <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={price} onChange={(e) => setPrice(e.target.value)} />
-                    </div>
-                    <div className="col-4">
-                      <button className="btn btn-brand btn-sm w-100" disabled={addingPart || !picked}>
-                        {addingPart ? "Adding..." : t("tktd_add_product")}
-                      </button>
-                    </div>
-                  </div>
-                </form>
-              )}
+                  </form>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-        <div className="col-lg-5">
-          <div className="card shadow-sm">
-            <div className="card-body">
-              <div className="fw-semibold mb-2">{t("tktd_status")}</div>
-              {isEditable ? (
-                <div className="input-group input-group-sm mb-3">
-                  <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value)}>
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {s.replace(/_/g, " ")}
-                      </option>
-                    ))}
-                  </select>
-                  <button className="btn btn-brand" onClick={changeStatus}>{t("tktd_update")}</button>
-                </div>
-              ) : (
-                <div className="mb-3"><span className="badge text-bg-secondary">{ticket.status.replace(/_/g, " ")}</span></div>
-              )}
-              
-              <div className="d-flex justify-content-between align-items-center mb-1">
-                <span className="text-secondary">{t("tktd_service_charge")}</span>
-                {editingCharge ? (
-                  <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '130px', marginLeft: '10px' }}>
-                    <input type="number" step="0.01" className="form-control" value={chargeVal} onChange={e => setChargeVal(e.target.value)} />
-                    <button className="btn btn-brand" onClick={updateCharge}><i className="bi bi-check2"></i></button>
-                    <button className="btn btn-light border" onClick={() => { setEditingCharge(false); setChargeVal(ticket.service_charge); }}><i className="bi bi-x"></i></button>
-                  </div>
-                ) : (
-                  <span>
-                    {money(ticket.service_charge)}
-                    {isEditable && (
-                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingCharge(true)}>
-                        <i className="bi bi-pencil-square"></i>{t("tktd_edit")}</button>
-                    )}
-                  </span>
-                )}
-              </div>
-              <div className="d-flex justify-content-between mb-1">
-                <span className="text-secondary">{t("tktd_products_parts")}</span>
-                <span>{money(ticket.parts_total)}</span>
-              </div>
-              <div className="d-flex justify-content-between align-items-center mb-1 text-danger">
-                <span>{t("tktd_discount")}</span>
-                {editingDiscount ? (
-                  <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '130px', marginLeft: '10px' }}>
-                    <input type="number" step="0.01" className="form-control" value={discountVal} onChange={e => setDiscountVal(e.target.value)} />
-                    <button className="btn btn-danger" onClick={updateDiscount}><i className="bi bi-check2"></i></button>
-                    <button className="btn btn-light border" onClick={() => { setEditingDiscount(false); setDiscountVal(ticket.discount || "0"); }}><i className="bi bi-x"></i></button>
-                  </div>
-                ) : (
-                  <span>
-                    -{money(ticket.discount || "0")}
-                    {isEditable && (
-                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => setEditingDiscount(true)}>
-                        <i className="bi bi-pencil-square"></i>{t("tktd_edit")}</button>
-                    )}
-                  </span>
-                )}
-              </div>
-              <div className="d-flex justify-content-between fw-semibold border-top pt-1 mt-1">
-                <span>{t("tktd_bill_total")}</span>
-                <span>{money(ticket.bill_total)}</span>
-              </div>
-              <div className="d-flex justify-content-between align-items-center">
-                <span className="text-secondary">{t("tktd_paid")}</span>
-                {addingPayment ? (
-                  <div className="input-group input-group-sm" style={{ flex: 1, maxWidth: '140px', marginLeft: '10px' }}>
-                    <input type="number" step="0.01" className="form-control" placeholder={t("tktd_amount")} value={payAmount} onChange={e => setPayAmount(e.target.value)} />
-                    <button className="btn btn-brand" onClick={handleAddPayment} disabled={!payAmount}><i className="bi bi-check2"></i></button>
-                    <button className="btn btn-light border" onClick={() => { setAddingPayment(false); setPayAmount(""); }}><i className="bi bi-x"></i></button>
-                  </div>
-                ) : (
-                  <span>
-                    {money(ticket.paid)}
-                    {isEditable && Number(ticket.due) > 0 && (
-                      <button className="btn btn-sm btn-link text-secondary p-0 ms-2 text-decoration-none" onClick={() => { setAddingPayment(true); setPayAmount(""); }}>
-                        <i className="bi bi-plus-circle"></i>{t("tktd_add")}</button>
-                    )}
-                  </span>
-                )}
-              </div>
-              <div className="d-flex justify-content-between fw-semibold">
-                <span>{t("tktd_due")}</span>
-                <span className={Number(ticket.due) > 0 ? "text-danger" : "text-success"}>{money(ticket.due)}</span>
-              </div>
-              <div className="d-flex justify-content-between mt-1">
-                <span className="text-secondary">{t("tktd_est_delivery")}</span>
-                <span>{fmtDate(ticket.estimated_delivery)}</span>
-              </div>
 
-              <div className="fw-semibold mt-3 mb-2">{t("tktd_history")}</div>
-              {ticket.history.length === 0 ? (
-                <div className="text-secondary small">{t("tktd_no_history")}</div>
-              ) : (
-                <ul className="list-unstyled small mb-0">
-                  {ticket.history.map((h) => (
-                    <li key={h.id} className="border-bottom py-1">
-                      <span className="text-secondary">{fmtDate(h.created_at)}</span> — {h.from_status || "—"} → <b>{h.to_status}</b>
-                    </li>
-                  ))}
-                </ul>
-              )}
+          <div className="col-lg-5">
+            <div className="card shadow-sm mb-3">
+              <div className="card-body">
+                <div className="fw-semibold mb-2">{t("tktd_status")}</div>
+                {canManage ? (
+                  <div className="d-flex gap-2 mb-3">
+                    <select
+                      className="form-select form-select-sm"
+                      value={status}
+                      onChange={(e) => setStatus(e.target.value)}
+                    >
+                      {STATUSES.map((s) => (
+                        <option key={s} value={s}>{t(`tktd_status_${s}`) || s.replace(/_/g, " ").toUpperCase()}</option>
+                      ))}
+                    </select>
+                    <button
+                      className="btn btn-brand btn-sm"
+                      onClick={changeStatus}
+                      disabled={status === ticket.status}
+                    >
+                      {t("tktd_update")}
+                    </button>
+                  </div>
+                ) : (
+                  <div className="badge text-bg-secondary fs-6 mb-3">
+                    {t(`tktd_status_${ticket.status}`) || ticket.status.replace(/_/g, " ").toUpperCase()}
+                  </div>
+                )}
+
+                <div className="d-flex justify-content-between align-items-center py-2 border-top">
+                  <span className="text-secondary">{t("tktd_service_charge")}</span>
+                  {editingCharge ? (
+                    <div className="d-flex gap-1 align-items-center">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-control form-control-sm"
+                        style={{ width: "90px" }}
+                        value={chargeVal}
+                        onChange={(e) => setChargeVal(e.target.value)}
+                        autoFocus
+                      />
+                      <button className="btn btn-sm btn-brand py-0 px-2" onClick={saveCharge}><i className="bi bi-check"></i></button>
+                      <button className="btn btn-sm btn-light border py-0 px-2" onClick={() => setEditingCharge(false)}><i className="bi bi-x"></i></button>
+                    </div>
+                  ) : (
+                    <span className="fw-semibold">
+                      {money(ticket.service_charge)}
+                      {isEditable && (
+                        <button className="btn btn-link btn-sm text-secondary p-0 ms-2" onClick={() => setEditingCharge(true)}>
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center py-2 border-top">
+                  <span className="text-secondary">{t("tktd_products_parts")}</span>
+                  <span className="fw-semibold">{money(ticket.parts_total)}</span>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center py-2 border-top">
+                  <span className="text-secondary">{t("tktd_discount")}</span>
+                  {editingDiscount ? (
+                    <div className="d-flex gap-1 align-items-center">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        className="form-control form-control-sm"
+                        style={{ width: "90px" }}
+                        value={discountVal}
+                        onChange={(e) => setDiscountVal(e.target.value)}
+                        autoFocus
+                      />
+                      <button className="btn btn-sm btn-brand py-0 px-2" onClick={saveDiscount}><i className="bi bi-check"></i></button>
+                      <button className="btn btn-sm btn-light border py-0 px-2" onClick={() => setEditingDiscount(false)}><i className="bi bi-x"></i></button>
+                    </div>
+                  ) : (
+                    <span className="fw-semibold text-danger">
+                      -{money(ticket.discount || "0")}
+                      {isEditable && (
+                        <button className="btn btn-link btn-sm text-secondary p-0 ms-2" onClick={() => setEditingDiscount(true)}>
+                          <i className="bi bi-pencil"></i>
+                        </button>
+                      )}
+                    </span>
+                  )}
+                </div>
+
+                <div className="d-flex justify-content-between py-2 border-top fs-5 fw-bold">
+                  <span>{t("tktd_bill_total")}</span>
+                  <span className="text-brand">{money(ticket.bill_total)}</span>
+                </div>
+
+                <div className="d-flex justify-content-between align-items-center py-2 border-top text-success">
+                  <span>{t("tktd_paid")}</span>
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="fw-semibold">{money(ticket.paid)}</span>
+                    {Number(ticket.due) > 0 && canManage && !addingPayment && (
+                      <button className="btn btn-outline-success btn-sm py-0" onClick={() => setAddingPayment(true)}>
+                        +{t("tktd_add")}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {addingPayment && (
+                  <div className="bg-light rounded p-2 my-2 border">
+                    <div className="d-flex gap-2">
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0.01"
+                        max={ticket.due}
+                        placeholder={t("tktd_amount")}
+                        className="form-control form-control-sm"
+                        value={payAmount}
+                        onChange={(e) => setPayAmount(e.target.value)}
+                      />
+                      <button className="btn btn-success btn-sm" onClick={recordPayment}>Save</button>
+                      <button className="btn btn-light btn-sm border" onClick={() => setAddingPayment(false)}>✕</button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="d-flex justify-content-between py-2 border-top fs-5 fw-bold text-danger">
+                  <span>{t("tktd_due")}</span>
+                  <span>{money(ticket.due)}</span>
+                </div>
+
+                <div className="border-top pt-2 mt-1 small text-secondary">
+                  <div>{t("tktd_received")}: {fmtDate(ticket.received_at)}</div>
+                  {ticket.estimated_delivery && (
+                    <div className={ticket.is_overdue ? "text-danger fw-semibold" : ""}>
+                      {t("tktd_est_delivery")}: {fmtDate(ticket.estimated_delivery)}
+                      {ticket.is_overdue && " (OVERDUE)"}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="card shadow-sm">
+              <div className="card-body">
+                <div className="fw-semibold mb-2">{t("tktd_history")}</div>
+                {ticket.history.length === 0 ? (
+                  <div className="text-secondary small">{t("tktd_no_history")}</div>
+                ) : (
+                  <ul className="list-unstyled small mb-0 vstack gap-2">
+                    {ticket.history.map((h) => (
+                      <li key={h.id} className="border-bottom pb-1">
+                        <div className="fw-semibold">
+                          {h.from_status ? `${h.from_status} → ` : ""}{h.to_status}
+                        </div>
+                        <div className="text-secondary">{fmtDate(h.created_at)}{h.note ? ` · ${h.note}` : ""}</div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             </div>
           </div>
-        </div>
         </div>
       </div>
 
@@ -472,8 +577,9 @@ export default function TicketDetailPage() {
       {printMode === "token" && (
         <div className="token-page d-none d-print-block">
           <div className="text-center mb-3">
-            <h4 className="fw-bold mb-1" style={{ fontSize: '14pt' }}>{isOwner ? user?.shop_name : "StockWhisk Shop"}</h4>
+            <h4 className="fw-bold mb-1" style={{ fontSize: '14pt' }}>{shopName}</h4>
             <div style={{ fontSize: '9pt', color: '#475569' }}>{t("tktd_repair_token")}</div>
+            {shopPhone && <div style={{ fontSize: '8pt', color: '#64748b' }}>📞 {shopPhone}</div>}
           </div>
           <div className="token-divider" />
           <div className="text-center mb-2">
@@ -482,8 +588,8 @@ export default function TicketDetailPage() {
           <div className="token-row"><strong>{t("tktd_ticket_hash")}</strong> {ticket.ticket_no || `#${ticket.id}`}</div>
           <div className="token-row"><strong>{t("tktd_date")}</strong> {fmtDate(ticket.received_at)}</div>
           <div className="token-row">
-            <strong>{t("tktd_customer_colon")}</strong> {ticket.customer_name || t("tkt_walkin")} 
-            {ticket.customer_phone && <div>{ticket.customer_phone}</div>}
+            <strong>{t("tktd_customer_colon")}</strong> {customerInfo?.name || ticket.customer_name || t("tkt_walkin")} 
+            {(customerInfo?.phone || ticket.customer_phone) && <div>📞 {customerInfo?.phone || ticket.customer_phone}</div>}
           </div>
           <div className="token-divider" />
           <div className="token-row"><strong>{t("tktd_device_colon")}</strong> {ticket.device_description}</div>
@@ -531,17 +637,29 @@ export default function TicketDetailPage() {
         <div className="inv-header">
           <div className="inv-shop-block">
             <div className="d-flex align-items-center gap-2 mb-1">
-              <div className="inv-shop-icon">🏪</div>
+              {user?.shop_logo ? (
+                <img src={user.shop_logo} alt="Logo" style={{ width: "42px", height: "42px", objectFit: "contain", borderRadius: "6px" }} />
+              ) : (
+                <div className="inv-shop-icon" style={{ fontSize: "2rem" }}>🏪</div>
+              )}
               <div>
-                <div className="inv-shop-name">{isOwner ? user?.shop_name : "StockWhisk Shop"}</div>
+                <div className="inv-shop-name">{shopName}</div>
                 <div className="inv-shop-sub">{t("tktd_repair_center")}</div>
               </div>
             </div>
+            {shopPhone && <div className="inv-contact-row">📞 {shopPhone}</div>}
+            {shopEmail && <div className="inv-contact-row">✉ {shopEmail}</div>}
           </div>
           <div className="inv-meta-block">
-            <div className="d-flex align-items-center justify-content-end gap-3 mb-2">
-              <div className="inv-status-badge" style={{ background: "#2563eb1a", color: "#2563eb", borderColor: "#2563eb" }}>{t("tktd_repair_ticket_heading")}</div>
-              <div className="inv-title-text" style={{ fontSize: '18pt' }}>{t("tktd_invoice_heading")}</div>
+            <div className="d-flex align-items-center justify-content-end gap-2 mb-2">
+              <div className="inv-status-badge" style={{ 
+                background: ticket.status === 'delivered' ? '#16a34a1a' : '#2563eb1a', 
+                color: ticket.status === 'delivered' ? '#16a34a' : '#2563eb', 
+                borderColor: ticket.status === 'delivered' ? '#16a34a' : '#2563eb' 
+              }}>
+                ● {t(`tktd_status_${ticket.status}`) || ticket.status.replace(/_/g, " ").toUpperCase()}
+              </div>
+              <div className="inv-title-text">{t("tktd_invoice_heading")}</div>
             </div>
             <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
               <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
@@ -550,7 +668,7 @@ export default function TicketDetailPage() {
               <tbody>
                 <tr><td className="inv-meta-label">{t("tktd_ticket_hash_heading")}</td><td className="inv-meta-val">{ticket.ticket_no || `#${ticket.id}`}</td></tr>
                 <tr><td className="inv-meta-label">{t("tktd_date_heading")}</td><td className="inv-meta-val">{fmtDate(ticket.received_at)}</td></tr>
-                <tr><td className="inv-meta-label">{t("tktd_status_heading")}</td><td className="inv-meta-val">{ticket.status.replace(/_/g, " ").toUpperCase()}</td></tr>
+                <tr><td className="inv-meta-label">{t("tktd_status_heading")}</td><td className="inv-meta-val fw-bold">{t(`tktd_status_${ticket.status}`) || ticket.status.replace(/_/g, " ").toUpperCase()}</td></tr>
               </tbody>
             </table>
           </div>
@@ -558,19 +676,35 @@ export default function TicketDetailPage() {
 
         <div className="inv-divider" />
 
-        <div className="inv-bill-to">
-          <div className="inv-section-label">{t("tktd_customer_details")}</div>
-          <div className="inv-customer-name">{ticket.customer_name || t("tkt_walkin")}</div>
-          {ticket.customer_phone && <div className="inv-customer-detail">📞 {ticket.customer_phone}</div>}
+        {/* Customer & Device Information Grid */}
+        <div className="row g-3 inv-info-grid mb-3">
+          <div className="col-6">
+            <div className="inv-section-box h-100">
+              <div className="inv-section-label">{t("tktd_customer_details")}</div>
+              <div className="inv-customer-name">{customerInfo?.name || ticket.customer_name || t("tkt_walkin")}</div>
+              {(customerInfo?.phone || ticket.customer_phone) && (
+                <div className="inv-customer-detail">📞 {customerInfo?.phone || ticket.customer_phone}</div>
+              )}
+              {customerInfo?.address && (
+                <div className="inv-customer-detail">📍 {customerInfo.address}</div>
+              )}
+              {customerInfo?.email && (
+                <div className="inv-customer-detail">✉️ {customerInfo.email}</div>
+              )}
+            </div>
+          </div>
+          <div className="col-6">
+            <div className="inv-section-box h-100">
+              <div className="inv-section-label">{t("tktd_device_complaint")}</div>
+              <div className="inv-device-desc">{ticket.device_description}</div>
+              {ticket.complaint && (
+                <div className="inv-complaint-text">{ticket.complaint}</div>
+              )}
+            </div>
+          </div>
         </div>
 
-        <div className="mt-4 mb-3">
-          <div className="inv-section-label">{t("tktd_device_complaint")}</div>
-          <div style={{ fontSize: '11pt', fontWeight: 600, color: '#0f172a' }}>{ticket.device_description}</div>
-          <div style={{ fontSize: '9.5pt', color: '#475569', marginTop: '4px' }}>{ticket.complaint}</div>
-        </div>
-
-        <table className="inv-table mt-4">
+        <table className="inv-table mt-3">
           <thead>
             <tr>
               <th style={{ width: "65%" }}>{t("tktd_description")}</th>
@@ -603,7 +737,7 @@ export default function TicketDetailPage() {
 
         {Number(ticket.discount) > 0 && (
           <div className="d-flex justify-content-end w-100 pe-2 mt-2">
-            <span className="text-danger fw-semibold" style={{ width: "25%", textAlign: "right" }}>
+            <span className="text-danger fw-semibold" style={{ width: "30%", textAlign: "right" }}>
               Discount: -{money(ticket.discount)}
             </span>
           </div>
@@ -611,12 +745,27 @@ export default function TicketDetailPage() {
 
         <div className="inv-footer-row">
           <div className="inv-notes">
-            {ticket.estimated_delivery && (
-              <div className="inv-note-text">
-                <strong>{t("tktd_est_delivery_colon")}</strong> {fmtDate(ticket.estimated_delivery)}
-              </div>
+            {ticket.status === "delivered" ? (
+              <>
+                <div className="inv-note-text">
+                  <strong>{t("tktd_actual_delivery")}</strong> {fmtDate(ticket.received_at)}
+                </div>
+                <div className="inv-note-text mt-2 text-success fw-semibold">
+                  {t("tktd_thank_you_service")}
+                </div>
+              </>
+            ) : (
+              <>
+                {ticket.estimated_delivery && (
+                  <div className="inv-note-text">
+                    <strong>{t("tktd_est_delivery_colon")}</strong> {fmtDate(ticket.estimated_delivery)}
+                  </div>
+                )}
+                <div className="inv-note-text mt-2" style={{ fontStyle: 'italic' }}>
+                  {t("tktd_bring_ticket")}
+                </div>
+              </>
             )}
-            <div className="inv-note-text mt-2" style={{ fontStyle: 'italic' }}>{t("tktd_bring_ticket")}</div>
           </div>
           <div className="inv-totals">
             <div className="inv-total-row">
@@ -642,33 +791,37 @@ export default function TicketDetailPage() {
           background: #fff;
           color: #1a1a2e;
           font-family: 'Segoe UI', system-ui, sans-serif;
-          font-size: 10.5pt;
+          font-size: 10pt;
           max-width: 794px;
           margin: 0 auto;
-          padding: 32px 36px;
+          padding: 28px 32px;
         }
 
         /* ── Header ── */
-        .inv-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 20px; }
+        .inv-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; margin-bottom: 16px; }
         .inv-shop-icon { font-size: 2rem; line-height: 1; }
-        .inv-shop-name { font-size: 18pt; font-weight: 700; color: #0f172a; line-height: 1.1; }
-        .inv-shop-sub { font-size: 8.5pt; color: #64748b; }
+        .inv-shop-name { font-size: 16pt; font-weight: 700; color: #0f172a; line-height: 1.1; }
+        .inv-shop-sub { font-size: 8.5pt; color: #64748b; margin-top: 2px; }
+        .inv-contact-row { font-size: 8.5pt; color: #475569; margin-top: 2px; }
 
         /* Right meta */
         .inv-meta-block { text-align: right; flex-shrink: 0; }
-        .inv-title-text { font-size: 22pt; font-weight: 800; color: #2563eb; letter-spacing: .05em; }
-        .inv-meta-table { margin-left: auto; }
-        .inv-meta-label { font-size: 7.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; padding-right: 12px; white-space: nowrap; }
-        .inv-meta-val { font-size: 9pt; font-weight: 600; text-align: right; white-space: nowrap; }
+        .inv-status-badge { font-size: 8pt; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid; text-transform: uppercase; }
+        .inv-title-text { font-size: 18pt; font-weight: 800; color: #2563eb; letter-spacing: .05em; }
+        .inv-meta-table { margin-left: auto; margin-top: 4px; }
+        .inv-meta-label { font-size: 7.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; padding-right: 10px; white-space: nowrap; }
+        .inv-meta-val { font-size: 8.5pt; font-weight: 600; text-align: right; white-space: nowrap; }
 
         /* ── Divider ── */
-        .inv-divider { border: none; border-top: 1.5px solid #e2e8f0; margin: 16px 0; }
+        .inv-divider { border: none; border-top: 1.5px solid #e2e8f0; margin: 12px 0 16px 0; }
 
-        /* ── Bill To ── */
-        .inv-bill-to { margin-bottom: 16px; }
+        /* ── Customer & Device Box ── */
+        .inv-section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; }
         .inv-section-label { font-size: 7.5pt; color: #94a3b8; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
-        .inv-customer-name { font-size: 12pt; font-weight: 700; color: #0f172a; }
+        .inv-customer-name { font-size: 11pt; font-weight: 700; color: #0f172a; }
         .inv-customer-detail { font-size: 8.5pt; color: #475569; margin-top: 2px; }
+        .inv-device-desc { font-size: 10.5pt; font-weight: 600; color: #0f172a; }
+        .inv-complaint-text { font-size: 8.5pt; color: #475569; margin-top: 3px; }
 
         /* ── Items Table ── */
         .inv-table { width: 100%; border-collapse: collapse; margin-bottom: 0; font-size: 9pt; }
@@ -683,16 +836,16 @@ export default function TicketDetailPage() {
         .inv-line-total { font-weight: 700; color: #0f172a; }
 
         /* ── Footer row ── */
-        .inv-footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-top: 20px; border-top: 1.5px solid #e2e8f0; padding-top: 16px; }
+        .inv-footer-row { display: flex; justify-content: space-between; align-items: flex-start; gap: 2rem; margin-top: 16px; border-top: 1.5px solid #e2e8f0; padding-top: 14px; }
         .inv-notes { flex: 1; max-width: 55%; }
-        .inv-note-text { font-size: 8.5pt; color: #475569; line-height: 1.5; margin-top: 4px; }
+        .inv-note-text { font-size: 8.5pt; color: #475569; line-height: 1.5; margin-top: 3px; }
 
         /* Totals */
         .inv-totals { min-width: 240px; }
         .inv-total-row { display: flex; justify-content: space-between; font-size: 9pt; padding: 3px 0; color: #475569; border-bottom: 1px solid #f1f5f9; }
         .inv-total-row span:last-child { font-weight: 500; color: #1e293b; }
         .inv-paid-row span { color: #16a34a !important; }
-        .inv-grand-row { display: flex; justify-content: space-between; font-size: 14pt; font-weight: 800; color: #0f172a; padding: 8px 0; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; margin: 4px 0; }
+        .inv-grand-row { display: flex; justify-content: space-between; font-size: 13pt; font-weight: 800; color: #0f172a; padding: 6px 0; border-top: 2px solid #0f172a; border-bottom: 2px solid #0f172a; margin: 4px 0; }
 
         /* ── Token ── */
         .token-page {
@@ -710,7 +863,7 @@ export default function TicketDetailPage() {
         .token-row { margin-bottom: 4px; }
 
         @media print {
-          @page { size: ${printMode === "token" ? "80mm auto" : "A4"}; margin: ${printMode === "token" ? "0" : "12mm 14mm"}; }
+          @page { size: ${printMode === "token" ? "80mm auto" : "A4"}; margin: ${printMode === "token" ? "0" : "10mm 12mm"}; }
           .d-print-none, .sidebar, .topbar, .offcanvas { display: none !important; }
           .inv-page { display: block !important; width: 100% !important; padding: 0 !important; max-width: 100% !important; box-shadow: none !important; border: none !important; border-radius: 0 !important; font-size: 9.5pt; }
           .token-page { display: block !important; max-width: 100% !important; padding: 5mm !important; }
@@ -718,6 +871,7 @@ export default function TicketDetailPage() {
           .flex-grow-1 { margin: 0 !important; padding: 0 !important; }
         }
       `}</style>
+
       {showDeliveryModal && (
         <>
           <div className="modal-backdrop fade show"></div>

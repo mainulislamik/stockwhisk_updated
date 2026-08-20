@@ -252,7 +252,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
       {/* Main */}
       <div className="flex-grow-1 d-flex flex-column min-vw-0" style={{ minWidth: 0 }}>
         {mounted && isImpersonating() && (
-          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "var(--brand-500)" }}>
+          <div className="d-print-none d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "var(--brand-500)" }}>
             <span className="small">
               🔓 You are viewing <strong>{impersonatingShop()}</strong> as a platform admin.
             </span>
@@ -262,7 +262,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         )}
         {mounted && user?.shop_is_demo && (
-          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "#059669" }}>
+          <div className="d-print-none d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "#059669" }}>
             <span className="small">
               🔴 <strong>Demo mode</strong> — you can browse everything, but changes are disabled (read-only).
             </span>
