@@ -78,6 +78,7 @@ class CashFlowView(_ReportBase):
         return Response(cash_flow(request.user.shop, start=start, end=end))
 
 
+from datetime import datetime, time
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.decorators import action
@@ -93,9 +94,46 @@ class DailySettlementViewSet(TenantScopedViewSet):
     def get_queryset(self):
         return DailySettlement.objects.all()
 
+    def _auto_close_past_settlements(self, shop):
+        """Auto-close any past unclosed shifts so today starts fresh."""
+        today = timezone.localdate()
+        past_open = DailySettlement.objects.filter(
+            shop=shop, 
+            status=DailySettlement.Status.OPEN,
+            opened_at__date__lt=today
+        ).order_by("opened_at")
+
+        for past in past_open:
+            p_date = timezone.localdate(past.opened_at)
+            day_start = timezone.make_aware(datetime.combine(p_date, time.min))
+            day_end = timezone.make_aware(datetime.combine(p_date, time.max))
+            
+            ledger_sum = LedgerEntry.objects.filter(
+                shop=shop, 
+                account=LedgerEntry.Account.CASH, 
+                created_at__range=(day_start, day_end)
+            ).aggregate(t=Sum("amount"))["t"] or 0
+            
+            expected_cash = float(past.opening_cash) + float(ledger_sum)
+            sales_sum = Sale.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total"))["t"] or 0
+            expenses_sum = Expense.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("amount"))["t"] or 0
+            refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
+            
+            past.expected_cash = expected_cash
+            past.actual_cash = 0
+            past.discrepancy = 0 - expected_cash
+            past.total_sales = sales_sum
+            past.total_expenses = expenses_sum
+            past.total_refunds = refunds_sum
+            past.status = DailySettlement.Status.CLOSED
+            past.closed_at = day_end
+            past.save()
+
     def list(self, request, *args, **kwargs):
         import traceback
         try:
+            if request.tenant:
+                self._auto_close_past_settlements(request.tenant)
             return super().list(request, *args, **kwargs)
         except Exception as e:
             return Response({"error": str(e), "traceback": traceback.format_exc()}, status=500)
@@ -104,75 +142,113 @@ class DailySettlementViewSet(TenantScopedViewSet):
     def current(self, request):
         import traceback
         try:
-            from django.utils import timezone
+            if request.tenant:
+                self._auto_close_past_settlements(request.tenant)
+            
             today = timezone.localdate()
             
-            settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+            # Check if today already has a closed settlement
+            today_closed = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.CLOSED).first()
             
-            if not settlement:
-                # If there's no open settlement, check if one was already created today.
-                today_closed = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.CLOSED).first()
-                if today_closed:
-                    # They already closed today's shift! Return it so the UI can show it read-only.
-                    return Response(self.get_serializer(today_closed).data)
-                    
-                # If not, automatically start a new day!
-                from datetime import datetime, time
+            # Check if today has an open settlement
+            settlement = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.OPEN).first()
+            
+            if not settlement and not today_closed:
                 start_of_day = timezone.make_aware(datetime.combine(today, time.min))
                 settlement = DailySettlement.objects.create(
                     shop=request.tenant,
                     opening_cash=0,
                     expected_cash=0,
                 )
-                # Force opened_at to start of day so we don't miss earlier sales
                 settlement.opened_at = start_of_day
                 settlement.save(update_fields=['opened_at'])
             
-            if not settlement:
+            active_obj = settlement or today_closed
+            if not active_obj:
                 return Response(None)
             
-            ledger_sum = LedgerEntry.objects.filter(
+            start_time = active_obj.opened_at
+            end_time = active_obj.closed_at or timezone.now()
+            
+            cash_in = LedgerEntry.objects.filter(
                 shop=request.tenant, 
                 account=LedgerEntry.Account.CASH, 
-                created_at__gte=settlement.opened_at
+                created_at__range=(start_time, end_time),
+                amount__gt=0
             ).aggregate(t=Sum("amount"))["t"] or 0
             
-            settlement.expected_cash = float(settlement.opening_cash) + float(ledger_sum)
-            return Response(self.get_serializer(settlement).data)
+            cash_out = abs(LedgerEntry.objects.filter(
+                shop=request.tenant, 
+                account=LedgerEntry.Account.CASH, 
+                created_at__range=(start_time, end_time),
+                amount__lt=0
+            ).aggregate(t=Sum("amount"))["t"] or 0)
+            
+            ledger_net = float(cash_in) - float(cash_out)
+            expected_cash = float(active_obj.opening_cash) + ledger_net
+            if active_obj.status == DailySettlement.Status.OPEN:
+                active_obj.expected_cash = expected_cash
+            
+            data = self.get_serializer(active_obj).data
+            data["cash_in"] = float(cash_in)
+            data["cash_out"] = float(cash_out)
+            data["sales_total"] = float(Sale.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total"))["t"] or 0)
+            data["expenses_total"] = float(Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("amount"))["t"] or 0)
+            data["refunds_total"] = float(SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0)
+            return Response(data)
         except Exception as e:
             return Response({"error": str(e), "traceback": traceback.format_exc()}, status=500)
 
     @action(detail=False, methods=["post"])
     def open(self, request):
-        if self.get_queryset().filter(status=DailySettlement.Status.OPEN).exists():
-            raise ValidationError("A settlement is already open.")
+        today = timezone.localdate()
+        if self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.OPEN).exists():
+            raise ValidationError("A settlement for today is already open.")
+        
         opening_cash = request.data.get("opening_cash", 0)
+        start_of_day = timezone.make_aware(datetime.combine(today, time.min))
         settlement = DailySettlement.objects.create(
             shop=request.tenant,
             opening_cash=opening_cash,
             expected_cash=opening_cash,
         )
+        settlement.opened_at = start_of_day
+        settlement.save(update_fields=['opened_at'])
         return Response(self.get_serializer(settlement).data)
 
     @action(detail=False, methods=["post"])
     def close(self, request):
-        settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+        today = timezone.localdate()
+        settlement = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.OPEN).first()
+        if not settlement:
+            settlement = self.get_queryset().filter(status=DailySettlement.Status.OPEN).first()
+            
         if not settlement:
             raise ValidationError("No open settlement found.")
         
         actual_cash = request.data.get("actual_cash", 0)
+        start_time = settlement.opened_at
+        end_time = timezone.now()
         
-        ledger_sum = LedgerEntry.objects.filter(
+        cash_in = LedgerEntry.objects.filter(
             shop=request.tenant, 
             account=LedgerEntry.Account.CASH, 
-            created_at__gte=settlement.opened_at
+            created_at__range=(start_time, end_time),
+            amount__gt=0
         ).aggregate(t=Sum("amount"))["t"] or 0
         
-        expected_cash = float(settlement.opening_cash) + float(ledger_sum)
+        cash_out = abs(LedgerEntry.objects.filter(
+            shop=request.tenant, 
+            account=LedgerEntry.Account.CASH, 
+            created_at__range=(start_time, end_time),
+            amount__lt=0
+        ).aggregate(t=Sum("amount"))["t"] or 0)
         
-        sales_sum = Sale.objects.filter(shop=request.tenant, created_at__gte=settlement.opened_at).aggregate(t=Sum("total"))["t"] or 0
-        expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__gte=settlement.opened_at).aggregate(t=Sum("amount"))["t"] or 0
-        refunds_sum = SaleReturn.objects.filter(shop=request.tenant, created_at__gte=settlement.opened_at).aggregate(t=Sum("total_refund"))["t"] or 0
+        expected_cash = float(settlement.opening_cash) + float(cash_in) - float(cash_out)
+        
+        sales_sum = Sale.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total"))["t"] or 0
+        expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("amount"))["t"] or 0
+        refunds_sum = SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0
         
         settlement.expected_cash = expected_cash
         settlement.actual_cash = actual_cash
@@ -181,7 +257,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         settlement.total_expenses = expenses_sum
         settlement.total_refunds = refunds_sum
         settlement.status = DailySettlement.Status.CLOSED
-        settlement.closed_at = timezone.now()
+        settlement.closed_at = end_time
         settlement.closed_by = request.user
         settlement.save()
         
@@ -199,9 +275,24 @@ class DailySettlementViewSet(TenantScopedViewSet):
         settlement.closed_by = None
         settlement.actual_cash = 0
         settlement.discrepancy = 0
-        settlement.total_sales = 0
-        settlement.total_expenses = 0
-        settlement.total_refunds = 0
         settlement.save()
         
+        return Response(self.get_serializer(settlement).data)
+
+    @action(detail=True, methods=["post", "patch"])
+    def adjust(self, request, pk=None):
+        """Adjust a closed historical settlement's actual counted cash or opening cash."""
+        settlement = self.get_object()
+        actual_cash = request.data.get("actual_cash")
+        opening_cash = request.data.get("opening_cash")
+        
+        if opening_cash is not None:
+            settlement.opening_cash = opening_cash
+            
+        if actual_cash is not None:
+            settlement.actual_cash = actual_cash
+            
+        settlement.discrepancy = float(settlement.actual_cash) - float(settlement.expected_cash)
+        settlement.closed_by = request.user
+        settlement.save()
         return Response(self.get_serializer(settlement).data)
