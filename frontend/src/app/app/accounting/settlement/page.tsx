@@ -62,10 +62,9 @@ export default function DailySettlementPage() {
       const cur = await api<Settlement | null>("/api/accounting/daily-settlements/current/");
       setCurrent(cur || null);
 
-      const hist = await api<{ results: Settlement[] }>("/api/accounting/daily-settlements/");
-      if (hist && hist.results) {
-        setHistory(hist.results.filter((s) => s.status === "closed"));
-      }
+      const hist = await api<any>("/api/accounting/daily-settlements/?page_size=100");
+      const list = Array.isArray(hist) ? hist : hist?.results || [];
+      setHistory(list.filter((s: Settlement) => s.status === "closed"));
     } catch (e: any) {
       setError(e.data?.error || e.data?.detail || e.message || t("stl_err_load"));
     } finally {
