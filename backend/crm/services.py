@@ -30,10 +30,32 @@ def pay_customer_due(*, customer, amount, method=CustomerPayment.Method.CASH,
     customer.save(update_fields=["due_balance"])
     
     if method != CustomerPayment.Method.SETTLEMENT:
+        pm_str = str(method).lower()
+        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
         LedgerEntry.objects.create(
-            shop_id=customer.shop_id, account=LedgerEntry.Account.CASH, amount=amount,
+            shop_id=customer.shop_id, account=acct, amount=amount,
             source_type="CustomerPayment", source_id=str(payment.id),
-            description=f"Due collection from {customer.name}",
+            description=f"Due collection ({method}) from {customer.name}",
         )
+
+    # Sync payment with any unpaid delivered service tickets for this customer
+    try:
+        from service.models import ServiceTicket
+        from django.db.models import F
+        rem = amount
+        unpaid_tickets = ServiceTicket.objects.filter(
+            customer=customer, paid__lt=F("service_charge")
+        ).exclude(status=ServiceTicket.Status.CANCELLED).order_by("created_at")
+        for t in unpaid_tickets:
+            if rem <= 0:
+                break
+            t_due = t.due
+            if t_due > 0:
+                pay_t = min(rem, t_due)
+                t.paid = (t.paid or Decimal("0")) + pay_t
+                t.save(update_fields=["paid", "updated_at"])
+                rem -= pay_t
+    except Exception:
+        pass
         
     return payment

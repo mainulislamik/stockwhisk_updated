@@ -196,10 +196,12 @@ def add_ticket_payment(*, ticket, amount, method="cash", created_by=None):
             customer.due_balance = max(Decimal("0"), customer.due_balance - amount)
             customer.save(update_fields=["due_balance"])
 
+    pm_str = str(method or "cash").lower()
+    acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
     LedgerEntry.objects.create(
-        shop=ticket.shop, account=LedgerEntry.Account.CASH, amount=amount,
+        shop=ticket.shop, account=acct, amount=amount,
         source_type="ServiceTicket", source_id=str(ticket.id),
-        description=f"Payment for ticket {ticket.ticket_no}",
+        description=f"Payment ({method or 'cash'}) for ticket {ticket.ticket_no}",
     )
     from analytics.services import invalidate_dashboard_cache
     invalidate_dashboard_cache(ticket.shop_id)

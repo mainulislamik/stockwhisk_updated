@@ -120,14 +120,16 @@ def seed_expense_categories(shop):
 
 
 def record_expense(*, shop, amount, spent_on, category=None, payment_method="", note="", created_by=None):
-    """Create an expense AND post the cash outflow to the ledger."""
+    """Create an expense AND post the outflow to the appropriate ledger (CASH or BANK)."""
     amount = Decimal(amount)
     expense = Expense.all_objects.create(
         shop_id=shop.id, category=category, amount=amount, spent_on=spent_on,
         payment_method=payment_method, note=note, created_by=created_by,
     )
+    pm = (payment_method or "").upper()
+    acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
     LedgerEntry.all_objects.create(
-        shop_id=shop.id, account=LedgerEntry.Account.CASH, amount=-amount,
+        shop_id=shop.id, account=acct, amount=-amount,
         source_type="Expense", source_id=str(expense.id),
         description=note or (category.name if category else "Expense"),
     )

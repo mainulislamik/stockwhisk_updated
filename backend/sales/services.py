@@ -172,15 +172,18 @@ def create_sale(
     paid = ZERO
     for p in payments:
         amount = Decimal(p["amount"])
+        method = p.get("method", Payment.Method.CASH)
         Payment.objects.create(
             shop=shop, sale=sale, amount=amount,
-            method=p.get("method", Payment.Method.CASH),
+            method=method,
         )
         paid += amount
+        pm_str = str(method).lower()
+        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
         LedgerEntry.objects.create(
-            shop=shop, account=LedgerEntry.Account.CASH, amount=amount,
+            shop=shop, account=acct, amount=amount,
             source_type="Sale", source_id=str(sale.id),
-            description=f"Payment for {sale.invoice_no}",
+            description=f"Payment ({method}) for {sale.invoice_no}",
         )
 
     sale.subtotal = subtotal

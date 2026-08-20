@@ -112,10 +112,12 @@ def pay_supplier(*, supplier, amount, method=SupplierPayment.Method.CASH,
     supplier.save(update_fields=["due_balance"])
     
     if method != SupplierPayment.Method.SETTLEMENT:
+        pm_str = str(method).lower()
+        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
         LedgerEntry.objects.create(
-            shop_id=supplier.shop_id, account=LedgerEntry.Account.CASH, amount=-amount,
+            shop_id=supplier.shop_id, account=acct, amount=-amount,
             source_type="SupplierPayment", source_id=str(payment.id),
-            description=f"Payment to {supplier.name}",
+            description=f"Payment ({method}) to {supplier.name}",
         )
     return payment
 
