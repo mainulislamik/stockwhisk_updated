@@ -55,7 +55,8 @@ export default function DailySettlementPage() {
   }, []);
 
   useEffect(() => {
-    document.getElementById("page-heading")!.innerText = t("stl_title");
+    const el = document.getElementById("page-heading");
+    if (el) el.innerText = t("stl_title");
   }, []);
 
   const openShift = async (e: React.FormEvent) => {

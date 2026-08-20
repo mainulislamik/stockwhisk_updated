@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
@@ -54,7 +55,11 @@ export default function SoldProductsPage() {
               ) : (
                 shown.map((r) => (
                   <tr key={r.product_id}>
-                    <td className="fw-medium">{r.product__name}</td>
+                    <td>
+                      <Link href={`/app/products/${r.product_id}`} className="text-decoration-none text-brand fw-medium">
+                        {r.product__name}
+                      </Link>
+                    </td>
                     <td className="text-end">{Number(r.qty)}</td>
                     <td className="text-end">{Number(r.product__current_stock || 0)}</td>
                     <td className="text-end">{money(r.revenue)}</td>

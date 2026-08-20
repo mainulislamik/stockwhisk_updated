@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
@@ -1103,7 +1104,11 @@ export default function ReportsPage() {
                       data.recent_transactions.map((t) => (
                         <tr key={t.id}>
                           <td>{new Date(t.created_at).toLocaleString()}</td>
-                          <td>{t.invoice_number}</td>
+                          <td>
+                            <Link href={`/app/sales/${t.id}`} className="text-decoration-none text-brand fw-medium">
+                              {t.invoice_number}
+                            </Link>
+                          </td>
                           <td>{t.customer_name}</td>
                           <td className="text-capitalize">{t.payment_method}</td>
                           <td className="text-end fw-medium">{money(t.total.toString())}</td>
@@ -1139,7 +1144,11 @@ export default function ReportsPage() {
                     ) : (
                       data.top_customers.map((c) => (
                         <tr key={c.customer__id}>
-                          <td>{c.customer__name}</td>
+                          <td>
+                            <Link href={`/app/customers/${c.customer__id}`} className="text-decoration-none text-brand fw-medium">
+                              {c.customer__name}
+                            </Link>
+                          </td>
                           <td className="text-end">{c.order_count}</td>
                           <td className="text-end">{money(c.total_spent)}</td>
                         </tr>
@@ -1214,7 +1223,11 @@ export default function ReportsPage() {
                   const slice = combined.slice((page - 1) * PER, page * PER);
                   return slice.map(item => (
                     <tr key={item.id}>
-                      <td>{item.name}</td>
+                      <td>
+                        <Link href={`/app/products/${item.id}`} className="text-decoration-none text-brand fw-medium">
+                          {item.name}
+                        </Link>
+                      </td>
                       <td>{item.sku}</td>
                       <td className={`text-end fw-bold ${item._out ? "text-danger" : "text-warning"}`}>{item.current_stock}</td>
                       <td className="text-end">{item.reorder_level}</td>
