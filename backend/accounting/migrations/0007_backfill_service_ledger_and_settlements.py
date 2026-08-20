@@ -124,7 +124,7 @@ class Migration(migrations.Migration):
     dependencies = [
         ("accounting", "0006_backfill_purchase_expense_method"),
         ("service", "0009_link_service_customers"),
-        ("sales", "0008_sale_delivery_charge"),
+        ("sales", "0010_sale_correction_fields"),
     ]
 
     operations = [
