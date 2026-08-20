@@ -60,19 +60,25 @@ def _sale_discount_total(shop, start=None, end=None):
 # --- period helpers ----------------------------------------------------------
 
 def period_bounds(kind, now=None):
-    now = now or timezone.now()
-    start_day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    from datetime import datetime, time
+    loc_now = timezone.localtime(now) if now else timezone.localtime()
+    today = loc_now.date()
+    start_day = timezone.make_aware(datetime.combine(today, time.min))
     if kind == "today":
-        return start_day, now
+        return start_day, timezone.now()
     if kind == "week":
-        return start_day - timedelta(days=now.weekday()), now
+        week_start = today - timedelta(days=loc_now.weekday())
+        return timezone.make_aware(datetime.combine(week_start, time.min)), timezone.now()
     if kind == "month":
-        return start_day.replace(day=1), now
+        month_start = today.replace(day=1)
+        return timezone.make_aware(datetime.combine(month_start, time.min)), timezone.now()
     if kind == "quarter":
-        q_month = ((now.month - 1) // 3) * 3 + 1
-        return start_day.replace(month=q_month, day=1), now
+        q_month = ((today.month - 1) // 3) * 3 + 1
+        q_start = today.replace(month=q_month, day=1)
+        return timezone.make_aware(datetime.combine(q_start, time.min)), timezone.now()
     if kind == "year":
-        return start_day.replace(month=1, day=1), now
+        y_start = today.replace(month=1, day=1)
+        return timezone.make_aware(datetime.combine(y_start, time.min)), timezone.now()
     raise ValueError(kind)
 
 
@@ -184,12 +190,15 @@ def sales_rollups(shop):
 def sales_overview(shop):
     """The 8 headline sales KPIs for the report page (total / this-month /
     today / last-month × sales-amount & order-count)."""
+    from datetime import datetime, time
     from accounting.services import profit_summary
 
     now = timezone.now()
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
-    month_start = today_start.replace(day=1)
-    last_month_start = month_start - relativedelta(months=1)
+    today = timezone.localdate()
+    today_start = timezone.make_aware(datetime.combine(today, time.min))
+    month_start = timezone.make_aware(datetime.combine(today.replace(day=1), time.min))
+    last_month_day = today.replace(day=1) - relativedelta(months=1)
+    last_month_start = timezone.make_aware(datetime.combine(last_month_day, time.min))
     last_month_end = month_start - timedelta(seconds=1)  # inclusive end of prev month
 
     def _orders(start, end):
@@ -888,11 +897,13 @@ def dashboard_summary(shop, days=30, use_cache=True):
         if cached is not None:
             return cached
 
+    from datetime import datetime, time
     from accounting.services import financial_position, profit_summary
 
     now = timezone.now()
     start = now - timedelta(days=days)
-    today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    today = timezone.localdate()
+    today_start = timezone.make_aware(datetime.combine(today, time.min))
 
     data = {
         "period_days": days,
