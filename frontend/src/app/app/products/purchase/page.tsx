@@ -11,15 +11,26 @@ import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 type Product = {
-  id: number; name: string; sku: string; barcode: string;
-  cost_price: string; selling_price: string; current_stock: string;
-  warranty_months: number; track_inventory: boolean;
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  cost_price: string;
+  selling_price: string;
+  current_stock: string;
+  warranty_months: number;
+  track_inventory: boolean;
 };
 type Supplier = { id: number; name: string };
 type Branch = { id: number; name: string };
 type ReceiveLine = { product: Product; quantity: number; unit_cost: number; barcodes: string[] };
 
-const PAY_METHODS: Record<string, string> = { cash: "💵 Cash", bkash: "📱 bKash", nagad: "📱 Nagad", bank: "🏦 Bank" };
+const PAY_METHODS: Record<string, string> = {
+  cash: "💵 Cash",
+  bkash: "📱 bKash",
+  nagad: "📱 Nagad",
+  bank: "🏦 Bank",
+};
 
 export default function PurchaseProductPage() {
   const { t } = useLanguage();
@@ -41,12 +52,7 @@ export default function PurchaseProductPage() {
   const [barcodeText, setBarcodeText] = useState("");
   const [digitsPerCode, setDigitsPerCode] = useState(13);
   const [showScanner, setShowScanner] = useState(false);
-  // Quantity for the selected product: how many units to receive. Barcodes are
-  // optional and capped at this number — the rest are received without a barcode
-  // (for products with no barcode on the packet).
   const [bulkQty, setBulkQty] = useState("");
-  // When the user hasn't typed a quantity, it auto-mirrors the scanned barcode
-  // count. Typing a value takes over; clearing the field returns to auto.
   const [qtyTouched, setQtyTouched] = useState(false);
 
   const { user } = useAuth();
@@ -79,30 +85,38 @@ export default function PurchaseProductPage() {
     Promise.all([
       fetchAll<Supplier>("/purchasing/suppliers/").catch(() => []),
       fetchAll<Branch>("/tenants/branches/").catch(() => []),
-    ]).then(([s, b]) => { setSuppliers(s); setBranches(b); });
+    ]).then(([s, b]) => {
+      setSuppliers(s);
+      setBranches(b);
+    });
   }, []);
 
   // ─── Search ──────────────────────────────────────────────────────────────
   const doSearch = useCallback(async () => {
     const q = searchName.trim();
     const bc = searchBarcode.trim();
-    if (!q && !bc) { setSearchResults(null); return; }
+    if (!q && !bc) {
+      setSearchResults(null);
+      return;
+    }
     setSearching(true);
     try {
       const params: Record<string, string> = {};
       if (q) params.search = q;
       if (bc) params.barcode = bc;
       const r = await api<any>("/catalog/products/", { params });
-      const list: Product[] = Array.isArray(r) ? r : (r?.results ?? []);
+      const list: Product[] = Array.isArray(r) ? r : r?.results ?? [];
       setSearchResults(list);
-    } catch { setSearchResults([]); }
-    finally { setSearching(false); }
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
   }, [searchName, searchBarcode]);
 
-  // auto-search as user types
   useEffect(() => {
-    const t = setTimeout(doSearch, 350);
-    return () => clearTimeout(t);
+    const timer = setTimeout(doSearch, 350);
+    return () => clearTimeout(timer);
   }, [searchName, searchBarcode, doSearch]);
 
   function selectProduct(p: Product) {
@@ -111,7 +125,8 @@ export default function PurchaseProductPage() {
     setSearchName("");
     setSearchBarcode("");
     setBarcodeText("");
-    setBulkQty(""); setQtyTouched(false);
+    setBulkQty("");
+    setQtyTouched(false);
   }
 
   // ─── New product creation ────────────────────────────────────────────────
@@ -127,18 +142,26 @@ export default function PurchaseProductPage() {
           sku: newProd.sku.trim() || "",
           cost_price: newProd.cost_price || 0,
           selling_price: newProd.selling_price || 0,
-          reorder_level: newProd.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
+          reorder_level:
+            newProd.reorder_level === ""
+              ? 5
+              : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
           track_inventory: true,
         },
       });
       setShowNewProduct(false);
       setNewProd({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "5" });
       selectProduct(p);
-      // also add to receive list automatically
-      setLines((prev) => [...prev, { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: [] }]);
+      setLines((prev) => [
+        ...prev,
+        { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: [] },
+      ]);
+      toast.success(t("pp_success_create_prod") || "Product created successfully");
     } catch (e: any) {
       toast.error(e?.message || t("pp_err_create_prod"));
-    } finally { setSavingProd(false); }
+    } finally {
+      setSavingProd(false);
+    }
   }
 
   // ─── New vendor quick-add ─────────────────────────────────────────────────
@@ -152,27 +175,51 @@ export default function PurchaseProductPage() {
       setSupplier(String(s.id));
       setShowNewVendor(false);
       setNewVendor({ name: "", phone: "", address: "" });
+      toast.success("Vendor added successfully");
     } catch (e: any) {
       toast.error(e?.message || "Could not add vendor");
-    } finally { setSavingVendor(false); }
+    } finally {
+      setSavingVendor(false);
+    }
   }
 
   // ─── Bulk barcode scan helpers ────────────────────────────────────────────
-  const parsedBarcodes = barcodeText.split("\n").map((l) => l.trim()).filter((l) => l.length > 0);
-  // A quantity is only meaningful when a single product is selected. When set,
-  // it decides how many units to receive; barcodes may be fewer (or none).
+  const parsedBarcodes = barcodeText
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
   const hasBulkQty = !!selected && qtyTouched && bulkQty.trim() !== "";
-  const effQty = hasBulkQty ? Math.max(1, Math.round(Number(bulkQty) || 0)) : parsedBarcodes.length;
+  const effQty = hasBulkQty ? Math.max(1, Math.round(Number(bulkQty) || 0)) : (parsedBarcodes.length || 1);
   const tooManyBarcodes = hasBulkQty && parsedBarcodes.length > effQty;
-  // Value shown in the Quantity box: the typed value, else the live barcode count.
   const qtyDisplay = qtyTouched ? bulkQty : (parsedBarcodes.length ? String(parsedBarcodes.length) : "");
 
+  // Auto-generate barcodes for batch
+  function generateBarcodesForSelected() {
+    if (!selected) {
+      toast.error("Please select a product first");
+      return;
+    }
+    const count = Number(bulkQty) || (parsedBarcodes.length > 0 ? parsedBarcodes.length : 1);
+    const prefix = selected.sku ? selected.sku.replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase() : "BC";
+    const timestamp = Date.now().toString().slice(-5);
+    const generated: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      const rand = Math.floor(100 + Math.random() * 900);
+      generated.push(`${prefix}${timestamp}${i.toString().padStart(2, "0")}${rand}`);
+    }
+    setBarcodeText(generated.join("\n") + "\n");
+    if (!qtyTouched) {
+      setBulkQty(String(count));
+      setQtyTouched(true);
+    }
+    toast.success(`${count} টি বারকোড তৈরি হয়েছে`);
+  }
+
   async function addScannedUnits() {
-    // Allow adding barcode-less units when a product is selected and a quantity
-    // is given (product has no barcode on the packet).
-    if (parsedBarcodes.length === 0 && !hasBulkQty) return;
+    if (!selected && parsedBarcodes.length === 0) return;
     if (tooManyBarcodes) {
-      setError(`You scanned ${parsedBarcodes.length} barcodes but quantity is ${effQty}. Increase the quantity or remove extra barcodes.`);
+      setError(`You scanned ${parsedBarcodes.length} barcodes but quantity is ${effQty}.`);
       return;
     }
     setBusy(true);
@@ -188,9 +235,8 @@ export default function PurchaseProductPage() {
       const notFound: string[] = [];
 
       if (selected) {
-        // Quantity field wins when set; otherwise one unit per scanned barcode.
-        const qty = hasBulkQty ? effQty : parsedBarcodes.length;
-        const existing = newLines.find(l => l.product.id === selected.id);
+        const qty = hasBulkQty ? effQty : (parsedBarcodes.length || 1);
+        const existing = newLines.find((l) => l.product.id === selected.id);
 
         if (existing) {
           existing.quantity += qty;
@@ -200,7 +246,7 @@ export default function PurchaseProductPage() {
             product: selected,
             quantity: qty,
             unit_cost: Number(selected.cost_price) || 0,
-            barcodes: [...parsedBarcodes]
+            barcodes: [...parsedBarcodes],
           });
         }
       } else {
@@ -208,8 +254,14 @@ export default function PurchaseProductPage() {
         const results = await Promise.all(
           uniqueBarcodes.map(async (bc) => {
             const res = await api<any>("/catalog/products/", { params: { search: bc } });
-            const list: Product[] = Array.isArray(res) ? res : (res?.results ?? []);
-            return { bc, match: list.find(p => p.barcode === bc || p.sku === bc) || list.find(p => p.name?.toLowerCase().includes(bc.toLowerCase())) || list[0] };
+            const list: Product[] = Array.isArray(res) ? res : res?.results ?? [];
+            return {
+              bc,
+              match:
+                list.find((p) => p.barcode === bc || p.sku === bc) ||
+                list.find((p) => p.name?.toLowerCase().includes(bc.toLowerCase())) ||
+                list[0],
+            };
           })
         );
 
@@ -218,10 +270,10 @@ export default function PurchaseProductPage() {
             notFound.push(bc);
             continue;
           }
-          
+
           const qty = counts[bc];
-          const existing = newLines.find(l => l.product.id === match.id);
-          
+          const existing = newLines.find((l) => l.product.id === match.id);
+
           if (existing) {
             existing.quantity += qty;
             existing.barcodes = [...existing.barcodes, ...Array(qty).fill(bc)];
@@ -230,21 +282,22 @@ export default function PurchaseProductPage() {
               product: match,
               quantity: qty,
               unit_cost: Number(match.cost_price) || 0,
-              barcodes: Array(qty).fill(bc)
+              barcodes: Array(qty).fill(bc),
             });
           }
         }
       }
-      
+
       setLines(newLines);
-      
+
       if (notFound.length > 0) {
         setError(`Could not find products for barcodes: ${notFound.join(", ")}`);
-        const remainingText = parsedBarcodes.filter(b => notFound.includes(b)).join("\n") + "\n";
+        const remainingText = parsedBarcodes.filter((b) => notFound.includes(b)).join("\n") + "\n";
         setBarcodeText(remainingText);
       } else {
         setBarcodeText("");
-        setBulkQty(""); setQtyTouched(false);
+        setBulkQty("");
+        setQtyTouched(false);
       }
     } catch (e: any) {
       setError(e?.message || "Error looking up barcodes");
@@ -257,14 +310,24 @@ export default function PurchaseProductPage() {
     if (!selected) return;
     setLines((prev) => {
       if (prev.find((l) => l.product.id === selected.id)) return prev;
-      return [...prev, { product: selected, quantity: 1, unit_cost: Number(selected.cost_price) || 0, barcodes: [] }];
+      return [
+        ...prev,
+        {
+          product: selected,
+          quantity: 1,
+          unit_cost: Number(selected.cost_price) || 0,
+          barcodes: [],
+        },
+      ];
     });
   }
 
   function updateLine(id: number, field: "quantity" | "unit_cost", val: number) {
     setLines((prev) => prev.map((l) => (l.product.id === id ? { ...l, [field]: val } : l)));
   }
-  function removeLine(id: number) { setLines((prev) => prev.filter((l) => l.product.id !== id)); }
+  function removeLine(id: number) {
+    setLines((prev) => prev.filter((l) => l.product.id !== id));
+  }
 
   // ─── Totals ───────────────────────────────────────────────────────────────
   const subtotal = lines.reduce((s, l) => s + l.quantity * l.unit_cost, 0);
@@ -291,8 +354,14 @@ export default function PurchaseProductPage() {
 
   // ─── Push to Stock ─────────────────────────────────────────────────────────
   async function pushToStock() {
-    if (lines.length === 0) { setError("Add at least one product to receive."); return; }
-    if (!supplier) { setError("Please select a vendor (supplier) for this purchase."); return; }
+    if (lines.length === 0) {
+      setError("Add at least one product to receive.");
+      return;
+    }
+    if (!supplier) {
+      setError("Please select a vendor (supplier) for this purchase.");
+      return;
+    }
     setError("");
     setBusy(true);
     try {
@@ -307,32 +376,40 @@ export default function PurchaseProductPage() {
       if (supplier) poData.supplier = Number(supplier);
       if (branch) poData.branch = Number(branch);
 
-      // Update product selling prices and warranties FIRST so backend uses them during receive
+      // Update product selling prices and warranties FIRST
       for (const l of lines) {
         const patchData: Record<string, any> = {};
-        
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
-        if (l.product.warranty_months !== undefined && l.product.warranty_months !== null) patchData.warranty_months = l.product.warranty_months;
-        
+        if (l.product.warranty_months !== undefined && l.product.warranty_months !== null) {
+          patchData.warranty_months = l.product.warranty_months;
+        }
         if (Object.keys(patchData).length > 0) {
           await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData });
         }
       }
 
-      const po = await api<{ id: number }>("/purchasing/purchase-orders/", { method: "POST", body: poData });
-      await api(`/purchasing/purchase-orders/${po.id}/receive/`, { method: "POST", body: { paid } });
+      const po = await api<{ id: number }>("/purchasing/purchase-orders/", {
+        method: "POST",
+        body: poData,
+      });
+      await api(`/purchasing/purchase-orders/${po.id}/receive/`, {
+        method: "POST",
+        body: { paid },
+      });
 
+      toast.success(t("pp_success_receive") || "Products received successfully");
       router.push("/app/products");
     } catch (e: any) {
       setError(e?.data?.detail || e?.message || "Failed to push to stock.");
-    } finally { setBusy(false); }
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
     <div className="row g-3 align-items-start">
       {/* ── Left panel ────────────────────────────────────────────────────── */}
       <div className="col-lg-8">
-
         {/* Header */}
         <div className="card shadow-sm mb-3">
           <div className="card-body">
@@ -342,14 +419,25 @@ export default function PurchaseProductPage() {
                 <div className="text-secondary small">{t("pp_subtitle")}</div>
               </div>
               <div className="small fw-semibold d-flex align-items-center gap-1 bg-white px-3 py-1 rounded shadow-sm border border-light">
-                <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
-                <span className={scannerConnected ? 'text-success' : 'text-secondary'}>
+                <span
+                  className={`d-inline-block rounded-circle ${scannerConnected ? "bg-success" : "bg-secondary"}`}
+                  style={{ width: 8, height: 8 }}
+                ></span>
+                <span className={scannerConnected ? "text-success" : "text-secondary"}>
                   {scannerConnected ? "Scanner Connected" : "Scanner Disconnected"}
                 </span>
               </div>
               <div className="d-flex gap-2">
-                <button className="btn btn-outline-secondary btn-sm" onClick={() => router.back()}>{t("pp_btn_cancel")}</button>
-                <button className="btn btn-outline-brand btn-sm" onClick={() => { setShowNewProduct(true); setSearchResults(null); }}>
+                <button className="btn btn-outline-secondary btn-sm" onClick={() => router.back()}>
+                  {t("pp_btn_cancel")}
+                </button>
+                <button
+                  className="btn btn-outline-brand btn-sm"
+                  onClick={() => {
+                    setShowNewProduct(true);
+                    setSearchResults(null);
+                  }}
+                >
                   + New Product Record
                 </button>
               </div>
@@ -365,27 +453,67 @@ export default function PurchaseProductPage() {
               <form onSubmit={createProduct} className="row g-2">
                 <div className="col-md-6">
                   <label className="small fw-medium">{t("pp_lbl_prod_name")}</label>
-                  <input required className="form-control form-control-sm" value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} placeholder="e.g. DVR High Resolution" />
+                  <input
+                    required
+                    className="form-control form-control-sm"
+                    value={newProd.name}
+                    onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
+                    placeholder="e.g. DVR High Resolution"
+                  />
                 </div>
                 <div className="col-md-6">
                   <label className="small fw-medium">{t("pp_lbl_sku_auto")}</label>
-                  <input className="form-control form-control-sm" value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="auto-generated" />
+                  <input
+                    className="form-control form-control-sm"
+                    value={newProd.sku}
+                    onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })}
+                    placeholder="auto-generated"
+                  />
                 </div>
                 <div className="col-md-3">
                   <label className="small fw-medium">{t("pp_lbl_cost")}</label>
-                  <input type="number" step="0.01" className="form-control form-control-sm" value={newProd.cost_price} onChange={(e) => setNewProd({ ...newProd, cost_price: e.target.value })} placeholder="0" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-control form-control-sm"
+                    value={newProd.cost_price}
+                    onChange={(e) => setNewProd({ ...newProd, cost_price: e.target.value })}
+                    placeholder="0"
+                  />
                 </div>
                 <div className="col-md-3">
                   <label className="small fw-medium">{t("pp_lbl_selling")}</label>
-                  <input type="number" step="0.01" className="form-control form-control-sm" value={newProd.selling_price} onChange={(e) => setNewProd({ ...newProd, selling_price: e.target.value })} placeholder="0" />
+                  <input
+                    type="number"
+                    step="0.01"
+                    className="form-control form-control-sm"
+                    value={newProd.selling_price}
+                    onChange={(e) => setNewProd({ ...newProd, selling_price: e.target.value })}
+                    placeholder="0"
+                  />
                 </div>
                 <div className="col-md-3">
                   <label className="small fw-medium">{t("pp_lbl_reorder")}</label>
-                  <input type="number" step="1" min="0" className="form-control form-control-sm" value={newProd.reorder_level} onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })} />
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    className="form-control form-control-sm"
+                    value={newProd.reorder_level}
+                    onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })}
+                  />
                 </div>
                 <div className="col-md-3 d-flex align-items-end gap-2">
-                  <button className="btn btn-brand btn-sm" disabled={savingProd}>{savingProd ? "Creating…" : "Create & add"}</button>
-                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewProduct(false)}>{t("pp_btn_cancel")}</button>
+                  <button className="btn btn-brand btn-sm" disabled={savingProd}>
+                    {savingProd ? "Creating…" : "Create & add"}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => setShowNewProduct(false)}
+                  >
+                    {t("pp_btn_cancel")}
+                  </button>
                 </div>
               </form>
             </div>
@@ -420,7 +548,7 @@ export default function PurchaseProductPage() {
             {searching && <div className="text-secondary small py-2">{t("pp_searching")}</div>}
 
             {searchResults !== null && !searching && (
-              <div className="border rounded">
+              <div className="border rounded mb-2">
                 <div className="px-3 py-2 bg-secondary bg-opacity-10 border-bottom small fw-semibold text-secondary">
                   SEARCH RESULTS ({searchResults.length})
                 </div>
@@ -431,20 +559,29 @@ export default function PurchaseProductPage() {
                       Create a new product?
                     </button>
                   </div>
-                ) : searchResults.map((p) => (
-                  <label
-                    key={p.id}
-                    className={`d-flex align-items-center gap-3 px-3 py-2 border-bottom ${selected?.id === p.id ? "bg-secondary bg-opacity-10" : ""}`}
-                    style={{ cursor: "pointer" }}
-                    onClick={() => selectProduct(p)}
-                  >
-                    <input type="checkbox" className="form-check-input mt-0" readOnly checked={selected?.id === p.id} />
-                    <div>
-                      <div className="fw-semibold">{p.name}</div>
-                      <div className="small text-secondary">{t("pp_sku")}: {p.sku || "—"} &bull; {t("pp_stock")}: {p.current_stock}</div>
-                    </div>
-                  </label>
-                ))}
+                ) : (
+                  searchResults.map((p) => (
+                    <label
+                      key={p.id}
+                      className={`d-flex align-items-center gap-3 px-3 py-2 border-bottom ${selected?.id === p.id ? "bg-secondary bg-opacity-10" : ""}`}
+                      style={{ cursor: "pointer" }}
+                      onClick={() => selectProduct(p)}
+                    >
+                      <input
+                        type="checkbox"
+                        className="form-check-input mt-0"
+                        readOnly
+                        checked={selected?.id === p.id}
+                      />
+                      <div>
+                        <div className="fw-semibold">{p.name}</div>
+                        <div className="small text-secondary">
+                          {t("pp_sku")}: {p.sku || "—"} &bull; {t("pp_stock")}: {p.current_stock}
+                        </div>
+                      </div>
+                    </label>
+                  ))
+                )}
               </div>
             )}
 
@@ -452,11 +589,17 @@ export default function PurchaseProductPage() {
               <div className="mt-2 p-2 border rounded bg-secondary bg-opacity-10 d-flex align-items-center justify-content-between">
                 <div>
                   <span className="fw-semibold">✓ {selected.name}</span>
-                  <span className="text-secondary small ms-2">{t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {selected.current_stock}</span>
+                  <span className="text-secondary small ms-2">
+                    {t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {selected.current_stock}
+                  </span>
                 </div>
                 <div className="d-flex gap-2">
-                  <button className="btn btn-brand btn-sm" onClick={addManualLine}>+ Add to receive</button>
-                  <button className="btn btn-outline-secondary btn-sm" onClick={() => setSelected(null)}>✕ Clear</button>
+                  <button className="btn btn-brand btn-sm" onClick={addManualLine}>
+                    + Add to receive
+                  </button>
+                  <button className="btn btn-outline-secondary btn-sm" onClick={() => setSelected(null)}>
+                    ✕ Clear
+                  </button>
                 </div>
               </div>
             )}
@@ -471,41 +614,71 @@ export default function PurchaseProductPage() {
               <div className="col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_cost_bdt")}</label>
                 <input
-                  className="form-control" type="number" step="0.01"
+                  className="form-control"
+                  type="number"
+                  step="0.01"
                   value={selected ? cost : ""}
-                  placeholder="0" disabled={!selected}
+                  placeholder="0"
+                  disabled={!selected}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, cost_price: e.target.value });
-                    setLines((prev) => prev.map((l) => l.product.id === selected.id ? { ...l, unit_cost: Number(e.target.value) || 0 } : l));
+                    setLines((prev) =>
+                      prev.map((l) =>
+                        l.product.id === selected.id ? { ...l, unit_cost: Number(e.target.value) || 0 } : l
+                      )
+                    );
                   }}
                 />
               </div>
               <div className="col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_sell_bdt")}</label>
                 <input
-                  className="form-control" type="number" step="0.01"
+                  className="form-control"
+                  type="number"
+                  step="0.01"
                   value={selected ? sell : ""}
-                  placeholder="0" disabled={!selected}
+                  placeholder="0"
+                  disabled={!selected}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, selling_price: e.target.value });
-                    setLines((prev) => prev.map((l) => l.product.id === selected.id ? { ...l, product: { ...l.product, selling_price: e.target.value } } : l));
+                    setLines((prev) =>
+                      prev.map((l) =>
+                        l.product.id === selected.id
+                          ? { ...l, product: { ...l.product, selling_price: e.target.value } }
+                          : l
+                      )
+                    );
                   }}
                 />
-                <div className="small text-muted mt-1">{t("pp_lbl_margin")}: <strong>{margin}%</strong> · {t("pp_lbl_profit")}: <strong>{t("pp_bdt")} {profit}/{t("pp_unit")}</strong></div>
+                <div className="small text-muted mt-1">
+                  {t("pp_lbl_margin")}: <strong>{margin}%</strong> · {t("pp_lbl_profit")}:{" "}
+                  <strong>
+                    {t("pp_bdt")} {profit}/{t("pp_unit")}
+                  </strong>
+                </div>
               </div>
               <div className="col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_warranty")}</label>
                 <input
-                  className="form-control" type="number" min="0"
+                  className="form-control"
+                  type="number"
+                  min="0"
                   value={selected?.warranty_months ?? ""}
-                  placeholder="0" disabled={!selected}
+                  placeholder="0"
+                  disabled={!selected}
                   onChange={(e) => {
                     if (!selected) return;
                     const val = Number(e.target.value);
                     setSelected({ ...selected, warranty_months: val });
-                    setLines((prev) => prev.map((l) => l.product.id === selected.id ? { ...l, product: { ...l.product, warranty_months: val } } : l));
+                    setLines((prev) =>
+                      prev.map((l) =>
+                        l.product.id === selected.id
+                          ? { ...l, product: { ...l.product, warranty_months: val } }
+                          : l
+                      )
+                    );
                   }}
                 />
                 <div className="small text-muted mt-1">{t("pp_lbl_warranty_hint")}</div>
@@ -513,32 +686,124 @@ export default function PurchaseProductPage() {
               <div className="col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_qty")}</label>
                 <input
-                  type="number" min={1} step={1}
+                  type="number"
+                  min={1}
+                  step={1}
                   className={`form-control ${tooManyBarcodes ? "is-invalid" : ""}`}
                   placeholder={selected ? "e.g. 10" : "Select a product first"}
                   value={qtyDisplay}
                   disabled={!selected}
-                  onChange={(e) => { const v = e.target.value; setBulkQty(v); setQtyTouched(v.trim() !== ""); }}
+                  onChange={(e) => {
+                    const v = e.target.value;
+                    setBulkQty(v);
+                    setQtyTouched(v.trim() !== "");
+                  }}
                 />
                 <div className={`small mt-1 ${tooManyBarcodes ? "text-danger" : "text-muted"}`}>
                   {selected
-                    ? (hasBulkQty
-                        ? `${parsedBarcodes.length} / ${effQty} barcodes scanned` + (tooManyBarcodes ? " — too many!" : (parsedBarcodes.length < effQty ? ` · ${effQty - parsedBarcodes.length} without barcode` : ""))
-                        : (parsedBarcodes.length > 0
-                            ? `Auto: ${parsedBarcodes.length} unit(s) from scanned barcodes. Type a number to override (e.g. when the packet has no barcode).`
-                            : "Auto-counts scanned barcodes. Type a number to receive more units than barcodes (packet has no barcode)."))
+                    ? hasBulkQty
+                      ? `${parsedBarcodes.length} / ${effQty} barcodes scanned` +
+                        (tooManyBarcodes
+                          ? " — too many!"
+                          : parsedBarcodes.length < effQty
+                          ? ` · ${effQty - parsedBarcodes.length} without barcode`
+                          : "")
+                      : parsedBarcodes.length > 0
+                      ? `Auto: ${parsedBarcodes.length} unit(s) from scanned barcodes.`
+                      : "Auto-counts scanned barcodes. Type a number to receive units without barcodes."
                     : "Pick a product above to set a quantity."}
                 </div>
               </div>
             </div>
-              <div className="col-12 mt-3">
-                <button className="btn btn-brand w-100" disabled={busy || tooManyBarcodes || (parsedBarcodes.length === 0 && !hasBulkQty)} onClick={addScannedUnits}>
-                  {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "+ "}Add {effQty} unit(s) to receive
-                </button>
+          </div>
+        </div>
+
+        {/* ── Bulk Barcode Scan Card ───────────────────────────────────────── */}
+        <div className="card shadow-sm mb-3">
+          <div className="card-body">
+            <div className="d-flex justify-content-between align-items-center mb-3">
+              <h2 className="h6 fw-bold mb-0 text-brand">▦ Bulk Barcode Scan &amp; Ingestion</h2>
+              <div className="d-flex gap-2 align-items-center">
+                <span className="badge text-bg-primary">{parsedBarcodes.length} BARCODES</span>
+                {selected && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-brand btn-sm"
+                    onClick={generateBarcodesForSelected}
+                  >
+                    ⚡ অটো-বারকোড তৈরি করুন ({effQty})
+                  </button>
+                )}
               </div>
+            </div>
+            <div className="row g-3">
+              <div className="col-md-7">
+                <label className="form-label small fw-medium">বারকোড স্ক্যান বা পেস্ট করুন (প্রতি লাইনে একটি):</label>
+                <textarea
+                  className="form-control font-monospace"
+                  rows={6}
+                  placeholder="Scan or paste barcodes — each code separates automatically. One code per line."
+                  value={barcodeText}
+                  onChange={handleBarcodeInput}
+                />
+              </div>
+              <div className="col-md-5">
+                <div className="border rounded p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-2 bg-light">
+                  <div className="fs-3">🖨️</div>
+                  <div className="fw-semibold small">{t("pp_scan_mode")}</div>
+                  <div className="text-secondary small">{t("pp_scan_hint")}</div>
+                  <div className="d-flex align-items-center gap-2 mt-1">
+                    <span className="small text-secondary">{t("pp_digits_code")}:</span>
+                    <input
+                      type="number"
+                      className="form-control form-control-sm"
+                      style={{ width: "4.5rem" }}
+                      value={digitsPerCode}
+                      min={4}
+                      max={30}
+                      onChange={(e) => setDigitsPerCode(Number(e.target.value) || 13)}
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    className="btn btn-outline-primary btn-sm w-100 mt-1"
+                    onClick={() => setShowScanner(true)}
+                  >
+                    📷 Scan with Camera
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm w-100 mt-1"
+                    onClick={() => {
+                      setBarcodeText("");
+                      setBulkQty("");
+                      setQtyTouched(false);
+                    }}
+                  >
+                    {t("pp_btn_clear_list")}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <button
+                type="button"
+                className="btn btn-brand btn-lg w-100"
+                disabled={busy || tooManyBarcodes || (!selected && parsedBarcodes.length === 0)}
+                onClick={addScannedUnits}
+              >
+                {busy ? (
+                  <span className="spinner-border spinner-border-sm me-2" />
+                ) : (
+                  "+ "
+                )}
+                Add {effQty} unit(s) to receive
+              </button>
             </div>
           </div>
         </div>
+      </div>
 
       {/* ── Right panel ───────────────────────────────────────────────────── */}
       <div className="col-lg-4">
@@ -554,7 +819,7 @@ export default function PurchaseProductPage() {
                 <div className="small">{t("pp_pending_empty")}</div>
               </div>
             ) : (
-              <div className="table-responsive">
+              <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
                 <table className="table table-sm align-middle mb-0">
                   <tbody>
                     {lines.map((l) => (
@@ -563,20 +828,46 @@ export default function PurchaseProductPage() {
                           <div className="fw-semibold small">{l.product.name}</div>
                           {l.barcodes.length > 0 && (
                             <div className="text-muted" style={{ fontSize: "0.7rem", fontFamily: "monospace" }}>
-                              ▦ {l.barcodes[0]}{l.barcodes.length > 1 ? ` +${l.barcodes.length - 1} more` : ""}
+                              ▦ {l.barcodes[0]}
+                              {l.barcodes.length > 1 ? ` +${l.barcodes.length - 1} more` : ""}
                             </div>
                           )}
                         </td>
                         <td style={{ width: "4.5rem" }}>
-                          <input type="number" min={1} step={1} className="form-control form-control-sm" value={l.quantity}
-                            onChange={(e) => updateLine(l.product.id, "quantity", Math.max(1, Math.round(Number(e.target.value) || 1)))} />
+                          <input
+                            type="number"
+                            min={1}
+                            step={1}
+                            className="form-control form-control-sm"
+                            value={l.quantity}
+                            onChange={(e) =>
+                              updateLine(
+                                l.product.id,
+                                "quantity",
+                                Math.max(1, Math.round(Number(e.target.value) || 1))
+                              )
+                            }
+                          />
                         </td>
                         <td style={{ width: "5.5rem" }}>
-                          <input type="number" min={0} step="0.01" className="form-control form-control-sm" value={l.unit_cost}
-                            onChange={(e) => updateLine(l.product.id, "unit_cost", Number(e.target.value) || 0)} />
+                          <input
+                            type="number"
+                            min={0}
+                            step="0.01"
+                            className="form-control form-control-sm"
+                            value={l.unit_cost}
+                            onChange={(e) =>
+                              updateLine(l.product.id, "unit_cost", Number(e.target.value) || 0)
+                            }
+                          />
                         </td>
                         <td className="text-end pe-2">
-                          <button className="btn btn-link btn-sm p-0 text-danger" onClick={() => removeLine(l.product.id)}>✕</button>
+                          <button
+                            className="btn btn-link btn-sm p-0 text-danger"
+                            onClick={() => removeLine(l.product.id)}
+                          >
+                            ✕
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -586,18 +877,45 @@ export default function PurchaseProductPage() {
             )}
 
             <div className="border-top px-3 py-2">
-              <div className="d-flex justify-content-between small mb-1"><span className="text-secondary">{t("pp_subtotal")}</span><span>{money(subtotal)}</span></div>
-              <div className="d-flex justify-content-between fw-bold mb-3"><span>{t("pp_total_val")}</span><span>{money(subtotal)}</span></div>
+              <div className="d-flex justify-content-between small mb-1">
+                <span className="text-secondary">{t("pp_subtotal")}</span>
+                <span>{money(subtotal)}</span>
+              </div>
+              <div className="d-flex justify-content-between fw-bold mb-3">
+                <span>{t("pp_total_val")}</span>
+                <span>{money(subtotal)}</span>
+              </div>
 
               <label className="form-label small fw-medium">{t("pp_lbl_paid_now")}</label>
               <div className="input-group input-group-sm mb-1">
                 <span className="input-group-text">{t("pp_bdt")}</span>
-                <input type="number" min={0} step="0.01" className="form-control" value={payAmount}
-                  onChange={(e) => setPayAmount(e.target.value)} placeholder="0" />
-                <button className="btn btn-outline-secondary" onClick={() => setPayAmount(String(subtotal))}>{t("pp_btn_pay_full")}</button>
+                <input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  className="form-control"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  placeholder="0"
+                />
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary"
+                  onClick={() => setPayAmount(String(subtotal))}
+                >
+                  {t("pp_btn_pay_full")}
+                </button>
               </div>
-              <select className="form-select form-select-sm mb-3" value={payMethod} onChange={(e) => setPayMethod(e.target.value)}>
-                {Object.entries(PAY_METHODS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+              <select
+                className="form-select form-select-sm mb-3"
+                value={payMethod}
+                onChange={(e) => setPayMethod(e.target.value)}
+              >
+                {Object.entries(PAY_METHODS).map(([v, l]) => (
+                  <option key={v} value={v}>
+                    {l}
+                  </option>
+                ))}
               </select>
 
               <div className="d-flex justify-content-between small mb-1">
@@ -612,23 +930,64 @@ export default function PurchaseProductPage() {
               <div className="mb-2">
                 <label className="small fw-medium">{t("pp_lbl_vendor")}</label>
                 <div className="d-flex gap-2 align-items-center">
-                  <select className="form-select form-select-sm" value={supplier} onChange={(e) => setSupplier(e.target.value)}>
+                  <select
+                    className="form-select form-select-sm"
+                    value={supplier}
+                    onChange={(e) => setSupplier(e.target.value)}
+                  >
                     <option value="">— none —</option>
-                    {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    {suppliers.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
                   </select>
-                  <button className="btn btn-outline-brand btn-sm text-nowrap" onClick={() => setShowNewVendor((v) => !v)}>+ add</button>
+                  <button
+                    type="button"
+                    className="btn btn-outline-brand btn-sm text-nowrap"
+                    onClick={() => setShowNewVendor((v) => !v)}
+                  >
+                    + add
+                  </button>
                 </div>
               </div>
 
               {showNewVendor && (
-                <form onSubmit={createVendor} className="border rounded p-3 mt-2 mb-3" style={{ background: "rgba(0, 0, 0, 0.15)" }}>
+                <form
+                  onSubmit={createVendor}
+                  className="border rounded p-3 mt-2 mb-3 bg-light"
+                >
                   <div className="small fw-bold text-brand mb-2">✨ Quick Add Vendor</div>
-                  <input required className="form-control form-control-sm mb-2" placeholder="Vendor Name *" value={newVendor.name} onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })} />
-                  <input className="form-control form-control-sm mb-2" placeholder="Phone Number" value={newVendor.phone} onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })} />
-                  <input className="form-control form-control-sm mb-3" placeholder="Warehouse / Address" value={newVendor.address} onChange={(e) => setNewVendor({ ...newVendor, address: e.target.value })} />
+                  <input
+                    required
+                    className="form-control form-control-sm mb-2"
+                    placeholder="Vendor Name *"
+                    value={newVendor.name}
+                    onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
+                  />
+                  <input
+                    className="form-control form-control-sm mb-2"
+                    placeholder="Phone Number"
+                    value={newVendor.phone}
+                    onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
+                  />
+                  <input
+                    className="form-control form-control-sm mb-3"
+                    placeholder="Warehouse / Address"
+                    value={newVendor.address}
+                    onChange={(e) => setNewVendor({ ...newVendor, address: e.target.value })}
+                  />
                   <div className="d-flex gap-2 justify-content-end">
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewVendor(false)}>{t("pp_btn_cancel")}</button>
-                    <button className="btn btn-brand btn-sm" disabled={savingVendor}>{savingVendor ? "Adding…" : "Add Vendor"}</button>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => setShowNewVendor(false)}
+                    >
+                      {t("pp_btn_cancel")}
+                    </button>
+                    <button className="btn btn-brand btn-sm" disabled={savingVendor}>
+                      {savingVendor ? "Adding…" : "Add Vendor"}
+                    </button>
                   </div>
                 </form>
               )}
@@ -636,9 +995,17 @@ export default function PurchaseProductPage() {
               {branches.length > 0 && (
                 <div>
                   <label className="small fw-medium">{t("pp_lbl_warehouse")}</label>
-                  <select className="form-select form-select-sm" value={branch} onChange={(e) => setBranch(e.target.value)}>
+                  <select
+                    className="form-select form-select-sm"
+                    value={branch}
+                    onChange={(e) => setBranch(e.target.value)}
+                  >
                     <option value="">— default —</option>
-                    {branches.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
+                    {branches.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -647,11 +1014,17 @@ export default function PurchaseProductPage() {
             <div className="px-3 pb-3">
               {error && <div className="alert alert-danger py-2 px-3 small mb-2">{error}</div>}
 
-              <button className="btn btn-brand w-100 mb-1" disabled={busy || lines.length === 0} onClick={pushToStock}>
+              <button
+                className="btn btn-brand w-100 mb-1"
+                disabled={busy || lines.length === 0}
+                onClick={pushToStock}
+              >
                 {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "↑ "}
                 Push to Stock
               </button>
-              <div className="text-center text-secondary small mb-1">ⓘ Updates ledger &amp; inventory levels</div>
+              <div className="text-center text-secondary small mb-1">
+                ⓘ Updates ledger &amp; inventory levels
+              </div>
             </div>
           </div>
         </div>
