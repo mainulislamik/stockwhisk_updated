@@ -11,10 +11,33 @@ type TutorialVideo = {
   youtube_url: string;
   sequence: number;
   is_active: boolean;
+  video_id?: string;
   target_audience?: string;
-  thumbnail_url: string;
-  embed_url: string;
+  thumbnail_url?: string;
+  embed_url?: string;
 };
+
+function extractYoutubeId(url: string) {
+  if (!url) return "";
+  const match = url.match(/(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/);
+  if (match) return match[1];
+  if (/^[A-Za-z0-9_-]{11}$/.test(url.trim())) return url.trim();
+  return "";
+}
+
+function getThumbnailUrl(v: TutorialVideo) {
+  if (v.thumbnail_url) return v.thumbnail_url;
+  const vid = v.video_id || extractYoutubeId(v.youtube_url);
+  if (vid) return `https://img.youtube.com/vi/${vid}/hqdefault.jpg`;
+  return "";
+}
+
+function getEmbedUrl(v: TutorialVideo) {
+  if (v.embed_url) return v.embed_url;
+  const vid = v.video_id || extractYoutubeId(v.youtube_url);
+  if (vid) return `https://www.youtube.com/embed/${vid}`;
+  return "";
+}
 
 export default function TutorialsPage() {
   const { t } = useLanguage();
@@ -45,35 +68,59 @@ export default function TutorialsPage() {
         <div className="text-secondary mt-3">{t("tut_no_tut")}</div>
       ) : (
         <div className="row g-3">
-          {videos.map((v) => (
-            <div className="col-md-6 col-lg-4" key={v.id}>
-              <div 
-                className="card shadow-sm h-100" 
-                style={{ cursor: "pointer" }}
-                onClick={() => setActiveVideo(v)}
-              >
-                <div
-                  className="d-flex align-items-center justify-content-center bg-brand text-white position-relative"
-                  style={{ 
-                    aspectRatio: "16/9", 
-                    borderTopLeftRadius: "var(--radius)", 
-                    borderTopRightRadius: "var(--radius)",
-                    backgroundImage: v.thumbnail_url ? `url(${v.thumbnail_url})` : "none",
-                    backgroundSize: "cover",
-                    backgroundPosition: "center"
-                  }}
+          {videos.map((v) => {
+            const thumb = getThumbnailUrl(v);
+            const vid = v.video_id || extractYoutubeId(v.youtube_url);
+
+            return (
+              <div className="col-md-6 col-lg-4" key={v.id}>
+                <div 
+                  className="card shadow-sm h-100 border-0 overflow-hidden" 
+                  style={{ cursor: "pointer", transition: "transform 0.2s" }}
+                  onClick={() => setActiveVideo(v)}
                 >
-                  <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark" style={{ opacity: 0.4, borderTopLeftRadius: "var(--radius)", borderTopRightRadius: "var(--radius)" }}></div>
-                  <i className="bi bi-play-circle-fill position-relative" style={{ fontSize: "3rem", zIndex: 1, textShadow: "0 2px 4px rgba(0,0,0,0.5)" }}></i>
-                </div>
-                <div className="card-body">
-                  <div className="fw-semibold">
-                    {v.sequence}. {v.title}
+                  <div
+                    className="d-flex align-items-center justify-content-center bg-dark text-white position-relative overflow-hidden"
+                    style={{ 
+                      aspectRatio: "16/9", 
+                      borderTopLeftRadius: "var(--radius, 0.5rem)", 
+                      borderTopRightRadius: "var(--radius, 0.5rem)",
+                    }}
+                  >
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt={v.title}
+                        className="position-absolute top-0 start-0 w-100 h-100"
+                        style={{ objectFit: "cover" }}
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (vid && !target.src.includes("mqdefault")) {
+                            target.src = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
+                          } else if (vid && !target.src.includes("0.jpg")) {
+                            target.src = `https://img.youtube.com/vi/${vid}/0.jpg`;
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div 
+                      className="position-absolute top-0 start-0 w-100 h-100 bg-dark" 
+                      style={{ opacity: 0.35, zIndex: 1 }}
+                    ></div>
+                    <i 
+                      className="bi bi-play-circle-fill position-relative text-white" 
+                      style={{ fontSize: "3rem", zIndex: 2, textShadow: "0 2px 8px rgba(0,0,0,0.7)" }}
+                    ></i>
+                  </div>
+                  <div className="card-body">
+                    <div className="fw-semibold">
+                      {v.sequence}. {v.title}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -89,9 +136,9 @@ export default function TutorialsPage() {
                 </div>
                 <div className="modal-body">
                   <div className="ratio ratio-16x9 bg-black rounded">
-                    {activeVideo.embed_url ? (
+                    {getEmbedUrl(activeVideo) ? (
                       <iframe 
-                        src={`${activeVideo.embed_url}?autoplay=1`}
+                        src={`${getEmbedUrl(activeVideo)}?autoplay=1`}
                         title={activeVideo.title}
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen

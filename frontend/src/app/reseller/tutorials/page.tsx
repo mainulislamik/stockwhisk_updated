@@ -42,23 +42,41 @@ export default function ResellerTutorialsPage() {
         </div></div>
       ) : (
         <div className="row g-3">
-          {videos.map((v) => (
-            <div className="col-md-6 col-lg-4" key={v.id}>
-              <div className="card border-0 shadow-sm h-100" style={{ cursor: "pointer" }} onClick={() => setActive(v)}>
-                <div className="d-flex align-items-center justify-content-center text-white position-relative"
-                  style={{
-                    aspectRatio: "16/9", borderTopLeftRadius: ".5rem", borderTopRightRadius: ".5rem",
-                    background: v.thumbnail_url ? `center/cover no-repeat url(${v.thumbnail_url})` : "#0f172a",
-                  }}>
-                  <div className="position-absolute top-0 start-0 w-100 h-100" style={{ background: "rgba(0,0,0,.4)", borderTopLeftRadius: ".5rem", borderTopRightRadius: ".5rem" }} />
-                  <i className="bi bi-play-circle-fill position-relative" style={{ fontSize: "3rem", zIndex: 1, textShadow: "0 2px 4px rgba(0,0,0,.5)" }} />
-                </div>
-                <div className="card-body">
-                  <div className="fw-semibold">{v.sequence}. {v.title}</div>
+          {videos.map((v) => {
+            const vid = v.video_id || (v.youtube_url?.match(/(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})/)?.[1] || "");
+            const thumb = v.thumbnail_url || (vid ? `https://img.youtube.com/vi/${vid}/hqdefault.jpg` : "");
+            return (
+              <div className="col-md-6 col-lg-4" key={v.id}>
+                <div className="card border-0 shadow-sm h-100" style={{ cursor: "pointer" }} onClick={() => setActive(v)}>
+                  <div className="d-flex align-items-center justify-content-center bg-dark text-white position-relative overflow-hidden"
+                    style={{
+                      aspectRatio: "16/9", borderTopLeftRadius: ".5rem", borderTopRightRadius: ".5rem",
+                    }}>
+                    {thumb ? (
+                      <img
+                        src={thumb}
+                        alt={v.title}
+                        className="position-absolute top-0 start-0 w-100 h-100 object-fit-cover"
+                        onError={(e) => {
+                          const target = e.currentTarget;
+                          if (vid && !target.src.includes("mqdefault")) {
+                            target.src = `https://img.youtube.com/vi/${vid}/mqdefault.jpg`;
+                          } else if (vid && !target.src.includes("0.jpg")) {
+                            target.src = `https://img.youtube.com/vi/${vid}/0.jpg`;
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <div className="position-absolute top-0 start-0 w-100 h-100 bg-dark" style={{ opacity: 0.35, zIndex: 1 }} />
+                    <i className="bi bi-play-circle-fill position-relative text-white" style={{ fontSize: "3rem", zIndex: 2, textShadow: "0 2px 8px rgba(0,0,0,.7)" }} />
+                  </div>
+                  <div className="card-body">
+                    <div className="fw-semibold">{v.sequence}. {v.title}</div>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 

@@ -6,9 +6,19 @@ from django.utils import timezone
 
 from core.models import TimeStampedModel
 
-_YT_ID = re.compile(
-    r"(?:youtu\.be/|youtube\.com/(?:watch\?v=|embed/|shorts/|v/))([A-Za-z0-9_-]{11})"
-)
+def _extract_youtube_id(url: str) -> str:
+    if not url:
+        return ""
+    url = url.strip()
+    patterns = [
+        r"(?:v=|\/v\/|youtu\.be\/|\/embed\/|\/shorts\/|\/live\/)([A-Za-z0-9_-]{11})",
+        r"^([A-Za-z0-9_-]{11})$",
+    ]
+    for p in patterns:
+        m = re.search(p, url)
+        if m:
+            return m.group(1)
+    return ""
 
 
 class TutorialVideo(TimeStampedModel):
@@ -43,8 +53,7 @@ class TutorialVideo(TimeStampedModel):
     @property
     def video_id(self):
         """Extract the 11-char YouTube id from any common URL shape."""
-        m = _YT_ID.search(self.youtube_url or "")
-        return m.group(1) if m else ""
+        return _extract_youtube_id(self.youtube_url or "")
 
     @property
     def embed_url(self):
