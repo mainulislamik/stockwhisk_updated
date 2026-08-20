@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -31,6 +30,18 @@ type Sale = {
   status: string;
 };
 
+type ServiceTicketItem = {
+  id: number;
+  ticket_no: string;
+  device_description: string;
+  complaint: string;
+  status: string;
+  bill_total: string;
+  paid: string;
+  due: string;
+  received_at: string;
+};
+
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
   const id = params.id;
@@ -40,6 +51,7 @@ export default function CustomerProfilePage() {
 
   const [customer, setCustomer] = useState<CustomerDetail | null>(null);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [tickets, setTickets] = useState<ServiceTicketItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -52,10 +64,14 @@ export default function CustomerProfilePage() {
   async function load() {
     try {
       setLoading(true);
-      const cust = await api<CustomerDetail>(`/crm/customers/${id}/`);
-      const salesData = await api<{ results: Sale[] }>(`/sales/sales/?customer=${id}&page_size=50`).catch(() => ({ results: [] }));
+      const [cust, salesData, ticketsData] = await Promise.all([
+        api<CustomerDetail>(`/crm/customers/${id}/`),
+        api<{ results: Sale[] }>(`/sales/sales/?customer=${id}&page_size=50`).catch(() => ({ results: [] })),
+        api<{ results: ServiceTicketItem[] }>(`/service/tickets/?customer=${id}&page_size=50`).catch(() => ({ results: [] })),
+      ]);
       setCustomer(cust);
       setSales((salesData as any).results || []);
+      setTickets((ticketsData as any).results || []);
     } catch (e: any) {
       setError(e?.message || "Failed to load customer");
     } finally {
@@ -94,6 +110,16 @@ export default function CustomerProfilePage() {
     returned: "text-bg-info",
   };
 
+  const ticketStatusBadge: Record<string, string> = {
+    received: "text-bg-secondary",
+    diagnosing: "text-bg-info",
+    awaiting_parts: "text-bg-warning",
+    in_repair: "text-bg-warning",
+    ready_for_pickup: "text-bg-primary",
+    delivered: "text-bg-success",
+    cancelled: "text-bg-dark",
+  };
+
   if (loading) return <Spinner label={t("cust_loading")} />;
   if (error || !customer) return <ErrorState error={error || "Customer not found"} />;
 
@@ -105,9 +131,9 @@ export default function CustomerProfilePage() {
         <div>
           <h1 className="h4 fw-bold text-brand mb-0">{customer.name}</h1>
           <div className="text-secondary small">
-            {customer.phone && <span className="me-3">Phone: {customer.phone}</span>}
-            {customer.email && <span className="me-3">Email: {customer.email}</span>}
-            {customer.address && <span>Address: {customer.address}</span>}
+            {customer.phone && <span className="me-3">📞 {customer.phone}</span>}
+            {customer.email && <span className="me-3">✉️ {customer.email}</span>}
+            {customer.address && <span>📍 {customer.address}</span>}
           </div>
         </div>
         <Link href="/app/customers" className="btn btn-outline-secondary btn-sm">&#8592; {t("nav_customers")}</Link>
@@ -178,8 +204,9 @@ export default function CustomerProfilePage() {
         </div>
       )}
 
+      {/* Sales Invoices */}
       <div className="card shadow-sm">
-        <div className="card-header fw-semibold">{t("nav_invoices")}</div>
+        <div className="card-header fw-semibold">🧾 {t("nav_invoices")}</div>
         <div className="table-responsive">
           <table className="table table-sm table-striped align-middle mb-0">
             <thead className="thead-2">
@@ -210,6 +237,55 @@ export default function CustomerProfilePage() {
                   </td>
                   <td>
                     <Link href={`/app/sales/${s.id}`} className="btn btn-outline-secondary btn-sm py-0">
+                      {t("sales_list_view")}
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Service & Repair Tickets */}
+      <div className="card shadow-sm">
+        <div className="card-header fw-semibold">🔧 {t("nav_repair_tickets")}</div>
+        <div className="table-responsive">
+          <table className="table table-sm table-striped align-middle mb-0">
+            <thead className="thead-2">
+              <tr>
+                <th>{t("tkt_col_ticket")}</th>
+                <th>{t("tkt_col_device")}</th>
+                <th>{t("tkt_col_received")}</th>
+                <th className="text-end">{t("tkt_col_charge")}</th>
+                <th className="text-end">Paid</th>
+                <th className="text-end">Due</th>
+                <th>{t("tkt_col_status")}</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody>
+              {tickets.length === 0 ? (
+                <tr><td colSpan={8} className="text-center text-secondary py-4">{t("tkt_no_tickets")}</td></tr>
+              ) : tickets.map(tk => (
+                <tr key={tk.id}>
+                  <td className="fw-medium">
+                    <Link href={`/app/service/tickets/${tk.id}`} className="text-decoration-none text-brand">
+                      {tk.ticket_no}
+                    </Link>
+                  </td>
+                  <td>{tk.device_description}</td>
+                  <td className="text-secondary">{fmtDate(tk.received_at)}</td>
+                  <td className="text-end">{money(tk.bill_total)}</td>
+                  <td className="text-end">{money(tk.paid)}</td>
+                  <td className={`text-end ${Number(tk.due) > 0 ? "text-danger fw-semibold" : ""}`}>{money(tk.due)}</td>
+                  <td>
+                    <span className={`badge ${ticketStatusBadge[tk.status?.toLowerCase()] || "text-bg-light"}`}>
+                      {t(`tkt_status_${tk.status?.toLowerCase()}`) || tk.status}
+                    </span>
+                  </td>
+                  <td>
+                    <Link href={`/app/service/tickets/${tk.id}`} className="btn btn-outline-secondary btn-sm py-0">
                       {t("sales_list_view")}
                     </Link>
                   </td>

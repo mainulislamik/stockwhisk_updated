@@ -77,9 +77,25 @@ class ServiceTicketViewSet(TenantScopedViewSet):
     required_write_perm = "manage_service"
 
     def get_queryset(self):
-        return ServiceTicket.objects.select_related("customer", "technician").prefetch_related(
+        qs = ServiceTicket.objects.select_related("customer", "technician").prefetch_related(
             "parts", "history"
         )
+        params = self.request.query_params
+        if cust := params.get("customer"):
+            qs = qs.filter(customer_id=cust)
+        if st := params.get("status"):
+            qs = qs.filter(status=st)
+        if search := params.get("search"):
+            from django.db.models import Q
+            qs = qs.filter(
+                Q(ticket_no__icontains=search)
+                | Q(customer_name__icontains=search)
+                | Q(customer_phone__icontains=search)
+                | Q(device_description__icontains=search)
+                | Q(customer__name__icontains=search)
+                | Q(customer__phone__icontains=search)
+            )
+        return qs
 
     def get_serializer_class(self):
         return TicketCreateSerializer if self.action == "create" else ServiceTicketSerializer

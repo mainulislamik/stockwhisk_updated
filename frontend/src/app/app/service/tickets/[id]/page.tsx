@@ -23,6 +23,7 @@ type Ticket = {
   received_at: string;
   estimated_delivery: string | null;
   is_overdue: boolean;
+  customer?: number | null;
   customer_name?: string;
   customer_phone?: string;
   paid: string;
@@ -268,7 +269,15 @@ export default function TicketDetailPage() {
               {(ticket.customer_name || ticket.customer_phone) && (
                 <div className="mb-3">
                   <div className="fw-semibold mb-1">{t("tktd_customer")}</div>
-                  <div>{ticket.customer_name || t("tkt_walkin")}</div>
+                  <div>
+                    {ticket.customer ? (
+                      <Link href={`/app/customers/${ticket.customer}`} className="text-decoration-none text-brand fw-semibold">
+                        {ticket.customer_name || t("tkt_walkin")}
+                      </Link>
+                    ) : (
+                      <span className="fw-semibold">{ticket.customer_name || t("tkt_walkin")}</span>
+                    )}
+                  </div>
                   {ticket.customer_phone && <div className="text-secondary small">📞 {ticket.customer_phone}</div>}
                 </div>
               )}

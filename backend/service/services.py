@@ -49,8 +49,25 @@ def lookup_warranties(shop, *, phone=None, invoice_no=None):
 def create_ticket(*, shop, customer, device_description, complaint, branch=None,
                   technician=None, service_charge=0, estimated_delivery=None, created_by=None,
                   customer_name="", customer_phone="", device_type="", issue_type="", warranty=None):
-    # received_at defaults to now automatically (item 12); expected delivery is
-    # supplied manually. customer_name/phone allow walk-ins without a record.
+    # Auto-link or create Customer in CRM so repair customers appear in customer & dues lists.
+    if not customer:
+        from crm.models import Customer
+        c_name = str(customer_name or "").strip()
+        c_phone = str(customer_phone or "").strip()
+        if c_phone:
+            customer = Customer.objects.filter(shop=shop, phone=c_phone).first()
+        if not customer and (c_name or c_phone):
+            customer = Customer.objects.create(
+                shop=shop,
+                name=c_name or c_phone,
+                phone=c_phone,
+            )
+    if customer:
+        if not customer_name:
+            customer_name = customer.name
+        if not customer_phone:
+            customer_phone = customer.phone
+
     ticket = ServiceTicket.objects.create(
         shop=shop, customer=customer, branch=branch,
         ticket_no=_next_ticket_no(shop), device_description=device_description,
@@ -75,15 +92,34 @@ def change_ticket_status(*, ticket, new_status, note="", changed_by=None):
     ticket.status = new_status
     if new_status == ServiceTicket.Status.DELIVERED:
         ticket.actual_delivery = timezone.now()
-        # Add to customer dues if there is an outstanding amount
+        # Ensure customer record exists and is linked
+        if not ticket.customer_id and (ticket.customer_name or ticket.customer_phone):
+            from crm.models import Customer
+            c_name = str(ticket.customer_name or "").strip()
+            c_phone = str(ticket.customer_phone or "").strip()
+            customer = None
+            if c_phone:
+                customer = Customer.objects.filter(shop=ticket.shop, phone=c_phone).first()
+            if not customer and (c_name or c_phone):
+                customer = Customer.objects.create(
+                    shop=ticket.shop,
+                    name=c_name or c_phone,
+                    phone=c_phone,
+                )
+            if customer:
+                ticket.customer = customer
+                ticket.save(update_fields=["customer"])
+
+        # Add to customer dues and total purchased
         if ticket.customer_id:
             customer = ticket.customer
             due = ticket.due
             if due > 0:
                 customer.due_balance = (customer.due_balance or 0) + due
             customer.total_purchased = (customer.total_purchased or 0) + ticket.bill_total
+            customer.last_purchase_at = timezone.now()
             if due > 0 or ticket.bill_total > 0:
-                customer.save(update_fields=["due_balance", "total_purchased"])
+                customer.save(update_fields=["due_balance", "total_purchased", "last_purchase_at"])
     ticket.save(update_fields=["status", "actual_delivery"])
 
     ServiceTicketStatusHistory.objects.create(
@@ -146,6 +182,14 @@ def add_ticket_payment(*, ticket, amount, method="cash", created_by=None):
         raise ValueError(f"Amount exceeds outstanding due of {ticket.due}.")
     ticket.paid = (ticket.paid or Decimal("0")) + amount
     ticket.save(update_fields=["paid", "updated_at"])
+
+    # If ticket was already delivered and customer was charged due, reduce their due_balance
+    if ticket.status == ServiceTicket.Status.DELIVERED and ticket.customer_id:
+        customer = ticket.customer
+        if customer.due_balance and customer.due_balance > 0:
+            customer.due_balance = max(Decimal("0"), customer.due_balance - amount)
+            customer.save(update_fields=["due_balance"])
+
     LedgerEntry.objects.create(
         shop=ticket.shop, account=LedgerEntry.Account.CASH, amount=amount,
         source_type="ServiceTicket", source_id=str(ticket.id),
