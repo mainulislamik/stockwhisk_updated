@@ -244,15 +244,24 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
     Calendar ranges compare against the same elapsed slice of the previous
     calendar period; rolling ranges compare against the immediately preceding
     equal-length window. Bucket is monthly for long spans, else daily."""
-    day = now.replace(hour=0, minute=0, second=0, microsecond=0)
+    from datetime import datetime, time
+    loc_now = timezone.localtime(now) if now else timezone.localtime()
+    today = loc_now.date()
+    day_start = timezone.make_aware(datetime.combine(today, time.min))
     us = timedelta(microseconds=1)
+
     if key == "today":
-        start, end = day, now
-        prev_start, prev_end = day - timedelta(days=1), day - us
+        start, end = day_start, now
+        y_date = today - timedelta(days=1)
+        prev_start = timezone.make_aware(datetime.combine(y_date, time.min))
+        prev_end = day_start - us
     elif key == "yesterday":
-        y = day - timedelta(days=1)
-        start, end = y, day - us
-        prev_start, prev_end = y - timedelta(days=1), y - us
+        y_date = today - timedelta(days=1)
+        start = timezone.make_aware(datetime.combine(y_date, time.min))
+        end = day_start - us
+        prev_date = y_date - timedelta(days=1)
+        prev_start = timezone.make_aware(datetime.combine(prev_date, time.min))
+        prev_end = start - us
     elif key == "7d":
         start, end = now - timedelta(days=7), now
         prev_start, prev_end = now - timedelta(days=14), now - timedelta(days=7)
@@ -260,22 +269,32 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
         start, end = now - timedelta(days=30), now
         prev_start, prev_end = now - timedelta(days=60), now - timedelta(days=30)
     elif key == "this_month":
-        start, end = day.replace(day=1), now
-        pm = start - relativedelta(months=1)
-        prev_start, prev_end = pm, pm + (now - start)
+        start = timezone.make_aware(datetime.combine(today.replace(day=1), time.min))
+        end = now
+        pm_day = today.replace(day=1) - relativedelta(months=1)
+        prev_start = timezone.make_aware(datetime.combine(pm_day, time.min))
+        prev_end = prev_start + (now - start)
     elif key == "last_month":
-        start = day.replace(day=1) - relativedelta(months=1)
-        end = day.replace(day=1) - us
-        prev_start, prev_end = start - relativedelta(months=1), start - us
+        m_start = timezone.make_aware(datetime.combine(today.replace(day=1), time.min))
+        lm_day = today.replace(day=1) - relativedelta(months=1)
+        start = timezone.make_aware(datetime.combine(lm_day, time.min))
+        end = m_start - us
+        plm_day = lm_day - relativedelta(months=1)
+        prev_start = timezone.make_aware(datetime.combine(plm_day, time.min))
+        prev_end = start - us
     elif key == "this_quarter":
-        qm = ((now.month - 1) // 3) * 3 + 1
-        start, end = day.replace(month=qm, day=1), now
-        pq = start - relativedelta(months=3)
-        prev_start, prev_end = pq, pq + (now - start)
+        qm = ((today.month - 1) // 3) * 3 + 1
+        q_start = timezone.make_aware(datetime.combine(today.replace(month=qm, day=1), time.min))
+        start, end = q_start, now
+        pq_day = today.replace(month=qm, day=1) - relativedelta(months=3)
+        prev_start = timezone.make_aware(datetime.combine(pq_day, time.min))
+        prev_end = prev_start + (now - start)
     elif key == "this_year":
-        start, end = day.replace(month=1, day=1), now
-        py = start - relativedelta(years=1)
-        prev_start, prev_end = py, py + (now - start)
+        y_start = timezone.make_aware(datetime.combine(today.replace(month=1, day=1), time.min))
+        start, end = y_start, now
+        py_day = today.replace(month=1, day=1) - relativedelta(years=1)
+        prev_start = timezone.make_aware(datetime.combine(py_day, time.min))
+        prev_end = prev_start + (now - start)
     elif key == "all_time":
         first_sale = Sale.all_objects.filter(shop_id=shop.id).order_by("sale_date").first()
         first_ticket = ServiceTicket.all_objects.filter(shop_id=shop.id).order_by("received_at").first()
@@ -938,8 +957,9 @@ def invalidate_dashboard_cache(shop_id):
 
 def _months_back(months):
     """First-of-month datetime for the window start, N months back inclusive."""
-    now = timezone.now()
-    first = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    from datetime import datetime, time
+    today = timezone.localdate()
+    first = timezone.make_aware(datetime.combine(today.replace(day=1), time.min))
     return first - relativedelta(months=months - 1)
 
 
