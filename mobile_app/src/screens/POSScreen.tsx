@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert,
 import { Text, Appbar, useTheme, Surface, IconButton, TextInput, Button, Divider, ActivityIndicator, Badge, Chip, Checkbox } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useRoute } from '@react-navigation/native';
 import * as Print from 'expo-print';
 import * as SecureStore from 'expo-secure-store';
 import { api } from '../api';
@@ -23,6 +23,7 @@ type CartLine = { product: Product; qty: number; price: number; discount: number
 type Customer = { id: number; name: string; phone?: string; };
 
 export default function POSScreen() {
+  const route = useRoute<any>();
   const theme = useTheme();
   const { language } = usePreferences();
   const isBN = language === 'BN';
@@ -150,6 +151,16 @@ export default function POSScreen() {
     };
     loadDraft();
   }, []);
+
+  // Handle scanned barcode from external screens (e.g. Dashboard)
+  useEffect(() => {
+    if (route.params?.scannedBarcode) {
+      const code = String(route.params.scannedBarcode).trim();
+      if (code) {
+        processBarcode(code);
+      }
+    }
+  }, [route.params?.scannedBarcode]);
 
   // Save draft cart on change
   useEffect(() => {

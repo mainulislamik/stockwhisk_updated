@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, useTheme, FAB, Button, Divider, Menu } from 'react-native-paper';
-import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -36,12 +36,19 @@ type Supplier = {
 
 export default function ProductsScreen() {
   const navigation = useNavigation();
+  const route = useRoute<any>();
   const theme = useTheme();
   const { language, isDarkMode } = usePreferences();
   const isBN = language === 'BN';
   
   // Tab Mode: 'list' or 'purchase'
-  const [activeTab, setActiveTab] = useState<'list' | 'purchase'>('list');
+  const [activeTab, setActiveTab] = useState<'list' | 'purchase'>(route.params?.initialTab || 'list');
+
+  useEffect(() => {
+    if (route.params?.initialTab) {
+      setActiveTab(route.params.initialTab);
+    }
+  }, [route.params?.initialTab]);
 
   // Scanner state ('list' | 'purchase' | null)
   const [scannerTarget, setScannerTarget] = useState<'list' | 'purchase' | null>(null);

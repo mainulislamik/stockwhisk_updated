@@ -152,23 +152,27 @@ export default function DashboardScreen() {
         }
         return '';
       });
-      const data = trendData.map((item: any) => Number(item.revenue || item.total || item.amount || 0));
+      const raw = trendData.map((item: any) => Number(item.revenue || item.total || item.amount || 0));
+      // Chart crashes if all values are zero — ensure at least a tiny baseline
+      const data = raw.every((v: number) => v === 0) ? raw.map(() => 0.01) : raw;
       return {
         labels,
-        datasets: [{ data: data.length > 0 ? data : [0] }],
+        datasets: [{ data: data.length > 0 ? data : [0.01] }],
       };
     }
 
     if (trendData && Array.isArray(trendData.labels) && trendData.labels.length > 0) {
+      const raw = trendData.data.map((d: any) => Number(d) || 0);
+      const data = raw.every((v: number) => v === 0) ? raw.map(() => 0.01) : raw;
       return {
         labels: trendData.labels.map((l: string, i: number) => (i % 5 === 0 || i === trendData.labels.length - 1 ? l : '')),
-        datasets: [{ data: trendData.data.map((d: any) => Number(d) || 0) }],
+        datasets: [{ data }],
       };
     }
 
     return {
       labels: ['D-4', 'D-3', 'D-2', 'Yesterday', 'Today'],
-      datasets: [{ data: [0, 0, 0, 0, Number(topCardsData?.revenue || metrics?.today_sales?.total || 0)] }],
+      datasets: [{ data: [0.01, 0.01, 0.01, 0.01, Number(topCardsData?.revenue || metrics?.today_sales?.total || 0) || 0.01] }],
     };
   };
 
@@ -204,7 +208,7 @@ export default function DashboardScreen() {
       icon: 'arrow-down-bold-box',
       color: '#16a34a',
       bg: '#f0fdf4',
-      onPress: () => navigation.navigate('ProductsScreen'),
+      onPress: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }),
     },
     {
       titleEn: 'Daily Cash',
@@ -243,6 +247,12 @@ export default function DashboardScreen() {
         >
           <View style={styles.heroRow}>
             <View style={{ flex: 1 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4, gap: 6 }}>
+                <MaterialCommunityIcons name="storefront-outline" size={16} color="#a5b4fc" />
+                <Text style={{ color: '#a5b4fc', fontSize: 12, fontWeight: '700' }}>
+                  {user?.shop_name || 'StockWhisk Store'}
+                </Text>
+              </View>
               <Text style={styles.heroGreeting}>{greetingText} 👋</Text>
               <Text style={styles.heroSubtext}>
                 {isBN ? 'আজকের দোকানের সার্বিক হিসাব ও গতিবিধি' : 'Real-time overview of your store operations'}
@@ -540,6 +550,55 @@ export default function DashboardScreen() {
           ) : (
             <Text style={{ textAlign: 'center', color: '#94a3b8', paddingVertical: 16 }}>
               {isBN ? 'কোনো বিক্রয়ের তথ্য নেই' : 'No top products found'}
+            </Text>
+          )}
+        </Surface>
+
+        {/* 6. Recent Sales Feed */}
+        <Surface style={[styles.topProductsCard, { backgroundColor: theme.colors.surface }]} elevation={2}>
+          <View style={styles.chartHeader}>
+            <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>
+              🧾 {isBN ? 'সাম্প্রতিক বিক্রয়' : 'Recent Sales'}
+            </Text>
+            <TouchableOpacity onPress={() => navigation.navigate('SalesScreen')}>
+              <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: 'bold' }}>
+                {isBN ? 'সব দেখুন' : 'View All'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {metrics?.recent_sales && metrics.recent_sales.length > 0 ? (
+            metrics.recent_sales.map((sale: any, idx: number) => (
+              <View
+                key={idx}
+                style={[
+                  styles.productItemRow,
+                  { borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9' },
+                ]}
+              >
+                <View style={{ flex: 1 }}>
+                  <Text style={[{ fontSize: 13, fontWeight: '700', color: theme.colors.onSurface }]} numberOfLines={1}>
+                    {sale.invoice_no}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#64748b' }}>
+                    {sale.customer_name}
+                  </Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text style={styles.productAmount}>
+                    ৳{Number(sale.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  </Text>
+                  {Number(sale.due) > 0 && (
+                    <Text style={{ fontSize: 10, color: '#ef4444', fontWeight: '700' }}>
+                      {isBN ? 'বাকি: ' : 'Due: '}৳{Number(sale.due).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </Text>
+                  )}
+                </View>
+              </View>
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center', color: '#94a3b8', paddingVertical: 16 }}>
+              {isBN ? 'আজকের কোনো বিক্রয় নেই' : 'No recent sales'}
             </Text>
           )}
         </Surface>

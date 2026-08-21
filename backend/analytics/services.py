@@ -924,6 +924,21 @@ def dashboard_summary(shop, days=30, use_cache=True):
     today = timezone.localdate()
     today_start = timezone.make_aware(datetime.combine(today, time.min))
 
+    recent_sales_qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED).order_by("-sale_date")[:5]
+    recent_sales = [
+        {
+            "id": s.id,
+            "invoice_no": s.invoice_no,
+            "customer_name": s.customer_name or "Walk-in",
+            "total": float(s.total or 0),
+            "paid": float(s.paid or 0),
+            "due": float(s.due or 0),
+            "sale_date": str(s.sale_date),
+            "status": s.status,
+        }
+        for s in recent_sales_qs
+    ]
+
     data = {
         "period_days": days,
         "today": profit_summary(shop, start=today_start, end=now),
@@ -934,6 +949,7 @@ def dashboard_summary(shop, days=30, use_cache=True):
         "out_of_stock_count": len(out_of_stock_list(shop)),
         "top_products": top_products(shop, start=start, end=now, limit=5),
         "sales_trend": sales_trend(shop, days=min(days, 30)),
+        "recent_sales": recent_sales,
         "mom_growth": mom_growth(shop),
     }
     if use_cache:
