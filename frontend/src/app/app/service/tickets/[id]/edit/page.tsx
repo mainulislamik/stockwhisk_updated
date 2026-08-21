@@ -9,13 +9,13 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-type Product = { id: number; name: string; selling_price: string; cost_price: string; current_stock: string };
+type Product = { id: number; name: string; selling_price: string; cost_price: string; current_stock: string; barcode?: string; sku?: string };
 type TicketPart = {
   id?: number;
-  product_id?: number;
-  product?: number | Product;
-  product_name?: string;
-  name?: string;
+  product_id: number;
+  name: string;
+  barcode?: string;
+  sku?: string;
   quantity: number | string;
   unit_price: number | string;
   unit_cost?: number | string;
@@ -52,6 +52,7 @@ export default function EditServiceTicketPage() {
 
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   // Ticket Form States
@@ -66,7 +67,6 @@ export default function EditServiceTicketPage() {
   const [serviceCharge, setServiceCharge] = useState<number>(0);
   const [discount, setDiscount] = useState<number>(0);
   const [reason, setReason] = useState("");
-  const [submitting, setSubmitting] = useState(false);
 
   // Parts List
   const [parts, setParts] = useState<TicketPart[]>([]);
@@ -104,14 +104,16 @@ export default function EditServiceTicketPage() {
         const initialParts: TicketPart[] = (data.parts || []).map((p: any) => ({
           product_id: p.product?.id || p.product_id || p.product,
           name: p.product_name || p.product?.name || "Part",
+          barcode: p.product_barcode || p.product?.barcode || "",
+          sku: p.product_sku || p.product?.sku || "",
           quantity: Number(p.quantity) || 1,
           unit_price: Number(p.unit_price) || 0,
           unit_cost: Number(p.unit_cost) || 0,
           from_stock: p.from_stock !== false,
         }));
         setParts(initialParts);
-      } catch (e: any) {
-        setError(e?.message || "সার্ভিস ইনভয়েস লোড করতে সমস্যা হয়েছে।");
+      } catch (err: any) {
+        setError(err?.message || "সার্ভিস ইনভয়েস লোড করতে সমস্যা হয়েছে।");
       } finally {
         setLoading(false);
       }
@@ -176,6 +178,8 @@ export default function EditServiceTicketPage() {
         {
           product_id: prod.id,
           name: prod.name,
+          barcode: prod.barcode || "",
+          sku: prod.sku || "",
           quantity: 1,
           unit_price: Number(prod.selling_price) || 0,
           unit_cost: Number(prod.cost_price) || 0,
@@ -448,7 +452,14 @@ export default function EditServiceTicketPage() {
                       <tbody>
                         {parts.map((p, idx) => (
                           <tr key={idx}>
-                            <td className="fw-medium small">{p.name}</td>
+                            <td className="small">
+                              <div className="fw-medium">{p.name}</div>
+                              {p.barcode && (
+                                <span className="badge bg-light text-dark border font-monospace mt-1" style={{ fontSize: "0.7rem" }}>
+                                  <i className="bi bi-upc-scan me-1 text-primary"></i>{p.barcode}
+                                </span>
+                              )}
+                            </td>
                             <td>
                               <div className="input-group input-group-sm justify-content-center">
                                 <button

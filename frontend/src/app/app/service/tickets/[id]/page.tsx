@@ -11,7 +11,17 @@ import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import InvoiceLockModal from "@/components/InvoiceLockModal";
 
-type Part = { id: number; product_name: string; warranty_months?: number; quantity: string; unit_cost: string; unit_price: string; line_total: string };
+type Part = { 
+  id: number; 
+  product_name: string; 
+  product_barcode?: string;
+  product_sku?: string;
+  warranty_months?: number; 
+  quantity: string; 
+  unit_cost: string; 
+  unit_price: string; 
+  line_total: string; 
+};
 type History = { id: number; from_status: string; to_status: string; note: string; created_at: string };
 type Ticket = {
   id: number;
@@ -356,12 +366,24 @@ export default function TicketDetailPage() {
                         {ticket.parts.map((p) => (
                           <tr key={p.id}>
                             <td>
-                              <div>{p.product_name}</div>
-                              {p.warranty_months ? (
-                                <div className="text-success small fst-italic">
-                                  {t("tktd_warranty_months", { count: p.warranty_months })}
-                                </div>
-                              ) : null}
+                              <div className="fw-medium">{p.product_name}</div>
+                              <div className="d-flex flex-wrap gap-2 align-items-center mt-1">
+                                {p.product_barcode && (
+                                  <span className="badge bg-light text-dark border font-monospace" style={{ fontSize: "0.72rem" }}>
+                                    <i className="bi bi-upc-scan me-1 text-primary"></i>{p.product_barcode}
+                                  </span>
+                                )}
+                                {p.product_sku && !p.product_barcode && (
+                                  <span className="badge bg-light text-muted border font-monospace" style={{ fontSize: "0.72rem" }}>
+                                    SKU: {p.product_sku}
+                                  </span>
+                                )}
+                                {p.warranty_months ? (
+                                  <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style={{ fontSize: "0.72rem" }}>
+                                    <i className="bi bi-shield-check me-1"></i>{t("tktd_warranty_months", { count: p.warranty_months })}
+                                  </span>
+                                ) : null}
+                              </div>
                             </td>
                             <td className="text-end">{p.quantity}</td>
                             <td className="text-end">{money(p.unit_price)}</td>
@@ -658,7 +680,10 @@ export default function TicketDetailPage() {
               <strong>{t("tktd_parts_colon")}</strong>
               {ticket.parts.map(p => (
                 <div key={p.id} className="d-flex justify-content-between" style={{ fontSize: '9pt' }}>
-                  <span>{p.quantity}x {p.product_name}</span>
+                  <span>
+                    {p.quantity}x {p.product_name}
+                    {p.product_barcode ? ` [${p.product_barcode}]` : ""}
+                  </span>
                   <span>{money(p.line_total)}</span>
                 </div>
               ))}
@@ -773,6 +798,11 @@ export default function TicketDetailPage() {
               <tr key={p.id}>
                 <td>
                   <span className="inv-product-name">{p.product_name}</span>
+                  {p.product_barcode && (
+                    <div style={{ fontSize: "8pt", color: "#475569", fontFamily: "monospace", marginTop: "1px" }}>
+                      🏷️ {p.product_barcode}
+                    </div>
+                  )}
                   {p.warranty_months ? (
                     <div style={{ fontSize: "8pt", color: "#16a34a", marginTop: "2px", fontStyle: "italic" }}>
                       {t("tktd_warranty_months", { count: p.warranty_months })}
