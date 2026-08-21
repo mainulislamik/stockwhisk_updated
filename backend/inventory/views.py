@@ -41,9 +41,15 @@ class StockMovementViewSet(
         ser = StockAdjustmentSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
+        product = data["product"]
+        if not product.track_inventory:
+            return Response(
+                {"detail": f"Product '{product.name}' does not track inventory."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         movement = apply_movement(
             shop=request.user.shop,
-            product=data["product"],
+            product=product,
             variation=data.get("variation"),
             movement_type=data["movement_type"],
             quantity=data["quantity"],
