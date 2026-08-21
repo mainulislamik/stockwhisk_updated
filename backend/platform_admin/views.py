@@ -1753,6 +1753,7 @@ class BackupRestoreView(APIView):
 
         env, db = _db_env()
         base = ["-h", db["host"], "-p", db["port"], "-U", db["user"], "-d", db["name"]]
+        result = None
         try:
             kill = ("SELECT pg_terminate_backend(pid) FROM pg_stat_activity "
                     "WHERE datname = current_database() AND pid <> pg_backend_pid();")
@@ -1761,18 +1762,22 @@ class BackupRestoreView(APIView):
             result = subprocess.run(["psql", *base, "-f", tmp_path], env=env,
                                     capture_output=True, text=True)
         except FileNotFoundError:
-            os.remove(tmp_path)
             return Response(
                 {"detail": "Restore failed: postgresql-client is not installed on the server."},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response(
+                {"detail": f"Restore failed: {str(e)}"},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         finally:
             if os.path.exists(tmp_path):
                 os.remove(tmp_path)
 
-        if result.returncode == 0:
+        if result and result.returncode == 0:
             return Response({"status": "restored",
                              "detail": "Database restored. You may need to log in again."})
-        return Response({"detail": f"Restore completed with errors: {result.stderr[:300]}"},
+        stderr_msg = result.stderr[:300] if result else "Unknown error occurred"
+        return Response({"detail": f"Restore completed with errors: {stderr_msg}"},
                         status=status.HTTP_400_BAD_REQUEST)
 
 class MediaBackupDownloadView(APIView):
@@ -1816,7 +1821,7 @@ class MediaBackupDownloadView(APIView):
 
 
 class MediaBackupRestoreView(APIView):
-    """Restore media files from an uploaded .zip backup."""
+    """Restore media files from an uploaded .zip backup with Zip-Slip path sanitization."""
     permission_classes = [IsPlatformStaff]
 
     def post(self, request):
@@ -1830,10 +1835,17 @@ class MediaBackupRestoreView(APIView):
 
         try:
             with zipfile.ZipFile(zip_file, 'r') as zip_ref:
-                # Ensure the media root exists
                 os.makedirs(settings.MEDIA_ROOT, exist_ok=True)
-                # Extract all files into the media directory
-                zip_ref.extractall(settings.MEDIA_ROOT)
+                media_root = os.path.abspath(settings.MEDIA_ROOT)
+                # Zip Slip protection: validate all archive paths stay within MEDIA_ROOT
+                for member in zip_ref.infolist():
+                    target_path = os.path.abspath(os.path.join(media_root, member.filename))
+                    if not target_path.startswith(media_root + os.sep) and target_path != media_root:
+                        return Response(
+                            {"detail": f"Unsafe file path detected in ZIP archive: {member.filename}"},
+                            status=status.HTTP_400_BAD_REQUEST
+                        )
+                    zip_ref.extract(member, media_root)
             return Response({"status": "restored", "detail": "Media files restored successfully."})
         except zipfile.BadZipFile:
             return Response({"detail": "Invalid ZIP file uploaded."}, status=status.HTTP_400_BAD_REQUEST)

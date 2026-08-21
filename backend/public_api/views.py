@@ -48,6 +48,17 @@ class ProductV1ViewSet(_PublicBase, mixins.ListModelMixin, mixins.RetrieveModelM
     def perform_create(self, serializer):
         serializer.save(shop=self.shop)
 
+    def perform_update(self, serializer):
+        from catalog.models import ProductUnit
+        old_product = self.get_object()
+        old_selling = old_product.selling_price
+        product = serializer.save()
+        if product.selling_price != old_selling:
+            ProductUnit.objects.filter(
+                product=product,
+                status=ProductUnit.Status.IN_STOCK
+            ).update(selling_price=product.selling_price)
+
 
 class InventoryV1View(_PublicAPIView):
     """Read-only current stock levels."""

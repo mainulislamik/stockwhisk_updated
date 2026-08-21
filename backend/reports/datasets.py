@@ -47,10 +47,11 @@ def purchase_report(shop, start=None, end=None):
 
 def inventory_report(shop, **_):
     from catalog.models import Product
-    rows = [
-        [p.name, p.sku, p.current_stock, p.cost_price, p.current_stock * p.cost_price]
-        for p in Product.all_objects.filter(shop_id=shop.id, is_active=True)
-    ]
+    rows = []
+    for p in Product.all_objects.filter(shop_id=shop.id, is_active=True):
+        cost = p.cost_price or ZERO
+        stock = p.current_stock or ZERO
+        rows.append([p.name, p.sku, stock, cost, stock * cost])
     return ("Inventory Report", ["Product", "SKU", "Stock", "Cost", "Stock Value"], rows)
 
 
