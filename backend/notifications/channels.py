@@ -58,8 +58,8 @@ def send_email(to, subject, body):
         return False
     connection, from_email = _platform_email()
     try:
-        send_mail(subject, body, from_email, [to], fail_silently=True, connection=connection)
-        return True
+        sent = send_mail(subject, body, from_email, [to], fail_silently=False, connection=connection)
+        return bool(sent)
     except Exception:
         logger.exception("send_email failed for %s", to)
         return False
@@ -73,8 +73,8 @@ def send_html_email(to, subject, text_body, html_body):
     try:
         msg = EmailMultiAlternatives(subject, text_body, from_email, [to], connection=connection)
         msg.attach_alternative(html_body, "text/html")
-        msg.send(fail_silently=True)
-        return True
+        sent = msg.send(fail_silently=False)
+        return bool(sent)
     except Exception:
         logger.exception("send_html_email failed for %s", to)
         return False

@@ -101,6 +101,22 @@ def approve_payment(*, payment, reviewer):
         payment.invoice.status = SubscriptionInvoice.Status.PAID
         payment.invoice.save(update_fields=["status"])
 
+    # Immutable revenue ledger entry
+    try:
+        from platform_admin.models import PlatformRevenue
+        p_start = payment.invoice.period_start if payment.invoice else now.date()
+        p_end = payment.invoice.period_end if payment.invoice else (sub.current_period_end.date() if hasattr(sub.current_period_end, "date") else sub.current_period_end)
+        PlatformRevenue.objects.create(
+            shop=shop, shop_name=shop.name, shop_code=shop.shop_code,
+            plan_tier=sub.plan.tier if sub.plan else "free",
+            invoice_number=payment.invoice.number if payment.invoice else f"SUB-{shop.id:04d}",
+            amount=payment.amount, cycle=sub.cycle,
+            period_start=p_start, period_end=p_end,
+            is_test=getattr(shop, "is_test", False),
+        )
+    except Exception:
+        pass
+
     notify(
         shop=shop, type=NotificationType.SUBSCRIPTION,
         title="Payment approved — subscription active",
@@ -173,11 +189,12 @@ def grant_or_extend_plan(*, shop, plan, days=None, end_date=None, amount=0,
     shop.save(update_fields=["plan", "is_active", "suspended_at", "trial_ends_at"])
 
     count = SubscriptionInvoice.all_objects.filter(shop_id=shop.id).count() + 1
+    p_end = new_end.date() if hasattr(new_end, "date") else new_end
     invoice = SubscriptionInvoice.objects.create(
         shop=shop, subscription=sub, plan=plan,
         number=f"SUB-{shop.id:04d}-{count:04d}",
         amount=Decimal(amount or 0), cycle=cycle,
-        period_start=now.date(), period_end=new_end.date(),
+        period_start=now.date(), period_end=p_end,
         status=SubscriptionInvoice.Status.PAID,
     )
 

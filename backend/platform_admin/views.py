@@ -816,10 +816,11 @@ class PublicContactCreateSerializer(serializers.ModelSerializer):
 class PublicContactView(APIView):
     """Public contact-form endpoint. Anyone can POST a message; it is stored for
     the Super Admin inbox and emailed to the contact address. No auth (and no
-    session auth, so no CSRF) — it is an unauthenticated public form."""
+    session auth, so no CSRF) — it is an unauthenticated public form with rate limiting."""
 
     permission_classes = []
     authentication_classes = []
+    throttle_classes = [AnonRateThrottle]
 
     DEFAULT_CONTACT_TO = "contact@stockwhisk.com"
 

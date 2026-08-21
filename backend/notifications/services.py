@@ -92,14 +92,23 @@ def notify(
     return note
 
 
-def notify_customer_whatsapp(*, shop, customer, template_key, params=None):
+def notify_customer_whatsapp(*, shop, customer=None, template_key, params=None, phone=None):
     """
     Send an approved WhatsApp template to a customer, honoring opt-in consent.
     Used by service-ticket / warranty / invoice flows. Returns True if sent.
     """
-    if customer is None or not getattr(customer, "whatsapp_consent", False):
+    to_phone = None
+    if isinstance(customer, str) and customer.strip():
+        to_phone = customer.strip()
+    elif customer is not None:
+        if getattr(customer, "whatsapp_consent", False) or getattr(customer, "phone", None):
+            to_phone = getattr(customer, "phone", "")
+    elif phone:
+        to_phone = str(phone).strip()
+
+    if not to_phone:
         return False
     return whatsapp.send_template(
-        shop=shop, to_phone=customer.phone, template_key=template_key,
+        shop=shop, to_phone=to_phone, template_key=template_key,
         params=params or [], consent=True,
     )
