@@ -92,11 +92,17 @@ export function Spinner({ label = "Loading…" }: { label?: string }) {
   );
 }
 
-export function ErrorState({ error }: { error: string }) {
+export function ErrorState({ error }: { error: any }) {
+  let msg = "An error occurred";
+  if (typeof error === "string") msg = error;
+  else if (error?.message) msg = error.message;
+  else if (error?.detail) msg = error.detail;
+  else if (error?.status) msg = `Error ${error.status}`;
+  
   return (
     <div className="alert alert-danger d-flex align-items-center gap-2">
       <i className="bi bi-exclamation-triangle"></i>
-      <span>{error}</span>
+      <span>{msg}</span>
     </div>
   );
 }
