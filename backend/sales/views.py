@@ -364,6 +364,7 @@ class SaleViewSet(
                 return Response({"detail": "Unit exchanged with price adjustment.", "new_total": total})
     @action(detail=True, methods=["post"])
     def correct(self, request, pk=None):
+        import json
         from .services import edit_sale
         from django.db import transaction
         from catalog.models import Product, ProductVariation
@@ -373,14 +374,27 @@ class SaleViewSet(
         
         from accounts.models import RoleType
         
-        if request.user.role != RoleType.OWNER:
-            return Response({"detail": "Only the Shop Owner can correct invoices."}, status=status.HTTP_403_FORBIDDEN)
+        is_allowed = (
+            request.user.role == RoleType.OWNER
+            or getattr(request.user, "is_superuser", False)
+            or request.user.has_perm_code("edit_sales")
+            or request.user.has_perm_code("manage_sales")
+        )
+        if not is_allowed:
+            return Response({"detail": "You do not have permission to correct invoices."}, status=status.HTTP_403_FORBIDDEN)
             
-        items_data = request.data.get("items", [])
+        data = request.data
+        if isinstance(data, str):
+            try:
+                data = json.loads(data)
+            except Exception:
+                pass
+
+        items_data = data.get("items", [])
         if not items_data:
             return Response({"detail": "At least one item is required."}, status=status.HTTP_400_BAD_REQUEST)
             
-        correction_reason = request.data.get("correction_reason", "").strip()
+        correction_reason = data.get("correction_reason", "").strip()
         if not correction_reason:
             return Response({"detail": "Correction reason is required."}, status=status.HTTP_400_BAD_REQUEST)
             
@@ -391,7 +405,7 @@ class SaleViewSet(
         try:
             parsed_items = []
             for idx, row in enumerate(items_data):
-                product_id = row.get("product_id") or row.get("product", {}).get("id")
+                product_id = row.get("product_id") or (row.get("product", {}).get("id") if isinstance(row.get("product"), dict) else row.get("product"))
                 variation_id = row.get("variation_id")
                 try:
                     product = Product.all_objects.get(id=product_id, shop_id=sale.shop_id)
@@ -413,12 +427,13 @@ class SaleViewSet(
                     "discount": row.get("discount", 0)
                 })
                 
-            discount = request.data.get("discount", 0)
-            delivery_charge = request.data.get("delivery_charge", sale.delivery_charge)
-            tax = request.data.get("tax", sale.tax)
-            customer_name = request.data.get("customer_name")
-            customer_phone = request.data.get("customer_phone")
-            customer_address = request.data.get("customer_address")
+            discount = data.get("discount", 0)
+            delivery_charge = data.get("delivery_charge", sale.delivery_charge)
+            tax = data.get("tax", sale.tax)
+            customer_id = data.get("customer_id")
+            customer_name = data.get("customer_name")
+            customer_phone = data.get("customer_phone")
+            customer_address = data.get("customer_address")
             
             with transaction.atomic():
                 locked_sale = Sale.objects.select_for_update().get(id=sale.id)
@@ -428,6 +443,7 @@ class SaleViewSet(
                     discount=discount, 
                     delivery_charge=delivery_charge,
                     tax=tax,
+                    customer_id=customer_id,
                     customer_name=customer_name,
                     customer_phone=customer_phone,
                     customer_address=customer_address,

@@ -470,11 +470,14 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
         
     local_sale_date = timezone.localtime(sale.sale_date).date()
     local_today = timezone.localtime(timezone.now()).date()
-    if local_sale_date != local_today:
+    is_owner = getattr(created_by, "role", "") == "owner" or getattr(created_by, "is_superuser", False)
+    if local_sale_date != local_today and not is_owner:
         raise ValueError("Invoice locked: correction is only available on the day of creation.")
 
     old_total = sale.total or ZERO
     paid = sale.paid or ZERO
+    old_customer = sale.customer
+    old_due = old_total - paid
 
     from catalog.models import ProductUnit
     from service.models import Warranty
@@ -501,22 +504,22 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
         product = row["product"]
         if product.track_inventory:
             product.refresh_from_db(fields=["current_stock"])
-            qty = Decimal(row["quantity"])
+            qty = Decimal(str(row["quantity"]))
             if qty > product.current_stock:
                 raise ValueError(f"Only {product.current_stock} of '{product.name}' in stock.")
 
-    discount = Decimal(discount or 0)
+    discount = Decimal(str(discount or 0))
     subtotal = ZERO
     for row in items:
         product = row["product"]
         variation = row.get("variation")
-        qty = Decimal(row["quantity"])
-        unit_price = Decimal(row.get("unit_price", product.selling_price))
-        unit_cost = Decimal(variation.effective_cost if variation is not None else product.cost_price)
+        qty = Decimal(str(row["quantity"]))
+        unit_price = Decimal(str(row.get("unit_price", product.selling_price)))
+        unit_cost = Decimal(str(variation.effective_cost if variation is not None else product.cost_price))
         item = SaleItem.objects.create(
             shop=sale.shop, sale=sale, product=product, variation=variation,
             quantity=qty, unit_price=unit_price, unit_cost=unit_cost,
-            discount=Decimal(row.get("discount", 0)),
+            discount=Decimal(str(row.get("discount", 0))),
         )
         subtotal += item.subtotal
         if product.track_inventory:
@@ -528,15 +531,23 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
             )
 
     if delivery_charge is not None:
-        sale.delivery_charge = Decimal(delivery_charge or 0)
+        sale.delivery_charge = Decimal(str(delivery_charge or 0))
     if tax is not None:
-        sale.tax = Decimal(tax or 0)
+        sale.tax = Decimal(str(tax or 0))
 
     total = subtotal - discount + (sale.tax or ZERO) + (sale.delivery_charge or ZERO)
+    new_due = total - paid
     
     # Store original state for audit if not already corrected
     if not sale.is_corrected:
         sale.original_total = old_total
+
+    if customer_id is not None:
+        from crm.models import Customer
+        if customer_id == "" or customer_id == 0 or customer_id is False:
+            sale.customer = None
+        else:
+            sale.customer = Customer.objects.filter(shop=sale.shop, id=customer_id).first()
 
     if customer_name is not None:
         sale.customer_name = customer_name
@@ -544,10 +555,6 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
         sale.customer_phone = customer_phone
     if customer_address is not None:
         sale.customer_address = customer_address
-    # Optionally update customer_id if provided. We handle 'None' as a valid update to remove the link, 
-    # but we must distinguish between "not provided" and "explicitly cleared". 
-    # To keep it simple, we check if it's explicitly in the payload in the view.
-    # The view will pass customer_id if it's sent.
     
     sale.subtotal = subtotal
     sale.discount = discount
@@ -555,22 +562,34 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
     sale.status = _resolve_status(total, paid)
     sale.is_corrected = True
     sale.correction_reason = correction_reason
-    # Include updated_at so the optimistic-lock token (web.sale_edit compares the
-    # sale's updated_at) actually advances on every edit — otherwise a concurrent
-    # stale save would not be detected. auto_now fields aren't bumped when left
-    # out of update_fields.
-    sale.save(update_fields=["subtotal", "discount", "total", "status", "updated_at", "is_corrected", "correction_reason", "original_total"])
+    sale.save(update_fields=[
+        "subtotal", "discount", "total", "status", "updated_at",
+        "is_corrected", "correction_reason", "original_total",
+        "customer", "customer_name", "customer_phone", "customer_address",
+        "delivery_charge", "tax"
+    ])
 
-    # 4. Adjust the customer's cached due + total by the deltas.
-    if sale.customer_id:
-        customer = sale.customer
-        new_due, old_due = total - paid, old_total - paid
-        customer.due_balance = (customer.due_balance or ZERO) + (new_due - old_due)
-        customer.total_purchased = (customer.total_purchased or ZERO) + (total - old_total)
-        customer.save(update_fields=["due_balance", "total_purchased"])
+    # 4. Adjust customer balances
+    new_customer = sale.customer
+    if old_customer and new_customer and old_customer.id == new_customer.id:
+        new_customer.due_balance = max(ZERO, (new_customer.due_balance or ZERO) + (new_due - old_due))
+        new_customer.total_purchased = max(ZERO, (new_customer.total_purchased or ZERO) + (total - old_total))
+        new_customer.save(update_fields=["due_balance", "total_purchased"])
+    else:
+        if old_customer:
+            old_customer.due_balance = max(ZERO, (old_customer.due_balance or ZERO) - old_due)
+            old_customer.total_purchased = max(ZERO, (old_customer.total_purchased or ZERO) - old_total)
+            old_customer.save(update_fields=["due_balance", "total_purchased"])
+        if new_customer:
+            new_customer.due_balance = max(ZERO, (new_customer.due_balance or ZERO) + new_due)
+            new_customer.total_purchased = max(ZERO, (new_customer.total_purchased or ZERO) + total)
+            new_customer.save(update_fields=["due_balance", "total_purchased"])
 
     # 5. Re-bind units and create new warranties for the new items
     _mark_units_sold(sale.shop, sale, items)
+
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(sale.shop_id)
 
     record(
         action=AuditLog.Action.UPDATE, actor=created_by, shop=sale.shop, target=sale,

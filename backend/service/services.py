@@ -246,6 +246,7 @@ def edit_service_ticket(
 
     old_bill_total = ticket.bill_total
     old_due = ticket.due
+    old_customer = ticket.customer
 
     # 1. Reverse stock for existing parts
     for part in ticket.parts.select_related("product").all():
@@ -316,18 +317,26 @@ def edit_service_ticket(
     ticket.save()
 
     # 4. If delivered, synchronize customer due_balance and total_purchased changes
-    if ticket.status == ServiceTicket.Status.DELIVERED and ticket.customer_id:
-        customer = ticket.customer
+    if ticket.status == ServiceTicket.Status.DELIVERED:
+        new_customer = ticket.customer
         new_bill_total = ticket.bill_total
         new_due = ticket.due
-        
         bill_diff = new_bill_total - old_bill_total
         due_diff = new_due - old_due
-        
-        if customer:
-            customer.total_purchased = max(Decimal("0"), (customer.total_purchased or Decimal("0")) + bill_diff)
-            customer.due_balance = max(Decimal("0"), (customer.due_balance or Decimal("0")) + due_diff)
-            customer.save(update_fields=["total_purchased", "due_balance"])
+
+        if old_customer and new_customer and old_customer.id == new_customer.id:
+            new_customer.total_purchased = max(Decimal("0"), (new_customer.total_purchased or Decimal("0")) + bill_diff)
+            new_customer.due_balance = max(Decimal("0"), (new_customer.due_balance or Decimal("0")) + due_diff)
+            new_customer.save(update_fields=["total_purchased", "due_balance"])
+        else:
+            if old_customer:
+                old_customer.total_purchased = max(Decimal("0"), (old_customer.total_purchased or Decimal("0")) - old_bill_total)
+                old_customer.due_balance = max(Decimal("0"), (old_customer.due_balance or Decimal("0")) - old_due)
+                old_customer.save(update_fields=["total_purchased", "due_balance"])
+            if new_customer:
+                new_customer.total_purchased = max(Decimal("0"), (new_customer.total_purchased or Decimal("0")) + new_bill_total)
+                new_customer.due_balance = max(Decimal("0"), (new_customer.due_balance or Decimal("0")) + new_due)
+                new_customer.save(update_fields=["total_purchased", "due_balance"])
 
     # 5. Record status history and audit
     ServiceTicketStatusHistory.objects.create(
