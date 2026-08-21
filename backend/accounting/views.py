@@ -48,6 +48,21 @@ class ExpenseViewSet(TenantScopedViewSet):
         )
         serializer.instance = expense
 
+    def perform_update(self, serializer):
+        from decimal import Decimal
+        from .models import LedgerEntry
+        instance = serializer.save()
+        # Synchronize associated LedgerEntry
+        pm = (instance.payment_method or "").upper()
+        acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
+        LedgerEntry.all_objects.filter(
+            shop_id=instance.shop_id, source_type="Expense", source_id=str(instance.id)
+        ).update(
+            account=acct,
+            amount=-Decimal(str(instance.amount or 0)),
+            description=instance.note or (instance.category.name if instance.category else "Expense"),
+        )
+
     def perform_destroy(self, instance):
         # Clean up associated ledger entry to keep cash balance in sync
         LedgerEntry.all_objects.filter(shop_id=instance.shop_id, source_type="Expense", source_id=str(instance.id)).delete()

@@ -28,7 +28,7 @@ def scan_warranty_expiry(window_days=30):
                 shop=shop, type=NotificationType.GENERAL,
                 title=f"{count} warranties expiring within {window_days} days",
                 message="Review expiring warranties from the service module.",
-                metadata={"warranty_ids": list(expiring.values_list("id", flat=True))},
+                metadata={"warranty_ids": list(expiring.values_list("id", flat=True)[:50]), "total_count": count},
                 email=False,  # rolled into the daily 10am digest
             )
             stats["shops_notified"] += 1

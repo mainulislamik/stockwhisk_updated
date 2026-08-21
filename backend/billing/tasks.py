@@ -44,7 +44,8 @@ def check_subscription_expiry():
         if shop.has_free_access:
             continue
         end = sub.current_period_end
-        days_left = (end.date() - today).days
+        end_date = end.date() if hasattr(end, "date") else end
+        days_left = (end_date - today).days
         label = _plan_label(sub)
 
         # --- Expired → auto-suspend ---------------------------------------

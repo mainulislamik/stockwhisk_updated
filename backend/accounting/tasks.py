@@ -9,11 +9,13 @@ from .services import record_expense
 @shared_task
 def generate_recurring_expenses():
     """Materialize each active recurring expense once per calendar month."""
+    import calendar
     now = timezone.now()
     period = now.strftime("%Y-%m")
+    max_days = calendar.monthrange(now.year, now.month)[1]
     created = 0
     for rec in RecurringExpense.all_objects.filter(is_active=True).exclude(last_generated_period=period):
-        day = min(rec.day_of_month or 1, 28)
+        day = min(max(rec.day_of_month or 1, 1), max_days)
         spent_on = now.date().replace(day=day)
         # Reconstruct a lightweight shop stub for the service.
         from tenants.models import Shop
