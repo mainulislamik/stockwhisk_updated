@@ -3,6 +3,13 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.tokens import RefreshToken
+from django.core import serializers as django_serializers
+from django.apps import apps
+from django.http import HttpResponse
+
+from core.permissions import IsTenantMember
+from platform_admin.tasks import OPERATIONAL_MODELS_ORDER
+from rest_framework_simplejwt.tokens import RefreshToken
 
 from tenants.services import register_shop
 
@@ -393,3 +400,27 @@ class PublicTutorialsView(APIView):
                 "embed_url": v.embed_url,
             })
         return Response(data)
+class DownloadBackupView(APIView):
+    """
+    Export all operational data for the current shop as a JSON file.
+    """
+    permission_classes = [IsTenantMember]
+
+    def get(self, request):
+        shop_id = request.user.shop_id
+        objects = []
+        for model_name in OPERATIONAL_MODELS_ORDER:
+            try:
+                model = apps.get_model(model_name)
+                if hasattr(model, 'all_objects'):
+                    objects.extend(model.all_objects.filter(shop_id=shop_id))
+                else:
+                    objects.extend(model.objects.filter(shop_id=shop_id))
+            except LookupError:
+                continue
+
+        json_data = django_serializers.serialize("json", objects)
+        
+        response = HttpResponse(json_data, content_type='application/json')
+        response['Content-Disposition'] = f'attachment; filename="shop_{shop_id}_backup_{timezone.now().strftime("%Y%m%d")}.json"'
+        return response
