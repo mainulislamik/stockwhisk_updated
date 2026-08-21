@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   maskContainer: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
   },
   maskTop: {
     flex: 1,

@@ -112,7 +112,7 @@ function ThemedApp() {
   return (
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
-        <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={isDarkMode ? '#0f172a' : '#ffffff'} />
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} />
         <View style={{ flex: 1, backgroundColor: isDarkMode ? '#030712' : '#e2e8f0', alignItems: 'center' }}>
           <View
             style={{
