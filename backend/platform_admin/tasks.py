@@ -88,12 +88,6 @@ def perform_drive_backup():
         }
         media = MediaFileUpload(tmp_path, mimetype='application/sql', resumable=True)
         uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
-    finally:
-        if os.path.exists(tmp_path):
-            try:
-                os.remove(tmp_path)
-            except Exception:
-                pass
 
         # 3.5 Backup Media Directory
         media_filename = f"stockwhisk_media_{time.strftime('%Y%m%d-%H%M%S')}.zip"
@@ -150,11 +144,11 @@ def perform_drive_backup():
         logger.error(msg)
         return False, msg
     finally:
-        # 4. Remove the temporary file from VPS storage immediately
+        # Remove the temporary SQL file from storage immediately
         if os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
-            except:
+            except Exception:
                 pass
 
 OPERATIONAL_MODELS_ORDER = [
