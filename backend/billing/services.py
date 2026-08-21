@@ -89,7 +89,8 @@ def approve_payment(*, payment, reviewer):
     shop = sub.shop
     shop.plan = sub.plan
     shop.is_active = True
-    shop.save(update_fields=["plan", "is_active"])
+    shop.trial_ends_at = None
+    shop.save(update_fields=["plan", "is_active", "trial_ends_at"])
 
     payment.status = ManualPayment.Status.APPROVED
     payment.reviewed_by = reviewer

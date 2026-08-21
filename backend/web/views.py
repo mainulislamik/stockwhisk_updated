@@ -1218,7 +1218,7 @@ def pos_checkout(request):
     # with the same phone, else create one. This makes every POS buyer show up
     # under Customers instead of living only on the sale.
     if customer is None:
-        customer = Customer.objects.filter(phone=cust_phone).first()
+        customer = Customer.objects.filter(shop=request.user.shop, phone=cust_phone).first()
         if customer is None:
             customer = Customer.objects.create(
                 shop=request.user.shop, name=_clip(cust_name, 150),
