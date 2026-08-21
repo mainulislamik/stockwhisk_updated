@@ -119,6 +119,36 @@ def pay_supplier(*, supplier, amount, method=SupplierPayment.Method.CASH,
             source_type="SupplierPayment", source_id=str(payment.id),
             description=f"Payment ({method}) to {supplier.name}",
         )
+
+    # Allocate payment across open PurchaseOrders in FIFO order
+    try:
+        from django.db.models import F
+        rem = amount
+        open_pos = list(
+            PurchaseOrder.objects.filter(
+                supplier=supplier,
+                paid__lt=F("total")
+            ).order_by("order_date", "id")
+        )
+        for po in open_pos:
+            if rem <= 0:
+                break
+            po_due = (po.total or ZERO) - (po.paid or ZERO)
+            if po_due > 0:
+                portion = min(rem, po_due)
+                po_method = method if method in PurchasePayment.Method.values else PurchasePayment.Method.CASH
+                PurchasePayment.objects.create(
+                    shop_id=po.shop_id, purchase_order=po, amount=portion,
+                    method=po_method, reference=reference,
+                    note=f"Supplier Payment #{payment.id}" if not note else note,
+                    created_by=created_by,
+                )
+                po.paid = (po.paid or ZERO) + portion
+                po.save(update_fields=["paid"])
+                rem -= portion
+    except Exception:
+        pass
+
     return payment
 
 

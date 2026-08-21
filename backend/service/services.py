@@ -124,7 +124,7 @@ def change_ticket_status(*, ticket, new_status, note="", changed_by=None):
     ticket.save(update_fields=["status", "actual_delivery"])
 
     if new_status == ServiceTicket.Status.CANCELLED:
-        # Reverse stock for any parts that were deducted from inventory
+        # 1. Reverse stock for any parts that were deducted from inventory
         for part in ticket.parts.select_related("product").all():
             if part.from_stock and part.product.track_inventory:
                 apply_movement(
@@ -132,6 +132,28 @@ def change_ticket_status(*, ticket, new_status, note="", changed_by=None):
                     quantity=part.quantity, unit_cost=part.unit_cost, reference_type="ServiceTicket",
                     reference_id=ticket.id, note=f"Cancel ticket reverse: {ticket.ticket_no}", created_by=changed_by,
                 )
+
+        # 2. If ticket was previously delivered, reverse customer due and total purchased
+        if old == ServiceTicket.Status.DELIVERED and ticket.customer_id:
+            customer = ticket.customer
+            from decimal import Decimal
+            due = ticket.due
+            if due > 0:
+                customer.due_balance = max(Decimal("0"), (customer.due_balance or Decimal("0")) - due)
+            customer.total_purchased = max(Decimal("0"), (customer.total_purchased or Decimal("0")) - ticket.bill_total)
+            customer.save(update_fields=["due_balance", "total_purchased"])
+
+        # 3. If advance/payments were made, post refund to cash ledger and reset paid
+        if ticket.paid and ticket.paid > 0:
+            from decimal import Decimal
+            from accounting.models import LedgerEntry
+            LedgerEntry.objects.create(
+                shop=ticket.shop, account=LedgerEntry.Account.CASH, amount=-ticket.paid,
+                source_type="ServiceTicket", source_id=str(ticket.id),
+                description=f"Refund/void ticket {ticket.ticket_no}",
+            )
+            ticket.paid = Decimal("0")
+            ticket.save(update_fields=["paid"])
 
     ServiceTicketStatusHistory.objects.create(
         shop=ticket.shop, ticket=ticket, from_status=old, to_status=new_status,
