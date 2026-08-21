@@ -48,6 +48,11 @@ class ExpenseViewSet(TenantScopedViewSet):
         )
         serializer.instance = expense
 
+    def perform_destroy(self, instance):
+        # Clean up associated ledger entry to keep cash balance in sync
+        LedgerEntry.all_objects.filter(shop_id=instance.shop_id, source_type="Expense", source_id=str(instance.id)).delete()
+        instance.delete()
+
 
 class _ReportBase(APIView):
     permission_classes = [IsTenantMember, HasPermCode]

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity, Linking } from 'react-native';
 import { Appbar, Card, Text, Button, Modal, Portal, ActivityIndicator, TextInput, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -59,7 +59,7 @@ export default function DuesScreen() {
         setCustomers(prev => [...prev, ...newCustomers]);
       }
       setHasMore(!!res.data.next);
-      setPage(pageNum);
+      setPage(pageNum + 1);
     } catch (e) {
       console.error(e);
     } finally {
@@ -71,7 +71,7 @@ export default function DuesScreen() {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
     if (isCloseToBottom && hasMore && !loading) {
-      fetchDues(page + 1);
+      fetchDues(page);
     }
   };
 
@@ -98,12 +98,39 @@ export default function DuesScreen() {
         method,
         note
       });
-      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'বকেয়া সফলভাবে গ্রহণ করা হয়েছে।' : 'Payment received successfully');
+      const custName = selectedCustomer.name;
+      const custPhone = selectedCustomer.phone;
+      const paidAmt = payNum.toFixed(2);
+      const remainingDue = Math.max(0, dueNum - payNum).toFixed(2);
+
       setSelectedCustomer(null);
       setAmount('');
       setNote('');
       fetchTotalDues();
       fetchDues(1, true);
+
+      if (custPhone) {
+        Alert.alert(
+          isBN ? 'পেমেন্ট সফল' : 'Payment Success',
+          isBN ? `৳${paidAmt} বকেয়া পরিশোধ হয়েছে। অবশিষ্ট বকেয়া: ৳${remainingDue}।\nআপনি কি গ্রাহককে হোয়াটসঅ্যাপে মানি রিসিট পাঠাতে চান?` : `৳${paidAmt} due collected. Remaining: ৳${remainingDue}.\nSend WhatsApp money receipt?`,
+          [
+            { text: isBN ? 'না' : 'No', style: 'cancel' },
+            {
+              text: isBN ? 'হোয়াটসঅ্যাপে পাঠান' : 'Send WhatsApp',
+              onPress: () => {
+                const digits = custPhone.replace(/\D/g, '');
+                const intl = digits.startsWith('880') ? digits : (digits.startsWith('01') ? `88${digits}` : digits);
+                const msg = isBN
+                  ? `মানি রিসিট (বকেয়া পরিশোধ)\n\nগ্রাহক: ${custName}\nআদায়কৃত টাকা: ৳${paidAmt}\nপরিশোধের মাধ্যম: ${method.toUpperCase()}\nঅবশিষ্ট বকেয়া: ৳${remainingDue}\nতারিখ: ${new Date().toLocaleDateString('en-GB')}\n\nধন্যবাদ!`
+                  : `Money Receipt (Due Payment)\n\nCustomer: ${custName}\nAmount Paid: ৳${paidAmt}\nMethod: ${method.toUpperCase()}\nRemaining Due: ৳${remainingDue}\nDate: ${new Date().toLocaleDateString('en-GB')}\n\nThank you!`;
+                Linking.openURL(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`);
+              }
+            }
+          ]
+        );
+      } else {
+        Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'বকেয়া সফলভাবে গ্রহণ করা হয়েছে।' : 'Payment received successfully');
+      }
     } catch (e: any) {
       const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message || (isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
       Alert.alert(isBN ? 'ত্রুটি' : 'Error', errMsg);

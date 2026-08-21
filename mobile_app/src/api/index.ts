@@ -23,6 +23,11 @@ export const setMemoryRefreshToken = (t: string | null) => {
   memoryRefreshToken = t;
 };
 
+let sessionExpiredHandler: (() => void) | null = null;
+export const setOnSessionExpired = (fn: (() => void) | null) => {
+  sessionExpiredHandler = fn;
+};
+
 // Interceptor to add auth token
 api.interceptors.request.use(async (config) => {
   try {
@@ -130,6 +135,9 @@ api.interceptors.response.use(
         }
         setMemoryToken(null);
         setMemoryRefreshToken(null);
+        if (sessionExpiredHandler) {
+          sessionExpiredHandler();
+        }
       } finally {
         isRefreshing = false;
       }

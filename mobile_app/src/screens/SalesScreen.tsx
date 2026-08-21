@@ -139,17 +139,20 @@ export default function SalesScreen() {
       <html>
       <head>
         <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 12px; max-width: 380px; margin: 0 auto; color: #111; }
-          .header { text-align: center; margin-bottom: 12px; }
-          .title { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
-          .info { font-size: 12px; color: #555; margin-bottom: 2px; }
-          table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
-          th { text-align: left; border-bottom: 1px solid #000; padding: 4px 0; font-size: 11px; }
-          .totals { margin-top: 10px; border-top: 1px solid #000; padding-top: 6px; font-size: 13px; }
-          .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+          @page { margin: 0; }
+          body { font-family: monospace, -apple-system, sans-serif; padding: 6px; max-width: 300px; margin: 0 auto; color: #000; font-size: 11px; }
+          .header { text-align: center; margin-bottom: 8px; border-bottom: 1px dashed #000; padding-bottom: 6px; }
+          .title { font-size: 15px; font-weight: bold; margin-bottom: 2px; }
+          .info { font-size: 10px; color: #333; margin-bottom: 1px; }
+          table { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; }
+          th { border-bottom: 1px dashed #000; padding: 3px 1px; font-size: 10px; text-align: left; }
+          td { padding: 3px 1px; vertical-align: top; word-break: break-word; }
+          .totals { margin-top: 6px; border-top: 1px dashed #000; padding-top: 4px; font-size: 11px; }
+          .row { display: flex; justify-content: space-between; margin-bottom: 2px; }
           .bold { font-weight: bold; }
-          .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #777; }
+          .footer { text-align: center; margin-top: 10px; font-size: 10px; border-top: 1px dashed #000; padding-top: 6px; }
         </style>
       </head>
       <body>
@@ -162,10 +165,10 @@ export default function SalesScreen() {
         <table>
           <thead>
             <tr>
-              <th>Item</th>
-              <th style="text-align: center;">Qty</th>
-              <th style="text-align: right;">Price</th>
-              <th style="text-align: right;">Total</th>
+              <th style="width: 45%;">Item</th>
+              <th style="width: 15%; text-align: center;">Qty</th>
+              <th style="width: 20%; text-align: right;">Price</th>
+              <th style="width: 20%; text-align: right;">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -175,7 +178,7 @@ export default function SalesScreen() {
         <div class="totals">
           <div class="row"><span>Total:</span><span class="bold">Tk ${Number(sale.total || 0).toFixed(2)}</span></div>
           <div class="row"><span>Paid:</span><span>Tk ${Number(sale.paid || 0).toFixed(2)}</span></div>
-          ${Number(sale.due || 0) > 0 ? `<div class="row bold" style="color: #dc2626;"><span>Due:</span><span>Tk ${Number(sale.due).toFixed(2)}</span></div>` : ''}
+          ${Number(sale.due || 0) > 0 ? `<div class="row bold"><span>Due:</span><span>Tk ${Number(sale.due).toFixed(2)}</span></div>` : ''}
         </div>
         <div class="footer">Thank you for your business!</div>
       </body>

@@ -158,6 +158,27 @@ class ProductViewSet(TenantScopedViewSet):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+    @action(detail=False, methods=["get"], url_path="export-csv")
+    def export_csv(self, request):
+        """Export full inventory list to CSV for spreadsheet reporting."""
+        import csv
+        from django.http import HttpResponse
+
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = 'attachment; filename="inventory_stock.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["ID", "Name", "SKU", "Barcode", "Category", "Cost Price", "Selling Price", "Stock", "Inventory Value"])
+
+        qs = self.get_queryset()
+        for p in qs:
+            cat_name = p.category.name if getattr(p, "category", None) else ""
+            cost = p.cost_price or 0
+            stock = p.current_stock or 0
+            inv_val = cost * stock
+            writer.writerow([p.id, p.name, p.sku, p.barcode or "", cat_name, cost, p.selling_price, stock, inv_val])
+
+        return response
+
 
 class ProductVariationViewSet(TenantScopedViewSet):
     serializer_class = ProductVariationSerializer

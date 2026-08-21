@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { api, setMemoryToken } from '../api';
+import { api, setMemoryToken, setOnSessionExpired } from '../api';
 
 type User = {
   id: number;
@@ -42,7 +42,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setOnSessionExpired(() => {
+      setUser(null);
+      setBilling(null);
+    });
     loadUser();
+    return () => {
+      setOnSessionExpired(null);
+    };
   }, []);
 
   const loadUser = async () => {

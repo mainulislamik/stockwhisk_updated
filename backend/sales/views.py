@@ -522,16 +522,18 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
         amount = Decimal(request.data.get("amount", installment.amount - installment.paid_amount))
         if amount <= Decimal("0"):
             return Response({"detail": "Amount must be positive."}, status=status.HTTP_400_BAD_REQUEST)
+        if amount > schedule.total_due:
+            amount = schedule.total_due
 
         try:
             from django.db import transaction
             from django.utils import timezone
             with transaction.atomic():
                 remaining_payment = amount
-                # 1. Apply to current installment
-                needed = installment.amount - installment.paid_amount
+                # 1. Apply to targeted installment first
+                needed = installment.amount - (installment.paid_amount or Decimal("0"))
                 to_apply = min(remaining_payment, needed)
-                installment.paid_amount += to_apply
+                installment.paid_amount = (installment.paid_amount or Decimal("0")) + to_apply
                 remaining_payment -= to_apply
                 if installment.paid_amount >= installment.amount:
                     installment.status = EMIInstallment.Status.PAID
@@ -540,17 +542,17 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
                 installment.paid_at = timezone.now()
                 installment.save(update_fields=["paid_amount", "status", "paid_at"])
 
-                # 2. Spill surplus across subsequent pending installments
+                # 2. Spill any surplus across all other pending installments (FIFO)
                 if remaining_payment > Decimal("0"):
-                    subsequent_installments = schedule.installments.filter(
-                        installment_number__gt=installment.installment_number
+                    other_installments = schedule.installments.exclude(
+                        id=installment.id
                     ).exclude(status=EMIInstallment.Status.PAID).order_by("installment_number")
-                    for sub in subsequent_installments:
+                    for sub in other_installments:
                         if remaining_payment <= Decimal("0"):
                             break
-                        sub_needed = sub.amount - sub.paid_amount
+                        sub_needed = sub.amount - (sub.paid_amount or Decimal("0"))
                         sub_apply = min(remaining_payment, sub_needed)
-                        sub.paid_amount += sub_apply
+                        sub.paid_amount = (sub.paid_amount or Decimal("0")) + sub_apply
                         remaining_payment -= sub_apply
                         if sub.paid_amount >= sub.amount:
                             sub.status = EMIInstallment.Status.PAID

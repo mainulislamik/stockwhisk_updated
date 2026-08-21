@@ -69,6 +69,31 @@ def pay_customer_due(*, customer, amount, method=CustomerPayment.Method.CASH,
                 s.paid = (s.paid or ZERO) + portion
                 s.status = _resolve_status(s.total, s.paid)
                 s.save(update_fields=["paid", "status"])
+
+                # If sale has an EMI schedule, allocate portion across unpaid installments
+                if hasattr(s, "emi_schedule") and s.emi_schedule:
+                    from sales.models import EMIInstallment, EMISchedule
+                    from django.utils import timezone
+                    rem_emi = portion
+                    for inst in s.emi_schedule.installments.exclude(status=EMIInstallment.Status.PAID).order_by("installment_number"):
+                        if rem_emi <= ZERO:
+                            break
+                        needed = inst.amount - (inst.paid_amount or ZERO)
+                        apply_inst = min(rem_emi, needed)
+                        inst.paid_amount = (inst.paid_amount or ZERO) + apply_inst
+                        rem_emi -= apply_inst
+                        if inst.paid_amount >= inst.amount:
+                            inst.status = EMIInstallment.Status.PAID
+                        else:
+                            inst.status = EMIInstallment.Status.PARTIAL
+                        inst.paid_at = timezone.now()
+                        inst.save(update_fields=["paid_amount", "status", "paid_at"])
+
+                    s.emi_schedule.refresh_from_db()
+                    if s.emi_schedule.total_due <= ZERO:
+                        s.emi_schedule.status = EMISchedule.Status.COMPLETED
+                        s.emi_schedule.save(update_fields=["status"])
+
                 rem -= portion
     except Exception:
         pass

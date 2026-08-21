@@ -48,7 +48,8 @@ class InitiateRegistrationView(APIView):
                 "address": data.get("address", ""),
                 "referral_code": (data.get("referral_code", "") or "").strip().upper(),
                 "otp": otp,
-                "expires_at": timezone.now() + timedelta(minutes=3)
+                "failed_attempts": 0,
+                "expires_at": timezone.now() + timedelta(minutes=10)
             }
         )
         
@@ -76,19 +77,17 @@ class InitiateRegistrationView(APIView):
         try:
             send_mail(
                 subject="Your StockWhisk Verification Code",
-                message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 3 minutes.",
+                message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 10 minutes.",
                 from_email=from_email,
                 recipient_list=[email],
                 fail_silently=False,
                 connection=connection,
             )
         except Exception as e:
-            import traceback
-            error_trace = traceback.format_exc()
+            import logging
+            logging.getLogger(__name__).exception("Failed to send registration OTP email to %s", email)
             return Response({
-                "detail": "Failed to send email. Check SMTP configuration.", 
-                "error": str(e),
-                "trace": error_trace
+                "detail": "Failed to send verification email. Please check your email address or try again later.",
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "OTP sent to email."}, status=status.HTTP_200_OK)
@@ -114,7 +113,17 @@ class VerifyOTPRegistrationView(APIView):
             return Response({"detail": "No pending registration found for this email."}, status=status.HTTP_404_NOT_FOUND)
             
         if pending.otp != otp:
-            return Response({"detail": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
+            pending.failed_attempts = (getattr(pending, "failed_attempts", 0) or 0) + 1
+            if pending.failed_attempts >= 5:
+                pending.delete()
+                return Response({
+                    "detail": "Too many failed attempts. This verification code has been invalidated. Please register again."
+                }, status=status.HTTP_400_BAD_REQUEST)
+            pending.save(update_fields=["failed_attempts"])
+            remaining = 5 - pending.failed_attempts
+            return Response({
+                "detail": f"Invalid OTP code. {remaining} attempt(s) remaining."
+            }, status=status.HTTP_400_BAD_REQUEST)
             
         if pending.expires_at < timezone.now():
             return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
