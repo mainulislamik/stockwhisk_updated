@@ -15,9 +15,9 @@ const RANGES = [
 
 export default function ReportsScreen() {
   const theme = useTheme();
-  const { language } = usePreferences();
+  const { language, isDarkMode } = usePreferences();
   const isBN = language === 'BN';
-  
+
   const [selectedRange, setSelectedRange] = useState(RANGES[2]);
   const [overview, setOverview] = useState<any>(null);
   const [comprehensive, setComprehensive] = useState<any>(null);
@@ -34,7 +34,7 @@ export default function ReportsScreen() {
       const [ovRes, compRes, profitRes] = await Promise.all([
         api.get('/analytics/sales-overview/').catch(() => ({ data: null })),
         api.get('/analytics/dashboard-comprehensive/', { params: { days: selectedRange.days } }).catch(() => ({ data: null })),
-        api.get('/analytics/profit-overview/', { params: { range: selectedRange.rangeKey } }).catch(() => ({ data: null }))
+        api.get('/analytics/profit-overview/', { params: { range: selectedRange.rangeKey } }).catch(() => ({ data: null })),
       ]);
       if (ovRes.data) setOverview(ovRes.data);
       if (compRes.data) setComprehensive(compRes.data);
@@ -58,7 +58,7 @@ export default function ReportsScreen() {
             onPress={() => setSelectedRange(range)}
             style={[
               styles.chip,
-              { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface }
+              { backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface },
             ]}
           >
             <Text style={{ color: isSelected ? '#fff' : theme.colors.onSurface, fontWeight: 'bold' }}>
@@ -78,7 +78,6 @@ export default function ReportsScreen() {
     );
   }
 
-  const trend = comprehensive?.trend || [];
   const topProducts = comprehensive?.top_products || [];
   const topCustomers = comprehensive?.top_customers || [];
   const paymentMethods = comprehensive?.payment_methods || [];
@@ -90,7 +89,7 @@ export default function ReportsScreen() {
   const profitTrend = profitOverview?.trend || [];
 
   return (
-    <ScrollView 
+    <ScrollView
       style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background }}
       contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
     >
@@ -105,7 +104,7 @@ export default function ReportsScreen() {
         <Card style={styles.cardHalf}>
           <Card.Content>
             <Text style={{ color: theme.colors.secondary }}>{isBN ? 'মোট সেলস' : 'Total Sales'}</Text>
-            <Text style={styles.cardValue}>৳{overview?.total_sales || '0.00'}</Text>
+            <Text style={styles.cardValue}>৳{Number(overview?.total_sales || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
@@ -117,7 +116,7 @@ export default function ReportsScreen() {
         <Card style={styles.cardHalf}>
           <Card.Content>
             <Text style={{ color: theme.colors.secondary }}>{isBN ? 'চলতি মাসের সেলস' : 'This Month Sales'}</Text>
-            <Text style={styles.cardValue}>৳{overview?.this_month_sales || '0.00'}</Text>
+            <Text style={styles.cardValue}>৳{Number(overview?.this_month_sales || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
@@ -128,25 +127,25 @@ export default function ReportsScreen() {
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
-            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'আজকের সেলস' : 'Today\'s Sales'}</Text>
-            <Text style={styles.cardValue}>৳{overview?.today_sales || '0.00'}</Text>
+            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'আজকের সেলস' : "Today's Sales"}</Text>
+            <Text style={styles.cardValue}>৳{Number(overview?.today_sales || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
-            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'আজকের অর্ডার' : 'Today\'s Orders'}</Text>
+            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'আজকের অর্ডার' : "Today's Orders"}</Text>
             <Text style={styles.cardValue}>{overview?.today_orders || '0'}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
-            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'গত মাসের সেলস' : 'Last Month\'s Sales'}</Text>
-            <Text style={styles.cardValue}>৳{overview?.last_month_sales || '0.00'}</Text>
+            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'গত মাসের সেলস' : "Last Month's Sales"}</Text>
+            <Text style={styles.cardValue}>৳{Number(overview?.last_month_sales || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
-            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'গত মাসের অর্ডার' : 'Last Month\'s Orders'}</Text>
+            <Text style={{ color: theme.colors.secondary }}>{isBN ? 'গত মাসের অর্ডার' : "Last Month's Orders"}</Text>
             <Text style={styles.cardValue}>{overview?.last_month_orders || '0'}</Text>
           </Card.Content>
         </Card>
@@ -159,25 +158,27 @@ export default function ReportsScreen() {
         <Card style={styles.cardHalf}>
           <Card.Content>
             <Text style={{ color: theme.colors.secondary }}>{isBN ? 'গ্রস প্রফিট' : 'Gross Profit'}</Text>
-            <Text style={[styles.cardValue, { color: '#16a34a' }]}>৳{profitOverview?.summary?.gross_profit || '0.00'}</Text>
+            <Text style={[styles.cardValue, { color: '#16a34a' }]}>৳{Number(profitOverview?.summary?.gross_profit || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
             <Text style={{ color: theme.colors.secondary }}>{isBN ? 'মোট খরচ' : 'Total Cost'}</Text>
-            <Text style={[styles.cardValue, { color: '#dc2626' }]}>৳{profitOverview?.summary?.total_cost || '0.00'}</Text>
+            <Text style={[styles.cardValue, { color: '#dc2626' }]}>৳{Number(profitOverview?.summary?.total_cost || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
             <Text style={{ color: theme.colors.secondary }}>{isBN ? 'প্রফিট মার্জিন' : 'Profit Margin'}</Text>
-            <Text style={[styles.cardValue, { color: '#2563eb' }]}>{profitOverview?.summary?.profit_margin ? Number(profitOverview.summary.profit_margin).toFixed(2) : '0.00'}%</Text>
+            <Text style={[styles.cardValue, { color: '#2563eb' }]}>
+              {profitOverview?.summary?.profit_margin ? Number(profitOverview.summary.profit_margin).toFixed(2) : '0.00'}%
+            </Text>
           </Card.Content>
         </Card>
         <Card style={styles.cardHalf}>
           <Card.Content>
             <Text style={{ color: theme.colors.secondary }}>{isBN ? 'গড় প্রফিট / অর্ডার' : 'Avg. Profit / Order'}</Text>
-            <Text style={[styles.cardValue, { color: '#0891b2' }]}>৳{profitOverview?.summary?.average_profit_per_order || '0.00'}</Text>
+            <Text style={[styles.cardValue, { color: '#0891b2' }]}>৳{Number(profitOverview?.summary?.average_profit_per_order || 0).toLocaleString()}</Text>
           </Card.Content>
         </Card>
       </View>
@@ -185,7 +186,7 @@ export default function ReportsScreen() {
       <Text variant="titleMedium" style={styles.sectionTitle}>
         {isBN ? 'প্রফিট ট্রেন্ড' : 'Profit Trend'}
       </Text>
-            <Card style={styles.fullCard}>
+      <Card style={styles.fullCard}>
         <Card.Content>
           {profitTrend.length > 0 ? (
             <>
@@ -205,34 +206,44 @@ export default function ReportsScreen() {
               </View>
               <LineChart
                 data={{
-                  labels: profitTrend.length === 1 
-                    ? [new Date(profitTrend[0].date).getDate().toString(), ''] 
-                    : profitTrend.map((d: any) => new Date(d.date).getDate().toString()),
+                  labels: (() => {
+                    if (profitTrend.length <= 1) {
+                      return profitTrend.length === 1 ? [new Date(profitTrend[0].date).getDate().toString(), ''] : [''];
+                    }
+                    const step = Math.max(1, Math.floor(profitTrend.length / 5));
+                    return profitTrend.map((d: any, i: number) => {
+                      if (i % step === 0 || i === profitTrend.length - 1) {
+                        const dt = new Date(d.date);
+                        return isNaN(dt.getDate()) ? '' : `${dt.getMonth() + 1}/${dt.getDate()}`;
+                      }
+                      return '';
+                    });
+                  })(),
                   datasets: [
                     {
                       data: profitTrend.length === 1
                         ? [Number(profitTrend[0].revenue) || 0, Number(profitTrend[0].revenue) || 0]
                         : profitTrend.map((d: any) => Number(d.revenue) || 0),
-                      color: (opacity = 1) => "rgba(37, 99, 235, " + opacity + ")",
+                      color: (opacity = 1) => 'rgba(37, 99, 235, ' + opacity + ')',
                     },
                     {
                       data: profitTrend.length === 1
                         ? [Number(profitTrend[0].cost) || 0, Number(profitTrend[0].cost) || 0]
                         : profitTrend.map((d: any) => Number(d.cost) || 0),
-                      color: (opacity = 1) => "rgba(220, 38, 38, " + opacity + ")",
+                      color: (opacity = 1) => 'rgba(220, 38, 38, ' + opacity + ')',
                     },
                     {
                       data: profitTrend.length === 1
                         ? [Number(profitTrend[0].profit) || 0, Number(profitTrend[0].profit) || 0]
                         : profitTrend.map((d: any) => Number(d.profit) || 0),
-                      color: (opacity = 1) => "rgba(22, 163, 74, " + opacity + ")",
-                    }
+                      color: (opacity = 1) => 'rgba(22, 163, 74, ' + opacity + ')',
+                    },
                   ],
-                  legend: []
+                  legend: [],
                 }}
                 width={chartWidth}
                 height={220}
-                yAxisLabel="?"
+                yAxisLabel="৳"
                 withDots={true}
                 withShadow={false}
                 chartConfig={{
@@ -240,10 +251,10 @@ export default function ReportsScreen() {
                   backgroundGradientFrom: theme.colors.surface,
                   backgroundGradientTo: theme.colors.surface,
                   decimalPlaces: 0,
-                  color: (opacity = 1) => "rgba(100, 116, 139, " + opacity + ")",
-                  labelColor: (opacity = 1) => "rgba(100, 116, 139, " + opacity + ")",
+                  color: (opacity = 1) => 'rgba(100, 116, 139, ' + opacity + ')',
+                  labelColor: (opacity = 1) => 'rgba(100, 116, 139, ' + opacity + ')',
                   style: { borderRadius: 16 },
-                  propsForDots: { r: "3", strokeWidth: "1", stroke: theme.colors.surface }
+                  propsForDots: { r: '3', strokeWidth: '1', stroke: theme.colors.surface },
                 }}
                 bezier
                 style={{ marginVertical: 8, borderRadius: 16 }}
@@ -260,15 +271,19 @@ export default function ReportsScreen() {
       </Text>
       <Card style={styles.fullCard}>
         <Card.Content>
-          {topProducts.length > 0 ? topProducts.map((p: any, i: number) => (
-            <View key={i} style={styles.listItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold' }}>{p.product__name}</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.secondary }}>{isBN ? 'পরিমাণ' : 'Qty'}: {p.qty}</Text>
+          {topProducts.length > 0 ? (
+            topProducts.map((p: any, i: number) => (
+              <View key={i} style={styles.listItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold' }}>{p.product__name || p.name || p.product_name || `Product #${i + 1}`}</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.secondary }}>{isBN ? 'পরিমাণ' : 'Qty'}: {p.qty || p.quantity || 0}</Text>
+                </View>
+                <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(p.revenue || 0).toLocaleString()}</Text>
               </View>
-              <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(p.revenue).toLocaleString()}</Text>
-            </View>
-          )) : <Text style={{ textAlign: 'center' }}>{isBN ? 'কোনো ডাটা নেই' : 'No data'}</Text>}
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'কোনো ডাটা নেই' : 'No data'}</Text>
+          )}
         </Card.Content>
       </Card>
 
@@ -277,15 +292,19 @@ export default function ReportsScreen() {
       </Text>
       <Card style={styles.fullCard}>
         <Card.Content>
-          {topCustomers.length > 0 ? topCustomers.map((c: any, i: number) => (
-            <View key={i} style={styles.listItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold' }}>{c.customer__name}</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.secondary }}>{isBN ? 'অর্ডার' : 'Orders'}: {c.order_count}</Text>
+          {topCustomers.length > 0 ? (
+            topCustomers.map((c: any, i: number) => (
+              <View key={i} style={styles.listItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold' }}>{c.customer__name || c.name || c.customer_name || `Customer #${i + 1}`}</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.secondary }}>{isBN ? 'অর্ডার' : 'Orders'}: {c.order_count || c.orders || 0}</Text>
+                </View>
+                <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(c.total_spent || 0).toLocaleString()}</Text>
               </View>
-              <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(c.total_spent).toLocaleString()}</Text>
-            </View>
-          )) : <Text style={{ textAlign: 'center' }}>{isBN ? 'কোনো ডাটা নেই' : 'No data'}</Text>}
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'কোনো ডাটা নেই' : 'No data'}</Text>
+          )}
         </Card.Content>
       </Card>
 
@@ -294,12 +313,16 @@ export default function ReportsScreen() {
       </Text>
       <Card style={styles.fullCard}>
         <Card.Content>
-          {paymentMethods.length > 0 ? paymentMethods.map((pm: any, i: number) => (
-            <View key={i} style={styles.listItem}>
-              <Text style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{pm.method}</Text>
-              <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(pm.total).toLocaleString()}</Text>
-            </View>
-          )) : <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>}
+          {paymentMethods.length > 0 ? (
+            paymentMethods.map((pm: any, i: number) => (
+              <View key={i} style={styles.listItem}>
+                <Text style={{ fontWeight: 'bold', textTransform: 'capitalize' }}>{pm.method || pm.payment_method || 'Cash'}</Text>
+                <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(pm.total || 0).toLocaleString()}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>
+          )}
         </Card.Content>
       </Card>
 
@@ -308,12 +331,16 @@ export default function ReportsScreen() {
       </Text>
       <Card style={styles.fullCard}>
         <Card.Content>
-          {salesByCategory.length > 0 ? salesByCategory.map((c: any, i: number) => (
-            <View key={i} style={styles.listItem}>
-              <Text style={{ fontWeight: 'bold' }}>{c.product__category__name || (isBN ? 'ক্যাটাগরি ছাড়া' : 'Uncategorized')}</Text>
-              <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(c.revenue).toLocaleString()}</Text>
-            </View>
-          )) : <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>}
+          {salesByCategory.length > 0 ? (
+            salesByCategory.map((c: any, i: number) => (
+              <View key={i} style={styles.listItem}>
+                <Text style={{ fontWeight: 'bold' }}>{c.product__category__name || (isBN ? 'ক্যাটাগরি ছাড়া' : 'Uncategorized')}</Text>
+                <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(c.revenue || 0).toLocaleString()}</Text>
+              </View>
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>
+          )}
         </Card.Content>
       </Card>
 
@@ -322,15 +349,19 @@ export default function ReportsScreen() {
       </Text>
       <Card style={styles.fullCard}>
         <Card.Content>
-          {recentTransactions.length > 0 ? recentTransactions.map((t: any, i: number) => (
-            <View key={i} style={styles.listItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold' }}>{t.invoice_number}</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.secondary }}>{t.customer_name || 'Walk-in'} • {t.payment_method}</Text>
+          {recentTransactions.length > 0 ? (
+            recentTransactions.map((t: any, i: number) => (
+              <View key={i} style={styles.listItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold' }}>{t.invoice_number}</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.secondary }}>{t.customer_name || 'Walk-in'} • {t.payment_method}</Text>
+                </View>
+                <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(t.total || 0).toLocaleString()}</Text>
               </View>
-              <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{Number(t.total).toLocaleString()}</Text>
-            </View>
-          )) : <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>}
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>
+          )}
         </Card.Content>
       </Card>
 
@@ -339,15 +370,19 @@ export default function ReportsScreen() {
       </Text>
       <Card style={styles.fullCard}>
         <Card.Content>
-          {topReturns.length > 0 ? topReturns.map((r: any, i: number) => (
-            <View key={i} style={styles.listItem}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ fontWeight: 'bold' }}>{r.sale_item__product__name}</Text>
-                <Text style={{ fontSize: 12, color: theme.colors.error }}>{isBN ? 'রিটার্ন পরিমাণ' : 'Return Qty'}: {r.qty}</Text>
+          {topReturns.length > 0 ? (
+            topReturns.map((r: any, i: number) => (
+              <View key={i} style={styles.listItem}>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold' }}>{r.sale_item__product__name}</Text>
+                  <Text style={{ fontSize: 12, color: theme.colors.error }}>{isBN ? 'রিটার্ন পরিমাণ' : 'Return Qty'}: {r.qty}</Text>
+                </View>
+                <Text style={{ fontWeight: 'bold', color: theme.colors.error }}>৳{Number(r.refund_amount || 0).toLocaleString()}</Text>
               </View>
-              <Text style={{ fontWeight: 'bold', color: theme.colors.error }}>৳{Number(r.refund_amount).toLocaleString()}</Text>
-            </View>
-          )) : <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>}
+            ))
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'কোন তথ্য নেই' : 'No data'}</Text>
+          )}
         </Card.Content>
       </Card>
 
@@ -377,10 +412,11 @@ export default function ReportsScreen() {
                 </View>
               ))}
             </>
-          ) : <Text style={{ textAlign: 'center' }}>{isBN ? 'সব ঠিক আছে' : 'Inventory Healthy'}</Text>}
+          ) : (
+            <Text style={{ textAlign: 'center' }}>{isBN ? 'সব ঠিক আছে' : 'Inventory Healthy'}</Text>
+          )}
         </Card.Content>
       </Card>
-
     </ScrollView>
   );
 }
@@ -431,6 +467,5 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
     alignItems: 'center',
-  }
+  },
 });
-

@@ -271,6 +271,17 @@ export default function SalesScreen() {
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>
                             {item.quantity} x ৳{Number(item.unit_price || 0).toFixed(2)}
                           </Text>
+                          {item.units && item.units.length > 0 && (
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                              {item.units.map((u: any, uIdx: number) => (
+                                <View key={uIdx} style={{ backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                                  <Text style={{ fontSize: 10, fontFamily: 'monospace', color: isDarkMode ? '#93c5fd' : '#1e40af' }}>
+                                    {u.barcode || u.serial_number || String(u)}
+                                  </Text>
+                                </View>
+                              ))}
+                            </View>
+                          )}
                         </View>
                         <Text style={{ fontWeight: 'bold', fontSize: 13 }}>
                           ৳{Number(item.subtotal || (item.quantity * item.unit_price) || 0).toFixed(2)}

@@ -46,20 +46,25 @@ export default function AccountingScreen() {
       let startStr = '';
       let endStr = '';
       const now = new Date();
-      const todayStr = now.toISOString().split('T')[0];
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const todayStr = `${year}-${month}-${day}`;
 
       if (dateFilter === 'today') {
-        startStr = `${todayStr}T00:00:00Z`;
-        endStr = `${todayStr}T23:59:59Z`;
+        startStr = `${todayStr}T00:00:00`;
+        endStr = `${todayStr}T23:59:59`;
       } else if (dateFilter === '7days') {
         const d = new Date();
         d.setDate(d.getDate() - 7);
-        startStr = `${d.toISOString().split('T')[0]}T00:00:00Z`;
-        endStr = `${todayStr}T23:59:59Z`;
+        const dYear = d.getFullYear();
+        const dMonth = String(d.getMonth() + 1).padStart(2, '0');
+        const dDay = String(d.getDate()).padStart(2, '0');
+        startStr = `${dYear}-${dMonth}-${dDay}T00:00:00`;
+        endStr = `${todayStr}T23:59:59`;
       } else if (dateFilter === 'month') {
-        const d = new Date(now.getFullYear(), now.getMonth(), 1);
-        startStr = `${d.toISOString().split('T')[0]}T00:00:00Z`;
-        endStr = `${todayStr}T23:59:59Z`;
+        startStr = `${year}-${month}-01T00:00:00`;
+        endStr = `${todayStr}T23:59:59`;
       }
 
       const params: any = {};

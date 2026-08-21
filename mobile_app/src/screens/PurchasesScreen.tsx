@@ -110,16 +110,16 @@ export default function PurchasesScreen() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#f1f5f9' }}>
                   <View>
                     <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>{isBn ? 'মোট' : 'Total'}</Text>
-                    <Text style={{ fontWeight: 'bold', fontSize: 14 }}>৳ {Number(po.total).toFixed(2)}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 14 }}>৳ {Number(po.total || 0).toFixed(2)}</Text>
                   </View>
                   <View>
                     <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>{isBn ? 'পরিশোধিত' : 'Paid'}</Text>
-                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#16a34a' }}>৳ {Number(po.paid).toFixed(2)}</Text>
+                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#16a34a' }}>৳ {Number(po.paid || 0).toFixed(2)}</Text>
                   </View>
                   <View>
                     <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>{isBn ? 'বকেয়া' : 'Due'}</Text>
-                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: Number(po.due) > 0 ? '#dc2626' : theme.colors.onSurface }}>
-                      ৳ {Number(po.due).toFixed(2)}
+                    <Text style={{ fontWeight: 'bold', fontSize: 14, color: Number(po.due || 0) > 0 ? '#dc2626' : theme.colors.onSurface }}>
+                      ৳ {Number(po.due || 0).toFixed(2)}
                     </Text>
                   </View>
                 </View>
