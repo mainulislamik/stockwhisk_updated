@@ -744,7 +744,7 @@ export default function POSScreen() {
           {permission?.granted && (
             <CameraView
               style={{ flex: 1 }}
-              onBarcodeScanned={({ data }) => {
+              onBarcodeScanned={({ data }: any) => {
                 setShowScanner(false);
                 processBarcode(data);
               }}
