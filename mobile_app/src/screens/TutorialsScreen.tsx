@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
-import { Text, Appbar, useTheme, Card } from 'react-native-paper';
+import { Text, Appbar, useTheme, Card, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
