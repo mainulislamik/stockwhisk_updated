@@ -8,6 +8,7 @@ import * as Print from 'expo-print';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
+import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
@@ -738,39 +739,12 @@ export default function POSScreen() {
         </ScrollView>
       )}
 
-      <Modal visible={showScanner} transparent animationType="slide" onRequestClose={() => setShowScanner(false)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.9)', alignItems: 'center' }}>
-          <View style={{ flex: 1, width: '100%', maxWidth: 500, backgroundColor: 'black' }}>
-          {permission?.granted && (
-            <CameraView
-              style={{ flex: 1 }}
-              onBarcodeScanned={({ data }: any) => {
-                setShowScanner(false);
-                processBarcode(data);
-              }}
-            >
-              <View style={{ flex: 1 }}>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                <View style={{ flexDirection: 'row', height: 250 }}>
-                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                  <View style={{ width: 300, backgroundColor: 'transparent', borderColor: 'red', borderWidth: 2, borderRadius: 8 }} />
-                  <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-                </View>
-                <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)' }} />
-              </View>
-            </CameraView>
-          )}
-          <View style={{ position: 'absolute', top: 40, right: 20, zIndex: 10 }}>
-            <IconButton icon="close" size={32} iconColor="white" onPress={() => setShowScanner(false)} />
-          </View>
-          <View style={{ position: 'absolute', bottom: 40, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
-            <Text style={{ color: 'white', backgroundColor: 'rgba(0,0,0,0.5)', padding: 8, borderRadius: 4 }}>
-              {t('বারকোড স্ক্যান করুন', 'Scan a barcode')}
-            </Text>
-          </View>
-          </View>
-        </View>
-      </Modal>
+      {/* Barcode Scanner Modal */}
+      <CameraBarcodeScannerModal
+        visible={showScanner}
+        onClose={() => setShowScanner(false)}
+        onScanned={(code) => processBarcode(code)}
+      />
 
       <Modal visible={unitModalVisible} transparent animationType="fade" onRequestClose={() => setUnitModalVisible(false)}>
         <TouchableOpacity 

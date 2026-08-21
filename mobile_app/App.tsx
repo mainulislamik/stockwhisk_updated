@@ -2,6 +2,8 @@ import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import { MD3LightTheme, MD3DarkTheme, PaperProvider } from 'react-native-paper';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { PreferencesProvider, usePreferences } from './src/contexts/PreferencesContext';
 import LoginScreen from './src/screens/LoginScreen';
@@ -68,37 +70,37 @@ function RootNavigator() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return null; // Or a splash screen
+    return null;
   }
 
   return (
     <View style={{ flex: 1 }}>
       {user && <GlobalHeader />}
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-      {user ? (
-        <>
-          <Stack.Screen name="MainTabs" component={TabNavigator} />
-          <Stack.Screen name="Notifications" component={NotificationsScreen} />
-          <Stack.Screen name="SalesScreen" component={SalesScreen} />
-          <Stack.Screen name="ProductsScreen" component={ProductsScreen} />
-          <Stack.Screen name="CustomersScreen" component={CustomersScreen} />
-          <Stack.Screen name="DuesScreen" component={DuesScreen} />
-          <Stack.Screen name="SuppliersScreen" component={SuppliersScreen} />
-          <Stack.Screen name="PurchasesScreen" component={PurchasesScreen} />
-          <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
-          <Stack.Screen name="ServiceTickets" component={ServiceTicketsScreen} />
-          <Stack.Screen name="EMIScreen" component={EMIScreen} />
-          <Stack.Screen name="ReturnsScreen" component={ReturnsScreen} />
-          <Stack.Screen name="SettlementScreen" component={SettlementScreen} />
-          <Stack.Screen name="AccountingScreen" component={AccountingScreen} />
-          <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
-          <Stack.Screen name="UsersAndRoles" component={UsersAndRolesScreen} />
-          <Stack.Screen name="TutorialsScreen" component={TutorialsScreen} />
-        </>
-      ) : (
-        <Stack.Screen name="Login" component={LoginScreen} />
-      )}
-    </Stack.Navigator>
+        {user ? (
+          <>
+            <Stack.Screen name="MainTabs" component={TabNavigator} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="SalesScreen" component={SalesScreen} />
+            <Stack.Screen name="ProductsScreen" component={ProductsScreen} />
+            <Stack.Screen name="CustomersScreen" component={CustomersScreen} />
+            <Stack.Screen name="DuesScreen" component={DuesScreen} />
+            <Stack.Screen name="SuppliersScreen" component={SuppliersScreen} />
+            <Stack.Screen name="PurchasesScreen" component={PurchasesScreen} />
+            <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
+            <Stack.Screen name="ServiceTickets" component={ServiceTicketsScreen} />
+            <Stack.Screen name="EMIScreen" component={EMIScreen} />
+            <Stack.Screen name="ReturnsScreen" component={ReturnsScreen} />
+            <Stack.Screen name="SettlementScreen" component={SettlementScreen} />
+            <Stack.Screen name="AccountingScreen" component={AccountingScreen} />
+            <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
+            <Stack.Screen name="UsersAndRoles" component={UsersAndRolesScreen} />
+            <Stack.Screen name="TutorialsScreen" component={TutorialsScreen} />
+          </>
+        ) : (
+          <Stack.Screen name="Login" component={LoginScreen} />
+        )}
+      </Stack.Navigator>
     </View>
   );
 }
@@ -108,31 +110,36 @@ function ThemedApp() {
   const theme = isDarkMode ? customDarkTheme : customLightTheme;
 
   return (
-    <PaperProvider theme={theme}>
-      <View style={{ flex: 1, backgroundColor: isDarkMode ? '#030712' : '#e2e8f0', alignItems: 'center' }}>
-        <View style={{
-          flex: 1,
-          width: '100%',
-          maxWidth: 500,
-          backgroundColor: theme.colors.background,
-          overflow: 'hidden',
-          borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
-          borderRightWidth: Platform.OS === 'web' ? 1 : 0,
-          borderColor: isDarkMode ? '#1e293b' : '#cbd5e1',
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.15,
-          shadowRadius: 16,
-          elevation: 12,
-        }}>
-          <NavigationContainer>
-            <AuthProvider>
-              <RootNavigator />
-            </AuthProvider>
-          </NavigationContainer>
+    <SafeAreaProvider>
+      <PaperProvider theme={theme}>
+        <StatusBar style={isDarkMode ? 'light' : 'dark'} backgroundColor={isDarkMode ? '#0f172a' : '#ffffff'} />
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#030712' : '#e2e8f0', alignItems: 'center' }}>
+          <View
+            style={{
+              flex: 1,
+              width: '100%',
+              maxWidth: 500,
+              backgroundColor: theme.colors.background,
+              overflow: 'hidden',
+              borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+              borderRightWidth: Platform.OS === 'web' ? 1 : 0,
+              borderColor: isDarkMode ? '#1e293b' : '#cbd5e1',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.15,
+              shadowRadius: 16,
+              elevation: 12,
+            }}
+          >
+            <NavigationContainer>
+              <AuthProvider>
+                <RootNavigator />
+              </AuthProvider>
+            </NavigationContainer>
+          </View>
         </View>
-      </View>
-    </PaperProvider>
+      </PaperProvider>
+    </SafeAreaProvider>
   );
 }
 

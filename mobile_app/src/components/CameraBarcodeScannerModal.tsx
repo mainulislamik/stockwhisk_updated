@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Modal, TouchableOpacity, StyleSheet, Platform, Alert } from 'react-native';
+import { View, Modal, StyleSheet, Platform, Alert, Dimensions } from 'react-native';
 import { Text, IconButton, Button } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -15,11 +15,13 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
   const isBN = language === 'BN';
   const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
+  const [torchOn, setTorchOn] = useState(false);
 
   // Reset scanned state whenever modal opens
   React.useEffect(() => {
     if (visible) {
       setScanned(false);
+      setTorchOn(false);
     }
   }, [visible]);
 
@@ -36,12 +38,20 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
-          {/* Top Close Button */}
+          {/* Top Bar Controls */}
           <View style={styles.topBar}>
             <Text style={styles.titleText}>
               {isBN ? '📷 বারকোড স্ক্যানার' : '📷 Barcode Scanner'}
             </Text>
-            <IconButton icon="close" size={28} iconColor="#ffffff" onPress={onClose} />
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <IconButton
+                icon={torchOn ? 'flashlight' : 'flashlight-off'}
+                size={24}
+                iconColor={torchOn ? '#fbbf24' : '#ffffff'}
+                onPress={() => setTorchOn(!torchOn)}
+              />
+              <IconButton icon="close" size={26} iconColor="#ffffff" onPress={onClose} />
+            </View>
           </View>
 
           {/* Camera View */}
@@ -49,6 +59,8 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
             <View style={{ flex: 1 }}>
               <CameraView
                 style={StyleSheet.absoluteFill}
+                facing="back"
+                enableTorch={torchOn}
                 barcodeScannerSettings={{
                   barcodeTypes: [
                     'qr',
@@ -59,10 +71,10 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
                     'upc_a',
                     'upc_e',
                     'codabar',
-                    'itf14'
+                    'itf14',
                   ],
                 }}
-                onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+                onBarcodeScanned={scanned ? undefined : (handleBarcodeScanned as any)}
               />
 
               {/* Viewfinder Target Box Overlay */}
@@ -81,7 +93,7 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
                 </View>
                 <View style={styles.maskBottom}>
                   <Text style={styles.guideText}>
-                    {isBN ? 'বারকোডটি বক্সের মাঝে রাখুন' : 'Align barcode within the frame'}
+                    {isBN ? 'বারকোডটি লাল লাইনের মাঝে রাখুন' : 'Align barcode within the target box'}
                   </Text>
                 </View>
               </View>
@@ -89,9 +101,16 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
           ) : (
             <View style={styles.permissionBox}>
               <Text style={styles.permissionText}>
-                {isBN ? 'বারকোড স্ক্যান করতে ক্যামেরা পারমিশন প্রয়োজন।' : 'Camera permission is required to scan barcodes.'}
+                {isBN
+                  ? 'বারকোড স্ক্যান করতে ক্যামেরা পারমিশন প্রয়োজন।'
+                  : 'Camera permission is required to scan product barcodes.'}
               </Text>
-              <Button mode="contained" buttonColor="#2563eb" onPress={requestPermission} style={{ marginTop: 16 }}>
+              <Button
+                mode="contained"
+                buttonColor="#4f46e5"
+                onPress={requestPermission}
+                style={{ marginTop: 16 }}
+              >
                 {isBN ? 'ক্যামেরা চালু করুন' : 'Grant Camera Permission'}
               </Button>
             </View>
@@ -105,7 +124,7 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.9)',
+    backgroundColor: 'rgba(0,0,0,0.95)',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -120,7 +139,7 @@ const styles = StyleSheet.create({
     top: 40,
     left: 16,
     right: 16,
-    zIndex: 20,
+    zIndex: 30,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -131,7 +150,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   maskContainer: {
-    ...StyleSheet.absoluteFill,
+    ...StyleSheet.absoluteFillObject,
   },
   maskTop: {
     flex: 1,
@@ -155,21 +174,18 @@ const styles = StyleSheet.create({
   },
   corner: {
     position: 'absolute',
-    width: 24,
-    height: 24,
-    borderColor: '#3b82f6',
+    width: 26,
+    height: 26,
+    borderColor: '#4f46e5',
   },
-  topLeft: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3 },
-  topRight: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3 },
-  bottomLeft: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3 },
-  bottomRight: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3 },
+  topLeft: { top: 0, left: 0, borderTopWidth: 4, borderLeftWidth: 4, borderTopLeftRadius: 4 },
+  topRight: { top: 0, right: 0, borderTopWidth: 4, borderRightWidth: 4, borderTopRightRadius: 4 },
+  bottomLeft: { bottom: 0, left: 0, borderBottomWidth: 4, borderLeftWidth: 4, borderBottomLeftRadius: 4 },
+  bottomRight: { bottom: 0, right: 0, borderBottomWidth: 4, borderRightWidth: 4, borderBottomRightRadius: 4 },
   scanLine: {
-    width: '90%',
+    width: '92%',
     height: 2,
     backgroundColor: '#ef4444',
-    shadowColor: '#ef4444',
-    shadowOpacity: 0.8,
-    shadowRadius: 4,
   },
   maskBottom: {
     flex: 1,
@@ -179,11 +195,12 @@ const styles = StyleSheet.create({
   },
   guideText: {
     color: '#ffffff',
-    fontSize: 14,
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    fontSize: 13,
+    backgroundColor: 'rgba(0,0,0,0.7)',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
+    fontWeight: '600',
   },
   permissionBox: {
     flex: 1,
@@ -195,5 +212,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     textAlign: 'center',
+    lineHeight: 24,
   },
 });
