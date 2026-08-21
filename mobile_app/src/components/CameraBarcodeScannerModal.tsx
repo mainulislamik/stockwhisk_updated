@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Modal, StyleSheet, Platform, Alert, Dimensions } from 'react-native';
+import { View, Modal, StyleSheet, Platform, Alert, Dimensions, Vibration } from 'react-native';
 import { Text, IconButton, Button } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -28,6 +28,9 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
   const handleBarcodeScanned = ({ data }: { data: string }) => {
     if (scanned || !data) return;
     setScanned(true);
+    try {
+      Vibration.vibrate(70);
+    } catch (e) {}
     onScanned(data);
     onClose();
   };

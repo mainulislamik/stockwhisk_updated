@@ -387,9 +387,19 @@ export default function ProductsScreen() {
                           <Text style={styles.sku}>{product.sku ? `SKU: ${product.sku}` : (product.barcode ? `Barcode: ${product.barcode}` : '')}</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                          <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#16a34a', height: 24 }}>
-                            {isBN ? 'চালু' : 'Active'}
-                          </Chip>
+                          {isOutOfStock ? (
+                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#dc2626', height: 24 }}>
+                              {isBN ? 'স্টক নেই' : 'Out of Stock'}
+                            </Chip>
+                          ) : isLowStock ? (
+                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#d97706', height: 24 }}>
+                              {isBN ? '⚠️ লো স্টক' : '⚠️ Low Stock'}
+                            </Chip>
+                          ) : (
+                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#16a34a', height: 24 }}>
+                              {isBN ? 'চালু' : 'Active'}
+                            </Chip>
+                          )}
                           <TouchableOpacity onPress={() => setProductToEdit(product)} style={{ padding: 6 }}>
                             <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
                           </TouchableOpacity>

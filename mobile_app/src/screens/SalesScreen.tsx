@@ -158,9 +158,12 @@ export default function SalesScreen() {
       <body>
         <div class="header">
           <div class="title">${user?.shop_name || 'StockWhisk Store'}</div>
+          ${(user as any)?.shop_address ? `<div class="info">${(user as any).shop_address}</div>` : ''}
+          ${(user as any)?.shop_phone ? `<div class="info">Phone: ${(user as any).shop_phone}</div>` : ''}
           <div class="info">Invoice: #${sale.invoice_no || sale.invoice_number || sale.id}</div>
           <div class="info">Date: ${sale.sale_date?.slice(0, 10) || ''}</div>
           <div class="info">Customer: ${sale.customer_name || 'Walk-in'} ${sale.customer_phone ? `(${sale.customer_phone})` : ''}</div>
+          ${sale.courier_name || sale.courier_tracking_code ? `<div class="info" style="font-weight: bold; margin-top: 2px;">Courier: ${sale.courier_name || ''} ${sale.courier_tracking_code ? `(#${sale.courier_tracking_code})` : ''}</div>` : ''}
         </div>
         <table>
           <thead>

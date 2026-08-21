@@ -110,3 +110,27 @@ class CustomerViewSet(TenantScopedViewSet):
     @action(detail=True, methods=["post"], url_path="receive-payment")
     def receive_payment(self, request, pk=None):
         return self.pay_due(request, pk=pk)
+
+    @action(detail=True, methods=["get"], url_path="statement")
+    def statement(self, request, pk=None):
+        """Chronological ledger statement of sales and dues for this customer."""
+        customer = self.get_object()
+        from sales.models import Sale
+
+        sales = Sale.objects.filter(customer=customer).order_by("-sale_date")
+        sales_data = [
+            {
+                "type": "SALE",
+                "id": s.id,
+                "invoice_no": s.invoice_no,
+                "date": s.sale_date,
+                "total": s.total,
+                "paid": s.paid,
+                "due": s.due,
+            }
+            for s in sales
+        ]
+        return Response({
+            "customer": self.get_serializer(customer).data,
+            "transactions": sales_data,
+        })

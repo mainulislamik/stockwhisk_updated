@@ -64,6 +64,29 @@ class SupplierViewSet(TenantScopedViewSet):
         supplier.refresh_from_db()
         return Response(self.get_serializer(supplier).data)
 
+    @action(detail=True, methods=["get"], url_path="statement")
+    def statement(self, request, pk=None):
+        """Chronological ledger statement of purchase orders and dues for this supplier."""
+        supplier = self.get_object()
+        pos = PurchaseOrder.objects.filter(supplier=supplier).order_by("-order_date")
+        po_data = [
+            {
+                "type": "PURCHASE_ORDER",
+                "id": po.id,
+                "po_number": po.po_number,
+                "date": po.order_date,
+                "status": po.status,
+                "total": po.total,
+                "paid": po.paid,
+                "due": po.due,
+            }
+            for po in pos
+        ]
+        return Response({
+            "supplier": self.get_serializer(supplier).data,
+            "transactions": po_data,
+        })
+
 
 class PurchaseOrderViewSet(TenantScopedViewSet):
     required_perm = "manage_purchasing"

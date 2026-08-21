@@ -283,7 +283,10 @@ export default function ExpensesScreen() {
           icon="plus"
           color="#fff"
           style={{ position: 'absolute', margin: 16, right: 0, bottom: 20, backgroundColor: '#4f46e5' }}
-          onPress={() => setShowForm(true)}
+          onPress={() => {
+            setForm(prev => ({ ...prev, spent_on: new Date().toISOString().slice(0, 10) }));
+            setShowForm(true);
+          }}
         />
       )}
 
