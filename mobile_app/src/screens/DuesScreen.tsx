@@ -1,0 +1,241 @@
+import React, { useState, useEffect } from 'react';
+import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from 'react-native';
+import { Appbar, Card, Text, Button, Modal, Portal, ActivityIndicator, TextInput, useTheme } from 'react-native-paper';
+import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { api } from '../api';
+import { usePreferences } from '../contexts/PreferencesContext';
+
+interface Customer {
+  id: number;
+  name: string;
+  phone: string;
+  due_balance: string;
+}
+
+export default function DuesScreen() {
+  const navigation = useNavigation();
+  const theme = useTheme();
+  const { language, isDarkMode } = usePreferences();
+  const isBN = language === 'BN';
+
+  const [totalDues, setTotalDues] = useState('0');
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [page, setPage] = useState(1);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [search, setSearch] = useState('');
+
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  
+  const [amount, setAmount] = useState('');
+  const [method, setMethod] = useState('cash');
+  const [note, setNote] = useState('');
+  const [paying, setPaying] = useState(false);
+
+  useEffect(() => {
+    fetchTotalDues();
+    fetchDues(1, true);
+  }, []);
+
+  const fetchTotalDues = async () => {
+    try {
+      const res = await api.get('/crm/customers/dues-total/');
+      setTotalDues(res.data.total || '0');
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const fetchDues = async (pageNum: number, reset: boolean = false) => {
+    if (loading || (!hasMore && !reset)) return;
+    setLoading(true);
+    try {
+      const res = await api.get(`/crm/customers/?with_due=1&page=${pageNum}&page_size=20`);
+      const newCustomers = res.data.results || [];
+      if (reset) {
+        setCustomers(newCustomers);
+      } else {
+        setCustomers(prev => [...prev, ...newCustomers]);
+      }
+      setHasMore(!!res.data.next);
+      setPage(pageNum);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
+    if (isCloseToBottom && hasMore && !loading) {
+      fetchDues(page + 1);
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!selectedCustomer || !amount) return;
+    setPaying(true);
+    try {
+      await api.post(`/crm/customers/${selectedCustomer.id}/receive-payment/`, {
+        type: 'payment',
+        amount,
+        method,
+        note
+      });
+      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'বকেয়া সফলভাবে গ্রহণ করা হয়েছে।' : 'Payment received successfully');
+      setSelectedCustomer(null);
+      setAmount('');
+      setNote('');
+      fetchTotalDues();
+      fetchDues(1, true);
+    } catch (e) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
+    } finally {
+      setPaying(false);
+    }
+  };
+
+  const PAYMENT_METHODS = [
+    { key: 'cash', label: isBN ? 'ক্যাশ' : 'Cash' },
+    { key: 'bkash', label: 'bKash' },
+    { key: 'nagad', label: 'Nagad' },
+    { key: 'card', label: isBN ? 'কার্ড' : 'Card' },
+    { key: 'bank_transfer', label: isBN ? 'ব্যাংক' : 'Bank' },
+  ];
+
+  const filteredCustomers = customers.filter(c => 
+    c.name.toLowerCase().includes(search.toLowerCase()) || 
+    (c.phone && c.phone.includes(search))
+  );
+
+  return (
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title={isBN ? 'বকেয়া কালেকশন' : 'Due Collection'} titleStyle={{ fontWeight: 'bold' }} />
+      </Appbar.Header>
+
+      <Card style={{ margin: 16, backgroundColor: isDarkMode ? '#450a0a' : '#fef2f2', borderColor: '#fecaca', borderWidth: 1 }}>
+        <Card.Content style={{ alignItems: 'center', paddingVertical: 12 }}>
+          <Text variant="titleMedium" style={{ color: '#dc2626', fontWeight: 'bold' }}>
+            {isBN ? 'মোট বকেয়া পাওনা' : 'Total Outstanding Dues'}
+          </Text>
+          <Text variant="displaySmall" style={{ color: '#dc2626', fontWeight: 'bold', marginTop: 4 }}>
+            ৳{Number(totalDues || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+          </Text>
+        </Card.Content>
+      </Card>
+
+      <View style={{ paddingHorizontal: 16, marginBottom: 8 }}>
+        <TextInput
+          mode="outlined"
+          placeholder={isBN ? 'বকেয়া গ্রাহক খুঁজুন...' : 'Filter due customer...'}
+          value={search}
+          onChangeText={setSearch}
+          left={<TextInput.Icon icon="magnify" />}
+          style={{ backgroundColor: theme.colors.surface }}
+        />
+      </View>
+
+      <ScrollView
+        style={{ position: 'absolute', top: 220, left: 0, right: 0, bottom: 0 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+        onScroll={handleScroll}
+        scrollEventThrottle={400}
+      >
+        {filteredCustomers.map((c) => (
+          <Card key={c.id} style={{ marginBottom: 12, backgroundColor: theme.colors.surface }} onPress={() => {
+            setSelectedCustomer(c);
+            setAmount(c.due_balance);
+            setMethod('cash');
+            setNote('');
+          }}>
+            <Card.Content>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flex: 1 }}>
+                  <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>{c.name}</Text>
+                  <Text variant="bodyMedium" style={{ color: isDarkMode ? '#94a3b8' : theme.colors.onSurfaceVariant, marginTop: 2 }}>{c.phone || (isBN ? 'ফোন নম্বর নেই' : 'No phone')}</Text>
+                </View>
+                <View style={{ alignItems: 'flex-end' }}>
+                  <Text variant="titleMedium" style={{ color: '#dc2626', fontWeight: 'bold' }}>
+                    ৳{c.due_balance}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#4f46e5', marginTop: 4 }}>{isBN ? 'কালেক্ট করুন →' : 'Collect →'}</Text>
+                </View>
+              </View>
+            </Card.Content>
+          </Card>
+        ))}
+        {loading && <ActivityIndicator style={{ margin: 16 }} color={theme.colors.primary} />}
+        {!loading && filteredCustomers.length === 0 && (
+          <View style={{ padding: 40, alignItems: 'center' }}>
+            <MaterialCommunityIcons name="check-circle-outline" size={48} color="#16a34a" />
+            <Text style={{ marginTop: 12, color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+              {isBN ? 'কোনো বকেয়া পাওনা নেই!' : 'No outstanding dues!'}
+            </Text>
+          </View>
+        )}
+      </ScrollView>
+
+      <Portal>
+        <Modal
+          visible={!!selectedCustomer}
+          onDismiss={() => setSelectedCustomer(null)}
+          contentContainerStyle={{ backgroundColor: theme.colors.surface, margin: 20, padding: 20, borderRadius: 12, alignSelf: 'center', width: '100%', maxWidth: 460 }}
+        >
+          {selectedCustomer && (
+            <View>
+              <Text variant="titleLarge" style={{ fontWeight: 'bold', marginBottom: 4 }}>{isBN ? 'বকেয়া পেমেন্ট গ্রহণ' : 'Receive Payment'}</Text>
+              <Text variant="bodyMedium" style={{ marginBottom: 16, color: isDarkMode ? '#94a3b8' : theme.colors.onSurfaceVariant }}>
+                {selectedCustomer.name} ({selectedCustomer.phone || 'N/A'})
+              </Text>
+              
+              <TextInput
+                mode="outlined"
+                label={isBN ? 'টাকার পরিমাণ' : 'Amount'}
+                value={amount}
+                onChangeText={setAmount}
+                keyboardType="numeric"
+                style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
+              />
+              <Text variant="labelMedium" style={{ marginBottom: 8, fontWeight: '600' }}>{isBN ? 'পেমেন্ট মাধ্যম' : 'Payment Method'}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 }}>
+                {PAYMENT_METHODS.map(m => (
+                  <TouchableOpacity
+                    key={m.key}
+                    onPress={() => setMethod(m.key)}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6,
+                      borderWidth: 1, borderColor: method === m.key ? '#4f46e5' : '#ccc',
+                      backgroundColor: method === m.key ? '#e0e7ff' : theme.colors.surface
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, color: method === m.key ? '#4f46e5' : theme.colors.onSurface, fontWeight: method === m.key ? 'bold' : 'normal' }}>
+                      {m.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+              <TextInput
+                mode="outlined"
+                label={isBN ? 'নোট (ঐচ্ছিক)' : 'Note (Optional)'}
+                value={note}
+                onChangeText={setNote}
+                style={{ marginBottom: 20, backgroundColor: theme.colors.surface }}
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                <Button disabled={paying} onPress={() => setSelectedCustomer(null)}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
+                <Button mode="contained" buttonColor="#4f46e5" loading={paying} disabled={paying} onPress={handlePayment}>
+                  {isBN ? 'জমা দিন' : 'Submit'}
+                </Button>
+              </View>
+            </View>
+          )}
+        </Modal>
+      </Portal>
+    </View>
+  );
+}
