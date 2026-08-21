@@ -251,6 +251,11 @@ export default function TicketDetailPage() {
             <div className="text-secondary small">{ticket.device_description}</div>
           </div>
           <div className="d-flex flex-wrap gap-2 d-print-none">
+            {ticket.status !== "cancelled" && (
+              <Link href={`/app/service/tickets/${ticket.id}/edit`} className="btn btn-outline-primary btn-sm">
+                <i className="bi bi-pencil-square me-1"></i>এডিট ইনভয়েস
+              </Link>
+            )}
             <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
               <i className="bi bi-receipt me-1"></i>{t("tktd_print_token")}
             </button>

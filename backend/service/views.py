@@ -161,6 +161,34 @@ class ServiceTicketViewSet(TenantScopedViewSet):
         fresh = self.get_queryset().get(pk=ticket.pk)
         return Response(ServiceTicketSerializer(fresh).data)
 
+    @action(detail=True, methods=["post", "put", "patch"])
+    def edit(self, request, pk=None):
+        ticket = self.get_object()
+        d = request.data
+        reason = d.get("correction_reason", "").strip()
+        if not reason:
+            return Response({"detail": "Correction reason is required."}, status=status.HTTP_400_BAD_REQUEST)
+        from .services import edit_service_ticket
+        try:
+            updated = edit_service_ticket(
+                ticket=ticket,
+                parts=d.get("parts"),
+                service_charge=d.get("service_charge"),
+                discount=d.get("discount"),
+                customer_id=d.get("customer_id"),
+                customer_name=d.get("customer_name"),
+                customer_phone=d.get("customer_phone"),
+                device_description=d.get("device_description"),
+                complaint=d.get("complaint"),
+                estimated_delivery=d.get("estimated_delivery"),
+                correction_reason=reason,
+                created_by=request.user,
+            )
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        fresh = self.get_queryset().get(pk=ticket.pk)
+        return Response(ServiceTicketSerializer(fresh).data)
+
 
 class ServiceDashboardView(APIView):
     permission_classes = [IsTenantMember, HasPermCode]

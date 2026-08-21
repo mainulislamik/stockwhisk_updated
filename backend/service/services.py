@@ -220,3 +220,124 @@ def refresh_warranty_statuses(shop, soon_days=30):
             w.save(update_fields=["status"])
             updated += 1
     return updated
+
+
+@transaction.atomic
+def edit_service_ticket(
+    *, ticket, parts=None, service_charge=None, discount=None,
+    customer_id=None, customer_name=None, customer_phone=None,
+    device_description=None, complaint=None, estimated_delivery=None,
+    correction_reason="", created_by=None
+):
+    """
+    Edit a service ticket's details, labor service_charge, discount, and parts lines.
+    Ledger-safe & inventory-safe:
+    - Reverses previously added stock parts via MovementType.ADJUST_IN
+    - Validates stock for new parts and deducts via MovementType.ADJUST_OUT
+    - Recomputes bill_total and due
+    - Adjusts customer due_balance difference if already delivered
+    - Records audit trail.
+    """
+    from decimal import Decimal
+    if ticket.status == ServiceTicket.Status.CANCELLED:
+        raise ValueError("Cancelled service tickets cannot be edited.")
+    if not correction_reason:
+        raise ValueError("A correction reason is required.")
+
+    old_bill_total = ticket.bill_total
+    old_due = ticket.due
+
+    # 1. Reverse stock for existing parts
+    for part in ticket.parts.select_related("product").all():
+        if part.from_stock and part.product.track_inventory:
+            apply_movement(
+                shop=ticket.shop, product=part.product, movement_type=MovementType.ADJUST_IN,
+                quantity=part.quantity, unit_cost=part.unit_cost, reference_type="ServiceTicket",
+                reference_id=ticket.id, note=f"Edit ticket reverse: {ticket.ticket_no}", created_by=created_by,
+            )
+    ticket.parts.all().delete()
+
+    # 2. Add new parts if provided
+    if parts is not None:
+        from catalog.models import Product
+        for row in parts:
+            p_id = row.get("product_id") or row.get("product")
+            if hasattr(p_id, "id"):
+                product = p_id
+            else:
+                product = Product.objects.get(shop=ticket.shop, id=p_id)
+            
+            qty = Decimal(str(row.get("quantity", 1)))
+            if qty <= 0:
+                continue
+            unit_cost = Decimal(str(row.get("unit_cost", product.cost_price or 0)))
+            unit_price = Decimal(str(row.get("unit_price", product.selling_price or 0)))
+            from_stock = bool(row.get("from_stock", True))
+
+            if from_stock and product.track_inventory:
+                product.refresh_from_db(fields=["current_stock"])
+                if qty > product.current_stock:
+                    raise ValueError(f"Only {product.current_stock} of '{product.name}' in stock.")
+
+            ServiceTicketPart.objects.create(
+                shop=ticket.shop, ticket=ticket, product=product,
+                quantity=qty, unit_cost=unit_cost, unit_price=unit_price, from_stock=from_stock,
+            )
+            if from_stock and product.track_inventory:
+                apply_movement(
+                    shop=ticket.shop, product=product, movement_type=MovementType.ADJUST_OUT,
+                    quantity=qty, unit_cost=unit_cost, reference_type="ServiceTicket",
+                    reference_id=ticket.id, note=f"Edit ticket part used: {ticket.ticket_no}", created_by=created_by,
+                )
+
+    # 3. Update fields
+    if service_charge is not None:
+        ticket.service_charge = Decimal(str(service_charge or 0))
+    if discount is not None:
+        ticket.discount = Decimal(str(discount or 0))
+    if customer_name is not None:
+        ticket.customer_name = customer_name
+    if customer_phone is not None:
+        ticket.customer_phone = customer_phone
+    if device_description is not None:
+        ticket.device_description = device_description
+    if complaint is not None:
+        ticket.complaint = complaint
+    if estimated_delivery is not None:
+        ticket.estimated_delivery = estimated_delivery
+
+    if customer_id is not None:
+        from crm.models import Customer
+        if customer_id == "" or customer_id == 0 or customer_id is False:
+            ticket.customer = None
+        else:
+            ticket.customer = Customer.objects.filter(shop=ticket.shop, id=customer_id).first()
+
+    ticket.save()
+
+    # 4. If delivered, synchronize customer due_balance and total_purchased changes
+    if ticket.status == ServiceTicket.Status.DELIVERED and ticket.customer_id:
+        customer = ticket.customer
+        new_bill_total = ticket.bill_total
+        new_due = ticket.due
+        
+        bill_diff = new_bill_total - old_bill_total
+        due_diff = new_due - old_due
+        
+        if customer:
+            customer.total_purchased = max(Decimal("0"), (customer.total_purchased or Decimal("0")) + bill_diff)
+            customer.due_balance = max(Decimal("0"), (customer.due_balance or Decimal("0")) + due_diff)
+            customer.save(update_fields=["total_purchased", "due_balance"])
+
+    # 5. Record status history and audit
+    ServiceTicketStatusHistory.objects.create(
+        shop=ticket.shop, ticket=ticket, from_status=ticket.status, to_status=ticket.status,
+        note=f"Invoice Edited: {correction_reason}", changed_by=created_by,
+    )
+    record(
+        action=AuditLog.Action.UPDATE, actor=created_by, shop=ticket.shop, target=ticket,
+        description=f"Ticket {ticket.ticket_no} edited: {correction_reason}",
+    )
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(ticket.shop_id)
+    return ticket
