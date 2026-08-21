@@ -279,18 +279,18 @@ def edit_service_ticket(
     old_due = ticket.due
     old_customer = ticket.customer
 
-    # 1. Reverse stock for existing parts
-    for part in ticket.parts.select_related("product").all():
-        if part.from_stock and part.product.track_inventory:
-            apply_movement(
-                shop=ticket.shop, product=part.product, movement_type=MovementType.ADJUST_IN,
-                quantity=part.quantity, unit_cost=part.unit_cost, reference_type="ServiceTicket",
-                reference_id=ticket.id, note=f"Edit ticket reverse: {ticket.ticket_no}", created_by=created_by,
-            )
-    ticket.parts.all().delete()
-
-    # 2. Add new parts if provided
+    # 1. Update parts only if explicitly provided
     if parts is not None:
+        # Reverse stock for existing parts
+        for part in ticket.parts.select_related("product").all():
+            if part.from_stock and part.product.track_inventory:
+                apply_movement(
+                    shop=ticket.shop, product=part.product, movement_type=MovementType.ADJUST_IN,
+                    quantity=part.quantity, unit_cost=part.unit_cost, reference_type="ServiceTicket",
+                    reference_id=ticket.id, note=f"Edit ticket reverse: {ticket.ticket_no}", created_by=created_by,
+                )
+        ticket.parts.all().delete()
+
         from catalog.models import Product
         for row in parts:
             p_id = row.get("product_id") or row.get("product")

@@ -69,13 +69,27 @@ class WarrantyClaimViewSet(TenantScopedViewSet):
     def get_queryset(self):
         return WarrantyClaim.objects.select_related("warranty")
 
+    def perform_create(self, serializer):
+        from rest_framework.exceptions import ValidationError
+        from django.utils import timezone
+        from .models import Warranty
+        warranty = serializer.validated_data.get("warranty")
+        if warranty:
+            if warranty.status == Warranty.Status.VOID:
+                raise ValidationError({"detail": "Cannot create a claim on a voided warranty."})
+            if warranty.expiry_date and warranty.expiry_date < timezone.localdate():
+                raise ValidationError({"detail": "Cannot create a claim on an expired warranty."})
+        serializer.save()
+
     def perform_update(self, serializer):
         instance = serializer.save()
-        if instance.status == WarrantyClaim.Status.RESOLVED:
-            if instance.warranty:
-                from .models import Warranty
+        if instance.warranty:
+            from .models import Warranty
+            if instance.status == WarrantyClaim.Status.RESOLVED:
                 instance.warranty.status = Warranty.Status.CLAIMED
-                instance.warranty.save(update_fields=["status"])
+            elif instance.status in {WarrantyClaim.Status.REJECTED, WarrantyClaim.Status.OPEN, WarrantyClaim.Status.IN_PROGRESS}:
+                instance.warranty.status = instance.warranty.compute_status()
+            instance.warranty.save(update_fields=["status"])
 
 
 class ServiceTicketViewSet(TenantScopedViewSet):
@@ -122,7 +136,8 @@ class ServiceTicketViewSet(TenantScopedViewSet):
         advance = d.get("advance_paid", 0)
         if advance > 0:
             from .services import add_ticket_payment
-            add_ticket_payment(ticket=ticket, amount=advance, method="cash", created_by=request.user)
+            advance_method = d.get("advance_method") or request.data.get("payment_method") or "cash"
+            add_ticket_payment(ticket=ticket, amount=advance, method=advance_method, created_by=request.user)
         return Response(ServiceTicketSerializer(ticket).data, status=status.HTTP_201_CREATED)
 
     @action(detail=True, methods=["post"])

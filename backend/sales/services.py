@@ -329,7 +329,8 @@ def _mark_units_sold(shop, sale, items_data=None):
             w.customer = sale.customer
             w.sale_item = item
             w.start_date = today
-            w.save(update_fields=["customer", "sale_item", "start_date", "expiry_date"])
+            w.status = Warranty.Status.ACTIVE
+            w.save(update_fields=["customer", "sale_item", "start_date", "expiry_date", "status"])
             started += 1
 
         # 3. Fill the shortfall: create coverage for warrantied items that had
