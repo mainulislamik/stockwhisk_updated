@@ -277,10 +277,11 @@ class SaleViewSet(
                 new_unit.save(update_fields=["status", "sale", "sold_at"])
                 
                 from service.models import Warranty
-                warranty = Warranty.all_objects.filter(product_unit_id=old_unit.id).first()
+                warranty = Warranty.all_objects.filter(product_unit_id=old_unit.id).first() or Warranty.all_objects.filter(serial_no=old_unit.barcode).first()
                 if warranty:
                     warranty.product_unit = new_unit
-                    warranty.save(update_fields=["product_unit"])
+                    warranty.serial_no = new_unit.barcode
+                    warranty.save(update_fields=["product_unit", "serial_no"])
                 
                 return Response({"detail": "Unit exchanged successfully (same product)."})
 

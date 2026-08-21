@@ -77,6 +77,19 @@ export default function DuesScreen() {
 
   const handlePayment = async () => {
     if (!selectedCustomer || !amount) return;
+    const payNum = Number(amount);
+    const dueNum = Number(selectedCustomer.due_balance) || 0;
+    if (isNaN(payNum) || payNum <= 0) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'সঠিক টাকার পরিমাণ দিন।' : 'Please enter a valid amount.');
+      return;
+    }
+    if (payNum > dueNum) {
+      Alert.alert(
+        isBN ? 'ত্রুটি' : 'Error',
+        isBN ? `টাকার পরিমাণ বর্তমান বকেয়া (৳${dueNum.toFixed(2)})-এর চেয়ে বেশি হতে পারে না।` : `Amount cannot exceed current due (৳${dueNum.toFixed(2)}).`
+      );
+      return;
+    }
     setPaying(true);
     try {
       await api.post(`/crm/customers/${selectedCustomer.id}/receive-payment/`, {
@@ -91,8 +104,9 @@ export default function DuesScreen() {
       setNote('');
       fetchTotalDues();
       fetchDues(1, true);
-    } catch (e) {
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
+    } catch (e: any) {
+      const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message || (isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', errMsg);
     } finally {
       setPaying(false);
     }

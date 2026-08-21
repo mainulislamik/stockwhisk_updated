@@ -116,15 +116,36 @@ class ProductViewSet(TenantScopedViewSet):
         return qs
 
     def perform_update(self, serializer):
-        old_price = self.get_object().selling_price
+        old_product = self.get_object()
+        old_selling = old_product.selling_price
+        old_cost = old_product.cost_price
         product = serializer.save()
         
         # Cascade selling price changes to all unsold stock units
-        if product.selling_price != old_price:
+        if product.selling_price != old_selling:
             ProductUnit.objects.filter(
                 product=product,
                 status=ProductUnit.Status.IN_STOCK
             ).update(selling_price=product.selling_price)
+
+        # Record price audit trail
+        if product.selling_price != old_selling or product.cost_price != old_cost:
+            from audit.models import AuditLog
+            from audit.services import record
+            changes = {}
+            if product.selling_price != old_selling:
+                changes["selling_price"] = [str(old_selling), str(product.selling_price)]
+            if product.cost_price != old_cost:
+                changes["cost_price"] = [str(old_cost), str(product.cost_price)]
+            record(
+                action=AuditLog.Action.PRICE_CHANGE,
+                actor=self.request.user,
+                shop=product.shop,
+                target_model="Product",
+                target_id=str(product.id),
+                description=f"Updated prices for {product.name}",
+                changes=changes,
+            )
 
 
 class ProductVariationViewSet(TenantScopedViewSet):

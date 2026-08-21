@@ -10,8 +10,9 @@ def pay_customer_due(*, customer, amount, method=CustomerPayment.Method.CASH,
                      reference="", note="", created_by=None):
     """
     Pay down a customer's outstanding receivable. Records a CustomerPayment,
-    reduces the customer's cached ``due_balance``, and writes a cash inflow
-    unless the method is SETTLEMENT.
+    reduces the customer's cached ``due_balance``, writes a cash/bank inflow
+    unless the method is SETTLEMENT, and allocates the payment across open
+    sales invoices and service tickets in FIFO order.
     """
     amount = Decimal(amount)
     if amount <= 0:
@@ -40,24 +41,58 @@ def pay_customer_due(*, customer, amount, method=CustomerPayment.Method.CASH,
             description=f"Due collection ({method}) from {customer.name}",
         )
 
-    # Sync payment with any unpaid delivered service tickets for this customer
+    rem = amount
+
+    # 1. Sync payment across open sales invoices (FIFO)
     try:
-        from service.models import ServiceTicket
-        from django.db.models import F
-        rem = amount
-        unpaid_tickets = ServiceTicket.objects.filter(
-            customer=customer, paid__lt=F("service_charge")
-        ).exclude(status=ServiceTicket.Status.CANCELLED).order_by("created_at")
-        for t in unpaid_tickets:
+        from sales.models import Sale, Payment as SalePayment
+        from sales.services import _resolve_status
+
+        open_sales = list(
+            Sale.objects.filter(
+                customer=customer,
+                status__in=[Sale.Status.DUE, Sale.Status.PARTIAL, Sale.Status.PARTIALLY_RETURNED],
+            ).order_by("sale_date", "id")
+        )
+        for s in open_sales:
             if rem <= 0:
                 break
-            t_due = t.due
-            if t_due > 0:
-                pay_t = min(rem, t_due)
-                t.paid = (t.paid or Decimal("0")) + pay_t
-                t.save(update_fields=["paid", "updated_at"])
-                rem -= pay_t
+            s_due = s.due
+            if s_due > 0:
+                portion = min(rem, s_due)
+                s_method = method if method in SalePayment.Method.values else SalePayment.Method.CASH
+                SalePayment.objects.create(
+                    shop_id=s.shop_id, sale=s, amount=portion,
+                    method=s_method,
+                    note=f"CRM Due Payment #{payment.id}",
+                )
+                s.paid = (s.paid or ZERO) + portion
+                s.status = _resolve_status(s.total, s.paid)
+                s.save(update_fields=["paid", "status"])
+                rem -= portion
     except Exception:
         pass
+
+    # 2. Sync payment with any unpaid delivered service tickets (FIFO)
+    if rem > 0:
+        try:
+            from service.models import ServiceTicket
+            unpaid_tickets = ServiceTicket.objects.filter(
+                customer=customer, status=ServiceTicket.Status.DELIVERED
+            ).order_by("received_at", "id")
+            for t in unpaid_tickets:
+                if rem <= 0:
+                    break
+                t_due = t.due
+                if t_due > 0:
+                    pay_t = min(rem, t_due)
+                    t.paid = (t.paid or ZERO) + pay_t
+                    t.save(update_fields=["paid", "updated_at"])
+                    rem -= pay_t
+        except Exception:
+            pass
+
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(customer.shop_id)
         
     return payment

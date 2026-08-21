@@ -30,14 +30,16 @@ def alert_low_stock_realtime(*, shop, products):
         # ``current_stock`` was refreshed on the instance by the stock write path.
         if not product.is_low_stock:
             continue
+        out = product.current_stock <= 0
+        target_type = NotificationType.OUT_OF_STOCK if out else NotificationType.LOW_STOCK
         already = Notification.all_objects.filter(
-            shop_id=shop.id, 
-            metadata__product_id=product.id,
-            metadata__current_stock=str(product.current_stock)
+            shop_id=shop.id,
+            type=target_type,
+            is_read=False,
+            title__contains=product.name,
         ).exists()
         if already:
             continue
-        out = product.current_stock <= 0
         notify(
             shop=shop,
             type=NotificationType.OUT_OF_STOCK if out else NotificationType.LOW_STOCK,
