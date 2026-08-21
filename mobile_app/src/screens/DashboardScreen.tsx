@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -15,7 +15,7 @@ import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 import Skeleton from '../components/Skeleton';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
 
 const getGreeting = (lang: string, userName: string) => {
@@ -122,6 +122,15 @@ export default function DashboardScreen() {
   useEffect(() => {
     loadTrendData();
   }, [trendDays]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadBaseData();
+      loadTopCardsData();
+      loadTopProductsData();
+      loadTrendData();
+    }, [periodDays, topProductsDays, trendDays])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

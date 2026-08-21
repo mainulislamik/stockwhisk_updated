@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { Text, useTheme, Surface, TextInput, Button, Chip, Divider, Appbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 import Skeleton from '../components/Skeleton';
@@ -133,7 +134,12 @@ export default function InventoryScreen() {
     }
   }, []);
 
-  useEffect(() => { loadSummary(); loadProducts(1, ''); }, []);
+  useFocusEffect(
+    useCallback(() => {
+      loadSummary();
+      loadProducts(1, productSearch);
+    }, [productSearch])
+  );
 
   const handleSearch = (text: string) => {
     setProductSearch(text);

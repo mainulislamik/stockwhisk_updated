@@ -135,6 +135,18 @@ api.interceptors.response.use(
       }
     }
 
+    // Transient network retry for GET requests (max 1 retry on connection drop or 502/503/504)
+    if (
+      (!error.response || [502, 503, 504].includes(error.response?.status)) &&
+      originalRequest &&
+      (originalRequest.method?.toLowerCase() === 'get' || !originalRequest.method) &&
+      !originalRequest._networkRetried
+    ) {
+      originalRequest._networkRetried = true;
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      return api(originalRequest);
+    }
+
     return Promise.reject(error);
   }
 );

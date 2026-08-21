@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { Text, Card, ActivityIndicator, useTheme } from 'react-native-paper';
 import { LineChart } from 'react-native-chart-kit';
+import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 
@@ -24,9 +25,11 @@ export default function ReportsScreen() {
   const [profitOverview, setProfitOverview] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchData();
-  }, [selectedRange]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [selectedRange])
+  );
 
   const fetchData = async () => {
     setLoading(true);
