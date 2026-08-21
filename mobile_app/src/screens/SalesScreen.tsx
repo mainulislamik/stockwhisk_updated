@@ -203,10 +203,14 @@ export default function SalesScreen() {
     const invoiceUrl = `https://stockwhisk.com/invoice/${sale.id}`;
     const name = sale.customer_name || (isBN ? 'সম্মানিত গ্রাহক' : 'Valued Customer');
     const totalVal = Number(sale.total || 0).toFixed(2);
+    const paidVal = Number(sale.paid || 0).toFixed(2);
+    const dueVal = Number(sale.due || 0).toFixed(2);
+    const dueLineBN = Number(sale.due || 0) > 0 ? `\nবকেয়া: ৳${dueVal}` : '';
+    const dueLineEN = Number(sale.due || 0) > 0 ? `\nDue: ৳${dueVal}` : '';
 
     const msg = isBN 
-      ? `হ্যালো ${name},\n\nআপনার ইনভয়েস #${sale.invoice_no || sale.invoice_number || sale.id} এর মোট বিল ৳${totalVal}।\n\nইনভয়েস দেখতে লিংকে যান: ${invoiceUrl}\n\nআমাদের সাথে থাকার জন্য ধন্যবাদ!`
-      : `Hello ${name},\n\nYour invoice #${sale.invoice_no || sale.invoice_number || sale.id} total bill is ৳${totalVal}.\n\nView your invoice here: ${invoiceUrl}\n\nThank you for shopping with us!`;
+      ? `হ্যালো ${name},\n\nআপনার ইনভয়েস #${sale.invoice_no || sale.invoice_number || sale.id}\nমোট বিল: ৳${totalVal}\nপরিশোধিত: ৳${paidVal}${dueLineBN}\n\nইনভয়েস দেখতে লিংকে যান: ${invoiceUrl}\n\nআমাদের সাথে থাকার জন্য ধন্যবাদ!`
+      : `Hello ${name},\n\nYour invoice #${sale.invoice_no || sale.invoice_number || sale.id}\nTotal Bill: ৳${totalVal}\nPaid: ৳${paidVal}${dueLineEN}\n\nView your invoice here: ${invoiceUrl}\n\nThank you for shopping with us!`;
 
     const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
     Linking.openURL(waUrl);

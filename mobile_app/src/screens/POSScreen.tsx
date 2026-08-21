@@ -991,7 +991,7 @@ export default function POSScreen() {
                     const digits = saleResult.phone.replace(/\D/g, "");
                     const intl = digits.startsWith("880") ? digits : (digits.startsWith("01") ? `88${digits}` : digits);
                     const msg = t(`হ্যালো ${saleResult.name},\n\n`, `Hello ${saleResult.name},\n\n`)
-                      + t(`আপনার মোট বিল ৳${saleResult.total.toFixed(2)}.\n\n`, `Your total bill is ৳${saleResult.total.toFixed(2)}.\n\n`)
+                      + t(`আপনার ইনভয়েস #${saleResult.invoice_no}\nমোট বিল: ৳${saleResult.total.toFixed(2)}\n\n`, `Your invoice #${saleResult.invoice_no}\nTotal bill: ৳${saleResult.total.toFixed(2)}\n\n`)
                       + (saleResult.pdfUrl ? t(`আপনার ইনভয়েস এখানে দেখতে পারেন: ${saleResult.pdfUrl}\n\n`, `You can view your invoice here: ${saleResult.pdfUrl}\n\n`) : "")
                       + t(`আমাদের সাথে থাকার জন্য ধন্যবাদ!`, `Thank you for shopping with us!`);
                     const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;

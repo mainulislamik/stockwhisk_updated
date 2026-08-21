@@ -246,7 +246,19 @@ export default function CustomersScreen() {
                   </Button>
                 </View>
               )}
-              <View style={{ marginTop: 24, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <Button
+                mode="outlined"
+                icon="receipt"
+                style={{ marginTop: 12 }}
+                onPress={() => {
+                  const cust = selectedCustomer;
+                  setSelectedCustomer(null);
+                  (navigation as any).navigate('Sales', { search: cust.phone || cust.name });
+                }}
+              >
+                {isBN ? 'পূর্বের চালানসমূহ দেখুন' : 'View Purchase Invoices'}
+              </Button>
+              <View style={{ marginTop: 20, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
                 <Button mode="outlined" onPress={() => setSelectedCustomer(null)}>{isBN ? 'বন্ধ করুন' : 'Close'}</Button>
                 {Number(selectedCustomer.due_balance) > 0 && (
                   <Button mode="contained" buttonColor="#4f46e5" onPress={() => {

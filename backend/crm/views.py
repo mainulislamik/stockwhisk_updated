@@ -67,6 +67,20 @@ class CustomerViewSet(TenantScopedViewSet):
         qs = self.get_queryset().filter(last_purchase_at__lt=cutoff)
         return Response(self.get_serializer(qs, many=True).data)
 
+    @action(detail=False, methods=["get"], url_path="birthdays")
+    def birthdays(self, request):
+        """Customers with birthdays in the current (or given) month."""
+        month = int(request.query_params.get("month", timezone.now().month))
+        qs = self.get_queryset().filter(date_of_birth__month=month)
+        return Response(self.get_serializer(qs, many=True).data)
+
+    @action(detail=False, methods=["get"], url_path="anniversaries")
+    def anniversaries(self, request):
+        """Customers with anniversaries in the current (or given) month."""
+        month = int(request.query_params.get("month", timezone.now().month))
+        qs = self.get_queryset().filter(anniversary_date__month=month)
+        return Response(self.get_serializer(qs, many=True).data)
+
     @action(detail=True, methods=["post"], url_path="pay-due")
     def pay_due(self, request, pk=None):
         customer = self.get_object()
