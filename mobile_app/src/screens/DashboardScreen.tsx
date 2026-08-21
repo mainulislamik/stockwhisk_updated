@@ -134,15 +134,32 @@ export default function DashboardScreen() {
   const chartWidth = Math.min(Dimensions.get('window').width - 48, 440);
 
   const getChartData = () => {
-    if (!trendData || !trendData.labels || trendData.labels.length === 0) {
+    if (Array.isArray(trendData) && trendData.length > 0) {
+      const step = Math.max(1, Math.floor(trendData.length / 5));
+      const labels = trendData.map((item: any, i: number) => {
+        if (i % step === 0 || i === trendData.length - 1) {
+          const raw = String(item.day || item.date || item.label || '');
+          return raw.length >= 10 ? raw.slice(5) : raw;
+        }
+        return '';
+      });
+      const data = trendData.map((item: any) => Number(item.revenue || item.total || item.amount || 0));
       return {
-        labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-        datasets: [{ data: [0, 0, 0, 0, 0] }],
+        labels,
+        datasets: [{ data: data.length > 0 ? data : [0] }],
       };
     }
+
+    if (trendData && Array.isArray(trendData.labels) && trendData.labels.length > 0) {
+      return {
+        labels: trendData.labels.map((l: string, i: number) => (i % 5 === 0 || i === trendData.labels.length - 1 ? l : '')),
+        datasets: [{ data: trendData.data.map((d: any) => Number(d) || 0) }],
+      };
+    }
+
     return {
-      labels: trendData.labels.map((l: string, i: number) => (i % 5 === 0 || i === trendData.labels.length - 1 ? l : '')),
-      datasets: [{ data: trendData.data.map((d: any) => Number(d) || 0) }],
+      labels: ['D-4', 'D-3', 'D-2', 'Yesterday', 'Today'],
+      datasets: [{ data: [0, 0, 0, 0, Number(topCardsData?.revenue || metrics?.today_sales?.total || 0)] }],
     };
   };
 
@@ -500,10 +517,10 @@ export default function DashboardScreen() {
                 </View>
                 <View style={{ flex: 1, paddingHorizontal: 10 }}>
                   <Text style={[styles.productName, { color: theme.colors.onSurface }]} numberOfLines={1}>
-                    {prod.name}
+                    {prod.product__name || prod.name || prod.product_name || `Product #${prod.product_id || idx + 1}`}
                   </Text>
                   <Text style={{ fontSize: 11, color: '#64748b' }}>
-                    {isBN ? 'বিক্রি হয়েছে:' : 'Sold:'} {prod.total_sold || prod.quantity || 0} {isBN ? 'টি' : 'units'}
+                    {isBN ? 'বিক্রি হয়েছে:' : 'Sold:'} {Number(prod.qty || prod.quantity || prod.total_sold || 0)} {isBN ? 'টি' : 'units'}
                   </Text>
                 </View>
                 <Text style={styles.productAmount}>
