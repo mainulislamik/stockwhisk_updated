@@ -25,6 +25,8 @@ type Sale = {
   items?: any[];
   public_invoice_url?: string;
   pdf_url?: string;
+  courier_name?: string | null;
+  courier_tracking_code?: string | null;
 };
 
 export default function SalesScreen() {
