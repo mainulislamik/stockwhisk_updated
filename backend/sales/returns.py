@@ -87,11 +87,18 @@ def create_return(
 
     net = (exchange_sale.total if exchange_sale else ZERO) - total_refund
 
-    # Reduce customer receivable by the refunded amount (offline settlement).
-    if sale.customer_id and total_refund:
+    # Reduce customer due if the refund is store credit or offset against unpaid invoice due
+    if sale.customer_id and total_refund > 0:
         customer = sale.customer
-        customer.due_balance = (customer.due_balance or ZERO) - total_refund
-        customer.save(update_fields=["due_balance"])
+        if refund_method == SaleReturn.RefundMethod.STORE_CREDIT:
+            customer.due_balance = (customer.due_balance or ZERO) - total_refund
+            customer.save(update_fields=["due_balance"])
+        elif sale.due and sale.due > 0:
+            offset_due = min(sale.due, total_refund)
+            sale.due = max(ZERO, sale.due - offset_due)
+            sale.save(update_fields=["due"])
+            customer.due_balance = max(ZERO, (customer.due_balance or ZERO) - offset_due)
+            customer.save(update_fields=["due_balance"])
 
     record(
         action=AuditLog.Action.UPDATE, actor=created_by, shop=shop, target=sret,

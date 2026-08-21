@@ -81,3 +81,7 @@ class CustomerViewSet(TenantScopedViewSet):
 
         customer.refresh_from_db()
         return Response(self.get_serializer(customer).data)
+
+    @action(detail=True, methods=["post"], url_path="receive-payment")
+    def receive_payment(self, request, pk=None):
+        return self.pay_due(request, pk=pk)

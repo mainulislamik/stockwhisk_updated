@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme, Button, Menu, FAB } from 'react-native-paper';
+import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme, Button, Menu, FAB, Modal, Portal } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -34,9 +34,30 @@ export default function ExpensesScreen() {
   const [catMenuVisible, setCatMenuVisible] = useState(false);
   const [saving, setSaving] = useState(false);
 
+  const [showAddCatModal, setShowAddCatModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [creatingCat, setCreatingCat] = useState(false);
+
   useEffect(() => {
     fetchData();
   }, []);
+
+  const createCategory = async () => {
+    if (!newCatName.trim()) return;
+    try {
+      setCreatingCat(true);
+      const res = await api.post('/accounting/expense-categories/', { name: newCatName.trim() });
+      const created = res.data;
+      setCategories(prev => [...prev, created]);
+      setForm(prev => ({ ...prev, category: created.id, category_name: created.name }));
+      setNewCatName('');
+      setShowAddCatModal(false);
+    } catch (e: any) {
+      console.error(e);
+    } finally {
+      setCreatingCat(false);
+    }
+  };
 
   const fetchData = async () => {
     try {
@@ -149,20 +170,27 @@ export default function ExpensesScreen() {
                   {isBn ? 'নতুন খরচ যোগ করুন' : 'Add New Expense'}
                 </Text>
 
-                <Menu
-                  visible={catMenuVisible}
-                  onDismiss={() => setCatMenuVisible(false)}
-                  anchor={
-                    <Button mode="outlined" onPress={() => setCatMenuVisible(true)} style={styles.input}>
-                      {form.category_name || (isBn ? 'ক্যাটাগরি নির্বাচন করুন' : 'Select Category')}
-                    </Button>
-                  }
-                >
-                  <Menu.Item onPress={() => { setForm({ ...form, category: '', category_name: isBn ? 'সাধারণ / ক্যাটাগরি ছাড়া' : 'None' }); setCatMenuVisible(false); }} title={isBn ? 'সাধারণ / ক্যাটাগরি ছাড়া' : 'None'} />
-                  {categories.map(c => (
-                    <Menu.Item key={c.id} onPress={() => { setForm({ ...form, category: c.id, category_name: c.name }); setCatMenuVisible(false); }} title={c.name} />
-                  ))}
-                </Menu>
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Menu
+                      visible={catMenuVisible}
+                      onDismiss={() => setCatMenuVisible(false)}
+                      anchor={
+                        <Button mode="outlined" onPress={() => setCatMenuVisible(true)} style={{ borderColor: '#ccc' }}>
+                          {form.category_name || (isBn ? 'ক্যাটাগরি নির্বাচন করুন' : 'Select Category')}
+                        </Button>
+                      }
+                    >
+                      <Menu.Item onPress={() => { setForm({ ...form, category: '', category_name: isBn ? 'সাধারণ / ক্যাটাগরি ছাড়া' : 'None' }); setCatMenuVisible(false); }} title={isBn ? 'সাধারণ / ক্যাটাগরি ছাড়া' : 'None'} />
+                      {categories.map(c => (
+                        <Menu.Item key={c.id} onPress={() => { setForm({ ...form, category: c.id, category_name: c.name }); setCatMenuVisible(false); }} title={c.name} />
+                      ))}
+                    </Menu>
+                  </View>
+                  <Button mode="contained-tonal" icon="plus" onPress={() => setShowAddCatModal(true)}>
+                    {isBn ? 'নতুন' : 'New'}
+                  </Button>
+                </View>
 
                 <TextInput 
                   label={isBn ? "টাকার পরিমাণ (৳) *" : "Amount (৳) *"} 
@@ -249,6 +277,7 @@ export default function ExpensesScreen() {
       )}
 
       {/* FAB for Adding Expense */}
+      {/* FAB for Adding Expense */}
       {!showForm && (
         <FAB
           icon="plus"
@@ -257,6 +286,43 @@ export default function ExpensesScreen() {
           onPress={() => setShowForm(true)}
         />
       )}
+
+      {/* Quick Add Expense Category Modal */}
+      <Portal>
+        <Modal
+          visible={showAddCatModal}
+          onDismiss={() => setShowAddCatModal(false)}
+          contentContainerStyle={{
+            backgroundColor: theme.colors.surface,
+            margin: 20,
+            padding: 20,
+            borderRadius: 12,
+          }}
+        >
+          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>
+            {isBn ? 'নতুন খরচ ক্যাটাগরি তৈরি' : 'Add Expense Category'}
+          </Text>
+          <TextInput
+            label={isBn ? 'ক্যাটাগরির নাম *' : 'Category Name *'}
+            value={newCatName}
+            onChangeText={setNewCatName}
+            mode="outlined"
+            style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+          />
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+            <Button onPress={() => setShowAddCatModal(false)}>{isBn ? 'বাতিল' : 'Cancel'}</Button>
+            <Button
+              mode="contained"
+              buttonColor="#4f46e5"
+              onPress={createCategory}
+              loading={creatingCat}
+              disabled={creatingCat || !newCatName.trim()}
+            >
+              {isBn ? 'সংরক্ষণ' : 'Save'}
+            </Button>
+          </View>
+        </Modal>
+      </Portal>
     </View>
   );
 }

@@ -214,12 +214,31 @@ export default function POSScreen() {
   };
 
   const updateCartQty = (id: number, delta: number) => {
+    const line = cart.find(l => l.product.id === id);
+    if (!line) return;
+
+    if (line.selectedUnits && line.selectedUnits.length > 0) {
+      if (delta > 0) {
+        handleProductTap(line.product);
+        return;
+      } else {
+        const nextUnits = line.selectedUnits.slice(0, -1);
+        if (nextUnits.length === 0) {
+          removeLine(id);
+        } else {
+          addToCart(line.product, nextUnits, nextUnits.length);
+        }
+        return;
+      }
+    }
+
     setCart(prev => prev.map(l => {
       if (l.product.id === id) {
-        return { ...l, qty: Math.max(1, l.qty + delta) };
+        const nextQty = l.qty + delta;
+        return nextQty <= 0 ? null : { ...l, qty: nextQty };
       }
       return l;
-    }));
+    }).filter(Boolean) as CartLine[]);
   };
 
   const removeLine = (id: number) => {

@@ -119,10 +119,19 @@ def change_ticket_status(*, ticket, new_status, note="", changed_by=None):
             if due > 0:
                 customer.due_balance = (customer.due_balance or 0) + due
             customer.total_purchased = (customer.total_purchased or 0) + ticket.bill_total
-            customer.last_purchase_at = timezone.now()
             if due > 0 or ticket.bill_total > 0:
                 customer.save(update_fields=["due_balance", "total_purchased", "last_purchase_at"])
     ticket.save(update_fields=["status", "actual_delivery"])
+
+    if new_status == ServiceTicket.Status.CANCELLED:
+        # Reverse stock for any parts that were deducted from inventory
+        for part in ticket.parts.select_related("product").all():
+            if part.from_stock and part.product.track_inventory:
+                apply_movement(
+                    shop=ticket.shop, product=part.product, movement_type=MovementType.ADJUST_IN,
+                    quantity=part.quantity, unit_cost=part.unit_cost, reference_type="ServiceTicket",
+                    reference_id=ticket.id, note=f"Cancel ticket reverse: {ticket.ticket_no}", created_by=changed_by,
+                )
 
     ServiceTicketStatusHistory.objects.create(
         shop=ticket.shop, ticket=ticket, from_status=old, to_status=new_status,
