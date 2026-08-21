@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import InvoiceLockModal from "@/components/InvoiceLockModal";
 
 type Part = { id: number; product_name: string; warranty_months?: number; quantity: string; unit_cost: string; unit_price: string; line_total: string };
 type History = { id: number; from_status: string; to_status: string; note: string; created_at: string };
@@ -49,6 +50,8 @@ export default function TicketDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [status, setStatus] = useState("");
+  const [showLockModal, setShowLockModal] = useState(false);
+  const [lockReason, setLockReason] = useState("");
 
   // Add-product-to-ticket state
   const [prodSearch, setProdSearch] = useState("");
@@ -251,11 +254,54 @@ export default function TicketDetailPage() {
             <div className="text-secondary small">{ticket.device_description}</div>
           </div>
           <div className="d-flex flex-wrap gap-2 d-print-none">
-            {ticket.status !== "cancelled" && (
-              <Link href={`/app/service/tickets/${ticket.id}/edit`} className="btn btn-outline-primary btn-sm">
-                <i className="bi bi-pencil-square me-1"></i>এডিট ইনভয়েস
-              </Link>
-            )}
+            {(() => {
+              if (!canManage) return null;
+
+              const isCancelled = ticket.status === "cancelled";
+              const isDelivered = ticket.status === "delivered";
+              
+              const deliveryDate = ticket.actual_delivery ? new Date(ticket.actual_delivery).toLocaleDateString() : null;
+              const today = new Date().toLocaleDateString();
+              const isPastDelivery = isDelivered && deliveryDate && deliveryDate !== today;
+
+              if (isCancelled) {
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                    onClick={() => {
+                      setLockReason("সার্ভিস টিকিটটি বাতিল (Cancelled) করা হয়েছে।");
+                      setShowLockModal(true);
+                    }}
+                  >
+                    <i className="bi bi-shield-lock-fill text-warning"></i>
+                    <span>লকড (বাতিল)</span>
+                  </button>
+                );
+              }
+
+              if (isPastDelivery) {
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                    onClick={() => {
+                      setLockReason(`সার্ভিসটি ডেলিভারি হয়েছিল ${fmtDate(ticket.actual_delivery || ticket.received_at)} তারিখে। পূর্বের দৈনিক হিসাব ও ক্যাশ বুক সুরক্ষিত রাখতে এটি লক করা হয়েছে।`);
+                      setShowLockModal(true);
+                    }}
+                  >
+                    <i className="bi bi-shield-lock-fill text-warning"></i>
+                    <span>লকড (Locked)</span>
+                  </button>
+                );
+              }
+
+              return (
+                <Link href={`/app/service/tickets/${ticket.id}/edit`} className="btn btn-outline-primary btn-sm">
+                  <i className="bi bi-pencil-square me-1"></i>এডিট ইনভয়েস
+                </Link>
+              );
+            })()}
             <button className="btn btn-outline-brand btn-sm" onClick={() => handlePrint("token")}>
               <i className="bi bi-receipt me-1"></i>{t("tktd_print_token")}
             </button>
@@ -918,6 +964,15 @@ export default function TicketDetailPage() {
           </div>
         </>
       )}
+
+      {/* Service Invoice Lock Info Modal */}
+      <InvoiceLockModal
+        isOpen={showLockModal}
+        onClose={() => setShowLockModal(false)}
+        invoiceType="service"
+        invoiceNo={ticket.ticket_no}
+        reason={lockReason}
+      />
     </>
   );
 }

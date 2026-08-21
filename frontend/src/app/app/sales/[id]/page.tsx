@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
+import InvoiceLockModal from "@/components/InvoiceLockModal";
 
 type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
 type Payment = { id: number; amount: string; method: string; paid_at: string; note: string };
@@ -42,6 +43,8 @@ export default function SaleDetailPage() {
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [showLockModal, setShowLockModal] = useState(false);
+  const [lockReason, setLockReason] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -82,7 +85,19 @@ export default function SaleDetailPage() {
             const hasReturns = sale.returns && sale.returns.length > 0;
             
             if (hasReturns) {
-                return <span className="badge bg-secondary">{t("inv_locked_returns")}</span>;
+                return (
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                    onClick={() => {
+                      setLockReason("ইনভয়েসে ইতোমধ্যে রিটার্ন/ফেরত সম্পন্ন হওয়ায় এটি আর সরাসরি পরিবর্তনযোগ্য নয়।");
+                      setShowLockModal(true);
+                    }}
+                  >
+                    <i className="bi bi-shield-lock-fill text-warning"></i>
+                    <span>{t("inv_locked_returns")}</span>
+                  </button>
+                );
             }
             
             if (isSameDay) {
@@ -93,9 +108,17 @@ export default function SaleDetailPage() {
                 );
             } else {
                 return (
-                    <span className="badge bg-secondary" title={t("inv_correction_tooltip")}>
-                        {t("inv_locked")}
-                    </span>
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
+                      onClick={() => {
+                        setLockReason(`ইনভয়েসটি তৈরি হয়েছিল ${fmtDate(sale.sale_date)} তারিখে। দৈনিক হিসাব ও ক্যাশ বুক সুরক্ষিত রাখতে এটি লক করা হয়েছে।`);
+                        setShowLockModal(true);
+                      }}
+                    >
+                      <i className="bi bi-shield-lock-fill text-warning"></i>
+                      <span>{t("inv_locked")}</span>
+                    </button>
                 );
             }
           })()}
@@ -260,6 +283,15 @@ export default function SaleDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Invoice Lock Info Modal */}
+      <InvoiceLockModal
+        isOpen={showLockModal}
+        onClose={() => setShowLockModal(false)}
+        invoiceType="sale"
+        invoiceNo={sale.invoice_no || `#${sale.id}`}
+        reason={lockReason}
+      />
     </div>
   );
 }
