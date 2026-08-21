@@ -11,8 +11,10 @@ export default function BackupsPage() {
   const handleDownload = async () => {
     try {
       setDownloading(true);
-      const res = await api.get("/backup/download/", { responseType: "blob" });
-      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const res = await api<Response>("/backup/download/", { raw: true });
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
       link.setAttribute("download", `shop_backup_${new Date().toISOString().split("T")[0]}.json`);
