@@ -101,3 +101,20 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
                            "Please use unique barcodes and try again."},
                 status=status.HTTP_400_BAD_REQUEST)
         return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=True, methods=["post"], url_path="return")
+    def process_return(self, request, pk=None):
+        """Return goods from a received PO to supplier. Body: {"lines": [{"item_id": 1, "quantity": 2}], "reason": "...", "refund_amount": 1000}."""
+        from .services import create_purchase_return
+        po = self.get_object()
+        lines = request.data.get("lines", [])
+        if not lines:
+            return Response({"detail": "Return lines are required."}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            val = create_purchase_return(
+                po=po, lines=lines, reason=request.data.get("reason", ""),
+                refund_amount=request.data.get("refund_amount"), created_by=request.user,
+            )
+            return Response({"detail": "Purchase return processed successfully.", "total_returned": float(val)})
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

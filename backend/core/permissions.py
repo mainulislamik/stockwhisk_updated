@@ -9,7 +9,7 @@ class IsTenantMember(BasePermission):
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_authenticated and user.shop_id is not None)
+        return bool(user and user.is_authenticated and user.is_active and user.shop_id is not None)
 
 
 class IsPlatformStaff(BasePermission):

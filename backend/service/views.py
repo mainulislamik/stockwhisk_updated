@@ -69,6 +69,14 @@ class WarrantyClaimViewSet(TenantScopedViewSet):
     def get_queryset(self):
         return WarrantyClaim.objects.select_related("warranty")
 
+    def perform_update(self, serializer):
+        instance = serializer.save()
+        if instance.status == WarrantyClaim.Status.RESOLVED:
+            if instance.warranty:
+                from .models import Warranty
+                instance.warranty.status = Warranty.Status.CLAIMED
+                instance.warranty.save(update_fields=["status"])
+
 
 class ServiceTicketViewSet(TenantScopedViewSet):
     # Viewing repair tickets/status is read; create/edit/change-status needs

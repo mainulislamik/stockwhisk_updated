@@ -274,3 +274,39 @@ def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None,
             method=payment_method,
         )
     return po
+
+
+@transaction.atomic
+def create_purchase_return(*, po, lines, reason="", refund_amount=None, created_by=None):
+    """
+    Return damaged or unwanted items from a received PO back to the supplier.
+    lines: list of {"item_id": int, "quantity": Decimal}
+    Deducts stock via ADJUST_OUT and reduces supplier payable due_balance.
+    """
+    shop = po.shop
+    total_return_value = ZERO
+    for line in lines:
+        po_item = PurchaseOrderItem.objects.get(id=line["item_id"], purchase_order=po)
+        qty = Decimal(str(line["quantity"]))
+        if qty <= 0 or qty > po_item.quantity_received:
+            raise ValueError(f"Invalid return quantity {qty} for item {po_item.id}.")
+        
+        unit_cost = po_item.unit_cost or po_item.product.cost_price or ZERO
+        line_val = qty * unit_cost
+        total_return_value += line_val
+
+        if po_item.product.track_inventory:
+            apply_movement(
+                shop=shop, product=po_item.product, movement_type=MovementType.ADJUST_OUT,
+                quantity=qty, unit_cost=unit_cost, reference_type="PurchaseReturn",
+                reference_id=str(po.id), note=f"Return to supplier: {reason or po.po_number}",
+                created_by=created_by,
+            )
+
+    actual_refund = Decimal(str(refund_amount)) if refund_amount is not None else total_return_value
+    if po.supplier and actual_refund > 0:
+        supplier = po.supplier
+        supplier.due_balance = max(ZERO, (supplier.due_balance or ZERO) - actual_refund)
+        supplier.save(update_fields=["due_balance"])
+    
+    return total_return_value

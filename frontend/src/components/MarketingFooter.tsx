@@ -7,7 +7,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 /** Shared footer for every public/marketing page. */
 export default function MarketingFooter() {
-  const { t } = useLanguage();
+  const { lang, t } = useLanguage();
   const linkSx = { color: M.darkText, textDecoration: "none", fontSize: ".9rem" };
   return (
     <Box component="footer" sx={{ bgcolor: M.dark, color: M.darkText, py: 6, mt: "auto" }}>

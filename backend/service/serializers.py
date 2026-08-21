@@ -30,6 +30,17 @@ class WarrantyClaimSerializer(serializers.ModelSerializer):
         model = WarrantyClaim
         fields = ["id", "warranty", "claim_date", "issue_description", "resolution", "resolved_by", "status"]
 
+    def validate(self, attrs):
+        warranty = attrs.get("warranty")
+        if warranty:
+            from django.utils import timezone
+            from .models import Warranty
+            if warranty.status in [Warranty.Status.EXPIRED, Warranty.Status.VOID]:
+                raise serializers.ValidationError(f"Cannot file claim on a {warranty.get_status_display().lower()} warranty.")
+            if warranty.expiry_date and warranty.expiry_date < timezone.localdate():
+                raise serializers.ValidationError("This warranty has already expired.")
+        return attrs
+
 
 class TicketPartSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
