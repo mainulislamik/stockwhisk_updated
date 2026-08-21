@@ -22,6 +22,7 @@ class Customer(TenantScopedModel):
 
     # Cached running due (receivable). Positive => customer owes the shop.
     due_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
+    credit_limit = models.DecimalField(max_digits=14, decimal_places=2, default=0, null=True, blank=True)
     total_purchased = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
     last_purchase_at = models.DateTimeField(null=True, blank=True)
 

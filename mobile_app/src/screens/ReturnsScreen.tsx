@@ -137,19 +137,19 @@ export default function ReturnsScreen() {
           <>
             <Card style={{ padding: 16, backgroundColor: theme.colors.surface, marginBottom: 16 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>
-                {isBN ? 'বিক্রিত পণ্যের বারকোড স্ক্যান করুন' : 'Scan Sold Item Barcode'}
+                {isBN ? 'বারকোড, ইনভয়েস নং বা ফোন দিয়ে খুঁজুন' : 'Lookup by Barcode, Invoice # or Phone'}
               </Text>
               <TextInput
                 mode="outlined"
-                placeholder={isBN ? 'বারকোড লিখুন...' : 'Enter barcode...'}
+                placeholder={isBN ? 'বারকোড, ইনভয়েস নং বা ফোন লিখুন...' : 'Enter barcode, invoice # or phone...'}
                 value={barcode}
                 onChangeText={setBarcode}
-                left={<TextInput.Icon icon="barcode" />}
+                left={<TextInput.Icon icon="magnify" />}
                 right={<TextInput.Icon icon="barcode-scan" onPress={() => setScannerTarget('return')} />}
                 style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
               />
               <Button mode="contained" buttonColor="#4f46e5" loading={loading} disabled={loading || !barcode} onPress={handleScanReturn}>
-                {isBN ? 'পণ্য খুঁজুন' : 'Lookup Item'}
+                {isBN ? 'বিক্রয় খুঁজুন' : 'Search Sale'}
               </Button>
             </Card>
 

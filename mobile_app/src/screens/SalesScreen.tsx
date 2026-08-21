@@ -124,17 +124,72 @@ export default function SalesScreen() {
     }
   };
 
+  const generateReceiptHTML = (sale: Sale) => {
+    const itemsHtml = (sale.items || []).map((it: any) => `
+      <tr>
+        <td style="padding: 4px 0; border-bottom: 1px dashed #ddd;">${it.product_name || it.name || 'Product'}</td>
+        <td style="text-align: center; padding: 4px 0; border-bottom: 1px dashed #ddd;">${it.quantity}</td>
+        <td style="text-align: right; padding: 4px 0; border-bottom: 1px dashed #ddd;">${Number(it.unit_price || 0).toFixed(2)}</td>
+        <td style="text-align: right; padding: 4px 0; border-bottom: 1px dashed #ddd;">${Number(it.subtotal || (it.quantity * it.unit_price) || 0).toFixed(2)}</td>
+      </tr>
+    `).join('');
+
+    return `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; padding: 12px; max-width: 380px; margin: 0 auto; color: #111; }
+          .header { text-align: center; margin-bottom: 12px; }
+          .title { font-size: 18px; font-weight: bold; margin-bottom: 4px; }
+          .info { font-size: 12px; color: #555; margin-bottom: 2px; }
+          table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+          th { text-align: left; border-bottom: 1px solid #000; padding: 4px 0; font-size: 11px; }
+          .totals { margin-top: 10px; border-top: 1px solid #000; padding-top: 6px; font-size: 13px; }
+          .row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+          .bold { font-weight: bold; }
+          .footer { text-align: center; margin-top: 16px; font-size: 11px; color: #777; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div class="title">${user?.shop_name || 'StockWhisk Store'}</div>
+          <div class="info">Invoice: #${sale.invoice_no || sale.invoice_number || sale.id}</div>
+          <div class="info">Date: ${sale.sale_date?.slice(0, 10) || ''}</div>
+          <div class="info">Customer: ${sale.customer_name || 'Walk-in'} ${sale.customer_phone ? `(${sale.customer_phone})` : ''}</div>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th>
+              <th style="text-align: center;">Qty</th>
+              <th style="text-align: right;">Price</th>
+              <th style="text-align: right;">Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsHtml}
+          </tbody>
+        </table>
+        <div class="totals">
+          <div class="row"><span>Total:</span><span class="bold">Tk ${Number(sale.total || 0).toFixed(2)}</span></div>
+          <div class="row"><span>Paid:</span><span>Tk ${Number(sale.paid || 0).toFixed(2)}</span></div>
+          ${Number(sale.due || 0) > 0 ? `<div class="row bold" style="color: #dc2626;"><span>Due:</span><span>Tk ${Number(sale.due).toFixed(2)}</span></div>` : ''}
+        </div>
+        <div class="footer">Thank you for your business!</div>
+      </body>
+      </html>
+    `;
+  };
+
   const handlePrint = async (sale: Sale) => {
     try {
       if (Platform.OS === 'web') {
         window.open(`https://stockwhisk.com/invoice/${sale.id}`, '_blank');
       } else {
-        const url = sale.pdf_url || sale.public_invoice_url;
-        if (url) {
-          await Print.printAsync({ uri: url.startsWith('http') ? url : `https://stockwhisk.com${url}` });
-        } else {
-          Linking.openURL(`https://stockwhisk.com/invoice/${sale.id}`);
-        }
+        const html = generateReceiptHTML(sale);
+        await Print.printAsync({ html });
       }
     } catch (e) {
       Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'প্রিন্ট করতে ব্যর্থ হয়েছে।' : 'Could not print invoice.');
@@ -252,6 +307,12 @@ export default function SalesScreen() {
                 {isBN ? 'গ্রাহক:' : 'Customer:'} {selectedSale.customer_name || (isBN ? 'সাধারণ ক্রেতা' : 'Walk-in Customer')}
                 {selectedSale.customer_phone ? ` (${selectedSale.customer_phone})` : ''}
               </Text>
+              {!!(selectedSale as any).courier_name && (
+                <Text style={{ color: isDarkMode ? '#93c5fd' : '#1d4ed8', fontSize: 13, marginBottom: 12, fontWeight: '600' }}>
+                  🚚 {isBN ? 'কুরিয়ার:' : 'Courier:'} {(selectedSale as any).courier_name}
+                  {!!(selectedSale as any).tracking_code ? ` (Track: ${(selectedSale as any).tracking_code})` : ''}
+                </Text>
+              )}
 
               <Divider style={{ marginVertical: 12 }} />
 

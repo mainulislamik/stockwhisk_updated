@@ -613,6 +613,10 @@ def _resolve_status(total, paid):
 
 
 def _update_customer_after_sale(customer, *, total, due, when):
+    if due > 0 and getattr(customer, "credit_limit", None) and customer.credit_limit > 0:
+        new_due = (customer.due_balance or ZERO) + due
+        if new_due > customer.credit_limit:
+            raise ValueError(f"Sale exceeds customer credit limit of ৳{customer.credit_limit} (Total due would be ৳{new_due}).")
     customer.total_purchased = (customer.total_purchased or ZERO) + total
     customer.due_balance = (customer.due_balance or ZERO) + due
     customer.last_purchase_at = when

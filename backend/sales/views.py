@@ -148,12 +148,29 @@ class SaleViewSet(
     def scan_return(self, request):
         barcode = request.query_params.get("barcode", "").strip()
         if not barcode:
-            return Response({"detail": "Barcode is required."}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({"detail": "Barcode or search query is required."}, status=status.HTTP_400_BAD_REQUEST)
 
         from catalog.models import ProductUnit
         unit = ProductUnit.all_objects.filter(shop_id=request.user.shop_id, barcode=barcode).first()
         if not unit:
-            return Response({"detail": "Barcode not found."}, status=status.HTTP_404_NOT_FOUND)
+            from django.db.models import Q
+            sale = Sale.objects.filter(shop_id=request.user.shop_id).filter(
+                Q(invoice_no__iexact=barcode) | Q(customer__phone=barcode)
+            ).order_by("-created_at").first()
+            if sale:
+                sale_item = sale.items.first()
+                if not sale_item:
+                    return Response({"detail": "Sale has no items."}, status=status.HTTP_400_BAD_REQUEST)
+                from sales.serializers import SaleSerializer
+                return Response({
+                    "barcode": barcode,
+                    "product": {"name": sale_item.product.name},
+                    "product_name": sale_item.product.name,
+                    "unit_price": sale_item.unit_price,
+                    "sale": SaleSerializer(sale).data,
+                    "sale_item_id": sale_item.id
+                })
+            return Response({"detail": "No sold item or invoice found for this query."}, status=status.HTTP_404_NOT_FOUND)
         if unit.status != ProductUnit.Status.SOLD or not unit.sale_id:
             return Response(
                 {"detail": f"This unit is currently {unit.get_status_display()}, not sold."}, 
