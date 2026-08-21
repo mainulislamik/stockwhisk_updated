@@ -424,7 +424,8 @@ class SaleViewSet(
                     "variation": variation,
                     "quantity": row.get("quantity", 1),
                     "unit_price": row.get("unit_price", product.selling_price),
-                    "discount": row.get("discount", 0)
+                    "discount": row.get("discount", 0),
+                    "unit_ids": row.get("unit_ids", []),
                 })
                 
             discount = data.get("discount", 0)

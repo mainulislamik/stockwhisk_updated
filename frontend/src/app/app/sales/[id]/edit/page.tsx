@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
@@ -9,16 +9,73 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-type Product = { id: number; name: string; selling_price: string; current_stock: string; };
-type SaleItem = { id: number; product_id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; };
-type Sale = { id: number; invoice_no: string; customer?: number | null; sale_date: string; discount: string; tax: string; delivery_charge: string; paid: string; customer_name?: string; bill_name: string; bill_phone: string; bill_address: string; items: SaleItem[]; status: string; returns?: any[] };
+type ProductUnit = {
+  id: number;
+  barcode: string;
+  effective_selling_price?: string;
+  effective_cost_price?: string;
+  effective_warranty_months?: number;
+  status?: string;
+};
+
+type Product = {
+  id: number;
+  name: string;
+  sku?: string;
+  barcode?: string;
+  selling_price: string;
+  cost_price?: string;
+  current_stock: string;
+  warranty_months?: number;
+  units?: ProductUnit[];
+};
+
+type SaleItem = {
+  id: number;
+  product: number;
+  product_id?: number;
+  product_name: string;
+  product_sku?: string;
+  product_barcode?: string;
+  product_warranty_months?: number;
+  unit_barcodes?: string[];
+  unit_warranties?: number[];
+  quantity: string;
+  unit_price: string;
+  discount: string;
+  subtotal: string;
+};
+
+type Sale = {
+  id: number;
+  invoice_no: string;
+  customer?: number | null;
+  sale_date: string;
+  discount: string;
+  tax: string;
+  delivery_charge: string;
+  paid: string;
+  customer_name?: string;
+  bill_name: string;
+  bill_phone: string;
+  bill_address: string;
+  items: SaleItem[];
+  status: string;
+  returns?: any[];
+};
 
 type CartItem = {
   product_id: number;
   name: string;
+  product_sku?: string;
   quantity: number;
   unit_price: number;
   discount: number;
+  cost_price?: number;
+  warranty_months?: number;
+  has_units?: boolean;
+  selectedUnits: ProductUnit[];
+  availableUnits?: ProductUnit[];
 };
 
 type CustomerHit = { id: number; name: string; phone: string; address?: string };
@@ -50,10 +107,15 @@ export default function EditInvoicePage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Product[]>([]);
   const [searching, setSearching] = useState(false);
+  const [unitLoadingId, setUnitLoadingId] = useState<number | null>(null);
+
+  // Unit Selection Modal state
+  const [unitSelectProduct, setUnitSelectProduct] = useState<Product | null>(null);
 
   // Customer search
   const [custSearch, setCustSearch] = useState("");
   const [custHits, setCustHits] = useState<CustomerHit[]>([]);
+  const searchInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -82,13 +144,52 @@ export default function EditInvoicePage() {
         setCustomerPhone(data.bill_phone || "");
         setCustomerAddress(data.bill_address || "");
         
-        const initialCart: CartItem[] = data.items.map(item => ({
-          product_id: item.product_id,
-          name: item.product_name,
-          quantity: Number(item.quantity) || 1,
-          unit_price: Number(item.unit_price) || 0,
-          discount: Number(item.discount) || 0,
-        }));
+        // Populate cart items
+        const initialCart: CartItem[] = [];
+        for (const item of data.items) {
+          const prodId = item.product_id || (typeof item.product === 'object' ? (item.product as any).id : item.product);
+          let fullProd: Product | null = null;
+          try {
+            fullProd = await api<Product>(`/catalog/products/${prodId}/`);
+          } catch {
+            fullProd = null;
+          }
+
+          const hasUnits = !!(fullProd?.units && fullProd.units.length > 0);
+          const availableUnits = fullProd?.units || [];
+          
+          // Match previously sold units from item.unit_barcodes
+          const selectedUnits: ProductUnit[] = [];
+          if (item.unit_barcodes && item.unit_barcodes.length > 0) {
+            for (const bc of item.unit_barcodes) {
+              const matched = availableUnits.find(u => u.barcode === bc);
+              if (matched) {
+                selectedUnits.push(matched);
+              } else {
+                selectedUnits.push({
+                  id: 0,
+                  barcode: bc,
+                  effective_warranty_months: item.product_warranty_months,
+                  effective_selling_price: item.unit_price
+                });
+              }
+            }
+          }
+
+          initialCart.push({
+            product_id: prodId,
+            name: item.product_name,
+            product_sku: item.product_sku,
+            quantity: Number(item.quantity) || 1,
+            unit_price: Number(item.unit_price) || 0,
+            discount: Number(item.discount) || 0,
+            cost_price: Number(fullProd?.cost_price) || 0,
+            warranty_months: item.product_warranty_months || fullProd?.warranty_months || 0,
+            has_units: hasUnits || selectedUnits.length > 0,
+            selectedUnits: selectedUnits,
+            availableUnits: availableUnits,
+          });
+        }
         setCart(initialCart);
         
       } catch (e: any) {
@@ -140,22 +241,154 @@ export default function EditInvoicePage() {
     return () => clearTimeout(timer);
   }, [custSearch]);
 
-  const handleAddProduct = (p: Product) => {
-    setCart(prev => {
-      const existing = prev.find(x => x.product_id === p.id);
-      if (existing) {
-        return prev.map(x => x.product_id === p.id ? { ...x, quantity: x.quantity + 1 } : x);
+  // Click on product from search dropdown
+  const handleProductSelect = async (p: Product) => {
+    setUnitLoadingId(p.id);
+    try {
+      // Fetch full product with units
+      const full = await api<Product>(`/catalog/products/${p.id}/`);
+      const units = full.units || [];
+
+      if (units.length > 0) {
+        // Product has individual units -> Open Unit Selection Modal!
+        setUnitSelectProduct(full);
+        setSearchQuery("");
+        setSearchResults([]);
+      } else {
+        // Generic product -> add directly
+        addProductToCart(full);
+        setSearchQuery("");
+        setSearchResults([]);
       }
+    } catch (e) {
+      console.error(e);
+      addProductToCart(p);
+      setSearchQuery("");
+      setSearchResults([]);
+    } finally {
+      setUnitLoadingId(null);
+    }
+  };
+
+  const addProductToCart = (p: Product, specificUnit?: ProductUnit) => {
+    setCart(prev => {
+      const existingIndex = prev.findIndex(x => x.product_id === p.id);
+      if (existingIndex >= 0) {
+        const ex = prev[existingIndex];
+        if (specificUnit) {
+          if (ex.selectedUnits.some(u => u.id === specificUnit.id)) {
+            toast.error(t("pos_already_in_cart_alert", { barcode: specificUnit.barcode }));
+            return prev;
+          }
+          const updatedUnits = [...ex.selectedUnits, specificUnit];
+          const newCart = [...prev];
+          newCart[existingIndex] = {
+            ...ex,
+            quantity: updatedUnits.length,
+            selectedUnits: updatedUnits,
+            availableUnits: p.units || ex.availableUnits || [],
+          };
+          return newCart;
+        } else {
+          const newCart = [...prev];
+          newCart[existingIndex] = {
+            ...ex,
+            quantity: ex.quantity + 1,
+          };
+          return newCart;
+        }
+      }
+
+      // New line
       return [...prev, {
         product_id: p.id,
         name: p.name,
-        quantity: 1,
-        unit_price: Number(p.selling_price) || 0,
-        discount: 0
+        product_sku: p.sku,
+        quantity: specificUnit ? 1 : 1,
+        unit_price: Number(specificUnit?.effective_selling_price || p.selling_price) || 0,
+        discount: 0,
+        cost_price: Number(specificUnit?.effective_cost_price || p.cost_price) || 0,
+        warranty_months: specificUnit?.effective_warranty_months || p.warranty_months || 0,
+        has_units: !!(p.units && p.units.length > 0) || !!specificUnit,
+        selectedUnits: specificUnit ? [specificUnit] : [],
+        availableUnits: p.units || [],
       }];
     });
-    setSearchQuery("");
-    setSearchResults([]);
+  };
+
+  const handleToggleUnit = (prod: Product, unit: ProductUnit, isChecked: boolean) => {
+    setCart(prev => {
+      const idx = prev.findIndex(x => x.product_id === prod.id);
+      if (isChecked) {
+        if (idx >= 0) {
+          const ex = prev[idx];
+          if (ex.selectedUnits.some(u => u.id === unit.id)) return prev;
+          const updatedUnits = [...ex.selectedUnits, unit];
+          const newCart = [...prev];
+          newCart[idx] = {
+            ...ex,
+            quantity: updatedUnits.length,
+            selectedUnits: updatedUnits,
+            availableUnits: prod.units || ex.availableUnits || [],
+          };
+          return newCart;
+        } else {
+          return [...prev, {
+            product_id: prod.id,
+            name: prod.name,
+            product_sku: prod.sku,
+            quantity: 1,
+            unit_price: Number(unit.effective_selling_price || prod.selling_price) || 0,
+            discount: 0,
+            cost_price: Number(unit.effective_cost_price || prod.cost_price) || 0,
+            warranty_months: unit.effective_warranty_months || prod.warranty_months || 0,
+            has_units: true,
+            selectedUnits: [unit],
+            availableUnits: prod.units || [],
+          }];
+        }
+      } else {
+        // Unchecked
+        if (idx >= 0) {
+          const ex = prev[idx];
+          const updatedUnits = ex.selectedUnits.filter(u => u.id !== unit.id);
+          if (updatedUnits.length === 0) {
+            return prev.filter(x => x.product_id !== prod.id);
+          }
+          const newCart = [...prev];
+          newCart[idx] = {
+            ...ex,
+            quantity: updatedUnits.length,
+            selectedUnits: updatedUnits,
+          };
+          return newCart;
+        }
+        return prev;
+      }
+    });
+  };
+
+  const handleOpenUnitModalForCartItem = async (item: CartItem) => {
+    setUnitLoadingId(item.product_id);
+    try {
+      const full = await api<Product>(`/catalog/products/${item.product_id}/`);
+      setUnitSelectProduct(full);
+    } catch {
+      if (item.availableUnits && item.availableUnits.length > 0) {
+        setUnitSelectProduct({
+          id: item.product_id,
+          name: item.name,
+          sku: item.product_sku,
+          selling_price: String(item.unit_price),
+          cost_price: String(item.cost_price || 0),
+          current_stock: String(item.quantity),
+          warranty_months: item.warranty_months,
+          units: item.availableUnits,
+        });
+      }
+    } finally {
+      setUnitLoadingId(null);
+    }
   };
 
   const handleUpdateCart = (idx: number, field: keyof CartItem, val: number) => {
@@ -193,7 +426,8 @@ export default function EditInvoicePage() {
             product_id: c.product_id,
             quantity: c.quantity,
             unit_price: c.unit_price,
-            discount: c.discount
+            discount: c.discount,
+            unit_ids: c.selectedUnits ? c.selectedUnits.filter(u => u.id > 0).map(u => u.id) : [],
           })),
           discount: saleDiscount,
           tax: saleTax,
@@ -224,6 +458,9 @@ export default function EditInvoicePage() {
     </div>
   );
   if (!sale) return null;
+
+  const currentModalLine = unitSelectProduct ? cart.find(l => l.product_id === unitSelectProduct.id) : null;
+  const selectedUnitsInModal = currentModalLine?.selectedUnits || [];
 
   return (
     <div className="container py-4" style={{ maxWidth: "900px" }}>
@@ -313,6 +550,7 @@ export default function EditInvoicePage() {
             <div className="d-flex gap-2 mb-3">
               <div className="position-relative flex-grow-1">
                 <input
+                  ref={searchInputRef}
                   type="text"
                   className="form-control form-control-sm"
                   placeholder={t("edit_search_ph")}
@@ -321,16 +559,20 @@ export default function EditInvoicePage() {
                 />
                 {searching && <div className="position-absolute end-0 top-50 translate-middle-y me-3"><Spinner /></div>}
                 {searchResults.length > 0 && (
-                  <ul className="list-group position-absolute w-100 mt-1 shadow-lg" style={{ zIndex: 1000, maxHeight: "220px", overflowY: "auto" }}>
+                  <ul className="list-group position-absolute w-100 mt-1 shadow-lg" style={{ zIndex: 1000, maxHeight: "240px", overflowY: "auto" }}>
                     {searchResults.map(p => (
                       <button 
                         key={p.id} 
                         type="button"
                         className="list-group-item list-group-item-action d-flex justify-content-between align-items-center p-2"
-                        onClick={() => handleAddProduct(p)}
+                        onClick={() => handleProductSelect(p)}
+                        disabled={unitLoadingId === p.id}
                       >
                         <div>
-                          <div className="fw-semibold small">{p.name}</div>
+                          <div className="fw-semibold small">
+                            {p.name}
+                            {unitLoadingId === p.id && <span className="spinner-border spinner-border-sm ms-2 text-primary"></span>}
+                          </div>
                           <div className="text-muted" style={{ fontSize: "0.75rem" }}>স্টক: {p.current_stock}</div>
                         </div>
                         <span className="text-primary fw-bold small">{money(p.selling_price)}</span>
@@ -356,13 +598,50 @@ export default function EditInvoicePage() {
                 <tbody>
                   {cart.map((item, idx) => {
                     const lineTotal = (item.quantity * item.unit_price) - item.discount;
+                    const hasSelectedUnits = item.selectedUnits && item.selectedUnits.length > 0;
                     return (
                       <tr key={idx}>
-                        <td className="fw-medium">{item.name}</td>
+                        <td className="fw-medium">
+                          <div>{item.name}</div>
+                          {item.has_units && (
+                            <div className="mt-1">
+                              {hasSelectedUnits ? (
+                                <div className="d-flex flex-wrap gap-1 align-items-center mb-1">
+                                  {item.selectedUnits.map((u, uIdx) => (
+                                    <span key={uIdx} className="badge bg-light text-dark border font-monospace" style={{ fontSize: "0.7rem" }}>
+                                      <i className="bi bi-upc-scan me-1 text-primary"></i>{u.barcode}
+                                      {!!u.effective_warranty_months && (
+                                        <span className="ms-1 text-warning-emphasis fw-bold">({u.effective_warranty_months}m)</span>
+                                      )}
+                                    </span>
+                                  ))}
+                                </div>
+                              ) : (
+                                <div className="text-warning small" style={{ fontSize: "0.75rem" }}>
+                                  <i className="bi bi-exclamation-triangle me-1"></i>কোনো ইউনিট সিলেক্ট করা হয়নি (FIFO দ্বারা এসাইন হবে)
+                                </div>
+                              )}
+                              <button
+                                type="button"
+                                className="btn btn-outline-primary btn-sm py-0 px-2 mt-1"
+                                style={{ fontSize: "0.72rem" }}
+                                onClick={() => handleOpenUnitModalForCartItem(item)}
+                                disabled={unitLoadingId === item.product_id}
+                              >
+                                <i className="bi bi-qr-code me-1"></i>
+                                {hasSelectedUnits ? "ইউনিট পরিবর্তন (Edit Units)" : "ইউনিট নির্বাচন (Select Units)"}
+                              </button>
+                            </div>
+                          )}
+                        </td>
                         <td>
                           <input 
-                            type="number" className="form-control form-control-sm" 
-                            value={item.quantity || ""} min="0.01" step="any"
+                            type="number" 
+                            className="form-control form-control-sm" 
+                            value={item.quantity || ""} 
+                            min="0.01" 
+                            step="any"
+                            disabled={item.has_units && item.selectedUnits.length > 0}
                             onChange={(e) => handleUpdateCart(idx, "quantity", Number(e.target.value))}
                           />
                         </td>
@@ -473,6 +752,85 @@ export default function EditInvoicePage() {
           </button>
         </div>
       </form>
+
+      {/* ── Select units modal (Matches POS UX) ── */}
+      {unitSelectProduct && (
+        <div className="modal d-block" style={{ background: "rgba(0,0,0,.55)", backdropFilter: "blur(2px)", zIndex: 1060 }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div className="modal-content shadow-lg border-0">
+              <div className="modal-header bg-light">
+                <h5 className="modal-title fw-bold text-dark fs-6">
+                  <i className="bi bi-qr-code me-2 text-primary"></i>{t("pos_unit_title")}
+                </h5>
+                <button 
+                  className="btn-close" 
+                  onClick={() => {
+                    setUnitSelectProduct(null);
+                    setTimeout(() => searchInputRef.current?.focus(), 50);
+                  }} 
+                />
+              </div>
+              <div className="modal-body p-3">
+                <div className="mb-3 small text-secondary">
+                  <strong>{unitSelectProduct.name}</strong> {t("pos_unit_desc")}
+                </div>
+                <div className="d-flex flex-column gap-2">
+                  {unitSelectProduct.units && unitSelectProduct.units.length > 0 ? (
+                    unitSelectProduct.units.map((u) => {
+                      const isSelected = selectedUnitsInModal.some(su => su.id === u.id || su.barcode === u.barcode);
+                      return (
+                        <label 
+                          key={u.id} 
+                          className={`d-flex justify-content-between align-items-center p-2 border rounded cursor-pointer transition-all ${isSelected ? 'border-primary bg-primary bg-opacity-10' : 'hover-bg-light'}`}
+                          style={{ cursor: "pointer" }}
+                        >
+                          <div className="d-flex align-items-center">
+                            <input 
+                              type="checkbox" 
+                              className="form-check-input mt-0 me-2" 
+                              checked={!!isSelected}
+                              onChange={(e) => handleToggleUnit(unitSelectProduct, u, e.target.checked)}
+                            />
+                            <div className="font-monospace small fw-bold text-dark">{u.barcode}</div>
+                          </div>
+                          <div className="text-end" style={{ fontSize: '.75rem' }}>
+                            {!!u.effective_warranty_months && (
+                              <span className="badge bg-warning-subtle text-warning-emphasis rounded-pill me-2 border border-warning-subtle">
+                                <i className="bi bi-shield-check me-1"></i>
+                                {t("pos_unit_warranty", { months: u.effective_warranty_months })}
+                              </span>
+                            )}
+                            <span className="text-secondary">{t("pos_unit_cost", { amount: money(u.effective_cost_price || unitSelectProduct.cost_price || 0) })}</span>
+                            <span className="ms-2 fw-bold text-primary">{t("pos_unit_price", { amount: money(u.effective_selling_price || unitSelectProduct.selling_price || 0) })}</span>
+                          </div>
+                        </label>
+                      );
+                    })
+                  ) : (
+                    <div className="text-center text-muted py-4 small">
+                      কোনো ইন-স্টক ইউনিট পাওয়া যায়নি।
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="modal-footer bg-light d-flex justify-content-between">
+                <div className="small fw-bold text-primary">
+                  {t("pos_unit_selected", { count: selectedUnitsInModal.length })}
+                </div>
+                <button 
+                  className="btn btn-primary btn-sm px-4" 
+                  onClick={() => {
+                    setUnitSelectProduct(null);
+                    setTimeout(() => searchInputRef.current?.focus(), 50);
+                  }}
+                >
+                  {t("pos_unit_done")}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
