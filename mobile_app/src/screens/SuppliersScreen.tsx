@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Alert, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Alert, TouchableOpacity, Linking } from 'react-native';
 import { Appbar, TextInput, Card, Text, Button, Modal, Portal, ActivityIndicator, Divider, useTheme, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -57,6 +57,19 @@ export default function SuppliersScreen() {
 
   const handlePayment = async () => {
     if (!selectedSupplier || !amount) return;
+    const payNum = Number(amount);
+    const dueNum = Number(selectedSupplier.due_balance) || 0;
+    if (isNaN(payNum) || payNum <= 0) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'সঠিক টাকার পরিমাণ দিন।' : 'Please enter a valid amount.');
+      return;
+    }
+    if (payNum > dueNum) {
+      Alert.alert(
+        isBN ? 'ত্রুটি' : 'Error',
+        isBN ? `টাকার পরিমাণ বর্তমান বকেয়া (৳${dueNum.toFixed(2)})-এর চেয়ে বেশি হতে পারে না।` : `Amount cannot exceed current due (৳${dueNum.toFixed(2)}).`
+      );
+      return;
+    }
     setPaying(true);
     try {
       await api.post(`/purchasing/suppliers/${selectedSupplier.id}/pay-due/`, {
@@ -77,7 +90,8 @@ export default function SuppliersScreen() {
       setNote('');
       fetchSuppliers();
     } catch (e: any) {
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || (isBN ? 'পেমেন্ট প্রসেস করতে ব্যর্থ হয়েছে।' : 'Failed to process payment'));
+      const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message || (isBN ? 'পেমেন্ট প্রসেস করতে ব্যর্থ হয়েছে।' : 'Failed to process payment');
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', errMsg);
     } finally {
       setPaying(false);
     }
@@ -200,6 +214,32 @@ export default function SuppliersScreen() {
               <Text variant="bodyLarge" style={{ color: Number(selectedSupplier.due_balance) > 0 ? '#dc2626' : undefined, fontWeight: 'bold' }}>
                 {isBN ? 'বকেয়া দায়:' : 'Due Balance:'} ৳{selectedSupplier.due_balance || '0'}
               </Text>
+              {!!selectedSupplier.phone && (
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                  <Button
+                    mode="contained-tonal"
+                    icon="phone"
+                    style={{ flex: 1 }}
+                    onPress={() => Linking.openURL(`tel:${selectedSupplier.phone}`)}
+                  >
+                    {isBN ? 'কল করুন' : 'Call'}
+                  </Button>
+                  <Button
+                    mode="contained"
+                    icon="whatsapp"
+                    buttonColor="#25D366"
+                    textColor="#fff"
+                    style={{ flex: 1 }}
+                    onPress={() => {
+                      const digits = selectedSupplier.phone.replace(/\D/g, "");
+                      const intl = digits.startsWith("880") ? digits : (digits.startsWith("01") ? `88${digits}` : digits);
+                      Linking.openURL(`https://wa.me/${intl}`);
+                    }}
+                  >
+                    WhatsApp
+                  </Button>
+                </View>
+              )}
               <View style={{ marginTop: 24, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
                 <Button mode="outlined" onPress={() => setSelectedSupplier(null)}>{isBN ? 'বন্ধ করুন' : 'Close'}</Button>
                 {Number(selectedSupplier.due_balance) > 0 && (

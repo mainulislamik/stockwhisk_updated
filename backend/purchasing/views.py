@@ -30,6 +30,16 @@ class SupplierViewSet(TenantScopedViewSet):
             )
         return qs
 
+    def destroy(self, request, *args, **kwargs):
+        from django.db.models import ProtectedError
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Cannot delete this supplier because they have existing purchase orders, products, or payment records."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
     @action(detail=True, methods=["post"], url_path="pay-due")
     def pay_due(self, request, pk=None):
         supplier = self.get_object()

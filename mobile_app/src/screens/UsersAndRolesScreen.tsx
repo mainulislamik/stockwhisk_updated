@@ -95,10 +95,17 @@ export default function UsersAndRolesScreen() {
     }
   };
 
-  const handleDeleteUser = (user: any) => {
+  const handleDeleteUser = (u: any) => {
+    if (u.role?.toLowerCase() === 'owner') {
+      Alert.alert(
+        isBN ? 'অনুমতি নেই' : 'Not Allowed',
+        isBN ? 'দোকানের প্রধান মালিকের (Owner) অ্যাকাউন্ট মুছে ফেলা যাবে না।' : 'The shop owner account cannot be deleted.'
+      );
+      return;
+    }
     Alert.alert(
       isBN ? 'ইউজার মুছুন' : 'Delete User',
-      isBN ? `আপনি কি ${user.first_name || user.email} কে মুছে ফেলতে চান?` : `Are you sure you want to delete ${user.first_name || user.email}?`,
+      isBN ? `আপনি কি ${u.first_name || u.email} কে মুছে ফেলতে চান?` : `Are you sure you want to delete ${u.first_name || u.email}?`,
       [
         { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
         { 
@@ -106,11 +113,12 @@ export default function UsersAndRolesScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
-              await api.delete(`/users/${user.id}/`);
+              await api.delete(`/users/${u.id}/`);
               Alert.alert(isBN ? 'সফল' : 'Deleted', isBN ? 'ইউজার মুছে ফেলা হয়েছে।' : 'User has been removed.');
               fetchData();
-            } catch (e) {
-              Alert.alert('Error', isBN ? 'মুছতে ব্যর্থ হয়েছে।' : 'Failed to delete user.');
+            } catch (e: any) {
+              const errMsg = e.response?.data?.detail || (isBN ? 'মুছতে ব্যর্থ হয়েছে।' : 'Failed to delete user.');
+              Alert.alert(isBN ? 'ত্রুটি' : 'Error', errMsg);
             }
           }
         }

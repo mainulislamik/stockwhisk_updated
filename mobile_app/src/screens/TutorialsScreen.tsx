@@ -109,9 +109,14 @@ export default function TutorialsScreen() {
               ))}
             </View>
           ) : (
-            <Text style={{ textAlign: 'center', marginTop: 20 }}>
-              {isBN ? 'কোনো ভিডিও টিউটোরিয়াল পাওয়া যায়নি।' : 'No tutorials available.'}
-            </Text>
+            <View style={{ alignItems: 'center', marginTop: 40, padding: 20 }}>
+              <Text style={{ textAlign: 'center', marginTop: 12, marginBottom: 16, color: theme.colors.outline }}>
+                {isBN ? 'কোনো ভিডিও টিউটোরিয়াল পাওয়া যায়নি বা ইন্টারনেট সংযোগ বিচ্ছিন্ন।' : 'No tutorials found or network error.'}
+              </Text>
+              <Button mode="contained" onPress={() => { setLoading(true); fetchTutorials(); }}>
+                {isBN ? 'পুনরায় চেষ্টা করুন' : 'Retry'}
+              </Button>
+            </View>
           )}
         </ScrollView>
       )}

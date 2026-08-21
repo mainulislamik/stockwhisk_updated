@@ -76,11 +76,7 @@ export default function SettlementScreen() {
     }
   };
 
-  const handleCloseShift = async () => {
-    if (!actualCash) {
-      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ড্রয়ারে থাকা মোট নগদ টাকার পরিমাণ লিখুন।' : 'Please enter actual cash in drawer.');
-      return;
-    }
+  const submitCloseShift = async () => {
     setSubmitting(true);
     try {
       await api.post('/accounting/daily-settlements/close/', {
@@ -95,6 +91,32 @@ export default function SettlementScreen() {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleCloseShift = async () => {
+    if (!actualCash) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ড্রয়ারে থাকা মোট নগদ টাকার পরিমাণ লিখুন।' : 'Please enter actual cash in drawer.');
+      return;
+    }
+    const entered = Number(actualCash) || 0;
+    const expected = Number(current?.expected_cash) || 0;
+    const diff = entered - expected;
+    if (Math.abs(diff) > 0.01) {
+      const diffStr = Math.abs(diff).toFixed(2);
+      const msg = diff < 0
+        ? (isBN ? `ড্রয়ারের ক্যাশে ৳${diffStr} ঘাটতি (Shortage) রয়েছে। আপনি কি নিশ্চিত যে হিসাব বন্ধ করতে চান?` : `There is a cash shortage of ৳${diffStr}. Are you sure you want to close?`)
+        : (isBN ? `ড্রয়ারের ক্যাশে ৳${diffStr} উদ্বৃত্ত (Surplus) রয়েছে। আপনি কি নিশ্চিত যে হিসাব বন্ধ করতে চান?` : `There is a cash surplus of ৳${diffStr}. Are you sure you want to close?`);
+      Alert.alert(
+        isBN ? 'ক্যাশ অমিল সতর্কতা' : 'Cash Discrepancy Warning',
+        msg,
+        [
+          { text: isBN ? 'পুনরায় গণনা করুন' : 'Recount', style: 'cancel' },
+          { text: isBN ? 'হাঁ, বন্ধ করুন' : 'Confirm Close', onPress: submitCloseShift }
+        ]
+      );
+      return;
+    }
+    submitCloseShift();
   };
 
   return (
