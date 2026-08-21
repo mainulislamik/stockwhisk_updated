@@ -1,10 +1,12 @@
-﻿import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useState } from 'react';
 
 type PreferencesContextType = {
   isDarkMode: boolean;
   toggleDarkMode: () => void;
   language: 'BN' | 'EN';
   toggleLanguage: () => void;
+  printerWidth: '58mm' | '80mm';
+  setPrinterWidth: (w: '58mm' | '80mm') => void;
 };
 
 const PreferencesContext = createContext<PreferencesContextType | null>(null);
@@ -12,12 +14,13 @@ const PreferencesContext = createContext<PreferencesContextType | null>(null);
 export const PreferencesProvider = ({ children }: { children: React.ReactNode }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [language, setLanguage] = useState<'BN' | 'EN'>('BN');
+  const [printerWidth, setPrinterWidth] = useState<'58mm' | '80mm'>('58mm');
 
   const toggleDarkMode = () => setIsDarkMode(prev => !prev);
   const toggleLanguage = () => setLanguage(prev => prev === 'BN' ? 'EN' : 'BN');
 
   return (
-    <PreferencesContext.Provider value={{ isDarkMode, toggleDarkMode, language, toggleLanguage }}>
+    <PreferencesContext.Provider value={{ isDarkMode, toggleDarkMode, language, toggleLanguage, printerWidth, setPrinterWidth }}>
       {children}
     </PreferencesContext.Provider>
   );

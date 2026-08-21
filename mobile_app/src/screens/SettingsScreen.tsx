@@ -11,7 +11,7 @@ export default function SettingsScreen() {
   const navigation = useNavigation<any>();
   const theme = useTheme();
   const { user, loadUser } = useAuth();
-  const { language } = usePreferences();
+  const { language, printerWidth, setPrinterWidth } = usePreferences();
   const isBN = language === 'BN';
   
   const [loading, setLoading] = useState(true);
@@ -236,6 +236,33 @@ export default function SettingsScreen() {
             <SectionHeader title="রিসোর্স ও ম্যানেজমেন্ট" />
             <View style={{ backgroundColor: cardColor, borderRadius: 16, overflow: 'hidden', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, marginBottom: 24 }}>
               
+              {/* Thermal Printer Paper Size */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}>
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                  <MaterialCommunityIcons name="printer-pos" size={26} color="#2563eb" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: textColor, marginBottom: 2 }}>{isBN ? 'রিসিট প্রিন্টার সাইজ' : 'Thermal Printer Size'}</Text>
+                  <Text style={{ fontSize: 13, color: subTextColor }}>{printerWidth === '58mm' ? '58mm (ছোট থার্মাল পেপার)' : '80mm (বড় থার্মাল পেপার)'}</Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  <Button
+                    mode={printerWidth === '58mm' ? 'contained' : 'outlined'}
+                    compact
+                    onPress={() => setPrinterWidth('58mm')}
+                  >
+                    58mm
+                  </Button>
+                  <Button
+                    mode={printerWidth === '80mm' ? 'contained' : 'outlined'}
+                    compact
+                    onPress={() => setPrinterWidth('80mm')}
+                  >
+                    80mm
+                  </Button>
+                </View>
+              </View>
+
               {/* Video Tutorial */}
               <TouchableOpacity
                 onPress={() => navigation.navigate('TutorialsScreen')}

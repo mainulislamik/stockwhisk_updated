@@ -5,6 +5,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Print from 'expo-print';
+import * as SecureStore from 'expo-secure-store';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
@@ -82,6 +83,47 @@ export default function POSScreen() {
       loadUser();
     }, [])
   );
+
+  const CART_DRAFT_KEY = 'stockwhisk_pos_cart_draft';
+
+  // Load draft cart on mount
+  useEffect(() => {
+    const loadDraft = async () => {
+      try {
+        if (Platform.OS === 'web') {
+          const saved = localStorage.getItem(CART_DRAFT_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) setCart(parsed);
+          }
+        } else {
+          const saved = await SecureStore.getItemAsync(CART_DRAFT_KEY);
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            if (Array.isArray(parsed) && parsed.length > 0) setCart(parsed);
+          }
+        }
+      } catch {}
+    };
+    loadDraft();
+  }, []);
+
+  // Save draft cart on change
+  useEffect(() => {
+    const saveDraft = async () => {
+      try {
+        if (cart.length > 0) {
+          const data = JSON.stringify(cart);
+          if (Platform.OS === 'web') localStorage.setItem(CART_DRAFT_KEY, data);
+          else await SecureStore.setItemAsync(CART_DRAFT_KEY, data);
+        } else {
+          if (Platform.OS === 'web') localStorage.removeItem(CART_DRAFT_KEY);
+          else await SecureStore.deleteItemAsync(CART_DRAFT_KEY);
+        }
+      } catch {}
+    };
+    saveDraft();
+  }, [cart]);
 
   useEffect(() => {
     if (customerMode === "existing" && selectedCustomer) {

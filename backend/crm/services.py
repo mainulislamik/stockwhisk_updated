@@ -17,6 +17,8 @@ def pay_customer_due(*, customer, amount, method=CustomerPayment.Method.CASH,
     if amount <= 0:
         raise ValueError("Amount must be positive.")
     
+    from .models import Customer
+    customer = Customer.objects.select_for_update().get(id=customer.id)
     outstanding = customer.due_balance or ZERO
     if amount > outstanding:
         raise ValueError(f"Amount exceeds outstanding due of {outstanding}.")
