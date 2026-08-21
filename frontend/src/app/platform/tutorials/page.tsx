@@ -13,7 +13,7 @@ type Video = {
   youtube_url: string;
   sequence: number;
   is_active: boolean;
-  target_audience: "both" | "shop" | "reseller";
+  target_audience: "all" | "public" | "both" | "shop" | "reseller";
   thumbnail_url: string;
   embed_url: string;
 };
@@ -21,7 +21,7 @@ type Video = {
 export default function TutorialsPage() {
   const [videos, setVideos] = useState<Video[] | null>(null);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ title: "", youtube_url: "", sequence: "", target_audience: "both" as "both" | "shop" | "reseller" });
+  const [form, setForm] = useState({ title: "", youtube_url: "", sequence: "", target_audience: "all" as "all" | "public" | "both" | "shop" | "reseller" });
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState<Video | null>(null);
   const [playing, setPlaying] = useState<Video | null>(null);
@@ -41,7 +41,7 @@ export default function TutorialsPage() {
         method: "POST",
         body: { title: form.title, youtube_url: form.youtube_url, sequence: form.sequence ? Number(form.sequence) : 0, is_active: true, target_audience: form.target_audience },
       });
-      setForm({ title: "", youtube_url: "", sequence: "", target_audience: "both" });
+      setForm({ title: "", youtube_url: "", sequence: "", target_audience: "all" });
       await load();
     } catch (e: any) {
       toast.error(e?.data?.youtube_url || e?.data?.detail || e?.message || "Could not add video.");
@@ -112,7 +112,9 @@ export default function TutorialsPage() {
           <div className="col-md-2">
             <label className="form-label small fw-medium">Audience</label>
             <select className="form-select" value={form.target_audience} onChange={(e) => setForm(f => ({...f, target_audience: e.target.value as any}))}>
-              <option value="both">Both</option>
+              <option value="all">All (Public, Shop, Reseller)</option>
+              <option value="public">Public Website Only</option>
+              <option value="both">Both (Shop & Reseller)</option>
               <option value="shop">Shop Only</option>
               <option value="reseller">Reseller Only</option>
             </select>
@@ -123,7 +125,7 @@ export default function TutorialsPage() {
           </div>
           <div className="col-md-1"><button className="btn btn-brand w-100" disabled={busy}>Add</button></div>
         </form>
-        <div className="text-secondary small mt-2">Videos appear on every shop’s dashboard, ordered by sequence number (lowest first).</div>
+        <div className="text-secondary small mt-2">Videos appear on every shop’s dashboard and public pages, ordered by sequence number (lowest first).</div>
       </Card>
 
       <div className="card shadow-sm">
@@ -145,7 +147,9 @@ export default function TutorialsPage() {
                     </td>
                     <td>
                       <select className="form-select form-select-sm" value={editing.target_audience} onChange={(e) => setEditing({ ...editing, target_audience: e.target.value as any})}>
-                        <option value="both">Both</option>
+                        <option value="all">All (Public, Shop, Reseller)</option>
+                        <option value="public">Public Website Only</option>
+                        <option value="both">Both (Shop & Reseller)</option>
                         <option value="shop">Shop Only</option>
                         <option value="reseller">Reseller Only</option>
                       </select>
@@ -167,7 +171,9 @@ export default function TutorialsPage() {
                       <div className="small"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-break">{v.youtube_url}</a></div>
                     </td>
                     <td>
-                      {v.target_audience === 'both' && <span className="badge bg-success bg-opacity-10 text-success border border-success fw-semibold">Both</span>}
+                      {v.target_audience === 'all' && <span className="badge bg-purple bg-opacity-10 text-primary border border-primary fw-semibold">All / Public</span>}
+                      {v.target_audience === 'public' && <span className="badge bg-info bg-opacity-10 text-info border border-info fw-semibold">Public Only</span>}
+                      {v.target_audience === 'both' && <span className="badge bg-success bg-opacity-10 text-success border border-success fw-semibold">Shop & Reseller</span>}
                       {v.target_audience === 'shop' && <span className="badge bg-primary bg-opacity-10 text-primary border border-primary fw-semibold">Shop Only</span>}
                       {v.target_audience === 'reseller' && <span className="badge bg-warning bg-opacity-10 text-warning border border-warning fw-semibold">Reseller Only</span>}
                     </td>

@@ -23,6 +23,7 @@ export default function MarketingFooter() {
             <Typography sx={{ fontWeight: 700, color: "#fff", mb: 1.5, fontSize: ".9rem" }}>Product</Typography>
             <Stack spacing={1}>
               <Link href="/pricing" style={linkSx}>{t("nav_pricing")}</Link>
+              <Link href="/tutorials" style={linkSx}>{lang === 'bn' ? "ভিডিও টিউটোরিয়াল" : "Video Tutorials"}</Link>
               <Link href="/blog" style={linkSx}>{t("nav_blog")}</Link>
               <Link href="/contact" style={linkSx}>{t("nav_contact")}</Link>
             </Stack>
