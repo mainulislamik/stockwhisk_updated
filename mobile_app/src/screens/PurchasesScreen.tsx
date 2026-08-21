@@ -103,8 +103,17 @@ export default function PurchasesScreen() {
               <Card.Content>
                 <View style={styles.rowBetween}>
                   <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{po.po_number || '#' + po.id}</Text>
-                  <View style={{ backgroundColor: getStatusColor(po.status), paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
-                    <Text variant="bodySmall" style={{ color: '#fff', fontWeight: 'bold' }}>{po.status}</Text>
+                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+                    {['pending', 'ordered'].includes(po.status?.toLowerCase()) && po.order_date && (new Date().getTime() - new Date(po.order_date).getTime() > 5 * 86400000) && (
+                      <View style={{ backgroundColor: '#dc2626', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                        <Text variant="bodySmall" style={{ color: '#fff', fontWeight: 'bold', fontSize: 10 }}>
+                          {isBn ? '⚠️ বিলম্বিত' : '⚠️ Overdue'}
+                        </Text>
+                      </View>
+                    )}
+                    <View style={{ backgroundColor: getStatusColor(po.status), paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4 }}>
+                      <Text variant="bodySmall" style={{ color: '#fff', fontWeight: 'bold' }}>{po.status}</Text>
+                    </View>
                   </View>
                 </View>
                 <Text style={{ color: theme.colors.secondary, marginTop: 4, marginBottom: 8, fontSize: 14 }}>{po.supplier_name || (isBn ? 'সরবরাহকারী' : 'Supplier')}</Text>

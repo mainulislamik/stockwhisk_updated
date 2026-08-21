@@ -76,6 +76,40 @@ export default function POSScreen() {
   const [existingEmail, setExistingEmail] = useState('');
   const [saleResult, setSaleResult] = useState<{ id: number; invoice_no: string; phone: string; name: string; total: number; pdfUrl: string } | null>(null);
 
+  // Custom Ad-hoc Item State
+  const [showCustomItemModal, setShowCustomItemModal] = useState(false);
+  const [customItemName, setCustomItemName] = useState('');
+  const [customItemPrice, setCustomItemPrice] = useState('');
+  const [customItemQty, setCustomItemQty] = useState('1');
+
+  const handleAddCustomItem = () => {
+    if (!customItemName.trim() || !customItemPrice) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'পণ্যের নাম ও বিক্রয় মূল্য দিন।' : 'Please enter item name and price.');
+      return;
+    }
+    const priceNum = parseFloat(customItemPrice);
+    const qtyNum = parseFloat(customItemQty) || 1;
+    if (isNaN(priceNum) || priceNum < 0 || isNaN(qtyNum) || qtyNum <= 0) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'সঠিক মূল্য ও পরিমাণ লিখুন।' : 'Please enter valid price and quantity.');
+      return;
+    }
+    const customProduct: Product = {
+      id: -Date.now(),
+      name: customItemName.trim(),
+      sku: 'CUSTOM',
+      selling_price: String(priceNum),
+      cost_price: '0',
+      current_stock: '999',
+      track_inventory: false,
+    };
+    setCart(prev => [...prev, { product: customProduct, qty: qtyNum, price: priceNum, discount: 0, selectedUnits: [] }]);
+    setShowCustomItemModal(false);
+    setCustomItemName('');
+    setCustomItemPrice('');
+    setCustomItemQty('1');
+    if (view !== 'cart') setView('cart');
+  };
+
   // Refresh user settings every time this screen becomes visible
   // so that changes made in Settings (EMI, Delivery, etc.) are immediately reflected
   useFocusEffect(
@@ -391,6 +425,30 @@ export default function POSScreen() {
         }
       }
 
+      const resolvedItems = await Promise.all(
+        cart.map(async (l) => {
+          let pId = l.product.id;
+          if (pId < 0) {
+            try {
+              const pRes = await api.post('/catalog/products/', {
+                name: l.product.name,
+                selling_price: l.price,
+                cost_price: 0,
+                track_inventory: false,
+              });
+              pId = pRes.data.id;
+            } catch (e) {}
+          }
+          return {
+            product: pId,
+            quantity: l.qty,
+            unit_price: l.price,
+            discount: l.discount,
+            unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
+          };
+        })
+      );
+
       const payload = {
         customer: customerMode === 'existing' && selectedCustomer ? selectedCustomer.id : (customerMode === 'walkin' && matchedId ? matchedId : null),
         customer_name: customerMode === 'walkin' ? walkName.trim() : "",
@@ -401,13 +459,7 @@ export default function POSScreen() {
         delivery_charge: deliveryNum,
         tax: 0,
         note: "",
-        items: cart.map(l => ({
-          product: l.product.id,
-          quantity: l.qty,
-          unit_price: l.price,
-          discount: l.discount,
-          unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
-        })),
+        items: resolvedItems,
         payments: paidAmount !== "" && Number(paidAmount) >= 0 ? [{ amount: Number(paidAmount), method: paymentMethod }] : [{ amount: total, method: paymentMethod }],
         sale_date: saleDate || undefined,
         is_emi: isEmi,
@@ -441,7 +493,11 @@ export default function POSScreen() {
       setSaleDate('');
       setView('products');
     } catch (e: any) {
-      Alert.alert(t('ত্রুটি', 'Error'), e.response?.data?.detail || e.message || t('চেকআউট ব্যর্থ হয়েছে', 'Checkout failed'));
+      const isNetwork = !e.response && (e.message?.includes('Network') || e.message?.includes('timeout') || e.code === 'ECONNABORTED');
+      const msg = isNetwork
+        ? (isBN ? 'ইন্টারনেট সংযোগ বিচ্ছিন্ন। অনুগ্রহ করে নেটওয়ার্ক চেক করে আবার চেষ্টা করুন।' : 'No internet connection. Please check your network and retry.')
+        : (e.response?.data?.detail || e.response?.data?.error || e.message || t('চেকআউট ব্যর্থ হয়েছে', 'Checkout failed'));
+      Alert.alert(t('ত্রুটি', 'Error'), msg);
     } finally {
       setIsCheckoutLoading(false);
     }
@@ -528,7 +584,17 @@ export default function POSScreen() {
         <ScrollView style={{ flex: 1, position: 'absolute', top: 56, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingBottom: 100 }}>
           <View style={{ padding: 16 }}>
             {/* 1. Order Summary */}
-            <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16 }}>{t('অর্ডারের সারাংশ', 'Order Summary')}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{t('অর্ডারের সারাংশ', 'Order Summary')}</Text>
+              <Button
+                mode="contained-tonal"
+                icon="plus"
+                compact
+                onPress={() => setShowCustomItemModal(true)}
+              >
+                {t('+ কাস্টম আইটেম', '+ Custom Item')}
+              </Button>
+            </View>
             {cart.map(l => (
               <Surface key={l.product.id} style={{ padding: 12, borderRadius: 8, elevation: 2, marginBottom: 8, backgroundColor: '#fff' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
@@ -944,6 +1010,49 @@ export default function POSScreen() {
                 style={{ borderRadius: 8, paddingVertical: 4, marginTop: 8 }}
               >
                 {t('নতুন বিক্রি শুরু করুন', 'Start New Sale')}
+              </Button>
+            </View>
+          </Surface>
+        </View>
+      </Modal>
+
+      {/* Custom Ad-hoc Item Modal */}
+      <Modal visible={showCustomItemModal} onDismiss={() => setShowCustomItemModal(false)} transparent animationType="fade">
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 16 }}>
+          <Surface style={{ width: '100%', maxWidth: 400, borderRadius: 12, padding: 20, backgroundColor: '#fff', elevation: 5 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+              {t('কাস্টম আইটেম যুক্ত করুন', 'Add Custom / Ad-hoc Item')}
+            </Text>
+            <TextInput
+              mode="outlined"
+              label={t('পণ্যের বা সেবার নাম', 'Item or Service Name')}
+              value={customItemName}
+              onChangeText={setCustomItemName}
+              style={{ marginBottom: 12, backgroundColor: '#fff' }}
+              placeholder={t('যেমন: স্পেশাল রিপেয়ার ফি', 'e.g. Special repair fee')}
+            />
+            <TextInput
+              mode="outlined"
+              label={t('বিক্রয় মূল্য (৳)', 'Selling Price (৳)')}
+              value={customItemPrice}
+              onChangeText={setCustomItemPrice}
+              keyboardType="numeric"
+              style={{ marginBottom: 12, backgroundColor: '#fff' }}
+            />
+            <TextInput
+              mode="outlined"
+              label={t('পরিমাণ', 'Quantity')}
+              value={customItemQty}
+              onChangeText={setCustomItemQty}
+              keyboardType="numeric"
+              style={{ marginBottom: 20, backgroundColor: '#fff' }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+              <Button mode="outlined" onPress={() => setShowCustomItemModal(false)}>
+                {t('বাতিল', 'Cancel')}
+              </Button>
+              <Button mode="contained" buttonColor="#4f46e5" onPress={handleAddCustomItem}>
+                {t('কার্টে যোগ করুন', 'Add to Cart')}
               </Button>
             </View>
           </Surface>

@@ -27,6 +27,8 @@ class Customer(TenantScopedModel):
     last_purchase_at = models.DateTimeField(null=True, blank=True)
 
     is_active = models.BooleanField(default=True)
+    date_of_birth = models.DateField(null=True, blank=True)
+    anniversary_date = models.DateField(null=True, blank=True)
 
     # WhatsApp opt-in (9.5). Never message a customer without consent.
     whatsapp_consent = models.BooleanField(default=False)

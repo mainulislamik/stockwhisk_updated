@@ -11,6 +11,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         fields = [
             "id", "name", "phone", "email", "address", "segment",
             "due_balance", "credit_limit", "total_purchased", "last_purchase_at",
+            "date_of_birth", "anniversary_date",
             "days_since_last_purchase", "is_active",
         ]
         read_only_fields = ["due_balance", "total_purchased", "last_purchase_at"]

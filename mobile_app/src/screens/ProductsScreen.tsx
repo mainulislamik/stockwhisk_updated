@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, useTheme, FAB, Button, Divider, Menu } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -120,14 +120,16 @@ export default function ProductsScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  useEffect(() => {
-    if (activeTab === 'list') {
-      setPage(1);
-      setProducts([]);
-      setHasMore(true);
-      fetchProducts(1, debouncedSearch, selectedCategory, true);
-    }
-  }, [debouncedSearch, selectedCategory, activeTab]);
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab === 'list') {
+        setPage(1);
+        setProducts([]);
+        setHasMore(true);
+        fetchProducts(1, debouncedSearch, selectedCategory, true);
+      }
+    }, [debouncedSearch, selectedCategory, activeTab])
+  );
 
   const fetchProducts = async (pageNum: number, searchQuery: string, cat: number | null, isRefresh = false) => {
     if (loading || (!hasMore && !isRefresh)) return;
