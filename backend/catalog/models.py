@@ -122,6 +122,15 @@ class Product(TenantScopedModel):
     def is_low_stock(self) -> bool:
         return self.track_inventory and (self.current_stock <= self.reorder_level or self.current_stock <= 5)
 
+    def save(self, *args, **kwargs):
+        if not self.sku:
+            import random
+            import string
+            prefix = (self.shop.barcode_prefix if self.shop_id and getattr(self.shop, "barcode_prefix", None) else "SKU").upper()
+            rand_suffix = "".join(random.choices(string.digits, k=6))
+            self.sku = f"{prefix}-{rand_suffix}"
+        super().save(*args, **kwargs)
+
 
 class ProductUnit(TenantScopedModel):
     """

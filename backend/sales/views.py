@@ -346,7 +346,10 @@ class SaleViewSet(
                     )
 
                 subtotal = sum(item.subtotal for item in sale.items.all())
-                total = subtotal - sale.discount + (sale.tax or Decimal("0"))
+                delivery = sale.delivery_charge or Decimal("0")
+                tax = sale.tax or Decimal("0")
+                discount = sale.discount or Decimal("0")
+                total = subtotal - discount + delivery + tax
                 
                 old_total = sale.total or Decimal("0")
                 sale.subtotal = subtotal

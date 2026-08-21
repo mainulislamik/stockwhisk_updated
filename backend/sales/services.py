@@ -168,7 +168,7 @@ def create_sale(
         tax = ((subtotal - discount) * Decimal(shop.vat_percent) / Decimal("100")).quantize(Decimal("0.01"))
         sale.tax = tax
 
-    total = subtotal - discount + delivery_charge + tax
+    total = (subtotal - discount + delivery_charge + tax).quantize(Decimal("0.01"))
     paid = ZERO
     for p in payments:
         amount = Decimal(p["amount"])

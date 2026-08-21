@@ -87,18 +87,31 @@ def create_return(
 
     net = (exchange_sale.total if exchange_sale else ZERO) - total_refund
 
-    # Reduce customer due if the refund is store credit or offset against unpaid invoice due
+    # 1. Write refund to cash/bank ledger if money was returned directly to customer
+    if total_refund > 0 and refund_method not in (SaleReturn.RefundMethod.STORE_CREDIT, SaleReturn.RefundMethod.EXCHANGE):
+        from accounting.models import LedgerEntry
+        pm_str = str(refund_method).lower()
+        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+        LedgerEntry.objects.create(
+            shop_id=shop.id, account=acct, amount=-total_refund,
+            source_type="SaleReturn", source_id=str(sret.id),
+            description=f"Return refund ({refund_method}) for {sale.invoice_no}",
+        )
+
+    # 2. Reduce customer due if the refund is store credit or offset against unpaid invoice due
     if sale.customer_id and total_refund > 0:
         customer = sale.customer
         if refund_method == SaleReturn.RefundMethod.STORE_CREDIT:
-            customer.due_balance = (customer.due_balance or ZERO) - total_refund
-            customer.save(update_fields=["due_balance"])
+            customer.due_balance = max(ZERO, (customer.due_balance or ZERO) - total_refund)
         elif sale.due and sale.due > 0:
             offset_due = min(sale.due, total_refund)
-            sale.due = max(ZERO, sale.due - offset_due)
-            sale.save(update_fields=["due"])
             customer.due_balance = max(ZERO, (customer.due_balance or ZERO) - offset_due)
-            customer.save(update_fields=["due_balance"])
+
+        customer.total_purchased = max(ZERO, (customer.total_purchased or ZERO) - total_refund)
+        customer.save(update_fields=["due_balance", "total_purchased"])
+
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(shop.id)
 
     record(
         action=AuditLog.Action.UPDATE, actor=created_by, shop=shop, target=sret,

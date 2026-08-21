@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity } from 'react-native';
+import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity, Linking } from 'react-native';
 import { Appbar, TextInput, Card, Text, Button, Modal, Portal, ActivityIndicator, Divider, useTheme, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -76,6 +76,19 @@ export default function CustomersScreen() {
 
   const handlePayment = async () => {
     if (!selectedCustomer || !amount) return;
+    const payNum = Number(amount);
+    const dueNum = Number(selectedCustomer.due_balance) || 0;
+    if (isNaN(payNum) || payNum <= 0) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'সঠিক টাকার পরিমাণ দিন।' : 'Please enter a valid amount.');
+      return;
+    }
+    if (payNum > dueNum) {
+      Alert.alert(
+        isBN ? 'ত্রুটি' : 'Error',
+        isBN ? `টাকার পরিমাণ বর্তমান বকেয়া (৳${dueNum.toFixed(2)})-এর চেয়ে বেশি হতে পারে না।` : `Amount cannot exceed current due (৳${dueNum.toFixed(2)}).`
+      );
+      return;
+    }
     setPaying(true);
     try {
       await api.post(`/crm/customers/${selectedCustomer.id}/receive-payment/`, {
@@ -90,8 +103,9 @@ export default function CustomersScreen() {
       setAmount('');
       setNote('');
       fetchCustomers(1, search, true);
-    } catch (e) {
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
+    } catch (e: any) {
+      const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message || (isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', errMsg);
     } finally {
       setPaying(false);
     }
@@ -206,6 +220,32 @@ export default function CustomersScreen() {
               <Text variant="bodyLarge" style={{ color: Number(selectedCustomer.due_balance) > 0 ? '#dc2626' : undefined, fontWeight: 'bold', marginTop: 4 }}>
                 {isBN ? 'বকেয়া ব্যালেন্স:' : 'Due Balance:'} ৳{selectedCustomer.due_balance || '0'}
               </Text>
+              {!!selectedCustomer.phone && (
+                <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+                  <Button
+                    mode="contained-tonal"
+                    icon="phone"
+                    style={{ flex: 1 }}
+                    onPress={() => Linking.openURL(`tel:${selectedCustomer.phone}`)}
+                  >
+                    {isBN ? 'কল করুন' : 'Call'}
+                  </Button>
+                  <Button
+                    mode="contained"
+                    icon="whatsapp"
+                    buttonColor="#25D366"
+                    textColor="#fff"
+                    style={{ flex: 1 }}
+                    onPress={() => {
+                      const digits = selectedCustomer.phone.replace(/\D/g, "");
+                      const intl = digits.startsWith("880") ? digits : (digits.startsWith("01") ? `88${digits}` : digits);
+                      Linking.openURL(`https://wa.me/${intl}`);
+                    }}
+                  >
+                    WhatsApp
+                  </Button>
+                </View>
+              )}
               <View style={{ marginTop: 24, flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
                 <Button mode="outlined" onPress={() => setSelectedCustomer(null)}>{isBN ? 'বন্ধ করুন' : 'Close'}</Button>
                 {Number(selectedCustomer.due_balance) > 0 && (

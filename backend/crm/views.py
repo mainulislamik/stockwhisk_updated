@@ -40,6 +40,17 @@ class CustomerViewSet(TenantScopedViewSet):
                 return Response(serializer.data, status=status.HTTP_200_OK)
         return super().create(request, *args, **kwargs)
 
+    def destroy(self, request, *args, **kwargs):
+        from django.db.models import ProtectedError
+        from rest_framework import status
+        try:
+            return super().destroy(request, *args, **kwargs)
+        except ProtectedError:
+            return Response(
+                {"detail": "Cannot delete this customer because they have existing transaction or payment records. You can deactivate them instead."},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
     @action(detail=False, methods=["get"], url_path="dues-total")
     def dues_total(self, request):
         """Sum of all outstanding dues (for the Dues page header, independent of
