@@ -213,12 +213,10 @@ class RequestPasswordResetOTPView(APIView):
                 connection=connection,
             )
         except Exception as e:
-            import traceback
-            error_trace = traceback.format_exc()
+            import logging
+            logging.getLogger(__name__).error(f"Password reset email failure: {e}", exc_info=True)
             return Response({
-                "detail": "Failed to send email. Check SMTP configuration.", 
-                "error": str(e),
-                "trace": error_trace
+                "detail": "Failed to send email. Please verify SMTP server settings or try again later.",
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return Response({"detail": "OTP sent to email."}, status=status.HTTP_200_OK)
@@ -245,11 +243,17 @@ class VerifyPasswordResetOTPView(APIView):
         except PasswordResetOTP.DoesNotExist:
             return Response({"detail": "No pending password reset found for this email."}, status=status.HTTP_404_NOT_FOUND)
             
-        if pending.otp != otp:
-            return Response({"detail": "Invalid OTP code."}, status=status.HTTP_400_BAD_REQUEST)
-            
         if pending.expires_at < timezone.now():
-            return Response({"detail": "OTP code has expired."}, status=status.HTTP_400_BAD_REQUEST)
+            pending.delete()
+            return Response({"detail": "OTP code has expired. Please request a new one."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if pending.otp != otp:
+            pending.failed_attempts = getattr(pending, "failed_attempts", 0) + 1
+            if pending.failed_attempts >= 5:
+                pending.delete()
+                return Response({"detail": "Too many invalid attempts. This OTP has been invalidated."}, status=status.HTTP_400_BAD_REQUEST)
+            pending.save(update_fields=["failed_attempts"])
+            return Response({"detail": f"Invalid OTP code. {5 - pending.failed_attempts} attempts remaining."}, status=status.HTTP_400_BAD_REQUEST)
             
         # Update user password
         try:

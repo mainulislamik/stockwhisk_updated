@@ -136,8 +136,8 @@ class DailySettlementViewSet(TenantScopedViewSet):
             
             net_cash = float(cash_in) - float(cash_out)
             expected_cash = float(past.opening_cash) + net_cash
-            sales_sum = Sale.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total"))["t"] or 0
-            expenses_sum = Expense.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("amount"))["t"] or 0
+            sales_sum = Sale.objects.filter(shop=shop, sale_date__range=(day_start, day_end)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
+            expenses_sum = Expense.objects.filter(shop=shop, spent_on__range=(day_start.date(), day_end.date())).aggregate(t=Sum("amount"))["t"] or 0
             refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
             
             actual = max(0.0, expected_cash) if past.status == DailySettlement.Status.OPEN or float(past.actual_cash) == 0 else float(past.actual_cash)
@@ -159,15 +159,15 @@ class DailySettlementViewSet(TenantScopedViewSet):
         # 2. Find earliest date (earliest activity or Aug 1, 2026) and fill every missing date
         earliest_settle = DailySettlement.objects.filter(shop=shop).order_by("opened_at").first()
         earliest_ledger = LedgerEntry.objects.filter(shop=shop).order_by("created_at").first()
-        earliest_sale = Sale.objects.filter(shop=shop).order_by("created_at").first()
+        earliest_sale = Sale.objects.filter(shop=shop).order_by("sale_date").first()
 
         dates = [datetime(2026, 8, 1).date()]
         if earliest_settle and earliest_settle.opened_at:
             dates.append(timezone.localdate(earliest_settle.opened_at))
         if earliest_ledger and earliest_ledger.created_at:
             dates.append(timezone.localdate(earliest_ledger.created_at))
-        if earliest_sale and earliest_sale.created_at:
-            dates.append(timezone.localdate(earliest_sale.created_at))
+        if earliest_sale and earliest_sale.sale_date:
+            dates.append(timezone.localdate(earliest_sale.sale_date))
 
         start_date = min(dates)
         existing_dates = set(
@@ -192,11 +192,11 @@ class DailySettlementViewSet(TenantScopedViewSet):
 
                 net_cash = float(cash_in) - float(cash_out)
                 sales_sum = Sale.objects.filter(
-                    shop=shop, created_at__range=(day_start, day_end)
-                ).aggregate(t=Sum("total"))["t"] or 0
+                    shop=shop, sale_date__range=(day_start, day_end)
+                ).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
 
                 expenses_sum = Expense.objects.filter(
-                    shop=shop, created_at__range=(day_start, day_end)
+                    shop=shop, spent_on__range=(day_start.date(), day_end.date())
                 ).aggregate(t=Sum("amount"))["t"] or 0
 
                 refunds_sum = SaleReturn.objects.filter(

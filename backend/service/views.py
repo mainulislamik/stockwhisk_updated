@@ -158,12 +158,13 @@ class ServiceTicketViewSet(TenantScopedViewSet):
     def add_payment(self, request, pk=None):
         ticket = self.get_object()
         amount = request.data.get("amount")
+        method = request.data.get("method", "cash")
         if not amount:
             return Response({"detail": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
         from .services import add_ticket_payment
         from decimal import Decimal
         try:
-            add_ticket_payment(ticket=ticket, amount=Decimal(amount), method="cash", created_by=request.user)
+            add_ticket_payment(ticket=ticket, amount=Decimal(amount), method=method, created_by=request.user)
         except Exception as e:
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
         fresh = self.get_queryset().get(pk=ticket.pk)

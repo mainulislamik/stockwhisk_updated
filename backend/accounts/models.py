@@ -189,6 +189,7 @@ class PasswordResetOTP(TimeStampedModel):
     """
     email = models.EmailField(unique=True)
     otp = models.CharField(max_length=6)
+    failed_attempts = models.PositiveSmallIntegerField(default=0)
     expires_at = models.DateTimeField()
 
     def __str__(self):

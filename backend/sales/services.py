@@ -179,12 +179,13 @@ def create_sale(
         )
         paid += amount
         pm_str = str(method).lower()
-        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
-        LedgerEntry.objects.create(
-            shop=shop, account=acct, amount=amount,
-            source_type="Sale", source_id=str(sale.id),
-            description=f"Payment ({method}) for {sale.invoice_no}",
-        )
+        if pm_str != "store_credit":
+            acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+            LedgerEntry.objects.create(
+                shop=shop, account=acct, amount=amount,
+                source_type="Sale", source_id=str(sale.id),
+                description=f"Payment ({method}) for {sale.invoice_no}",
+            )
 
     sale.subtotal = subtotal
     sale.total = total
@@ -249,7 +250,8 @@ def create_sale(
         EMIInstallment.objects.bulk_create(installments)
 
     if customer is not None:
-        _update_customer_after_sale(customer, total=total, due=total - paid, when=sale_date)
+        effective_due = total_emi_amount if is_emi else (total - paid)
+        _update_customer_after_sale(customer, total=total, due=effective_due, when=sale_date)
 
     # Flip tracked ProductUnits (FIFO or specific) to sold and bind the buyer onto each
     # unit's warranty, so a scanned unit resolves to who bought it + a valid
@@ -349,17 +351,20 @@ def add_payment(*, sale, amount, method=Payment.Method.CASH, created_by=None):
     if amount <= 0:
         raise ValueError("Payment amount must be positive.")
     Payment.objects.create(shop_id=sale.shop_id, sale=sale, amount=amount, method=method)
-    LedgerEntry.objects.create(
-        shop_id=sale.shop_id, account=LedgerEntry.Account.CASH, amount=amount,
-        source_type="Sale", source_id=str(sale.id),
-        description=f"Payment for {sale.invoice_no}",
-    )
+    pm_str = str(method).lower()
+    if pm_str != "store_credit":
+        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+        LedgerEntry.objects.create(
+            shop_id=sale.shop_id, account=acct, amount=amount,
+            source_type="Sale", source_id=str(sale.id),
+            description=f"Payment ({method}) for {sale.invoice_no}",
+        )
     sale.paid = (sale.paid or ZERO) + amount
     sale.status = _resolve_status(sale.total, sale.paid)
     sale.save(update_fields=["paid", "status"])
     if sale.customer_id:
         customer = sale.customer
-        customer.due_balance = (customer.due_balance or ZERO) - amount
+        customer.due_balance = max(ZERO, (customer.due_balance or ZERO) - amount)
         customer.save(update_fields=["due_balance"])
     return sale
 
