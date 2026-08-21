@@ -6,7 +6,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from .rbac_api import MyPermissionsView, PermissionCatalogView, RoleViewSet, ShopUserViewSet
 from .views import (
     MeView, InitiateRegistrationView, VerifyOTPRegistrationView, ShopSettingsView, TutorialsView,
-    RequestPasswordResetOTPView, VerifyPasswordResetOTPView
+    PublicTutorialsView, RequestPasswordResetOTPView, VerifyPasswordResetOTPView
 )
 
 app_name = "accounts"
@@ -39,4 +39,5 @@ urlpatterns = [
     path("auth/my-permissions/", MyPermissionsView.as_view(), name="my-permissions"),
     path("rbac/permissions/", PermissionCatalogView.as_view(), name="permission-catalog"),
     path("tutorials/", TutorialsView.as_view(), name="tutorials"),
+    path("public/tutorials/", PublicTutorialsView.as_view(), name="public-tutorials"),
 ] + router.urls

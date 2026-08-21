@@ -506,13 +506,37 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
             from django.db import transaction
             from django.utils import timezone
             with transaction.atomic():
-                installment.paid_amount += amount
+                remaining_payment = amount
+                # 1. Apply to current installment
+                needed = installment.amount - installment.paid_amount
+                to_apply = min(remaining_payment, needed)
+                installment.paid_amount += to_apply
+                remaining_payment -= to_apply
                 if installment.paid_amount >= installment.amount:
                     installment.status = EMIInstallment.Status.PAID
                 else:
                     installment.status = EMIInstallment.Status.PARTIAL
                 installment.paid_at = timezone.now()
                 installment.save(update_fields=["paid_amount", "status", "paid_at"])
+
+                # 2. Spill surplus across subsequent pending installments
+                if remaining_payment > Decimal("0"):
+                    subsequent_installments = schedule.installments.filter(
+                        installment_number__gt=installment.installment_number
+                    ).exclude(status=EMIInstallment.Status.PAID).order_by("installment_number")
+                    for sub in subsequent_installments:
+                        if remaining_payment <= Decimal("0"):
+                            break
+                        sub_needed = sub.amount - sub.paid_amount
+                        sub_apply = min(remaining_payment, sub_needed)
+                        sub.paid_amount += sub_apply
+                        remaining_payment -= sub_apply
+                        if sub.paid_amount >= sub.amount:
+                            sub.status = EMIInstallment.Status.PAID
+                        else:
+                            sub.status = EMIInstallment.Status.PARTIAL
+                        sub.paid_at = timezone.now()
+                        sub.save(update_fields=["paid_amount", "status", "paid_at"])
 
                 # Refresh schedule to recalculate total_due accurately
                 schedule.refresh_from_db()

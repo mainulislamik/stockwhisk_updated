@@ -320,7 +320,6 @@ class ShopSettingsView(APIView):
 
 class TutorialsView(APIView):
     """Return active tutorial videos to tenant dashboards."""
-    
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -331,11 +330,38 @@ class TutorialsView(APIView):
         
         # Filter based on role
         if is_reseller:
-            allowed_audiences = ["both", "reseller"]
+            allowed_audiences = ["all", "both", "reseller"]
         else:
-            allowed_audiences = ["both", "shop"]
+            allowed_audiences = ["all", "both", "shop"]
 
-        # We use a simple dict response to avoid creating a new serializer just for this
+        videos = TutorialVideo.objects.filter(
+            is_active=True,
+            target_audience__in=allowed_audiences
+        ).order_by("sequence", "id")
+        
+        data = []
+        for v in videos:
+            data.append({
+                "id": v.id,
+                "title": v.title,
+                "youtube_url": v.youtube_url,
+                "sequence": v.sequence,
+                "target_audience": v.target_audience,
+                "video_id": v.video_id,
+                "thumbnail_url": v.thumbnail_url,
+                "embed_url": v.embed_url,
+            })
+        return Response(data)
+
+
+class PublicTutorialsView(APIView):
+    """Return active tutorial videos for the public /tutorials page."""
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from platform_admin.models import TutorialVideo
+        allowed_audiences = ["all", "public", "both", "shop"]
+
         videos = TutorialVideo.objects.filter(
             is_active=True,
             target_audience__in=allowed_audiences

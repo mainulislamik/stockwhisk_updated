@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
@@ -17,6 +17,7 @@ export default function PurchasesScreen() {
   const [page, setPage] = useState(1);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const searchSeqRef = useRef(0);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -26,11 +27,13 @@ export default function PurchasesScreen() {
   }, [search]);
 
   const fetchData = async (p = 1, q = '') => {
+    const seq = ++searchSeqRef.current;
     try {
       if (p === 1) setLoading(true);
       else setLoadingMore(true);
       
       const res = await api.get('/purchasing/purchase-orders/?page=' + p + '&page_size=30&search=' + encodeURIComponent(q));
+      if (seq !== searchSeqRef.current) return;
       
       if (p === 1) {
         setPurchases(res.data.results || []);
@@ -43,8 +46,10 @@ export default function PurchasesScreen() {
     } catch (e) {
       console.error(e);
     } finally {
-      setLoading(false);
-      setLoadingMore(false);
+      if (seq === searchSeqRef.current) {
+        setLoading(false);
+        setLoadingMore(false);
+      }
     }
   };
 

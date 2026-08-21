@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList, Platform
 } from 'react-native';
@@ -111,10 +111,14 @@ export default function InventoryScreen() {
     }
   };
 
+  const searchSeqRef = useRef(0);
+
   const loadProducts = useCallback(async (page = 1, search = '') => {
+    const seq = ++searchSeqRef.current;
     setProductsLoading(true);
     try {
       const res = await api.get('/catalog/products/', { params: { page, page_size: 20, search, light: 1 } });
+      if (seq !== searchSeqRef.current) return;
       const results: FullProduct[] = res.data?.results || [];
       if (page === 1) {
         setProducts(results);
@@ -124,7 +128,9 @@ export default function InventoryScreen() {
       setProductHasMore(!!res.data?.next);
       setProductPage(page);
     } catch {}
-    setProductsLoading(false);
+    if (seq === searchSeqRef.current) {
+      setProductsLoading(false);
+    }
   }, []);
 
   useEffect(() => { loadSummary(); loadProducts(1, ''); }, []);

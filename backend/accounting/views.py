@@ -285,7 +285,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             data = self.get_serializer(active_obj).data
             data["cash_in"] = float(cash_in)
             data["cash_out"] = float(cash_out)
-            data["sales_total"] = float(Sale.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total"))["t"] or 0)
+            data["sales_total"] = float(Sale.objects.filter(shop=request.tenant, sale_date__range=(start_time, end_time)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0)
             data["expenses_total"] = float(Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("amount"))["t"] or 0)
             data["refunds_total"] = float(SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0)
             return Response(data)

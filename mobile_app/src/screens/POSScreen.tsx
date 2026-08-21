@@ -315,9 +315,10 @@ export default function POSScreen() {
     }
   };
 
-  const discountNum = Number(discountInput) || 0;
+  const rawDiscount = Number(discountInput) || 0;
   const deliveryNum = Number(deliveryCharge) || 0;
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
+  const discountNum = Math.min(rawDiscount, subtotal);
   const total = Math.max(0, subtotal - discountNum + deliveryNum);
   const paidNum = paidAmount ? Number(paidAmount) : 0;
   const changeDue = paidNum > total ? paidNum - total : 0;

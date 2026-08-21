@@ -26,7 +26,9 @@ class TutorialVideo(TimeStampedModel):
     every shop on their dashboard, ordered by ``sequence`` (serial number)."""
 
     class TargetAudience(models.TextChoices):
-        BOTH = "both", "Both"
+        ALL = "all", "All (Public, Shop & Reseller)"
+        PUBLIC = "public", "Public Website Only"
+        BOTH = "both", "Both (Shop & Reseller)"
         SHOP = "shop", "Shop Only"
         RESELLER = "reseller", "Reseller Only"
 
@@ -39,7 +41,7 @@ class TutorialVideo(TimeStampedModel):
     target_audience = models.CharField(
         max_length=15, 
         choices=TargetAudience.choices, 
-        default=TargetAudience.BOTH,
+        default=TargetAudience.ALL,
         help_text="Who should see this tutorial?"
     )
 
