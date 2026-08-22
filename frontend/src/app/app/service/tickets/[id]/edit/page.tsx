@@ -454,11 +454,6 @@ export default function EditServiceTicketPage() {
                           <tr key={idx}>
                             <td className="small">
                               <div className="fw-medium">{p.name}</div>
-                              {p.barcode && (
-                                <span className="badge bg-light text-dark border font-monospace mt-1" style={{ fontSize: "0.7rem" }}>
-                                  <i className="bi bi-upc-scan me-1 text-primary"></i>{p.barcode}
-                                </span>
-                              )}
                             </td>
                             <td>
                               <div className="input-group input-group-sm justify-content-center">

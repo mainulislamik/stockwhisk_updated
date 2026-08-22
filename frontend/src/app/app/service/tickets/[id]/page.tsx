@@ -380,23 +380,13 @@ export default function TicketDetailPage() {
                           <tr key={p.id}>
                             <td>
                               <div className="fw-medium">{p.product_name}</div>
-                              <div className="d-flex flex-wrap gap-2 align-items-center mt-1">
-                                {p.product_barcode && (
-                                  <span className="badge bg-light text-dark border font-monospace" style={{ fontSize: "0.72rem" }}>
-                                    <i className="bi bi-upc-scan me-1 text-primary"></i>{p.product_barcode}
-                                  </span>
-                                )}
-                                {p.product_sku && !p.product_barcode && (
-                                  <span className="badge bg-light text-muted border font-monospace" style={{ fontSize: "0.72rem" }}>
-                                    SKU: {p.product_sku}
-                                  </span>
-                                )}
-                                {p.warranty_months ? (
+                              {p.warranty_months ? (
+                                <div className="mt-1">
                                   <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style={{ fontSize: "0.72rem" }}>
                                     <i className="bi bi-shield-check me-1"></i>{t("tktd_warranty_months", { count: p.warranty_months })}
                                   </span>
-                                ) : null}
-                              </div>
+                                </div>
+                              ) : null}
                             </td>
                             <td className="text-end">{p.quantity}</td>
                             <td className="text-end">{money(p.unit_price)}</td>
@@ -695,7 +685,6 @@ export default function TicketDetailPage() {
                 <div key={p.id} className="d-flex justify-content-between" style={{ fontSize: '9pt' }}>
                   <span>
                     {p.quantity}x {p.product_name}
-                    {p.product_barcode ? ` [${p.product_barcode}]` : ""}
                   </span>
                   <span>{money(p.line_total)}</span>
                 </div>
@@ -811,11 +800,6 @@ export default function TicketDetailPage() {
               <tr key={p.id}>
                 <td>
                   <span className="inv-product-name">{p.product_name}</span>
-                  {p.product_barcode && (
-                    <div style={{ fontSize: "8pt", color: "#475569", fontFamily: "monospace", marginTop: "1px" }}>
-                      🏷️ {p.product_barcode}
-                    </div>
-                  )}
                   {p.warranty_months ? (
                     <div style={{ fontSize: "8pt", color: "#16a34a", marginTop: "2px", fontStyle: "italic" }}>
                       {t("tktd_warranty_months", { count: p.warranty_months })}
