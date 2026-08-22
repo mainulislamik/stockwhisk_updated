@@ -425,11 +425,11 @@ export default function POSScreen() {
 
   const totalItemsCount = cart.reduce((s, l) => s + l.qty, 0);
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (asQuotation: boolean = false) => {
     if (cart.length === 0) return;
     setIsCheckoutLoading(true);
     try {
-      if (isEmi) {
+      if (isEmi && !asQuotation) {
         const finalEmail = customerMode === 'existing' ? existingEmail : walkEmail;
         if (!finalEmail.trim()) {
            throw new Error("EMI-র জন্য Email আবশ্যক (Email is required for EMI)");
@@ -469,14 +469,15 @@ export default function POSScreen() {
         discount: discountNum,
         delivery_charge: deliveryNum,
         tax: 0,
-        note: "",
+        note: asQuotation ? "Quotation / প্রাক-বিক্রয় কোটেশন" : "",
         items: resolvedItems,
-        payments: paidAmount !== "" && Number(paidAmount) >= 0 ? [{ amount: Number(paidAmount), method: paymentMethod }] : [{ amount: total, method: paymentMethod }],
+        payments: asQuotation ? [] : (paidAmount !== "" && Number(paidAmount) >= 0 ? [{ amount: Number(paidAmount), method: paymentMethod }] : [{ amount: total, method: paymentMethod }]),
         sale_date: saleDate || undefined,
-        is_emi: isEmi,
-        emi_months: isEmi ? emiMonths : 0,
-        down_payment: isEmi ? paidNum : 0,
-        emi_interest_percent: isEmi ? emiInterestNum : 0,
+        is_emi: asQuotation ? false : isEmi,
+        emi_months: (isEmi && !asQuotation) ? emiMonths : 0,
+        down_payment: (isEmi && !asQuotation) ? paidNum : 0,
+        emi_interest_percent: (isEmi && !asQuotation) ? emiInterestNum : 0,
+        is_quotation: asQuotation,
       };
       const res = await api.post('/pos/checkout/', payload);
       
@@ -873,16 +874,32 @@ export default function POSScreen() {
               </Surface>
             )}
 
-            <Button
-              mode="contained"
-              onPress={handleCheckout}
-              loading={isCheckoutLoading}
-              disabled={cart.length === 0 || isCheckoutLoading || (customerMode === 'walkin' && (!walkPhone || !walkName))}
-              style={{ paddingVertical: 8, borderRadius: 8, marginBottom: 40 }}
-              labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
-            >
-              {t('চেকআউট', 'Checkout')}
-            </Button>
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 40 }}>
+              <Button
+                mode="outlined"
+                icon="file-document-outline"
+                onPress={() => handleCheckout(true)}
+                loading={isCheckoutLoading}
+                disabled={cart.length === 0 || isCheckoutLoading}
+                style={{ flex: 1, borderRadius: 8, borderColor: '#4f46e5' }}
+                textColor="#4f46e5"
+                labelStyle={{ fontSize: 13, fontWeight: 'bold' }}
+              >
+                {t('কোটেশন সেভ', 'Quotation')}
+              </Button>
+
+              <Button
+                mode="contained"
+                icon="check-circle"
+                onPress={() => handleCheckout(false)}
+                loading={isCheckoutLoading}
+                disabled={cart.length === 0 || isCheckoutLoading || (customerMode === 'walkin' && (!walkPhone || !walkName))}
+                style={{ flex: 2, borderRadius: 8 }}
+                labelStyle={{ fontSize: 15, fontWeight: 'bold' }}
+              >
+                {t('চেকআউট', 'Checkout')}
+              </Button>
+            </View>
           </View>
         </ScrollView>
       )}

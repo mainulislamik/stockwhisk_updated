@@ -34,7 +34,8 @@ def create_sale(
     *, shop, items, customer=None, branch=None, discount=ZERO, delivery_charge=ZERO, tax=ZERO,
     payments=None, sale_date=None, note="", created_by=None,
     customer_name="", customer_phone="", customer_address="",
-    idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO
+    idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO,
+    is_quotation=False,
 ):
     """
     ``items``: list of dicts with keys ``product`` (instance), optional
@@ -73,21 +74,22 @@ def create_sale(
         }
 
     # Block the sale if any tracked product lacks enough stock (item 7).
-    # If offline_sale_mode is enabled, we bypass this block and allow negative stock.
-    for row in items:
-        product = row["product"]
-        if product.track_inventory:
-            qty = Decimal(row["quantity"])
-            # Use the freshly-locked stock, not the possibly-stale instance value.
-            on_hand = locked_stock.get(product.id, product.current_stock)
-            product.current_stock = on_hand
-            if not getattr(shop, "offline_sale_mode", False):
-                if on_hand <= 0:
-                    raise ValueError(f"'{product.name}' is out of stock.")
-                if qty > on_hand:
-                    raise ValueError(
-                        f"Only {on_hand} of '{product.name}' in stock."
-                    )
+    # If offline_sale_mode is enabled or is_quotation is True, we bypass this block and allow creation.
+    if not is_quotation:
+        for row in items:
+            product = row["product"]
+            if product.track_inventory:
+                qty = Decimal(row["quantity"])
+                # Use the freshly-locked stock, not the possibly-stale instance value.
+                on_hand = locked_stock.get(product.id, product.current_stock)
+                product.current_stock = on_hand
+                if not getattr(shop, "offline_sale_mode", False):
+                    if on_hand <= 0:
+                        raise ValueError(f"'{product.name}' is out of stock.")
+                    if qty > on_hand:
+                        raise ValueError(
+                            f"Only {on_hand} of '{product.name}' in stock."
+                        )
 
     discount = Decimal(discount or 0)
     delivery_charge = Decimal(delivery_charge or 0)
@@ -146,7 +148,7 @@ def create_sale(
         )
         subtotal += item.subtotal
 
-        if product.track_inventory:
+        if not is_quotation and product.track_inventory:
             apply_movement(
                 shop=shop, product=product, variation=variation,
                 movement_type=MovementType.SALE_OUT, quantity=qty,
@@ -170,30 +172,31 @@ def create_sale(
 
     total = (subtotal - discount + delivery_charge + tax).quantize(Decimal("0.01"))
     paid = ZERO
-    for p in payments:
-        amount = Decimal(p["amount"])
-        method = p.get("method", Payment.Method.CASH)
-        Payment.objects.create(
-            shop=shop, sale=sale, amount=amount,
-            method=method,
-        )
-        paid += amount
-        pm_str = str(method).lower()
-        if pm_str != "store_credit":
-            acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
-            LedgerEntry.objects.create(
-                shop=shop, account=acct, amount=amount,
-                source_type="Sale", source_id=str(sale.id),
-                description=f"Payment ({method}) for {sale.invoice_no}",
+    if not is_quotation:
+        for p in payments:
+            amount = Decimal(p["amount"])
+            method = p.get("method", Payment.Method.CASH)
+            Payment.objects.create(
+                shop=shop, sale=sale, amount=amount,
+                method=method,
             )
+            paid += amount
+            pm_str = str(method).lower()
+            if pm_str != "store_credit":
+                acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+                LedgerEntry.objects.create(
+                    shop=shop, account=acct, amount=amount,
+                    source_type="Sale", source_id=str(sale.id),
+                    description=f"Payment ({method}) for {sale.invoice_no}",
+                )
 
     sale.subtotal = subtotal
     sale.total = total
     sale.paid = paid
-    sale.status = _resolve_status(total, paid)
+    sale.status = Sale.Status.QUOTATION if is_quotation else _resolve_status(total, paid)
     sale.save(update_fields=["subtotal", "total", "paid", "status", "discount", "delivery_charge", "tax"])
 
-    if is_emi:
+    if is_emi and not is_quotation:
         if not customer:
             raise ValueError("EMI sales require a saved customer.")
         if not customer.email or not customer.phone:
@@ -249,27 +252,29 @@ def create_sale(
             ))
         EMIInstallment.objects.bulk_create(installments)
 
-    if customer is not None:
+    if customer is not None and not is_quotation:
         effective_due = total_emi_amount if is_emi else (total - paid)
         _update_customer_after_sale(customer, total=total, due=effective_due, when=sale_date)
 
-    # Flip tracked ProductUnits (FIFO or specific) to sold and bind the buyer onto each
-    # unit's warranty, so a scanned unit resolves to who bought it + a valid
-    # expiry on the warranty/return screen.
-    _mark_units_sold(shop, sale, items)
+    if not is_quotation:
+        # Flip tracked ProductUnits (FIFO or specific) to sold and bind the buyer onto each
+        # unit's warranty, so a scanned unit resolves to who bought it + a valid
+        # expiry on the warranty/return screen.
+        _mark_units_sold(shop, sale, items)
 
     record(
         action=AuditLog.Action.CREATE, actor=created_by, shop=shop, target=sale,
-        description=f"Sale {sale.invoice_no} total={total} paid={paid}",
+        description=f"{'Quotation' if is_quotation else 'Sale'} {sale.invoice_no} total={total} paid={paid}",
     )
 
-    # Real-time low-stock alert: a sale is the moment stock crosses the reorder
-    # line. Fired only for shops on REALTIME mode; DAILY shops still get the
-    # Celery digest. Runs after commit so we never alert on a rolled-back sale.
-    sold_products = [row["product"] for row in items if row["product"].track_inventory]
-    transaction.on_commit(
-        lambda: alert_low_stock_realtime(shop=shop, products=sold_products)
-    )
+    if not is_quotation:
+        # Real-time low-stock alert: a sale is the moment stock crosses the reorder
+        # line. Fired only for shops on REALTIME mode; DAILY shops still get the
+        # Celery digest. Runs after commit so we never alert on a rolled-back sale.
+        sold_products = [row["product"] for row in items if row["product"].track_inventory]
+        transaction.on_commit(
+            lambda: alert_low_stock_realtime(shop=shop, products=sold_products)
+        )
     return sale
 
 

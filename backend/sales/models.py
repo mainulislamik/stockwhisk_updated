@@ -11,6 +11,7 @@ class Sale(TenantScopedModel):
         PAID = "paid", "Paid"
         PARTIAL = "partial", "Partial"
         DUE = "due", "Due"
+        QUOTATION = "quotation", "Quotation"
         CANCELLED = "cancelled", "Cancelled"
         RETURNED = "returned", "Returned"
         PARTIALLY_RETURNED = "partially_returned", "Partially returned"
