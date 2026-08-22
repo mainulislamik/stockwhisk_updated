@@ -51,6 +51,7 @@ export default function DuesPage() {
             <option value="cash">${t("due_method_cash")}</option>
             <option value="bank">${t("due_method_bank")}</option>
             <option value="mobile">${t("due_method_mobile")}</option>
+            <option value="settlement">Settlement / Forgive Due (No Cash)</option>
           </select>
         </div>
         <div class="mb-3 text-start">

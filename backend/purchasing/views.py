@@ -135,6 +135,31 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
                 status=status.HTTP_400_BAD_REQUEST)
         return Response(PurchaseOrderSerializer(po).data)
 
+    @action(detail=True, methods=["post"], url_path="pay-due")
+    def pay_due(self, request, pk=None):
+        """Pay or settle the due of this specific purchase order."""
+        po = self.get_object()
+        amount = request.data.get("amount")
+        method = request.data.get("method", "cash")
+        note = request.data.get("note", "")
+
+        if not amount:
+            return Response({"detail": "Amount is required."}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            from decimal import Decimal
+            from .services import add_purchase_payment
+            amount = Decimal(str(amount))
+            add_purchase_payment(
+                po=po, amount=amount, method=method,
+                note=note, created_by=request.user
+            )
+        except Exception as e:
+            return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+        po.refresh_from_db()
+        return Response(PurchaseOrderSerializer(po).data)
+
     @action(detail=True, methods=["post"], url_path="return")
     def process_return(self, request, pk=None):
         """Return goods from a received PO to supplier. Body: {"lines": [{"item_id": 1, "quantity": 2}], "reason": "...", "refund_amount": 1000}."""

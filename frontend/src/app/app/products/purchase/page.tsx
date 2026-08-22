@@ -920,7 +920,7 @@ export default function PurchaseProductPage() {
 
               <div className="d-flex justify-content-between small mb-1">
                 <span className="text-secondary">{t("pp_due_after")}</span>
-                <span className="fw-semibold text-success">{money(supplierDue)}</span>
+                <span className={`fw-semibold ${supplierDue > 0 ? "text-danger" : "text-success"}`}>{money(supplierDue)}</span>
               </div>
             </div>
 

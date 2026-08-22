@@ -79,13 +79,15 @@ def add_purchase_payment(*, po, amount, method=PurchasePayment.Method.CASH,
     po.paid = (po.paid or ZERO) + amount
     po.save(update_fields=["paid"])
 
-    supplier = po.supplier
-    supplier.due_balance = (supplier.due_balance or ZERO) - amount
-    supplier.save(update_fields=["due_balance"])
+    if po.supplier:
+        supplier = po.supplier
+        supplier.due_balance = (supplier.due_balance or ZERO) - amount
+        supplier.save(update_fields=["due_balance"])
 
-    post_purchase_payment_to_accounting(
-        shop=po.shop, po=po, amount=amount, created_by=created_by, method=method,
-    )
+    if method != PurchasePayment.Method.SETTLEMENT:
+        post_purchase_payment_to_accounting(
+            shop=po.shop, po=po, amount=amount, created_by=created_by, method=method,
+        )
     return payment
 
 

@@ -124,6 +124,7 @@ class Payment(TenantScopedModel):
         BKASH = "bkash", "bKash"
         NAGAD = "nagad", "Nagad"
         BANK = "bank", "Bank transfer"
+        SETTLEMENT = "settlement", "Settlement / Adjustment"
 
     sale = models.ForeignKey(Sale, on_delete=models.CASCADE, related_name="payments")
     amount = models.DecimalField(max_digits=14, decimal_places=2)

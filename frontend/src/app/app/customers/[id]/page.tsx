@@ -188,6 +188,7 @@ export default function CustomerProfilePage() {
                     <option value="bkash">{t("cust_meth_bkash")}</option>
                     <option value="nagad">{t("cust_meth_nagad")}</option>
                     <option value="bank">{t("cust_meth_bank")}</option>
+                    <option value="settlement">Settlement / Forgive Due (No Cash)</option>
                   </select>
                 </div>
                 <div className="col-md-4">

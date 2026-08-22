@@ -93,6 +93,7 @@ class PurchasePayment(TenantScopedModel):
         BKASH = "bkash", "bKash"
         NAGAD = "nagad", "Nagad"
         BANK = "bank", "Bank transfer"
+        SETTLEMENT = "settlement", "Settlement / Adjustment"
 
     purchase_order = models.ForeignKey(
         PurchaseOrder, on_delete=models.CASCADE, related_name="payments"
