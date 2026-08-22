@@ -180,10 +180,15 @@ export default function DashboardScreen() {
   const greetingText = getGreeting(language, userName);
 
   // Extract metrics
-  const salesVal = Number(topCardsData?.revenue ?? metrics?.today_sales?.total ?? 0) || 0;
-  const profitVal = Number(topCardsData?.gross_profit ?? topCardsData?.profit ?? topCardsData?.net_profit ?? metrics?.today_sales?.profit ?? 0) || 0;
-  const duesVal = Number(topCardsData?.dues ?? metrics?.receivables?.total_due ?? 0) || 0;
-  const lowStockCount = Number(metrics?.inventory?.low_stock_count ?? 0) || 0;
+  const salesVal = Number(topCardsData?.revenue ?? metrics?.today_sales?.total ?? metrics?.period?.revenue ?? 0) || 0;
+  const profitVal = Number(topCardsData?.gross_profit ?? topCardsData?.profit ?? topCardsData?.net_profit ?? metrics?.period?.gross_profit ?? metrics?.today?.gross_profit ?? 0) || 0;
+  // dues: profit-overview returns "total_receivable"; dashboard returns position.receivables
+  const duesVal = Number(
+    topCardsData?.total_receivable ?? topCardsData?.dues ??
+    metrics?.position?.receivables ?? 0
+  ) || 0;
+  // low stock: dashboard returns low_stock_count directly at top level (not nested under inventory)
+  const lowStockCount = Number(metrics?.low_stock_count ?? metrics?.inventory?.low_stock_count ?? 0) || 0;
 
   const quickActions = [
     {
