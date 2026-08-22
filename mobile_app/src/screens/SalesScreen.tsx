@@ -110,6 +110,7 @@ export default function SalesScreen() {
       case 'PAID': return '#16a34a'; // green
       case 'PARTIAL': return '#ea580c'; // orange
       case 'DUE': return '#dc2626'; // red
+      case 'QUOTATION': return '#0ea5e9'; // sky blue
       case 'CANCELLED': return '#64748b'; // gray
       default: return theme.colors.primary;
     }
@@ -121,9 +122,57 @@ export default function SalesScreen() {
       case 'PAID': return 'পরিশোধিত';
       case 'PARTIAL': return 'আংশিক';
       case 'DUE': return 'বকেয়া';
+      case 'QUOTATION': return 'কোটেশন';
       case 'CANCELLED': return 'বাতিল';
       default: return status;
     }
+  };
+
+  const handleConvertQuotation = async (sale: Sale) => {
+    Alert.alert(
+      isBN ? 'বিক্রয় নিশ্চিতকরণ' : 'Confirm Conversion',
+      isBN ? 'আপনি কি নিশ্চিত যে এই কোটেশনটিকে আসল বিক্রয় চালানে রূপান্তর করবেন?' : 'Convert this quotation into a completed sale?',
+      [
+        { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+        {
+          text: isBN ? 'রূপান্তর করুন' : 'Convert',
+          onPress: async () => {
+            try {
+              await api.post(`/sales/sales/${sale.id}/convert-quotation/`, {});
+              setSelectedSale(null);
+              fetchSales(1, debouncedSearch, true);
+              Alert.alert('Success', isBN ? 'কোটেশনটি সফলভাবে বিক্রয় চালানে রূপান্তর হয়েছে।' : 'Quotation successfully converted to Sale.');
+            } catch (e: any) {
+              Alert.alert('Error', e.response?.data?.detail || e.message || 'Failed to convert quotation.');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteQuotation = async (sale: Sale) => {
+    Alert.alert(
+      isBN ? 'কোটেশন মুছে ফেলুন' : 'Delete Quotation',
+      isBN ? 'আপনি কি নিশ্চিত যে এই কোটেশনটি চিরতরে মুছে ফেলবেন?' : 'Are you sure you want to delete this quotation permanently?',
+      [
+        { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+        {
+          text: isBN ? 'মুছে ফেলুন' : 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await api.delete(`/sales/sales/${sale.id}/`);
+              setSelectedSale(null);
+              fetchSales(1, debouncedSearch, true);
+              Alert.alert('Success', isBN ? 'কোটেশনটি মুছে ফেলা হয়েছে।' : 'Quotation deleted successfully.');
+            } catch (e: any) {
+              Alert.alert('Error', e.response?.data?.detail || e.message || 'Failed to delete quotation.');
+            }
+          }
+        }
+      ]
+    );
   };
 
   const generateReceiptHTML = (sale: Sale) => {
@@ -387,8 +436,31 @@ export default function SalesScreen() {
               )}
 
               <View style={{ marginTop: 20, gap: 8 }}>
-                {/* Allow Edit if Owner */}
-                {(!user?.role || user.role === 'owner' || user.role === 'admin') && (
+                {selectedSale.status === 'quotation' && (
+                  <>
+                    <Button
+                      mode="contained"
+                      icon="check-circle"
+                      buttonColor="#16a34a"
+                      textColor="#fff"
+                      onPress={() => handleConvertQuotation(selectedSale)}
+                    >
+                      {isBN ? '✓ আসল বিক্রয়ে রূপান্তর করুন' : '✓ Convert to Completed Sale'}
+                    </Button>
+                    <Button
+                      mode="contained"
+                      icon="delete-outline"
+                      buttonColor="#dc2626"
+                      textColor="#fff"
+                      onPress={() => handleDeleteQuotation(selectedSale)}
+                    >
+                      {isBN ? '🗑️ কোটেশন মুছে ফেলুন' : '🗑️ Delete Quotation'}
+                    </Button>
+                  </>
+                )}
+
+                {/* Allow Edit if Owner and not quotation */}
+                {selectedSale.status !== 'quotation' && (!user?.role || user.role === 'owner' || user.role === 'admin') && (
                   <Button
                     mode="contained"
                     icon="pencil"

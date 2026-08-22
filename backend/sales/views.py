@@ -29,7 +29,7 @@ from .services import add_payment, cancel_sale, create_sale
 
 class SaleViewSet(
     mixins.ListModelMixin, mixins.RetrieveModelMixin,
-    mixins.CreateModelMixin, viewsets.GenericViewSet,
+    mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet,
 ):
     permission_classes = [IsTenantMember, HasPermCode]
     # Viewing invoices/sales (list, retrieve, search) only needs read access;
@@ -600,6 +600,101 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
         # Refresh schedule to return updated data
         schedule.refresh_from_db()
         return Response(self.get_serializer(schedule).data)
+
+    @action(detail=True, methods=["post"], url_path="convert-quotation")
+    def convert_quotation(self, request, pk=None):
+        sale = self.get_object()
+        if sale.status != Sale.Status.QUOTATION:
+            return Response({"detail": "This invoice is not a quotation."}, status=status.HTTP_400_BAD_REQUEST)
+        
+        from django.db import transaction
+        from inventory.models import MovementType
+        from inventory.services import apply_movement
+        from accounting.models import LedgerEntry
+        from .models import Payment
+        from audit.models import AuditLog
+        from audit.services import record
+
+        payments_data = request.data.get("payments", [])
+        paid_amount = Decimal(str(request.data.get("paid_amount", 0) or 0))
+        payment_method = request.data.get("payment_method", "cash")
+        if not payments_data and paid_amount > 0:
+            payments_data = [{"amount": paid_amount, "method": payment_method}]
+
+        with transaction.atomic():
+            # 1. Deduct stock for all tracked items
+            for item in sale.items.select_related("product", "variation").all():
+                if item.product.track_inventory:
+                    if not getattr(request.user.shop, "offline_sale_mode", False):
+                        if item.product.current_stock < item.quantity:
+                            return Response({"detail": f"'{item.product.name}' lacks sufficient stock ({item.product.current_stock} available)."}, status=status.HTTP_400_BAD_REQUEST)
+                    apply_movement(
+                        shop=request.user.shop,
+                        product=item.product,
+                        variation=item.variation,
+                        movement_type=MovementType.SALE_OUT,
+                        quantity=item.quantity,
+                        unit_cost=item.unit_cost,
+                        reference_type="Sale",
+                        reference_id=sale.id,
+                        created_by=request.user,
+                    )
+
+            # 2. Record payments & ledger
+            total_paid = Decimal("0")
+            for p in payments_data:
+                amt = Decimal(str(p.get("amount", 0) or 0))
+                if amt > 0:
+                    meth = p.get("method", "cash")
+                    Payment.objects.create(
+                        shop=request.user.shop,
+                        sale=sale,
+                        amount=amt,
+                        method=meth,
+                    )
+                    total_paid += amt
+                    pm_str = str(meth).lower()
+                    if pm_str != "store_credit":
+                        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+                        LedgerEntry.objects.create(
+                            shop=request.user.shop,
+                            account=acct,
+                            amount=amt,
+                            source_type="Sale",
+                            source_id=str(sale.id),
+                            description=f"Payment ({meth}) for {sale.invoice_no}",
+                        )
+
+            sale.paid = total_paid
+            if total_paid >= sale.total:
+                sale.status = Sale.Status.PAID
+            elif total_paid > 0:
+                sale.status = Sale.Status.PARTIAL
+            else:
+                sale.status = Sale.Status.DUE
+            sale.save(update_fields=["paid", "status"])
+
+            # 3. Update customer balance
+            if sale.customer is not None:
+                due = max(Decimal("0"), sale.total - total_paid)
+                from .services import _update_customer_after_sale
+                _update_customer_after_sale(sale.customer, total=sale.total, due=due, when=sale.sale_date)
+
+            record(
+                action=AuditLog.Action.UPDATE,
+                actor=request.user,
+                shop=request.user.shop,
+                target=sale,
+                description=f"Quotation {sale.invoice_no} converted to Sale (Status: {sale.status}, Paid: {total_paid})",
+            )
+
+        return Response(SaleSerializer(sale).data)
+
+    def perform_destroy(self, instance):
+        if instance.status != Sale.Status.QUOTATION:
+            from rest_framework.exceptions import ValidationError
+            raise ValidationError("Only quotation records can be removed directly. For completed sales, use the Void/Cancel action.")
+        instance.delete()
 
 
 class PublicInvoicePDFView(APIView):

@@ -8,7 +8,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 type InvoiceRow = {
   id: number;
-  type: "sale" | "service";
+  type: "sale" | "service" | "quotation";
   invoice_no: string;
   customer_id?: number | null;
   customer_name: string | null;
@@ -25,10 +25,12 @@ const statusBadge: Record<string, string> = {
   PARTIAL: "text-bg-warning",
   DUE: "text-bg-danger",
   CANCELLED: "text-bg-secondary",
+  QUOTATION: "text-bg-info text-white",
   paid: "text-bg-success",
   partial: "text-bg-warning",
   due: "text-bg-danger",
   cancelled: "text-bg-secondary",
+  quotation: "text-bg-info text-white",
   received: "text-bg-primary",
   diagnosing: "text-bg-info",
   awaiting_parts: "text-bg-warning",
@@ -38,24 +40,27 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function SalesPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
-  const [activeTab, setActiveTab] = useState<"all" | "sale" | "service">("all");
+  const [activeTab, setActiveTab] = useState<"all" | "sale" | "service" | "quotation">("all");
+  const [convertingId, setConvertingId] = useState<number | null>(null);
+  const [busyAction, setBusyAction] = useState(false);
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const [salesData, serviceData] = await Promise.all([
-          fetchAll<any>("/sales/sales/").catch(() => []),
-          fetchAll<any>("/service/tickets/").catch(() => []),
-        ]);
+  async function loadData() {
+    try {
+      const [salesData, serviceData] = await Promise.all([
+        fetchAll<any>("/sales/sales/").catch(() => []),
+        fetchAll<any>("/service/tickets/").catch(() => []),
+      ]);
 
-        const saleRows: InvoiceRow[] = (salesData || []).map((s: any) => ({
+      const saleRows: InvoiceRow[] = (salesData || []).map((s: any) => {
+        const isQ = s.status === "quotation" || s.status === "QUOTATION";
+        return {
           id: s.id,
-          type: "sale",
+          type: isQ ? "quotation" : "sale",
           invoice_no: s.invoice_no || `#INV-${s.id}`,
           customer_id: s.customer,
           customer_name: s.customer_name,
@@ -65,39 +70,72 @@ export default function SalesPage() {
           due: s.due || "0",
           status: s.status || "paid",
           href: `/app/sales/${s.id}`,
-        }));
+        };
+      });
 
-        const serviceRows: InvoiceRow[] = (serviceData || []).map((tk: any) => ({
-          id: tk.id,
-          type: "service",
-          invoice_no: tk.ticket_no || `#SVC-${tk.id}`,
-          customer_id: tk.customer,
-          customer_name: tk.customer_name,
-          date: tk.received_at || tk.created_at,
-          total: tk.bill_total || "0",
-          paid: tk.paid || "0",
-          due: tk.due || "0",
-          status: tk.status || "received",
-          href: `/app/service/tickets/${tk.id}`,
-        }));
+      const serviceRows: InvoiceRow[] = (serviceData || []).map((tk: any) => ({
+        id: tk.id,
+        type: "service",
+        invoice_no: tk.ticket_no || `#SVC-${tk.id}`,
+        customer_id: tk.customer,
+        customer_name: tk.customer_name,
+        date: tk.received_at || tk.created_at,
+        total: tk.bill_total || "0",
+        paid: tk.paid || "0",
+        due: tk.due || "0",
+        status: tk.status || "received",
+        href: `/app/service/tickets/${tk.id}`,
+      }));
 
-        const combined = [...saleRows, ...serviceRows].sort((a, b) => {
-          const da = new Date(a.date).getTime() || 0;
-          const db = new Date(b.date).getTime() || 0;
-          return db - da;
-        });
+      const combined = [...saleRows, ...serviceRows].sort((a, b) => {
+        const da = new Date(a.date).getTime() || 0;
+        const db = new Date(b.date).getTime() || 0;
+        return db - da;
+      });
 
-        setRows(combined);
-      } catch (e: any) {
-        setError(e?.message || t("sales_err_load"));
-      } finally {
-        setLoading(false);
-      }
-    })();
+      setRows(combined);
+    } catch (e: any) {
+      setError(e?.message || t("sales_err_load"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    loadData();
   }, []);
+
+  async function handleConvertToSale(id: number) {
+    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত যে এই কোটেশনটিকে আসল বিক্রয় চালানে রূপান্তর করবেন?" : "Convert this quotation into a completed sale?")) return;
+    setBusyAction(true);
+    try {
+      const { api } = await import("@/lib/api");
+      await api(`/sales/sales/${id}/convert-quotation/`, { method: "POST", body: {} });
+      await loadData();
+    } catch (e: any) {
+      alert(e?.message || "Failed to convert quotation");
+    } finally {
+      setBusyAction(false);
+    }
+  }
+
+  async function handleDeleteQuotation(id: number) {
+    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত যে এই কোটেশনটি মুছে ফেলবেন?" : "Delete this quotation?")) return;
+    setBusyAction(true);
+    try {
+      const { api } = await import("@/lib/api");
+      await api(`/sales/sales/${id}/`, { method: "DELETE" });
+      await loadData();
+    } catch (e: any) {
+      alert(e?.message || "Failed to delete quotation");
+    } finally {
+      setBusyAction(false);
+    }
+  }
 
   const countSales = rows.filter((r) => r.type === "sale").length;
   const countServices = rows.filter((r) => r.type === "service").length;
+  const countQuotations = rows.filter((r) => r.type === "quotation").length;
 
   const shown = rows.filter((s) => {
     if (activeTab !== "all" && s.type !== activeTab) return false;
@@ -109,6 +147,7 @@ export default function SalesPage() {
 
   function getStatusLabel(status: string) {
     const key = status.toLowerCase();
+    if (key === "quotation") return lang === "bn" ? "কোটেশন" : "Quotation";
     return (
       t(`sales_status_${key}`) ||
       t(`tktd_status_${key}`) ||
@@ -162,6 +201,12 @@ export default function SalesPage() {
         >
           🔧 {t("sales_tab_services")} ({countServices})
         </button>
+        <button
+          className={`btn btn-sm ${activeTab === "quotation" ? "btn-brand fw-semibold" : "btn-light border"}`}
+          onClick={() => setActiveTab("quotation")}
+        >
+          📑 {lang === "bn" ? "কোটেশন" : "Quotations"} ({countQuotations})
+        </button>
       </div>
 
       {/* Invoices Table Card */}
@@ -178,7 +223,7 @@ export default function SalesPage() {
                 <th className="text-end">{t("sales_list_col_paid")}</th>
                 <th className="text-end">{t("sales_list_col_due")}</th>
                 <th>{t("sales_list_col_status")}</th>
-                <th></th>
+                <th className="text-end pe-3">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -201,6 +246,10 @@ export default function SalesPage() {
                       {s.type === "service" ? (
                         <span className="badge text-white" style={{ background: "#8b5cf6" }}>
                           🔧 {t("sales_badge_service")}
+                        </span>
+                      ) : s.type === "quotation" ? (
+                        <span className="badge text-white" style={{ background: "#0ea5e9" }}>
+                          📑 {lang === "bn" ? "কোটেশন" : "Quotation"}
                         </span>
                       ) : (
                         <span className="badge" style={{ background: "#2563eb", color: "#fff" }}>
@@ -228,10 +277,37 @@ export default function SalesPage() {
                         {getStatusLabel(s.status)}
                       </span>
                     </td>
-                    <td className="text-end">
-                      <Link href={s.href} className="btn btn-outline-secondary btn-sm py-0 px-2" style={{ fontSize: "0.8rem" }}>
-                        {t("sales_list_view")}
-                      </Link>
+                    <td className="text-end pe-3">
+                      <div className="d-inline-flex gap-1">
+                        {s.type === "quotation" ? (
+                          <>
+                            <button
+                              className="btn btn-sm btn-success py-0 px-2 fw-semibold"
+                              style={{ fontSize: "0.78rem" }}
+                              disabled={busyAction}
+                              onClick={() => handleConvertToSale(s.id)}
+                            >
+                              ✓ {lang === "bn" ? "বিক্রয় করুন" : "Convert to Sale"}
+                            </button>
+                            <Link href={s.href} className="btn btn-outline-secondary btn-sm py-0 px-2" style={{ fontSize: "0.78rem" }}>
+                              {t("sales_list_view")}
+                            </Link>
+                            <button
+                              className="btn btn-sm btn-outline-danger py-0 px-2"
+                              style={{ fontSize: "0.78rem" }}
+                              disabled={busyAction}
+                              onClick={() => handleDeleteQuotation(s.id)}
+                              title={lang === "bn" ? "কোটেশন মুছুন" : "Delete Quotation"}
+                            >
+                              🗑️
+                            </button>
+                          </>
+                        ) : (
+                          <Link href={s.href} className="btn btn-outline-secondary btn-sm py-0 px-2" style={{ fontSize: "0.8rem" }}>
+                            {t("sales_list_view")}
+                          </Link>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))
