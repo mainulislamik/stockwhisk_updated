@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
-import { Card, ErrorState, Spinner, money, fmtDate } from "@/components/ui";
+import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -73,6 +73,10 @@ export default function ProductProfilePage() {
   const [editingUnit, setEditingUnit] = useState<number | null>(null);
   const [editForm, setEditForm] = useState({ cost_price: "", selling_price: "", warranty_months: "" });
 
+  const inStockUnits = usePagination(units, [units]);
+  const soldUnitsPaged = usePagination(soldUnits, [soldUnits]);
+  const movesPaged = usePagination(moves, [moves]);
+
   const startEditing = (u: ProductUnit) => {
     setEditingUnit(u.id);
     setEditForm({
@@ -91,7 +95,7 @@ export default function ProductProfilePage() {
       };
       await api(`/catalog/product-units/${u.id}/`, { method: "PATCH", body: data });
       
-      const un = await api<ProductUnit[]>(`/catalog/product-units/`, { params: { product: id, status: "in_stock" } });
+      const un = await api<ProductUnit[]>(`/catalog/product-units/`, { params: { product: id, status: "in_stock", page_size: 500 } });
       setUnits(unwrap(un));
       setEditingUnit(null);
     } catch (e: any) {
@@ -104,9 +108,9 @@ export default function ProductProfilePage() {
       try {
         const [prod, mv, un, sold] = await Promise.all([
           api<Product>(`/catalog/products/${id}/`),
-          api(`/inventory/stock-movements/`, { params: { product: id } }).catch(() => []),
-          api(`/catalog/product-units/`, { params: { product: id, status: "in_stock" } }).catch(() => []),
-          api(`/catalog/product-units/`, { params: { product: id, status: "sold" } }).catch(() => []),
+          api(`/inventory/stock-movements/`, { params: { product: id, page_size: 500 } }).catch(() => []),
+          api(`/catalog/product-units/`, { params: { product: id, status: "in_stock", page_size: 500 } }).catch(() => []),
+          api(`/catalog/product-units/`, { params: { product: id, status: "sold", page_size: 500 } }).catch(() => []),
         ]);
         setP(prod);
         setMoves(unwrap<Movement>(mv));
@@ -195,7 +199,7 @@ export default function ProductProfilePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {units.map((u) => {
+                  {inStockUnits.paged.map((u) => {
                     const isEditing = editingUnit === u.id;
                     return (
                       <tr key={u.id}>
@@ -258,6 +262,12 @@ export default function ProductProfilePage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={inStockUnits.page}
+              totalPages={inStockUnits.totalPages}
+              setPage={inStockUnits.setPage}
+              total={inStockUnits.total}
+            />
           </div>
         </div>
       )}
@@ -278,7 +288,7 @@ export default function ProductProfilePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {soldUnits.map((u) => (
+                  {soldUnitsPaged.paged.map((u) => (
                     <tr key={u.id}>
                       <td className="text-secondary small">{u.sold_at ? fmtDate(u.sold_at) : "—"}</td>
                       <td className="fw-medium font-monospace small">
@@ -298,6 +308,12 @@ export default function ProductProfilePage() {
                 </tbody>
               </table>
             </div>
+            <Pagination
+              page={soldUnitsPaged.page}
+              totalPages={soldUnitsPaged.totalPages}
+              setPage={soldUnitsPaged.setPage}
+              total={soldUnitsPaged.total}
+            />
           </div>
         </div>
       )}
@@ -321,7 +337,7 @@ export default function ProductProfilePage() {
                     <td colSpan={4} className="text-center text-secondary py-4">{t("prd_no_moves")}</td>
                   </tr>
                 ) : (
-                  moves.map((m) => (
+                  movesPaged.paged.map((m) => (
                     <tr key={m.id}>
                       <td className="text-secondary">{fmtDate(m.created_at)}</td>
                       <td>
@@ -335,6 +351,14 @@ export default function ProductProfilePage() {
               </tbody>
             </table>
           </div>
+          {moves.length > 0 && (
+            <Pagination
+              page={movesPaged.page}
+              totalPages={movesPaged.totalPages}
+              setPage={movesPaged.setPage}
+              total={movesPaged.total}
+            />
+          )}
         </div>
       </div>
     </div>
