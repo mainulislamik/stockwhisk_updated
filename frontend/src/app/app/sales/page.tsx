@@ -57,7 +57,7 @@ export default function SalesPage() {
       ]);
 
       const saleRows: InvoiceRow[] = (salesData || []).map((s: any) => {
-        const isQ = s.status === "quotation" || s.status === "QUOTATION";
+        const isQ = s.status === "quotation" || s.status === "QUOTATION" || (s.note && String(s.note).toLowerCase().includes("quotation"));
         return {
           id: s.id,
           type: isQ ? "quotation" : "sale",
