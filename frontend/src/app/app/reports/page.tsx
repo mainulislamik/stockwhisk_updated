@@ -193,10 +193,15 @@ export default function ReportsPage() {
   // Build the 4 Profit Overview charts whenever the profit data changes.
   useEffect(() => {
     const Chart = (window as any).Chart;
-    if (!Chart || !profit || profit.trend.length === 0) return;
+    if (!Chart || !profit || !profit.trend || profit.trend.length === 0) return;
     const monthly = profit.range.bucket === "month";
-    const labels = profit.trend.map((p) =>
-      new Date(p.date).toLocaleDateString(undefined, monthly ? { month: "short", year: "2-digit" } : { month: "short", day: "numeric" }));
+    const hourly = profit.range.bucket === "hour";
+    const labels = profit.trend.map((p) => {
+      const d = new Date(p.date);
+      if (hourly) return d.toLocaleTimeString(undefined, { hour: "numeric" });
+      if (monthly) return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    });
     const REV = "#2f4b7c", COST = "#f95d6a", PROFIT = "#008c54", MARGIN = "#a05195";
     const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
     const moneyTip = { callbacks: { label: (c: any) => `${c.dataset.label}: ${tk(c.parsed.y)}` } };

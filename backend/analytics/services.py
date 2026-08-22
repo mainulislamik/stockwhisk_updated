@@ -38,7 +38,8 @@ def _sum(qs, expr):
 
 
 def _sale_items(shop, start=None, end=None):
-    qs = SaleItem.all_objects.filter(shop_id=shop.id).exclude(sale__status=Sale.Status.CANCELLED)
+    from django.db.models import Q
+    qs = SaleItem.all_objects.filter(Q(shop_id=shop.id) | Q(sale__shop_id=shop.id)).exclude(sale__status=Sale.Status.CANCELLED)
     if start is not None:
         qs = qs.filter(sale__sale_date__gte=start)
     if end is not None:
@@ -334,6 +335,8 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
 
     if start is None:
         bucket = "month"
+    elif key in ("today", "yesterday"):
+        bucket = "hour"
     else:
         bucket = "month" if (end - start).days > 92 else "day"
     return start, end, prev_start, prev_end, bucket
@@ -344,7 +347,7 @@ def _profit_trend(shop, start, end, bucket):
     the summary KPIs carry the return-adjusted figures)."""
     from service.models import ServiceTicket, ServiceTicketPart
 
-    trunc = TruncMonth if bucket == "month" else TruncDate
+    trunc = {"hour": TruncHour, "day": TruncDate, "month": TruncMonth}.get(bucket, TruncDate)
     item_rows = (
         _sale_items(shop, start, end)
         .annotate(b=trunc("sale__sale_date")).values("b")
@@ -384,24 +387,36 @@ def _profit_trend(shop, start, end, bucket):
 
     buckets = {}
     for r in item_rows:
-        buckets.setdefault(r["b"], {}).update(subtotal=r["subtotal"], cost=r["cost"])
+        if r["b"] is None:
+            continue
+        k = _trend_key(r["b"], bucket)
+        buckets.setdefault(k, {}).update(subtotal=r["subtotal"], cost=r["cost"])
     for r in sale_rows:
-        buckets.setdefault(r["b"], {}).update(discount=r["discount"], orders=r["orders"])
+        if r["b"] is None:
+            continue
+        k = _trend_key(r["b"], bucket)
+        buckets.setdefault(k, {}).update(discount=r["discount"], orders=r["orders"])
 
     for r in ticket_rows:
-        b = buckets.setdefault(r["b"], {})
+        if r["b"] is None:
+            continue
+        k = _trend_key(r["b"], bucket)
+        b = buckets.setdefault(k, {})
         b["service_charge"] = b.get("service_charge", ZERO) + r["service_charge"]
         b["ticket_discount"] = b.get("ticket_discount", ZERO) + r["discount"]
         b["orders"] = b.get("orders", 0) + r["orders"]
 
     for r in ticket_part_rows:
-        b = buckets.setdefault(r["b"], {})
+        if r["b"] is None:
+            continue
+        k = _trend_key(r["b"], bucket)
+        b = buckets.setdefault(k, {})
         b["parts_revenue"] = b.get("parts_revenue", ZERO) + r["parts_revenue"]
         b["parts_cost"] = b.get("parts_cost", ZERO) + r["parts_cost"]
 
     out = []
-    for k in sorted(b for b in buckets if b is not None):
-        v = buckets[k]
+    for k in _bucket_sequence(start, end, bucket):
+        v = buckets.get(k, {})
         sale_rev = v.get("subtotal", ZERO) - v.get("discount", ZERO)
         svc_rev = v.get("service_charge", ZERO) + v.get("parts_revenue", ZERO) - v.get("ticket_discount", ZERO)
         revenue = float(max(ZERO, sale_rev) + max(ZERO, svc_rev))
@@ -409,7 +424,7 @@ def _profit_trend(shop, start, end, bucket):
         orders = int(v.get("orders", 0))
         profit = revenue - cost
         out.append({
-            "date": k.isoformat(),
+            "date": k,
             "revenue": round(revenue, 2), "cost": round(cost, 2), "profit": round(profit, 2),
             "orders": orders,
             "margin": round((profit / revenue * 100) if revenue else 0.0, 2),
@@ -518,21 +533,31 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
         cost = float(s["gross_cost"]) - ret_cost_map.get(pid, 0.0)
         qty = float(s["gross_qty"]) - float(rr.get("r_qty", 0) or 0)
         profit = revenue - cost
+        margin = (profit / revenue * 100) if revenue else 0.0
         products.append({
             "product_id": pid,
-            "product_name": s["product__name"],
+            "product_name": s["product__name"] or f"Product #{pid}",
             "sku": s["product__sku"] or "",
-            "revenue": round(revenue, 2),
-            "cost": round(cost, 2),
+            "revenue": round(max(0.0, revenue), 2),
+            "cost": round(max(0.0, cost), 2),
             "profit": round(profit, 2),
-            "units_sold": round(qty, 2),
-            "margin": round((profit / revenue * 100) if revenue else 0.0, 2),
+            "units_sold": round(max(0.0, qty), 2),
+            "margin": round(margin, 2),
         })
 
-    top_profitable = sorted((p for p in products if p["profit"] > 0), key=lambda p: p["profit"], reverse=True)[:5]
+    # Top profitable: sold products with profit >= 0
+    top_profitable = sorted((p for p in products if p["profit"] >= 0 and p["units_sold"] > 0), key=lambda p: (p["profit"], p["revenue"]), reverse=True)[:5]
+    if not top_profitable and products:
+        top_profitable = sorted(products, key=lambda p: (p["profit"], p["revenue"]), reverse=True)[:5]
+
+    # Top loss: products with profit < 0
     losses = sorted((p for p in products if p["profit"] < 0), key=lambda p: p["profit"])[:5]
     top_loss = [{**p, "loss": round(-p["profit"], 2)} for p in losses]
-    lowest_margin = sorted((p for p in products if p["revenue"] > 0), key=lambda p: p["margin"])[:5]
+
+    # Lowest margin:
+    lowest_margin = sorted((p for p in products if p["revenue"] > 0 or p["units_sold"] > 0), key=lambda p: p["margin"])[:5]
+    if not lowest_margin and products:
+        lowest_margin = sorted(products, key=lambda p: p["margin"])[:5]
 
     return {
         "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat()},
