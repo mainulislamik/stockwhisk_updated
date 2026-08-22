@@ -456,13 +456,32 @@ export default function PosPage() {
                           {l.selectedUnits.length > 0 && (
                             <div className="mt-1 d-flex flex-wrap gap-1">
                               {l.selectedUnits.map(u => (
-                                <span key={u.id} className="badge bg-body-secondary text-secondary border fw-normal" style={{ fontSize: ".65rem" }}>
-                                  {u.barcode}
+                                <span key={u.id} className="badge bg-body-secondary text-secondary border fw-normal d-inline-flex align-items-center" style={{ fontSize: ".65rem" }}>
+                                  <span>{u.barcode}</span>
                                   {!!u.effective_warranty_months && (
                                     <span className="text-warning-emphasis ms-1">
                                       <i className="bi bi-shield-check"></i> {t("pos_months_warranty_short", { months: u.effective_warranty_months })}
                                     </span>
                                   )}
+                                  <i 
+                                    className="bi bi-trash text-danger ms-2 hover-opacity" 
+                                    style={{ cursor: "pointer" }}
+                                    onClick={() => {
+                                      setCart(c => {
+                                        const newC = [...c];
+                                        const idx = newC.findIndex(line => line.product.id === l.product.id);
+                                        if (idx >= 0) {
+                                          const ex = newC[idx];
+                                          const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
+                                          if (updatedUnits.length === 0 && ex.qty === 1) {
+                                            return newC.filter(line => line.product.id !== l.product.id);
+                                          }
+                                          newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
+                                        }
+                                        return newC;
+                                      });
+                                    }}
+                                  ></i>
                                 </span>
                               ))}
                               <button 

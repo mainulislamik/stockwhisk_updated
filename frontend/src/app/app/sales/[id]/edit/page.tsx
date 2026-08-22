@@ -401,6 +401,23 @@ export default function EditInvoicePage() {
     setCart(cart.filter((_, i) => i !== idx));
   };
 
+  const handleRemoveSelectedUnit = (cartIdx: number, unitIdx: number) => {
+    setCart(prev => {
+      const newCart = [...prev];
+      const item = newCart[cartIdx];
+      const updatedUnits = item.selectedUnits.filter((_, i) => i !== unitIdx);
+      if (updatedUnits.length === 0) {
+        return prev.filter((_, i) => i !== cartIdx);
+      }
+      newCart[cartIdx] = {
+        ...item,
+        quantity: updatedUnits.length,
+        selectedUnits: updatedUnits
+      };
+      return newCart;
+    });
+  };
+
   const subtotal = cart.reduce((sum, item) => sum + (item.unit_price * item.quantity) - item.discount, 0);
   const total = Math.max(0, subtotal - saleDiscount + saleTax + saleDelivery);
   const previouslyPaid = sale ? Number(sale.paid) || 0 : 0;
@@ -606,13 +623,19 @@ export default function EditInvoicePage() {
                           {item.has_units && (
                             <div className="mt-1">
                               {hasSelectedUnits ? (
-                                <div className="d-flex flex-wrap gap-1 align-items-center mb-1">
+                              <div className="d-flex flex-wrap gap-1 align-items-center mb-1">
                                   {item.selectedUnits.map((u, uIdx) => (
-                                    <span key={uIdx} className="badge bg-light text-dark border font-monospace" style={{ fontSize: "0.7rem" }}>
-                                      <i className="bi bi-upc-scan me-1 text-primary"></i>{u.barcode}
+                                    <span key={uIdx} className="badge bg-light text-dark border font-monospace d-inline-flex align-items-center" style={{ fontSize: "0.7rem" }}>
+                                      <span><i className="bi bi-upc-scan me-1 text-primary"></i>{u.barcode}</span>
                                       {!!u.effective_warranty_months && (
                                         <span className="ms-1 text-warning-emphasis fw-bold">({u.effective_warranty_months}m)</span>
                                       )}
+                                      <i 
+                                        className="bi bi-trash text-danger ms-2 hover-opacity" 
+                                        style={{ cursor: "pointer" }}
+                                        onClick={() => handleRemoveSelectedUnit(idx, uIdx)}
+                                        title="Remove unit"
+                                      ></i>
                                     </span>
                                   ))}
                                 </div>
