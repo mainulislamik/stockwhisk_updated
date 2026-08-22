@@ -189,6 +189,9 @@ export default function DashboardScreen() {
   ) || 0;
   // low stock: dashboard returns low_stock_count directly at top level (not nested under inventory)
   const lowStockCount = Number(metrics?.low_stock_count ?? metrics?.inventory?.low_stock_count ?? 0) || 0;
+  // out of stock count (products with zero stock)
+  const outOfStockCount = Number(metrics?.out_of_stock_count ?? 0) || 0;
+  const hasStockAlert = outOfStockCount > 0 || lowStockCount > 0;
 
   const quickActions = [
     {
@@ -422,27 +425,30 @@ export default function DashboardScreen() {
               style={[
                 styles.bentoCard,
                 {
-                  backgroundColor: isDarkMode ? '#1e293b' : lowStockCount > 0 ? '#fef2f2' : '#f8fafc',
-                  borderColor: lowStockCount > 0 ? '#fca5a5' : '#e2e8f0',
+                  backgroundColor: isDarkMode ? '#1e293b' : hasStockAlert ? '#fef2f2' : '#f8fafc',
+                  borderColor: hasStockAlert ? '#fca5a5' : '#e2e8f0',
                 },
               ]}
               elevation={1}
             >
               <View style={styles.cardHeaderRow}>
-                <Text style={[styles.cardLabel, { color: lowStockCount > 0 ? '#dc2626' : '#64748b' }]}>
-                  {isBN ? 'লো-স্টক পণ্য' : 'Low Stock Alert'}
+                <Text style={[styles.cardLabel, { color: hasStockAlert ? '#dc2626' : '#64748b' }]}>
+                  {isBN ? 'স্টক অ্যালার্ট' : 'Stock Alert'}
                 </Text>
                 <MaterialCommunityIcons
                   name="alert-box-outline"
                   size={18}
-                  color={lowStockCount > 0 ? '#dc2626' : '#64748b'}
+                  color={hasStockAlert ? '#dc2626' : '#64748b'}
                 />
               </View>
-              <Text style={[styles.cardValue, { color: lowStockCount > 0 ? '#b91c1c' : theme.colors.onSurface }]}>
-                {lowStockCount} {isBN ? 'টি পণ্য' : 'Items'}
+              <Text style={[styles.cardValue, { color: hasStockAlert ? '#b91c1c' : theme.colors.onSurface, fontSize: 20 }]}>
+                {outOfStockCount} / {lowStockCount}
+              </Text>
+              <Text style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
+                {isBN ? `আউট: ${outOfStockCount}  লো: ${lowStockCount}` : `Out: ${outOfStockCount}  Low: ${lowStockCount}`}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Inventory' })}>
-                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold', marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold', marginTop: 2 }}>
                   {isBN ? 'স্টক দেখুন ➜' : 'View Stock ➜'}
                 </Text>
               </TouchableOpacity>
