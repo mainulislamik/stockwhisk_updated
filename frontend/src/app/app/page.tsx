@@ -10,8 +10,8 @@ import { Card, ErrorState, Spinner, money } from "@/components/ui";
 
 type Summary = {
   period_days: number;
-  today: { revenue: number; net_profit: number; sales_count: number };
-  period: { revenue: number; net_profit: number; sales_count: number };
+  today: { revenue: number; net_profit: number; sales_count: number; returns?: number; returns_count?: number };
+  period: { revenue: number; net_profit: number; sales_count: number; returns?: number; returns_count?: number };
   position: { cash_balance: number; receivables: number; payables: number; bank_balance: number };
   stock_value: number;
   low_stock_count: number;
@@ -267,6 +267,22 @@ export default function DashboardPage() {
             <div className="small text-secondary">{t("dash_receivables")} (Total Due)</div>
             <div className="fs-4 fw-bold text-warning">
               {money(data.position.receivables)}
+            </div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("dash_return_count", { prefix: filterPrefix })}</div>
+            <div className="fs-4 fw-bold text-danger">
+              {topData ? (topData.summary.return_count ?? 0) : (data?.today?.returns_count ?? 0)}
+            </div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("dash_return_amount", { prefix: filterPrefix })}</div>
+            <div className="fs-4 fw-bold text-danger">
+              {topData ? money(topData.summary.return_amount ?? 0) : money(data?.today?.returns ?? 0)}
             </div>
           </Card>
         </div>

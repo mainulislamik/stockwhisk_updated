@@ -99,6 +99,7 @@ def profit_summary(shop, start=None, end=None):
     return {
         "revenue": revenue,
         "returns": returns_amount,
+        "returns_count": returns.count(),
         "cogs": cogs,
         "gross_profit": gross_profit,
         "expenses": total_expenses,

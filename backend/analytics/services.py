@@ -445,11 +445,15 @@ def profit_overview(shop, range_key="30d", custom_start=None, custom_end=None):
     p_margin = (p_gp / p_revenue * 100) if p_revenue else 0.0
     p_avg = (p_gp / prev_orders) if prev_orders else 0.0
 
+    ret_amount = float(cur.get("returns") or 0)
+    ret_count = int(cur.get("returns_count") or 0)
+
     return {
         "summary": {
             "gross_profit": round(gp, 2), "total_cost": round(cost, 2),
             "profit_margin": round(margin, 2), "average_profit_per_order": round(avg, 2),
             "revenue": round(revenue, 2), "completed_orders": cur_orders,
+            "return_count": ret_count, "return_amount": round(ret_amount, 2),
         },
         "comparison": {
             "gross_profit_change": _pct_change(gp, p_gp),
