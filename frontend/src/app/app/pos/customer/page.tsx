@@ -87,15 +87,15 @@ export default function PosCustomerPage() {
   const paidNum = Number(paid) || 0;
   const change = paidNum > total ? paidNum - total : 0;
 
-  async function complete() {
-    if (discount === "" && paid === "") {
+  async function complete(asQuotation = false) {
+    if (!asQuotation && discount === "" && paid === "") {
       await showError("Validation Error", t("pos_err_discount_paid"));
       return;
     }
-    const finalPaid = paid === "" ? total : Number(paid);
-    if (customerMode === "walkin" && !walkName.trim()) { await showError("Validation Error", t("pos_err_req_name")); return; }
-    if (customerMode === "walkin" && !walkPhone.trim()) { await showError("Validation Error", t("pos_err_req_phone")); return; }
-    if (isEmi) {
+    const finalPaid = asQuotation ? 0 : (paid === "" ? total : Number(paid));
+    if (!asQuotation && customerMode === "walkin" && !walkName.trim()) { await showError("Validation Error", t("pos_err_req_name")); return; }
+    if (!asQuotation && customerMode === "walkin" && !walkPhone.trim()) { await showError("Validation Error", t("pos_err_req_phone")); return; }
+    if (isEmi && !asQuotation) {
       // EMI requires email — validate for both modes
       const selectedCustomer = customers.find(c => c.id === Number(customerId));
       const finalEmail = customerMode === "existing" ? existingEmail.trim() : walkEmail.trim();
@@ -134,7 +134,7 @@ export default function PosCustomerPage() {
           discount: discountNum,
           delivery_charge: deliveryCharge,
           tax: 0,
-          note: "",
+          note: asQuotation ? "Quotation / প্রাক-বিক্রয় কোটেশন" : "",
           items: cart.map((l) => ({ 
             product: l.product.id, 
             quantity: l.qty, 
@@ -142,12 +142,13 @@ export default function PosCustomerPage() {
             discount: l.discount,
             unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
           })),
-          payments: finalPaid > 0 ? [{ amount: finalPaid, method }] : [],
+          payments: asQuotation ? [] : (finalPaid > 0 ? [{ amount: finalPaid, method }] : []),
           sale_date: user?.shop_offline_sale_mode && saleDate ? new Date(saleDate).toISOString() : undefined,
-          is_emi: isEmi,
-          emi_months: isEmi ? emiMonths : 0,
-          down_payment: isEmi ? finalPaid : 0,
-          emi_interest_percent: isEmi ? emiInterestPercent : 0,
+          is_emi: asQuotation ? false : isEmi,
+          emi_months: (isEmi && !asQuotation) ? emiMonths : 0,
+          down_payment: (isEmi && !asQuotation) ? finalPaid : 0,
+          emi_interest_percent: (isEmi && !asQuotation) ? emiInterestPercent : 0,
+          is_quotation: asQuotation,
         },
       });
 
@@ -400,10 +401,15 @@ export default function PosCustomerPage() {
               {paid !== "" && paidNum < total && <div className="d-flex justify-content-between text-danger fw-semibold border-top pt-2 mt-2"><span>{t("sales_list_col_due") || "Due"}</span><span>{money(total - paidNum)}</span></div>}
             </div>
 
-            <div className="d-grid mt-4">
-              <button className="btn btn-primary btn-lg fw-semibold rounded-3 shadow" disabled={busy} onClick={complete} style={{ padding: "1rem" }}>
+            <div className="d-grid gap-2 mt-4">
+              <button className="btn btn-primary btn-lg fw-semibold rounded-3 shadow" disabled={busy} onClick={() => complete(false)} style={{ padding: "0.9rem" }}>
                 {busy ? <span className="spinner-border spinner-border-sm me-2" /> : <i className="bi bi-check2-circle me-2"></i>}
                 {t("pos_checkout_complete")}
+              </button>
+
+              <button className="btn btn-outline-primary fw-semibold rounded-3 shadow-sm" disabled={busy} onClick={() => complete(true)} style={{ padding: "0.65rem" }}>
+                <i className="bi bi-file-earmark-text me-2"></i>
+                {user?.language === "BN" ? "📑 কোটেশন সেভ করুন (Save Quotation)" : "📑 Save as Quotation"}
               </button>
             </div>
           </div>

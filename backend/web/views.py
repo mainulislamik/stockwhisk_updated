@@ -1325,20 +1325,21 @@ def pos_customer(request):
             request.session.pop("pos_cart", None)
             messages.error(request, "Cart products are no longer available.")
             return redirect("web:pos")
+        is_quotation = request.POST.get("action") == "quotation"
         try:
             sale = create_sale(
                 shop=request.user.shop, customer=customer, items=items,
-                payments=[{"amount": _dec(request.POST.get("paid")), "method": request.POST.get("method", "cash")}],
+                payments=[] if is_quotation else [{"amount": _dec(request.POST.get("paid")), "method": request.POST.get("method", "cash")}],
                 discount=_dec(request.POST.get("discount", 0)), created_by=request.user,
                 idempotency_key=request.session.get("pos_txn_key", ""),
+                is_quotation=is_quotation,
             )
         except ValueError as exc:
             messages.error(request, str(exc))
             return redirect("web:pos_customer")
-        # (unit-sold + warranty binding now handled inside create_sale)
         request.session.pop("pos_cart", None)
         request.session.pop("pos_txn_key", None)
-        messages.success(request, f"Sale {sale.invoice_no} completed.")
+        messages.success(request, f"{'Quotation' if is_quotation else 'Sale'} {sale.invoice_no} completed.")
         return redirect("web:sale_print", pk=sale.id)
 
     # GET — build a display cart summary.
