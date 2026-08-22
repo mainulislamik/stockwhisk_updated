@@ -24,7 +24,7 @@ const PAY_METHODS = [
 export default function PosCustomerPage() {
   const router = useRouter();
   const { user, reload } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [customerMode, setCustomerMode] = useState<"walkin" | "existing">("walkin");
@@ -409,7 +409,7 @@ export default function PosCustomerPage() {
 
               <button className="btn btn-outline-primary fw-semibold rounded-3 shadow-sm" disabled={busy} onClick={() => complete(true)} style={{ padding: "0.65rem" }}>
                 <i className="bi bi-file-earmark-text me-2"></i>
-                {user?.language === "BN" ? "📑 কোটেশন সেভ করুন (Save Quotation)" : "📑 Save as Quotation"}
+                {lang === "bn" ? "📑 কোটেশন সেভ করুন (Save Quotation)" : "📑 Save as Quotation"}
               </button>
             </div>
           </div>
