@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Barcode from "react-barcode";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
@@ -52,6 +52,7 @@ const STATUSES = ["received", "diagnosing", "awaiting_parts", "in_repair", "read
 export default function TicketDetailPage() {
   const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { isOwner, can, user } = useAuth();
   const canManage = isOwner || can("manage_service");
   const [ticket, setTicket] = useState<Ticket | null>(null);
@@ -318,7 +319,19 @@ export default function TicketDetailPage() {
             <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")} disabled={ticket.status !== 'delivered'}>
               <i className="bi bi-printer me-1"></i>{t("tktd_print_invoice")}
             </button>
-            <Link href="/app/service/tickets" className="btn btn-light btn-sm border">{t("tktd_back")}</Link>
+            <button
+              type="button"
+              className="btn btn-light btn-sm border"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/app/service/tickets");
+                }
+              }}
+            >
+              {t("tktd_back")}
+            </button>
           </div>
         </div>
 

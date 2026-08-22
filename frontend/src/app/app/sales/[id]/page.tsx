@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
@@ -39,6 +39,7 @@ type Sale = {
 export default function SaleDetailPage() {
   const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const { user } = useAuth();
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
@@ -153,9 +154,19 @@ export default function SaleDetailPage() {
           <button className="btn btn-outline-brand btn-sm" onClick={() => window.open(`/invoice/${sale.id}`, "_blank")}>
             {t("inv_btn_print")}
           </button>
-          <Link href="/app/sales" className="btn btn-outline-secondary btn-sm">
-            Back
-          </Link>
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/app/sales");
+              }
+            }}
+          >
+            {t("inv_btn_back") || "Back"}
+          </button>
         </div>
       </div>
 

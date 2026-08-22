@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import toast from "react-hot-toast";
@@ -64,6 +64,7 @@ function repairBadge(status?: string | null) {
 export default function ProductProfilePage() {
   const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
+  const router = useRouter();
   const [p, setP] = useState<Product | null>(null);
   const [moves, setMoves] = useState<Movement[]>([]);
   const [units, setUnits] = useState<ProductUnit[]>([]);
@@ -139,9 +140,19 @@ export default function ProductProfilePage() {
           <Link href={`/app/products/${p.id}/edit`} className="btn btn-outline-brand btn-sm">
             Edit
           </Link>
-          <Link href="/app/products" className="btn btn-light btn-sm">
-            Back
-          </Link>
+          <button
+            type="button"
+            className="btn btn-light btn-sm"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/app/products");
+              }
+            }}
+          >
+            {t("prd_btn_back") || "Back"}
+          </button>
         </div>
       </div>
 
