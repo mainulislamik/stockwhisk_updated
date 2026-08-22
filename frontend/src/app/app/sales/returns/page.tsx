@@ -6,9 +6,10 @@ import { money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
+import Swal from "sweetalert2";
 
 export default function ReturnsPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"return" | "replace">("return");
   
   // Return State
@@ -38,19 +39,67 @@ export default function ReturnsPage() {
     }
   }, [activeTab]);
 
+  const showUnitNotSoldAlert = (errData: any, scannedBarcode: string) => {
+    const isBangla = lang === "bn";
+    const prodName = errData?.product_name || (isBangla ? "পণ্য" : "Product");
+    const code = errData?.barcode || scannedBarcode;
+    const statusDisp = errData?.status_display || (errData?.unit_status === "in_stock" ? (isBangla ? "স্টকে বিদ্যমান" : "In Stock") : errData?.unit_status || "In Stock");
+
+    Swal.fire({
+      icon: "info",
+      title: isBangla ? "পণ্যটি বর্তমানে স্টকে রয়েছে (বিক্রয় হয়নি)" : "Item is Currently In Stock (Not Sold)",
+      html: `
+        <div class="text-start mt-2">
+          <div class="alert alert-warning mb-3 py-2 px-3 small border-0 bg-warning-subtle text-warning-emphasis rounded">
+            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+            ${isBangla 
+              ? "<strong>রিটার্ন করা সম্ভব নয়:</strong> এই বারকোডের পণ্যটি এখনও কোনো কাস্টমারের কাছে বিক্রয় করা হয়নি। এটি আপনার দোকানে বিক্রির জন্য প্রস্তুত রয়েছে।" 
+              : "<strong>Cannot Process Return:</strong> This item has not been sold yet and is currently available in your shop inventory for sale."}
+          </div>
+          <div class="list-group list-group-flush border rounded mb-3 small">
+            <div class="list-group-item d-flex justify-content-between py-2">
+              <span class="text-secondary">${isBangla ? "পণ্যের নাম:" : "Product Name:"}</span>
+              <span class="fw-semibold text-end">${prodName}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between py-2">
+              <span class="text-secondary">${isBangla ? "বারকোড:" : "Barcode:"}</span>
+              <span class="font-monospace fw-bold text-primary">${code}</span>
+            </div>
+            <div class="list-group-item d-flex justify-content-between py-2">
+              <span class="text-secondary">${isBangla ? "বর্তমান স্ট্যাটাস:" : "Current Status:"}</span>
+              <span class="badge bg-success-subtle text-success border">${statusDisp}</span>
+            </div>
+          </div>
+          <p class="text-muted small mb-0">
+            ${isBangla
+              ? "💡 <em>শুধুমাত্র পূর্বে বিক্রয় হওয়া ইনভয়েসের পণ্যসমূহ রিটার্ন বা এক্সচেঞ্জ করা যায়।</em>"
+              : "💡 <em>Only items that were previously sold with an invoice can be returned or exchanged.</em>"}
+          </p>
+        </div>
+      `,
+      confirmButtonText: isBangla ? "ঠিক আছে, বুঝেছি" : "OK, Understood",
+      confirmButtonColor: "#2563eb",
+    });
+  };
+
   // Handle standard Return scan
   const handleReturnScan = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!barcode.trim()) return;
+    const scannedVal = barcode.trim();
+    if (!scannedVal) return;
     
     setLoading(true);
     setScanResult(null);
     try {
-      const res = await api<any>(`/sales/sales/scan-return/?barcode=${encodeURIComponent(barcode.trim())}`);
+      const res = await api<any>(`/sales/sales/scan-return/?barcode=${encodeURIComponent(scannedVal)}`);
       setScanResult(res);
       toast.success(t("ret_barcode_found"));
     } catch (err: any) {
-      toast.error(err?.message || t("ret_invalid_barcode"));
+      if (err?.data?.error_code === "UNIT_NOT_SOLD" || err?.data?.unit_status === "in_stock" || (err?.message && err.message.toLowerCase().includes("in stock"))) {
+        showUnitNotSoldAlert(err?.data, scannedVal);
+      } else {
+        toast.error(err?.data?.detail || err?.message || t("ret_invalid_barcode"));
+      }
     } finally {
       setLoading(false);
       setBarcode("");
@@ -88,9 +137,6 @@ export default function ReturnsPage() {
     
     setLoading(true);
     try {
-      // Re-use scan-return endpoint to just fetch unit details (we can bypass the SOLD check for new units on the backend later or fetch from inventory)
-      // Actually, scan-return enforces SOLD status. We need to fetch IN_STOCK units differently.
-      // Let's use the standard product unit lookup if it's new.
       if (type === "old") {
         const res = await api<any>(`/sales/sales/scan-return/?barcode=${encodeURIComponent(val)}`);
         setOldScanResult(res);
@@ -113,7 +159,11 @@ export default function ReturnsPage() {
         setNewBarcode("");
       }
     } catch (err: any) {
-      toast.error(err?.message || t("ret_invalid_barcode_gen"));
+      if (type === "old" && (err?.data?.error_code === "UNIT_NOT_SOLD" || err?.data?.unit_status === "in_stock" || (err?.message && err.message.toLowerCase().includes("in stock")))) {
+        showUnitNotSoldAlert(err?.data, val);
+      } else {
+        toast.error(err?.data?.detail || err?.message || t("ret_invalid_barcode_gen"));
+      }
     } finally {
       setLoading(false);
     }

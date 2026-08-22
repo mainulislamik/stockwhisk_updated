@@ -172,8 +172,20 @@ class SaleViewSet(
                 })
             return Response({"detail": "No sold item or invoice found for this query."}, status=status.HTTP_404_NOT_FOUND)
         if unit.status != ProductUnit.Status.SOLD or not unit.sale_id:
+            status_display = unit.get_status_display()
+            if unit.status == ProductUnit.Status.IN_STOCK:
+                detail = f"Item '{unit.product.name}' (Barcode: {unit.barcode}) is currently IN STOCK and has not been sold yet. Returns can only be processed for sold items."
+            else:
+                detail = f"Item '{unit.product.name}' (Barcode: {unit.barcode}) is currently marked as {status_display} (not Sold). Returns can only be processed for sold items."
             return Response(
-                {"detail": f"This unit is currently {unit.get_status_display()}, not sold."}, 
+                {
+                    "detail": detail,
+                    "error_code": "UNIT_NOT_SOLD",
+                    "unit_status": unit.status,
+                    "status_display": status_display,
+                    "product_name": unit.product.name,
+                    "barcode": unit.barcode,
+                }, 
                 status=status.HTTP_400_BAD_REQUEST
             )
 
