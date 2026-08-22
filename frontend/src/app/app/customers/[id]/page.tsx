@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
@@ -22,7 +22,9 @@ type CustomerDetail = {
 
 type Sale = {
   id: number;
-  invoice_number: string;
+  invoice_no?: string;
+  invoice_number?: string;
+  sale_date?: string;
   created_at: string;
   total: string;
   paid: string;
@@ -44,6 +46,7 @@ type ServiceTicketItem = {
 
 export default function CustomerProfilePage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params.id;
   const { t } = useLanguage();
   const { isOwner, can } = useAuth();
@@ -136,7 +139,19 @@ export default function CustomerProfilePage() {
             {customer.address && <span>📍 {customer.address}</span>}
           </div>
         </div>
-        <Link href="/app/customers" className="btn btn-outline-secondary btn-sm">&#8592; {t("nav_customers")}</Link>
+        <button
+          type="button"
+          className="btn btn-outline-secondary btn-sm"
+          onClick={() => {
+            if (typeof window !== "undefined" && window.history.length > 1) {
+              router.back();
+            } else {
+              router.push("/app/customers");
+            }
+          }}
+        >
+          &#8592; {t("nav_customers")}
+        </button>
       </div>
 
       <div className="row g-3">
@@ -226,8 +241,8 @@ export default function CustomerProfilePage() {
                 <tr><td colSpan={7} className="text-center text-secondary py-4">{t("sales_list_empty")}</td></tr>
               ) : sales.map(s => (
                 <tr key={s.id}>
-                  <td className="fw-medium">{s.invoice_number}</td>
-                  <td className="text-secondary">{fmtDate(s.created_at)}</td>
+                  <td className="fw-medium">{s.invoice_no || s.invoice_number || `#${s.id}`}</td>
+                  <td className="text-secondary">{fmtDate(s.sale_date || s.created_at)}</td>
                   <td className="text-end">{money(s.total)}</td>
                   <td className="text-end">{money(s.paid)}</td>
                   <td className={`text-end ${Number(s.due) > 0 ? "text-danger fw-semibold" : ""}`}>{money(s.due)}</td>

@@ -51,11 +51,14 @@ class SaleViewSet(
             "items__product", "payments", "units",
             "emi_schedule", "emi_schedule__installments"
         )
-        if s := self.request.query_params.get("status"):
+        params = self.request.query_params
+        if cust := (params.get("customer") or params.get("customer_id")):
+            qs = qs.filter(customer_id=cust)
+        if s := params.get("status"):
             qs = qs.filter(status=s)
-        if self.request.query_params.get("with_due") in {"1", "true"}:
+        if params.get("with_due") in {"1", "true"}:
             qs = qs.exclude(status__in=[Sale.Status.PAID, Sale.Status.CANCELLED])
-        if search := self.request.query_params.get("search"):
+        if search := params.get("search"):
             from django.db.models import Q
             qs = qs.filter(
                 Q(invoice_no__icontains=search) |
