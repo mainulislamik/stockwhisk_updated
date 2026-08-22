@@ -86,11 +86,12 @@ def profit_summary(shop, start=None, end=None):
     service_revenue = max(ZERO, ticket_service_charges + ticket_parts_revenue - ticket_discounts)
 
     # Total combined revenue and COGS
-    revenue = sales_revenue + service_revenue
+    gross_revenue = sales_revenue + service_revenue
+    revenue = max(ZERO, gross_revenue - returns_amount)
     cogs = (sales_cogs - returned_cogs) + ticket_parts_cogs
     total_expenses = _sum(expenses, "amount")
 
-    gross_profit = (revenue - returns_amount) - cogs
+    gross_profit = revenue - cogs
     net_profit = gross_profit - total_expenses
     
     payment_totals_qs = payments.values("method").annotate(total=Sum("amount"))
@@ -98,6 +99,7 @@ def profit_summary(shop, start=None, end=None):
 
     return {
         "revenue": revenue,
+        "gross_revenue": gross_revenue,
         "returns": returns_amount,
         "returns_count": returns.count(),
         "cogs": cogs,
