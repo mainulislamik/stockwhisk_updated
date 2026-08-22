@@ -36,7 +36,7 @@ def profit_summary(shop, start=None, end=None):
         sale__status=Sale.Status.CANCELLED
     )
     returns = SaleReturn.all_objects.filter(shop_id=shop.id)
-    expenses = Expense.all_objects.filter(shop_id=shop.id)
+    expenses = Expense.all_objects.filter(shop_id=shop.id).exclude(category__name="Product Purchase")
     payments = Payment.all_objects.filter(shop_id=shop.id)
     tickets = ServiceTicket.all_objects.filter(shop_id=shop.id).exclude(
         status=ServiceTicket.Status.CANCELLED

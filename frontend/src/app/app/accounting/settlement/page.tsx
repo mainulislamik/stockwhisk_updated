@@ -296,7 +296,7 @@ export default function DailySettlementPage() {
                     </div>
                     <div className="d-flex justify-content-between pt-2 small fw-bold">
                       <span>নিট ক্যাশ ব্যালেন্স (Net Expected):</span>
-                      <span className={currentExpected < 0 ? "text-danger" : "text-brand"}>{money(currentExpected)}</span>
+                      <span className="text-brand">{money(Math.max(0, currentExpected))}</span>
                     </div>
                   </div>
 
@@ -420,6 +420,7 @@ export default function DailySettlementPage() {
                       <span className="input-group-text">৳</span>
                       <input
                         type="number"
+                        min="0"
                         step="0.01"
                         className="form-control fw-bold fs-4"
                         value={actualCash}

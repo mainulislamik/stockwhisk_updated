@@ -105,13 +105,9 @@ def test_partial_purchase_payments_reduce_due_and_book_expense(shop_ctx):
     assert sup.due_balance == Decimal("400")
     assert PurchasePayment.all_objects.filter(shop_id=shop.id, purchase_order=po).count() == 1
 
-    # Both payments booked as "Product Purchase" expenses + cash-out ledger.
-    purchases_expense = Expense.all_objects.filter(
-        shop_id=shop.id, category__name="Product Purchase"
-    )
-    assert purchases_expense.count() == 2
+    # Both payments booked as PurchasePayment investment entries in the ledger.
     ledger_out = LedgerEntry.all_objects.filter(
-        shop_id=shop.id, source_type="Expense", amount__lt=0
+        shop_id=shop.id, source_type="PurchasePayment", amount__lt=0
     )
     assert ledger_out.count() == 2
 

@@ -25,7 +25,7 @@ class ExpenseViewSet(TenantScopedViewSet):
     required_perm = "manage_expenses"
 
     def get_queryset(self):
-        qs = Expense.objects.select_related("category")
+        qs = Expense.objects.select_related("category").exclude(category__name="Product Purchase")
         if search := self.request.query_params.get("search"):
             from django.db.models import Q
             qs = qs.filter(Q(note__icontains=search) | Q(category__name__icontains=search) | Q(payment_method__icontains=search))
@@ -155,18 +155,20 @@ class DailySettlementViewSet(TenantScopedViewSet):
             ).aggregate(t=Sum("amount"))["t"] or 0)
             
             net_cash = float(cash_in) - float(cash_out)
-            expected_cash = float(past.opening_cash) + net_cash
+            opening = max(0.0, float(past.opening_cash or 0))
+            expected_cash = max(0.0, opening + net_cash)
             sales_sum = Sale.objects.filter(shop=shop, sale_date__range=(day_start, day_end)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
-            expenses_sum = Expense.objects.filter(shop=shop, spent_on__range=(day_start.date(), day_end.date())).aggregate(t=Sum("amount"))["t"] or 0
+            expenses_sum = Expense.objects.filter(shop=shop, spent_on__range=(day_start.date(), day_end.date())).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
             refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
             
-            actual = max(0.0, expected_cash) if past.status == DailySettlement.Status.OPEN or float(past.actual_cash) == 0 else float(past.actual_cash)
+            actual = max(0.0, expected_cash) if past.status == DailySettlement.Status.OPEN or float(past.actual_cash) == 0 else max(0.0, float(past.actual_cash))
             disc = actual - expected_cash
 
             DailySettlement.objects.filter(id=past.id).update(
                 opened_at=day_start,
                 closed_at=day_end,
                 status=DailySettlement.Status.CLOSED,
+                opening_cash=opening,
                 expected_cash=expected_cash,
                 actual_cash=actual,
                 discrepancy=disc,
@@ -217,22 +219,21 @@ class DailySettlementViewSet(TenantScopedViewSet):
 
                 expenses_sum = Expense.objects.filter(
                     shop=shop, spent_on__range=(day_start.date(), day_end.date())
-                ).aggregate(t=Sum("amount"))["t"] or 0
+                ).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
 
                 refunds_sum = SaleReturn.objects.filter(
                     shop=shop, created_at__range=(day_start, day_end)
                 ).aggregate(t=Sum("total_refund"))["t"] or 0
 
                 actual = max(0.0, net_cash)
-                disc = actual - net_cash
                 DailySettlement.objects.create(
                     shop=shop,
                     opened_at=day_start,
                     closed_at=day_end,
                     opening_cash=0,
-                    expected_cash=net_cash,
+                    expected_cash=actual,
                     actual_cash=actual,
-                    discrepancy=disc,
+                    discrepancy=0,
                     total_sales=sales_sum,
                     total_expenses=expenses_sum,
                     total_refunds=refunds_sum,
@@ -298,15 +299,16 @@ class DailySettlementViewSet(TenantScopedViewSet):
             ).aggregate(t=Sum("amount"))["t"] or 0)
             
             ledger_net = float(cash_in) - float(cash_out)
-            expected_cash = float(active_obj.opening_cash) + ledger_net
+            expected_cash = max(0.0, float(active_obj.opening_cash) + ledger_net)
             if active_obj.status == DailySettlement.Status.OPEN:
                 active_obj.expected_cash = expected_cash
             
             data = self.get_serializer(active_obj).data
             data["cash_in"] = float(cash_in)
             data["cash_out"] = float(cash_out)
+            data["expected_cash"] = str(round(expected_cash, 2))
             data["sales_total"] = float(Sale.objects.filter(shop=request.tenant, sale_date__range=(start_time, end_time)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0)
-            data["expenses_total"] = float(Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("amount"))["t"] or 0)
+            data["expenses_total"] = float(Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0)
             data["refunds_total"] = float(SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0)
             return Response(data)
         except Exception as e:
@@ -318,7 +320,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         if self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.OPEN).exists():
             raise ValidationError("A settlement for today is already open.")
         
-        opening_cash = request.data.get("opening_cash", 0)
+        opening_cash = max(0.0, float(request.data.get("opening_cash", 0) or 0))
         start_of_day = timezone.make_aware(datetime.combine(today, time.min))
         settlement = DailySettlement.objects.create(
             shop=request.tenant,
@@ -339,7 +341,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         if not settlement:
             raise ValidationError("No open settlement found.")
         
-        actual_cash = request.data.get("actual_cash", 0)
+        actual_cash = max(0.0, float(request.data.get("actual_cash", 0) or 0))
         start_time = settlement.opened_at
         end_time = timezone.now()
         
@@ -357,15 +359,15 @@ class DailySettlementViewSet(TenantScopedViewSet):
             amount__lt=0
         ).aggregate(t=Sum("amount"))["t"] or 0)
         
-        expected_cash = float(settlement.opening_cash) + float(cash_in) - float(cash_out)
+        expected_cash = max(0.0, float(settlement.opening_cash) + float(cash_in) - float(cash_out))
         
-        sales_sum = Sale.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total"))["t"] or 0
-        expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("amount"))["t"] or 0
+        sales_sum = Sale.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
+        expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
         refunds_sum = SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0
         
         settlement.expected_cash = expected_cash
         settlement.actual_cash = actual_cash
-        settlement.discrepancy = float(actual_cash) - float(expected_cash)
+        settlement.discrepancy = actual_cash - expected_cash
         settlement.total_sales = sales_sum
         settlement.total_expenses = expenses_sum
         settlement.total_refunds = refunds_sum
@@ -400,11 +402,12 @@ class DailySettlementViewSet(TenantScopedViewSet):
         opening_cash = request.data.get("opening_cash")
         
         if opening_cash is not None:
-            settlement.opening_cash = opening_cash
+            settlement.opening_cash = max(0.0, float(opening_cash))
             
         if actual_cash is not None:
-            settlement.actual_cash = actual_cash
+            settlement.actual_cash = max(0.0, float(actual_cash))
             
+        settlement.expected_cash = max(0.0, float(settlement.expected_cash))
         settlement.discrepancy = float(settlement.actual_cash) - float(settlement.expected_cash)
         settlement.closed_by = request.user
         settlement.save()

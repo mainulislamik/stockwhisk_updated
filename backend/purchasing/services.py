@@ -27,34 +27,27 @@ def _purchase_expense_category(shop):
 
 def post_purchase_payment_to_accounting(*, shop, po, amount, when=None, created_by=None, method=""):
     """
-    Decide whether a product-purchase transaction is an expense or income,
-    then post it to the accounting tables (feature #3).
+    Post a product-purchase payment to the accounting ledger as an Inventory Investment (not an operating expense).
 
-    * amount > 0  → cash paid to supplier ⇒ EXPENSE: an ``Expense`` row (under
-      the "Product Purchase" category) plus a cash-out ``LedgerEntry`` — both
-      created by ``record_expense``.
-    * amount < 0  → refund/return from supplier ⇒ INCOME: a positive cash
-      ``LedgerEntry`` only (the Expense model represents money out).
-
-    Returns the created ``Expense`` for the expense path, else ``None``.
+    * amount > 0  → cash/bank paid to supplier ⇒ Outflow in LedgerEntry (source_type="PurchasePayment")
+    * amount < 0  → refund from supplier ⇒ Inflow in LedgerEntry (source_type="PurchaseRefund")
     """
-    from django.utils import timezone
-
     amount = Decimal(amount)
     if amount == 0:
         return None
+    pm = (method or "").upper()
+    acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
     if amount > 0:
-        return record_expense(
-            shop=shop, amount=amount, spent_on=when or timezone.localdate(),
-            category=_purchase_expense_category(shop), payment_method=(method or "").upper(),
-            note=f"Purchase payment {po.po_number}", created_by=created_by,
+        return LedgerEntry.all_objects.create(
+            shop_id=shop.id, account=acct, amount=-amount,
+            source_type="PurchasePayment", source_id=str(po.id),
+            description=f"Purchase payment {po.po_number}",
         )
-    LedgerEntry.all_objects.create(
-        shop_id=shop.id, account=LedgerEntry.Account.CASH, amount=-amount,
+    return LedgerEntry.all_objects.create(
+        shop_id=shop.id, account=acct, amount=-amount,
         source_type="PurchaseRefund", source_id=str(po.id),
         description=f"Purchase refund {po.po_number}",
     )
-    return None
 
 
 @transaction.atomic
