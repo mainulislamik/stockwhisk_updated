@@ -36,9 +36,25 @@ const statusBadge: Record<string, string> = {
 export default function WarrantiesPage() {
   const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"products" | "issued">("products");
+  const [statusFilter, setStatusFilter] = useState<string>("");
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
   const [pageW, setPageW] = useState(1);
+
+  // Read URL search params on mount
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      const status = params.get("status");
+      if (tab === "issued" || status) {
+        setActiveTab("issued");
+      }
+      if (status) {
+        setStatusFilter(status);
+      }
+    } catch {}
+  }, []);
 
   // Debounce the filter into the server `search` param (issued tab) + reset page.
   useEffect(() => {
@@ -59,7 +75,12 @@ export default function WarrantiesPage() {
 
   // Coverage records: server-side paginated (only the current page is fetched).
   const PAGE_SIZE = 20;
-  const { data: wData, loading: loadingW, error: errorW } = useApi<Paginated<Warranty>>("/service/warranties/", { page: pageW, page_size: PAGE_SIZE, search });
+  const { data: wData, loading: loadingW, error: errorW } = useApi<Paginated<Warranty>>("/service/warranties/", { 
+    page: pageW, 
+    page_size: PAGE_SIZE, 
+    search,
+    status: statusFilter || undefined,
+  });
   const pagedWarranties = wData?.results || [];
   const totalW = wData?.count || 0;
   const totalPagesW = Math.max(1, Math.ceil(totalW / PAGE_SIZE));
@@ -70,7 +91,7 @@ export default function WarrantiesPage() {
   if (error) return <ErrorState error={error} />;
 
   return (
-    <div className="vstack gap-4">
+    <div className="vstack gap-3">
       {/* Modernized Header & Tabs */}
       <div className="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
         <div className="nav nav-pills p-1 bg-light rounded-3" style={{ width: "fit-content" }}>
@@ -78,13 +99,13 @@ export default function WarrantiesPage() {
             className={`nav-link border-0 rounded-2 ${activeTab === "products" ? "active shadow-sm fw-semibold" : "text-dark"}`} 
             onClick={() => { setActiveTab("products"); setFilter(""); }}
           >
-            <i className="bi bi-box-seam me-2"></i>Warrantied Products
+            <i className="bi bi-box-seam me-2"></i>{t("war_tab_products")}
           </button>
           <button 
             className={`nav-link border-0 rounded-2 ${activeTab === "issued" ? "active shadow-sm fw-semibold" : "text-dark"}`} 
             onClick={() => { setActiveTab("issued"); setFilter(""); }}
           >
-            <i className="bi bi-shield-check me-2"></i>Coverage Records
+            <i className="bi bi-shield-check me-2"></i>{t("war_tab_issued")}
           </button>
         </div>
         
@@ -96,6 +117,47 @@ export default function WarrantiesPage() {
           onChange={(e) => setFilter(e.target.value)} 
         />
       </div>
+
+      {activeTab === "issued" && (
+        <div className="d-flex flex-wrap align-items-center gap-2 pt-1">
+          <span className="small text-secondary fw-semibold me-1">Status:</span>
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1 ${!statusFilter ? "btn-dark shadow-sm" : "btn-light border text-secondary"}`}
+            onClick={() => { setStatusFilter(""); setPageW(1); }}
+          >
+            {t("war_status_all")}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1 ${statusFilter === "expiring_soon" ? "btn-warning text-dark shadow-sm fw-semibold" : "btn-light border text-secondary"}`}
+            onClick={() => { setStatusFilter("expiring_soon"); setPageW(1); }}
+          >
+            ⏳ {t("war_status_expiring")}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1 ${statusFilter === "active" ? "btn-success shadow-sm" : "btn-light border text-secondary"}`}
+            onClick={() => { setStatusFilter("active"); setPageW(1); }}
+          >
+            ✓ {t("war_status_active")}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1 ${statusFilter === "expired" ? "btn-secondary shadow-sm" : "btn-light border text-secondary"}`}
+            onClick={() => { setStatusFilter("expired"); setPageW(1); }}
+          >
+            {t("war_status_expired")}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 py-1 ${statusFilter === "claimed" ? "btn-info shadow-sm" : "btn-light border text-secondary"}`}
+            onClick={() => { setStatusFilter("claimed"); setPageW(1); }}
+          >
+            {t("war_status_claimed")}
+          </button>
+        </div>
+      )}
 
       <div className="card shadow-sm border-0 rounded-4 overflow-hidden">
         <div className="table-responsive">
@@ -147,9 +209,13 @@ export default function WarrantiesPage() {
                 pagedWarranties.length === 0 ? (
                   <tr data-empty="">
                     <td colSpan={6} className="text-center text-secondary py-5">
-                      <div className="display-4 mb-3">🛡️</div>
-                      <h5>{t("war_no_rec_title")}</h5>
-                      <p className="text-muted">{t("war_no_rec_desc")}</p>
+                      <div className="display-4 mb-3">{statusFilter === "expiring_soon" ? "🎉" : "🛡️"}</div>
+                      <h5>{statusFilter === "expiring_soon" ? (t("dash_no_expiring_war") || "No warranties expiring soon") : t("war_no_rec_title")}</h5>
+                      <p className="text-muted">
+                        {statusFilter === "expiring_soon"
+                          ? "There are currently no product warranties expiring within the next 30 days."
+                          : t("war_no_rec_desc")}
+                      </p>
                     </td>
                   </tr>
                 ) : (

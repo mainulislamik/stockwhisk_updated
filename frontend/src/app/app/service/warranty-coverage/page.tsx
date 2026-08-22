@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, ErrorState, Spinner } from "@/components/ui";
@@ -40,28 +41,41 @@ export default function WarrantyCoveragePage() {
     <div className="vstack gap-3">
       <div className="row g-3">
         <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("wcov_open_tickets")}</div>
-            <div className="fs-4 fw-bold">{openTotal}</div>
-          </Card>
+          <Link href="/app/service/tickets" className="text-decoration-none text-body">
+            <Card className="h-100 shadow-sm border-0 transition-all">
+              <div className="small text-secondary">{t("wcov_open_tickets")}</div>
+              <div className="fs-4 fw-bold">{openTotal}</div>
+            </Card>
+          </Link>
         </div>
         <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("wcov_overdue")}</div>
-            <div className="fs-4 fw-bold text-danger">{data.overdue_tickets}</div>
-          </Card>
+          <Link href="/app/service/tickets" className="text-decoration-none text-body">
+            <Card className="h-100 shadow-sm border-0 transition-all">
+              <div className="small text-secondary">{t("wcov_overdue")}</div>
+              <div className="fs-4 fw-bold text-danger">{data.overdue_tickets}</div>
+            </Card>
+          </Link>
         </div>
         <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("wcov_expiring")}</div>
-            <div className="fs-4 fw-bold text-warning">{data.warranties_expiring_soon}</div>
-          </Card>
+          <Link href="/app/service/warranties?tab=issued&status=expiring_soon" className="text-decoration-none text-body">
+            <Card className="h-100 shadow-sm border-0 border-start border-4 border-warning transition-all">
+              <div className="d-flex justify-content-between align-items-start">
+                <div>
+                  <div className="small text-secondary">{t("wcov_expiring")}</div>
+                  <div className="fs-4 fw-bold text-warning">{data.warranties_expiring_soon}</div>
+                </div>
+                <i className="bi bi-arrow-right-circle text-warning fs-5"></i>
+              </div>
+            </Card>
+          </Link>
         </div>
         <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("wcov_techs")}</div>
-            <div className="fs-4 fw-bold">{data.technician_workload.length}</div>
-          </Card>
+          <Link href="/app/service/tickets" className="text-decoration-none text-body">
+            <Card className="h-100 shadow-sm border-0 transition-all">
+              <div className="small text-secondary">{t("wcov_techs")}</div>
+              <div className="fs-4 fw-bold">{data.technician_workload.length}</div>
+            </Card>
+          </Link>
         </div>
       </div>
 

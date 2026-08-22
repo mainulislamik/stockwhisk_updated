@@ -31,6 +31,7 @@ class WarrantyViewSet(TenantScopedViewSet):
     required_write_perm = "manage_service"
 
     def get_queryset(self):
+        from datetime import timedelta
         from django.db.models import Q
         from django.utils import timezone
         qs = Warranty.objects.select_related("product", "customer")
@@ -42,6 +43,15 @@ class WarrantyViewSet(TenantScopedViewSet):
         if self.request.query_params.get("include_expired") not in {"1", "true"}:
             qs = qs.filter(expiry_date__gte=timezone.localdate()).exclude(
                 status=Warranty.Status.VOID)
+        if st := self.request.query_params.get("status"):
+            if st == "expiring_soon":
+                today = timezone.localdate()
+                qs = qs.filter(
+                    Q(status=Warranty.Status.EXPIRING_SOON) |
+                    Q(expiry_date__gte=today, expiry_date__lte=today + timedelta(days=30))
+                ).exclude(status__in=[Warranty.Status.CLAIMED, Warranty.Status.VOID, Warranty.Status.EXPIRED])
+            else:
+                qs = qs.filter(status=st)
         if search := self.request.query_params.get("search"):
             qs = qs.filter(
                 Q(product__name__icontains=search) |
@@ -223,8 +233,8 @@ class ServiceDashboardView(APIView):
         request.tenant = getattr(request.user, "shop", None)
         super().initial(request, *args, **kwargs)
 
-    def get(self, request):
-        from django.db.models import Count
+        from datetime import timedelta
+        from django.db.models import Count, Q
         from django.utils import timezone
 
         shop = request.user.shop
@@ -232,14 +242,20 @@ class ServiceDashboardView(APIView):
             status__in=[ServiceTicket.Status.DELIVERED, ServiceTicket.Status.CANCELLED]
         )
         by_status = list(open_ticket_qs.values("status").annotate(n=Count("id")))
+        today = timezone.localdate()
         overdue = open_ticket_qs.filter(
-            estimated_delivery__lt=timezone.localdate()
+            estimated_delivery__lt=today
         ).count()
         workload = list(
             open_ticket_qs.exclude(technician__isnull=True)
             .values("technician__email").annotate(n=Count("id"))
         )
-        expiring = Warranty.objects.filter(status=Warranty.Status.EXPIRING_SOON).count()
+        expiring = Warranty.objects.filter(
+            Q(sale_item__isnull=False) | Q(product_unit__status="sold")
+        ).filter(
+            Q(status=Warranty.Status.EXPIRING_SOON) |
+            Q(expiry_date__gte=today, expiry_date__lte=today + timedelta(days=30))
+        ).exclude(status__in=[Warranty.Status.CLAIMED, Warranty.Status.VOID, Warranty.Status.EXPIRED]).count()
         return Response({
             "open_by_status": by_status,
             "overdue_tickets": overdue,
