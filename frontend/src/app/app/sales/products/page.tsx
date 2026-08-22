@@ -61,7 +61,7 @@ export default function SoldProductsPage() {
                       </Link>
                     </td>
                     <td className="text-end">{Number(r.qty)}</td>
-                    <td className="text-end">{Number(r.product__current_stock || 0)}</td>
+                    <td className="text-end">{Math.max(0, Number(r.product__current_stock || 0))}</td>
                     <td className="text-end">{money(r.revenue)}</td>
                     <td className="text-end text-success">{money(r.profit)}</td>
                   </tr>

@@ -149,19 +149,19 @@ export default function ProductProfilePage() {
         <div className="col-6 col-lg-3">
           <Card>
             <div className="small text-secondary">{t("prd_lbl_cost_val")}</div>
-            <div className="fs-5 fw-bold">{money(Number(p.cost_price || 0) * Number(p.current_stock || 0))}</div>
+            <div className="fs-5 fw-bold">{money(Number(p.cost_price || 0) * Math.max(0, Number(p.current_stock || 0)))}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
             <div className="small text-secondary">{t("prd_lbl_retail_val")}</div>
-            <div className="fs-5 fw-bold">{money(Number(p.selling_price || 0) * Number(p.current_stock || 0))}</div>
+            <div className="fs-5 fw-bold">{money(Number(p.selling_price || 0) * Math.max(0, Number(p.current_stock || 0)))}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
             <div className="small text-secondary">{t("prd_lbl_in_stock")}</div>
-            <div className={`fs-5 fw-bold ${p.is_low_stock ? "text-danger" : ""}`}>{p.current_stock}</div>
+            <div className={`fs-5 fw-bold ${p.is_low_stock ? "text-danger" : ""}`}>{Math.max(0, Number(p.current_stock || 0))}</div>
           </Card>
         </div>
         <div className="col-6 col-lg-3">

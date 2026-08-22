@@ -813,7 +813,7 @@ def _sales_by_dimension(shop, field, period):
 
 
 def top_products(shop, start=None, end=None, limit=10):
-    return list(
+    rows = list(
         _sale_items(shop, start, end)
         .values("product_id", "product__name", "product__current_stock")
         .annotate(
@@ -826,6 +826,11 @@ def top_products(shop, start=None, end=None, limit=10):
         )
         .order_by("-revenue")[:limit]
     )
+    for r in rows:
+        stock = r.get("product__current_stock")
+        if stock is not None:
+            r["product__current_stock"] = max(0, float(stock))
+    return rows
 
 
 def sales_by_category(shop, start=None, end=None):

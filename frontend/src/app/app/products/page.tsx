@@ -256,7 +256,7 @@ export default function ProductsPage() {
                     </td>
                     <td className="text-end">{p.cost_price}</td>
                     <td className="text-end">{p.selling_price}</td>
-                    <td className={`text-end ${p.is_low_stock ? "text-danger fw-semibold" : ""}`}>{p.current_stock}</td>
+                    <td className={`text-end ${p.is_low_stock ? "text-danger fw-semibold" : ""}`}>{Math.max(0, Number(p.current_stock || 0))}</td>
                     <td className="text-center">
                       {canManage ? (
                         <button onClick={() => toggle(p)} className={`btn btn-sm ${p.is_active ? "btn-success" : "btn-outline-secondary"} py-0 px-2`}>
