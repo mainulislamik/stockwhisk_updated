@@ -59,7 +59,7 @@ export default function UsersAndRolesScreen() {
       const [usersRes, rolesRes, permsRes] = await Promise.all([
         api.get('/users/').catch(() => api.get('/auth/shop-users/')),
         api.get('/roles/').catch(() => ({ data: { results: [] } })),
-        api.get('/rbac/permissions/').catch(() => ({ data: [] }))
+        api.get('/permissions/').catch(() => ({ data: [] }))
       ]);
       setUsers(usersRes.data?.results || usersRes.data || []);
       setRoles(rolesRes.data?.results || rolesRes.data || []);

@@ -59,7 +59,7 @@ export default function NotificationsScreen() {
   };
 
   return (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background }}>
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header style={{ backgroundColor: theme.colors.surface, elevation: 0 }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={language === 'BN' ? 'নোটিফিকেশন' : 'Notifications'} titleStyle={{ fontWeight: 'bold' }} />
@@ -72,10 +72,7 @@ export default function NotificationsScreen() {
         </View>
       ) : (
         <ScrollView
-          style={Platform.OS === 'web'
-            ? { position: 'absolute', top: HEADER_HEIGHT, left: 0, right: 0, bottom: 0, ...(({ overflowY: 'auto' }) as any) }
-            : { position: 'absolute', top: HEADER_HEIGHT, left: 0, right: 0, bottom: 0 }
-          }
+          style={{ flex: 1 }}
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           scrollEventThrottle={400}
           onScroll={({ nativeEvent }) => {

@@ -147,7 +147,7 @@ export default function ExpensesScreen() {
         <ActivityIndicator style={{ marginTop: 40 }} color={theme.colors.primary} />
       ) : (
         <ScrollView 
-          style={{ position: 'absolute', top: 64, left: 0, right: 0, bottom: 0 }} 
+          style={{ flex: 1 }} 
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           onScroll={handleScroll}
           scrollEventThrottle={16}

@@ -147,7 +147,9 @@ export default function ServiceTicketsScreen() {
     setCheckingWarranty(true);
     setWarrantyResult(null);
     try {
-      const res = await api.get('/service/warranties/', { params: { search: warrantyBarcode.trim() } });
+      const res = await api.get('/service/warranties/', {
+        params: { search: warrantyBarcode.trim(), include_expired: 'true' }
+      });
       const list = res.data.results || res.data || [];
       if (list.length > 0) {
         setWarrantyResult(list[0]);
