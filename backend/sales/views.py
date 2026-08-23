@@ -399,6 +399,7 @@ class SaleViewSet(
                     customer.save(update_fields=["due_balance", "total_purchased"])
 
                 return Response({"detail": "Unit exchanged with price adjustment.", "new_total": total})
+
     @action(detail=True, methods=["post"])
     def correct(self, request, pk=None):
         import json
@@ -432,7 +433,7 @@ class SaleViewSet(
             return Response({"detail": "At least one item is required."}, status=status.HTTP_400_BAD_REQUEST)
             
         correction_reason = data.get("correction_reason", "").strip()
-        if not correction_reason:
+        if not correction_reason and sale.status != Sale.Status.QUOTATION and "quotation" not in str(sale.note or "").lower() and "কোটেশন" not in str(sale.note or ""):
             return Response({"detail": "Correction reason is required."}, status=status.HTTP_400_BAD_REQUEST)
             
         # Block if returns exist
@@ -497,114 +498,10 @@ class SaleViewSet(
             import traceback
             return Response({"detail": f"Internal Server Error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-
-class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    List and view EMI Schedules and process payments for installments.
-    """
-    from .serializers import EMIScheduleSerializer
-    serializer_class = EMIScheduleSerializer
-    permission_classes = [IsTenantMember, HasPermCode]
-    required_perm = "view_sales"
-
-    def initial(self, request, *args, **kwargs):
-        set_current_tenant(getattr(request.user, "shop", None))
-        request.tenant = getattr(request.user, "shop", None)
-        super().initial(request, *args, **kwargs)
-
-    def get_queryset(self):
-        from .models import EMISchedule
-        qs = EMISchedule.objects.all().select_related("sale", "customer").prefetch_related("installments")
-        status = self.request.query_params.get("status")
-        if status:
-            qs = qs.filter(status=status)
-        return qs
-
-    @action(detail=True, methods=["post"], url_path="pay-installment/(?P<installment_id>[^/.]+)")
-    def pay_installment(self, request, pk=None, installment_id=None):
-        if not request.user.has_perm_code("process_payment"):
-            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
-            
-        schedule = self.get_object()
-        from .models import EMIInstallment
-        try:
-            installment = schedule.installments.get(id=installment_id)
-        except EMIInstallment.DoesNotExist:
-            return Response({"detail": "Installment not found."}, status=status.HTTP_404_NOT_FOUND)
-
-        if installment.status == EMIInstallment.Status.PAID:
-            return Response({"detail": "Installment is already paid."}, status=status.HTTP_400_BAD_REQUEST)
-
-        amount = Decimal(request.data.get("amount", installment.amount - installment.paid_amount))
-        if amount <= Decimal("0"):
-            return Response({"detail": "Amount must be positive."}, status=status.HTTP_400_BAD_REQUEST)
-        if amount > schedule.total_due:
-            amount = schedule.total_due
-
-        try:
-            from django.db import transaction
-            from django.utils import timezone
-            with transaction.atomic():
-                remaining_payment = amount
-                # 1. Apply to targeted installment first
-                needed = installment.amount - (installment.paid_amount or Decimal("0"))
-                to_apply = min(remaining_payment, needed)
-                installment.paid_amount = (installment.paid_amount or Decimal("0")) + to_apply
-                remaining_payment -= to_apply
-                if installment.paid_amount >= installment.amount:
-                    installment.status = EMIInstallment.Status.PAID
-                else:
-                    installment.status = EMIInstallment.Status.PARTIAL
-                installment.paid_at = timezone.now()
-                installment.save(update_fields=["paid_amount", "status", "paid_at"])
-
-                # 2. Spill any surplus across all other pending installments (FIFO)
-                if remaining_payment > Decimal("0"):
-                    other_installments = schedule.installments.exclude(
-                        id=installment.id
-                    ).exclude(status=EMIInstallment.Status.PAID).order_by("installment_number")
-                    for sub in other_installments:
-                        if remaining_payment <= Decimal("0"):
-                            break
-                        sub_needed = sub.amount - (sub.paid_amount or Decimal("0"))
-                        sub_apply = min(remaining_payment, sub_needed)
-                        sub.paid_amount = (sub.paid_amount or Decimal("0")) + sub_apply
-                        remaining_payment -= sub_apply
-                        if sub.paid_amount >= sub.amount:
-                            sub.status = EMIInstallment.Status.PAID
-                        else:
-                            sub.status = EMIInstallment.Status.PARTIAL
-                        sub.paid_at = timezone.now()
-                        sub.save(update_fields=["paid_amount", "status", "paid_at"])
-
-                # Refresh schedule to recalculate total_due accurately
-                schedule.refresh_from_db()
-
-                # Check if schedule is fully paid
-                if schedule.total_due <= Decimal("0"):
-                    from .models import EMISchedule
-                    schedule.status = EMISchedule.Status.COMPLETED
-                    schedule.save(update_fields=["status"])
-
-                # Also record as a payment against the sale
-                from sales.services import add_payment
-                add_payment(
-                    sale=schedule.sale,
-                    amount=amount,
-                    method=request.data.get("method", "cash"),
-                    created_by=request.user,
-                )
-        except Exception as exc:
-            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
-
-        # Refresh schedule to return updated data
-        schedule.refresh_from_db()
-        return Response(self.get_serializer(schedule).data)
-
     @action(detail=True, methods=["post"], url_path="convert-quotation")
     def convert_quotation(self, request, pk=None):
         sale = self.get_object()
-        if sale.status != Sale.Status.QUOTATION:
+        if sale.status != Sale.Status.QUOTATION and "quotation" not in str(sale.note or "").lower() and "কোটেশন" not in str(sale.note or ""):
             return Response({"detail": "This invoice is not a quotation."}, status=status.HTTP_400_BAD_REQUEST)
         
         from django.db import transaction
@@ -778,10 +675,114 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
         return Response(SaleSerializer(sale).data)
 
     def perform_destroy(self, instance):
-        if instance.status != Sale.Status.QUOTATION:
+        if instance.status != Sale.Status.QUOTATION and "quotation" not in str(instance.note or "").lower() and "কোটেশন" not in str(instance.note or ""):
             from rest_framework.exceptions import ValidationError
             raise ValidationError("Only quotation records can be removed directly. For completed sales, use the Void/Cancel action.")
         instance.delete()
+
+
+class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    List and view EMI Schedules and process payments for installments.
+    """
+    from .serializers import EMIScheduleSerializer
+    serializer_class = EMIScheduleSerializer
+    permission_classes = [IsTenantMember, HasPermCode]
+    required_perm = "view_sales"
+
+    def initial(self, request, *args, **kwargs):
+        set_current_tenant(getattr(request.user, "shop", None))
+        request.tenant = getattr(request.user, "shop", None)
+        super().initial(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from .models import EMISchedule
+        qs = EMISchedule.objects.all().select_related("sale", "customer").prefetch_related("installments")
+        status = self.request.query_params.get("status")
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    @action(detail=True, methods=["post"], url_path="pay-installment/(?P<installment_id>[^/.]+)")
+    def pay_installment(self, request, pk=None, installment_id=None):
+        if not request.user.has_perm_code("process_payment"):
+            return Response({"detail": "Not allowed."}, status=status.HTTP_403_FORBIDDEN)
+            
+        schedule = self.get_object()
+        from .models import EMIInstallment
+        try:
+            installment = schedule.installments.get(id=installment_id)
+        except EMIInstallment.DoesNotExist:
+            return Response({"detail": "Installment not found."}, status=status.HTTP_404_NOT_FOUND)
+
+        if installment.status == EMIInstallment.Status.PAID:
+            return Response({"detail": "Installment is already paid."}, status=status.HTTP_400_BAD_REQUEST)
+
+        amount = Decimal(request.data.get("amount", installment.amount - installment.paid_amount))
+        if amount <= Decimal("0"):
+            return Response({"detail": "Amount must be positive."}, status=status.HTTP_400_BAD_REQUEST)
+        if amount > schedule.total_due:
+            amount = schedule.total_due
+
+        try:
+            from django.db import transaction
+            from django.utils import timezone
+            with transaction.atomic():
+                remaining_payment = amount
+                # 1. Apply to targeted installment first
+                needed = installment.amount - (installment.paid_amount or Decimal("0"))
+                to_apply = min(remaining_payment, needed)
+                installment.paid_amount = (installment.paid_amount or Decimal("0")) + to_apply
+                remaining_payment -= to_apply
+                if installment.paid_amount >= installment.amount:
+                    installment.status = EMIInstallment.Status.PAID
+                else:
+                    installment.status = EMIInstallment.Status.PARTIAL
+                installment.paid_at = timezone.now()
+                installment.save(update_fields=["paid_amount", "status", "paid_at"])
+
+                # 2. Spill any surplus across all other pending installments (FIFO)
+                if remaining_payment > Decimal("0"):
+                    other_installments = schedule.installments.exclude(
+                        id=installment.id
+                    ).exclude(status=EMIInstallment.Status.PAID).order_by("installment_number")
+                    for sub in other_installments:
+                        if remaining_payment <= Decimal("0"):
+                            break
+                        sub_needed = sub.amount - (sub.paid_amount or Decimal("0"))
+                        sub_apply = min(remaining_payment, sub_needed)
+                        sub.paid_amount = (sub.paid_amount or Decimal("0")) + sub_apply
+                        remaining_payment -= sub_apply
+                        if sub.paid_amount >= sub.amount:
+                            sub.status = EMIInstallment.Status.PAID
+                        else:
+                            sub.status = EMIInstallment.Status.PARTIAL
+                        sub.paid_at = timezone.now()
+                        sub.save(update_fields=["paid_amount", "status", "paid_at"])
+
+                # Refresh schedule to recalculate total_due accurately
+                schedule.refresh_from_db()
+
+                # Check if schedule is fully paid
+                if schedule.total_due <= Decimal("0"):
+                    from .models import EMISchedule
+                    schedule.status = EMISchedule.Status.COMPLETED
+                    schedule.save(update_fields=["status"])
+
+                # Also record as a payment against the sale
+                from sales.services import add_payment
+                add_payment(
+                    sale=schedule.sale,
+                    amount=amount,
+                    method=request.data.get("method", "cash"),
+                    created_by=request.user,
+                )
+        except Exception as exc:
+            return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Refresh schedule to return updated data
+        schedule.refresh_from_db()
+        return Response(self.get_serializer(schedule).data)
 
 
 class PublicInvoicePDFView(APIView):
