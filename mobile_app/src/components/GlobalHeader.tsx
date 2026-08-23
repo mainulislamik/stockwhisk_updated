@@ -9,6 +9,7 @@ import {
   Linking,
   Image,
   StyleSheet,
+  useWindowDimensions,
 } from 'react-native';
 import { useTheme, Surface } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -25,6 +26,8 @@ export default function GlobalHeader() {
   const theme = useTheme();
   const navigation = useNavigation<any>();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isSmallScreen = width < 400;
 
   const [contactMenuVisible, setContactMenuVisible] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
@@ -109,9 +112,10 @@ export default function GlobalHeader() {
             <View style={styles.textContainer}>
               <Text
                 numberOfLines={1}
+                ellipsizeMode="tail"
                 style={[
                   styles.shopTitle,
-                  { color: isDarkMode ? '#f8fafc' : '#0f172a' },
+                  { color: isDarkMode ? '#f8fafc' : '#0f172a', fontSize: isSmallScreen ? 14 : 15 },
                 ]}
               >
                 {user?.shop_name || (isBN ? 'আমার দোকান' : 'My Shop')}
@@ -186,13 +190,15 @@ export default function GlobalHeader() {
               </Text>
             </TouchableOpacity>
 
-            {/* Contact Support */}
-            <TouchableOpacity
-              onPress={() => setContactMenuVisible(true)}
-              style={[styles.iconButton, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}
-            >
-              <MaterialCommunityIcons name="headset" size={18} color={isDarkMode ? '#94a3b8' : '#475569'} />
-            </TouchableOpacity>
+            {/* Contact Support (hidden on ultra-small screens, accessible via modal) */}
+            {!isSmallScreen && (
+              <TouchableOpacity
+                onPress={() => setContactMenuVisible(true)}
+                style={[styles.iconButton, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}
+              >
+                <MaterialCommunityIcons name="headset" size={18} color={isDarkMode ? '#94a3b8' : '#475569'} />
+              </TouchableOpacity>
+            )}
 
             {/* Notifications */}
             <TouchableOpacity
@@ -357,12 +363,12 @@ const styles = StyleSheet.create({
   actionsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
   },
   iconButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
     justifyContent: 'center',
     alignItems: 'center',
     position: 'relative',

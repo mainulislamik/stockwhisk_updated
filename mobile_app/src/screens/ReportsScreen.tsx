@@ -453,15 +453,18 @@ const styles = StyleSheet.create({
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    gap: 10,
+    marginBottom: 12,
   },
   cardHalf: {
-    width: '48%',
-    marginBottom: 12,
+    flex: 1,
+    minWidth: 140,
+    marginBottom: 4,
   },
   cardThird: {
-    width: '31%',
-    marginBottom: 12,
+    flex: 1,
+    minWidth: 95,
+    marginBottom: 4,
   },
   fullCard: {
     marginBottom: 16,

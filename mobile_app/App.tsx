@@ -115,22 +115,22 @@ function ThemedApp() {
     <SafeAreaProvider>
       <PaperProvider theme={theme}>
         <StatusBar style={isDarkMode ? 'light' : 'dark'} />
-        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#030712' : '#e2e8f0', alignItems: 'center' }}>
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#030712' : (Platform.OS === 'web' ? '#e2e8f0' : theme.colors.background), alignItems: Platform.OS === 'web' ? 'center' : 'stretch' }}>
           <View
             style={{
               flex: 1,
               width: '100%',
-              maxWidth: 500,
+              maxWidth: Platform.OS === 'web' ? 540 : undefined,
               backgroundColor: theme.colors.background,
               overflow: 'hidden',
               borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
               borderRightWidth: Platform.OS === 'web' ? 1 : 0,
               borderColor: isDarkMode ? '#1e293b' : '#cbd5e1',
-              shadowColor: '#000',
+              shadowColor: Platform.OS === 'web' ? '#000' : 'transparent',
               shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.15,
+              shadowOpacity: Platform.OS === 'web' ? 0.15 : 0,
               shadowRadius: 16,
-              elevation: 12,
+              elevation: Platform.OS === 'web' ? 12 : 0,
             }}
           >
             <NavigationContainer>

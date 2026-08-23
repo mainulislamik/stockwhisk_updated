@@ -146,7 +146,8 @@ export default function DashboardScreen() {
     }
   };
 
-  const chartWidth = Math.min(Dimensions.get('window').width - 48, 440);
+  const [measuredChartWidth, setMeasuredChartWidth] = useState<number>(0);
+  const activeChartWidth = measuredChartWidth > 100 ? measuredChartWidth : Math.max(280, Dimensions.get('window').width - 64);
 
   const getChartData = () => {
     if (Array.isArray(trendData) && trendData.length > 0) {
@@ -463,9 +464,16 @@ export default function DashboardScreen() {
         )}
 
         {/* 4. Sales Trend Chart */}
-        <Surface style={[styles.chartCard, { backgroundColor: theme.colors.surface }]} elevation={2}>
+        <Surface 
+          style={[styles.chartCard, { backgroundColor: theme.colors.surface }]} 
+          elevation={2}
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0) setMeasuredChartWidth(w - 32);
+          }}
+        >
           <View style={styles.chartHeader}>
-            <View>
+            <View style={{ flex: 1, paddingRight: 8 }}>
               <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>
                 📈 {isBN ? 'বিক্রয় ট্রেন্ড (Sales Trends)' : 'Sales Trends'}
               </Text>
@@ -504,10 +512,17 @@ export default function DashboardScreen() {
 
           <LineChart
             data={getChartData()}
-            width={chartWidth}
+            width={activeChartWidth}
             height={190}
             yAxisLabel="৳"
             yAxisSuffix=""
+            formatYLabel={(val) => {
+              const n = parseFloat(val);
+              if (isNaN(n) || n === 0) return '0';
+              if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+              if (n >= 1000) return (n / 1000).toFixed(0) + 'k';
+              return n.toFixed(0);
+            }}
             chartConfig={{
               backgroundColor: theme.colors.surface,
               backgroundGradientFrom: theme.colors.surface,
@@ -774,6 +789,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     marginBottom: 16,
+    overflow: 'hidden',
   },
   chartHeader: {
     flexDirection: 'row',
