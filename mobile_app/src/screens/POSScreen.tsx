@@ -608,7 +608,7 @@ export default function POSScreen() {
               placeholder={t('বারকোড স্ক্যান করুন বা পণ্যের নাম / SKU টাইপ করুন...', 'Type barcode, product name or SKU...')}
               value={query}
               onChangeText={setQuery}
-              style={{ flex: 1, height: 48, backgroundColor: '#fff' }}
+              style={{ flex: 1, height: 48, backgroundColor: theme.colors.surface }}
               left={<TextInput.Icon icon="magnify" />}
               right={query ? <TextInput.Icon icon="close" onPress={() => setQuery('')} /> : null}
             />
@@ -640,14 +640,14 @@ export default function POSScreen() {
                     onPress={() => handleProductTap(item)}
                     disabled={fetchingUnits}
                   >
-                    <Surface style={{ padding: 12, borderRadius: 8, backgroundColor: '#fff', elevation: 2, height: 120, justifyContent: 'space-between' }}>
+                    <Surface style={{ padding: 12, borderRadius: 8, backgroundColor: theme.colors.surface, elevation: 2, height: 120, justifyContent: 'space-between' }}>
                       <View>
-                        <Text numberOfLines={2} style={{ fontWeight: 'bold' }}>{item.name}</Text>
-                        <Text style={{ fontSize: 10, color: 'gray' }}>{item.sku}</Text>
+                        <Text numberOfLines={2} style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{item.name}</Text>
+                        <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray' }}>{item.sku}</Text>
                       </View>
                       <View>
                         <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>৳ {item.selling_price}</Text>
-                        <Text style={{ fontSize: 12, color: outOfStock ? 'red' : item.is_low_stock ? 'orange' : 'gray' }}>
+                        <Text style={{ fontSize: 12, color: outOfStock ? '#ef4444' : item.is_low_stock ? '#f59e0b' : (isDarkMode ? '#94a3b8' : 'gray') }}>
                           {item.track_inventory === false ? '' : outOfStock ? t('স্টক নেই', 'Out of stock') : t(`স্টক: ${item.current_stock}`, `Stock: ${item.current_stock}`)}
                         </Text>
                       </View>
@@ -676,78 +676,78 @@ export default function POSScreen() {
               </Button>
             </View>
             {cart.map(l => (
-              <Surface key={l.product.id} style={{ padding: 12, borderRadius: 8, elevation: 2, marginBottom: 8, backgroundColor: '#fff' }}>
+              <Surface key={l.product.id} style={{ padding: 12, borderRadius: 8, elevation: 2, marginBottom: 8, backgroundColor: theme.colors.surface }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold' }}>{l.product.name}</Text>
-                    <Text style={{ fontSize: 12, color: 'gray' }}>৳ {l.price}</Text>
+                    <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{l.product.name}</Text>
+                    <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : 'gray' }}>৳ {l.price}</Text>
                     {l.selectedUnits.length > 0 && (
                       <View style={{ marginTop: 4 }}>
                         {l.selectedUnits.map(u => (
-                          <Text key={u.id} style={{ fontSize: 10, fontFamily: 'monospace', color: 'gray' }}>- {u.barcode}</Text>
+                          <Text key={u.id} style={{ fontSize: 10, fontFamily: 'monospace', color: isDarkMode ? '#94a3b8' : 'gray' }}>- {u.barcode}</Text>
                         ))}
                       </View>
                     )}
                   </View>
                   <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ fontWeight: 'bold' }}>৳ {l.price * l.qty}</Text>
+                    <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>৳ {l.price * l.qty}</Text>
                     {l.selectedUnits.length > 0 ? (
-                      <View style={{ marginTop: 8, backgroundColor: '#eee', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 4 }}>
-                        <Text>{l.qty}</Text>
+                      <View style={{ marginTop: 8, backgroundColor: isDarkMode ? '#334155' : '#eee', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 4 }}>
+                        <Text style={{ color: theme.colors.onSurface }}>{l.qty}</Text>
                       </View>
                     ) : (
                       <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8 }}>
-                        <TouchableOpacity onPress={() => updateCartQty(l.product.id, -1)} style={{ padding: 4, backgroundColor: '#eee', borderRadius: 4 }}>
-                          <MaterialCommunityIcons name="minus" size={16} />
+                        <TouchableOpacity onPress={() => updateCartQty(l.product.id, -1)} style={{ padding: 4, backgroundColor: isDarkMode ? '#334155' : '#eee', borderRadius: 4 }}>
+                          <MaterialCommunityIcons name="minus" size={16} color={theme.colors.onSurface} />
                         </TouchableOpacity>
-                        <Text style={{ marginHorizontal: 12, fontWeight: 'bold' }}>{l.qty}</Text>
-                        <TouchableOpacity onPress={() => updateCartQty(l.product.id, 1)} style={{ padding: 4, backgroundColor: '#eee', borderRadius: 4 }}>
-                          <MaterialCommunityIcons name="plus" size={16} />
+                        <Text style={{ marginHorizontal: 12, fontWeight: 'bold', color: theme.colors.onSurface }}>{l.qty}</Text>
+                        <TouchableOpacity onPress={() => updateCartQty(l.product.id, 1)} style={{ padding: 4, backgroundColor: isDarkMode ? '#334155' : '#eee', borderRadius: 4 }}>
+                          <MaterialCommunityIcons name="plus" size={16} color={theme.colors.onSurface} />
                         </TouchableOpacity>
                       </View>
                     )}
                   </View>
-                  <IconButton icon="trash-can-outline" iconColor="red" size={20} onPress={() => removeLine(l.product.id)} />
+                  <IconButton icon="trash-can-outline" iconColor="#ef4444" size={20} onPress={() => removeLine(l.product.id)} />
                 </View>
               </Surface>
             ))}
 
             {/* 2. Customer Selection */}
-            <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginVertical: 16, backgroundColor: '#fff' }}>
-              <Text style={{ fontWeight: 'bold', marginBottom: 12, fontSize: 16 }}>{t('কাস্টমার ও পেমেন্ট', 'Customer & Payment')}</Text>
+            <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginVertical: 16, backgroundColor: theme.colors.surface }}>
+              <Text style={{ fontWeight: 'bold', marginBottom: 12, fontSize: 16, color: theme.colors.onSurface }}>{t('কাস্টমার ও পেমেন্ট', 'Customer & Payment')}</Text>
               
-              <Text style={{ fontSize: 12, color: 'gray', marginBottom: 4 }}>{t('কাস্টমার নির্বাচন করুন', 'Select Customer')}</Text>
+              <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 4 }}>{t('কাস্টমার নির্বাচন করুন', 'Select Customer')}</Text>
               <TouchableOpacity 
                 onPress={() => setCustomerSearchFocused(!customerSearchFocused)}
-                style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 4, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, backgroundColor: '#fff' }}
+                style={{ borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#ccc', borderRadius: 4, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, backgroundColor: theme.colors.surface }}
               >
-                <Text>{customerMode === 'walkin' ? t('🚶 ওয়াক-ইন কাস্টমার', '🚶 Walk-in Customer') : selectedCustomer ? `👤 ${selectedCustomer.name} ${selectedCustomer.phone ? '- ' + selectedCustomer.phone : ''}` : t('কাস্টমার নির্বাচন করুন', 'Select Customer')}</Text>
-                <MaterialCommunityIcons name={customerSearchFocused ? "chevron-up" : "chevron-down"} size={20} color="gray" />
+                <Text style={{ color: theme.colors.onSurface }}>{customerMode === 'walkin' ? t('🚶 ওয়াক-ইন কাস্টমার', '🚶 Walk-in Customer') : selectedCustomer ? `👤 ${selectedCustomer.name} ${selectedCustomer.phone ? '- ' + selectedCustomer.phone : ''}` : t('কাস্টমার নির্বাচন করুন', 'Select Customer')}</Text>
+                <MaterialCommunityIcons name={customerSearchFocused ? "chevron-up" : "chevron-down"} size={20} color={isDarkMode ? '#94a3b8' : 'gray'} />
               </TouchableOpacity>
 
               {customerSearchFocused && (
-                <View style={{ borderWidth: 1, borderColor: '#eee', borderRadius: 4, backgroundColor: '#fff', marginBottom: 16, elevation: 3 }}>
+                <View style={{ borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#eee', borderRadius: 4, backgroundColor: theme.colors.surface, marginBottom: 16, elevation: 3 }}>
                   <TextInput 
                     placeholder={t('কাস্টমার খুঁজুন...', 'Search customer...')}
                     value={customerQuery}
                     onChangeText={setCustomerQuery}
-                    style={{ height: 40, backgroundColor: '#f9f9f9', borderBottomWidth: 1, borderBottomColor: '#eee', paddingHorizontal: 12 }}
+                    style={{ height: 40, backgroundColor: isDarkMode ? '#1e293b' : '#f9f9f9', borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#eee', paddingHorizontal: 12 }}
                   />
                   <ScrollView style={{ maxHeight: 160 }} nestedScrollEnabled>
                     <TouchableOpacity 
-                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: customerMode === 'walkin' ? '#e0e7ff' : '#fff' }} 
+                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#eee', backgroundColor: customerMode === 'walkin' ? (isDarkMode ? '#1e1b4b' : '#e0e7ff') : theme.colors.surface }} 
                       onPress={() => { setCustomerMode('walkin'); setSelectedCustomer(null); setCustomerSearchFocused(false); }}
                     >
-                      <Text style={{ fontWeight: customerMode === 'walkin' ? 'bold' : 'normal', color: customerMode === 'walkin' ? '#4338ca' : '#000' }}>🚶 {t('ওয়াক-ইন কাস্টমার', 'Walk-in Customer')}</Text>
+                      <Text style={{ fontWeight: customerMode === 'walkin' ? 'bold' : 'normal', color: customerMode === 'walkin' ? '#818cf8' : theme.colors.onSurface }}>🚶 {t('ওয়াক-ইন কাস্টমার', 'Walk-in Customer')}</Text>
                     </TouchableOpacity>
                     
                     {customerResults.map(c => (
                       <TouchableOpacity 
                         key={c.id} 
-                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: customerMode === 'existing' && selectedCustomer?.id === c.id ? '#e0e7ff' : '#fff' }} 
+                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#eee', backgroundColor: customerMode === 'existing' && selectedCustomer?.id === c.id ? (isDarkMode ? '#1e1b4b' : '#e0e7ff') : theme.colors.surface }} 
                         onPress={() => { setCustomerMode('existing'); setSelectedCustomer(c); setCustomerSearchFocused(false); }}
                       >
-                        <Text style={{ fontWeight: customerMode === 'existing' && selectedCustomer?.id === c.id ? 'bold' : 'normal', color: customerMode === 'existing' && selectedCustomer?.id === c.id ? '#4338ca' : '#000' }}>👤 {c.name} {c.phone ? `- ${c.phone}` : ''}</Text>
+                        <Text style={{ fontWeight: customerMode === 'existing' && selectedCustomer?.id === c.id ? 'bold' : 'normal', color: customerMode === 'existing' && selectedCustomer?.id === c.id ? '#818cf8' : theme.colors.onSurface }}>👤 {c.name} {c.phone ? `- ${c.phone}` : ''}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -761,35 +761,35 @@ export default function POSScreen() {
                     label={isEmi ? t('ইমেইল (EMI এর জন্য আবশ্যক)', 'Email (Required for EMI)') : t('ইমেইল (ঐচ্ছিক)', 'Email (Optional)')} 
                     value={existingEmail} 
                     onChangeText={setExistingEmail} 
-                    style={{ marginBottom: 8, backgroundColor: '#fff' }} 
+                    style={{ marginBottom: 8, backgroundColor: theme.colors.surface }} 
                     keyboardType="email-address" 
                     error={isEmi && !existingEmail.trim()}
                   />
-                  {isEmi && !existingEmail.trim() && <Text style={{ color: 'red', fontSize: 12, marginTop: -4 }}>EMI-র জন্য Email আবশ্যক</Text>}
+                  {isEmi && !existingEmail.trim() && <Text style={{ color: '#ef4444', fontSize: 12, marginTop: -4 }}>EMI-র জন্য Email আবশ্যক</Text>}
                 </View>
               )}
 
               {customerMode === 'walkin' && (
                 <View style={{ marginTop: 8 }}>
-                  <TextInput mode="outlined" label={t('ফোন *', 'Phone *')} value={walkPhone} onChangeText={handleWalkPhoneChange} style={{ marginBottom: 8, backgroundColor: matchedId ? '#eff6ff' : '#fff' }} keyboardType="phone-pad" />
+                  <TextInput mode="outlined" label={t('ফোন *', 'Phone *')} value={walkPhone} onChangeText={handleWalkPhoneChange} style={{ marginBottom: 8, backgroundColor: matchedId ? (isDarkMode ? '#1e3a8a' : '#eff6ff') : theme.colors.surface }} keyboardType="phone-pad" />
                   {matchedId ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                       <MaterialCommunityIcons name="check-circle" size={16} color="#10b981" style={{ marginRight: 4 }} />
                       <Text style={{ color: '#10b981', fontSize: 12, fontWeight: 'bold' }}>{t('বিদ্যমান কাস্টমার – তথ্য অটো-ফিল করা হয়েছে।', 'Existing customer - data auto-filled.')}</Text>
                     </View>
                   ) : null}
-                  <TextInput mode="outlined" label={t('কাস্টমারের নাম *', 'Customer Name *')} value={walkName} onChangeText={setWalkName} style={{ marginBottom: 8, backgroundColor: '#fff' }} />
+                  <TextInput mode="outlined" label={t('কাস্টমারের নাম *', 'Customer Name *')} value={walkName} onChangeText={setWalkName} style={{ marginBottom: 8, backgroundColor: theme.colors.surface }} />
                   <TextInput 
                     mode="outlined" 
                     label={isEmi ? t('ইমেইল (EMI এর জন্য আবশ্যক)', 'Email (Required for EMI)') : t('ইমেইল (ঐচ্ছিক)', 'Email (Optional)')} 
                     value={walkEmail} 
                     onChangeText={setWalkEmail} 
-                    style={{ marginBottom: 8, backgroundColor: '#fff' }} 
+                    style={{ marginBottom: 8, backgroundColor: theme.colors.surface }} 
                     keyboardType="email-address" 
                     error={isEmi && !walkEmail.trim()}
                   />
-                  {isEmi && !walkEmail.trim() && <Text style={{ color: 'red', fontSize: 12, marginTop: -4 }}>EMI-র জন্য Email আবশ্যক</Text>}
-                  <TextInput mode="outlined" label={t('ঠিকানা (ঐচ্ছিক)', 'Address (Optional)')} value={walkAddress} onChangeText={setWalkAddress} style={{ marginBottom: 8, backgroundColor: '#fff' }} />
+                  {isEmi && !walkEmail.trim() && <Text style={{ color: '#ef4444', fontSize: 12, marginTop: -4 }}>EMI-র জন্য Email আবশ্যক</Text>}
+                  <TextInput mode="outlined" label={t('ঠিকানা (ঐচ্ছিক)', 'Address (Optional)')} value={walkAddress} onChangeText={setWalkAddress} style={{ marginBottom: 8, backgroundColor: theme.colors.surface }} />
                 </View>
               )}
             </Surface>
@@ -834,49 +834,49 @@ export default function POSScreen() {
             )}
 
             {/* 3. Financials */}
-            <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 16, backgroundColor: '#fff' }}>
+            <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 16, backgroundColor: theme.colors.surface }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text>{t('সাবটোটাল', 'Subtotal')}</Text>
-                <Text>৳ {subtotal.toFixed(2)}</Text>
+                <Text style={{ color: theme.colors.onSurface }}>{t('সাবটোটাল', 'Subtotal')}</Text>
+                <Text style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>৳ {subtotal.toFixed(2)}</Text>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text>{t('ডিসকাউন্ট (৳)', 'Discount (৳)')}</Text>
+                <Text style={{ color: theme.colors.onSurface }}>{t('ডিসকাউন্ট (৳)', 'Discount (৳)')}</Text>
                 <TextInput
                   mode="outlined"
                   placeholder="0"
                   keyboardType="numeric"
                   value={discountInput}
                   onChangeText={setDiscountInput}
-                  style={{ height: 36, width: 100, backgroundColor: '#fff', textAlign: 'right' }}
+                  style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
                 />
               </View>
               {(user as any)?.shop_delivery_enabled !== false && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <Text>{t('ডেলিভারি চার্জ (৳)', 'Delivery Charge (৳)')}</Text>
+                  <Text style={{ color: theme.colors.onSurface }}>{t('ডেলিভারি চার্জ (৳)', 'Delivery Charge (৳)')}</Text>
                   <TextInput
                     mode="outlined"
                     placeholder="0"
                     keyboardType="numeric"
                     value={deliveryCharge}
                     onChangeText={setDeliveryCharge}
-                    style={{ height: 36, width: 100, backgroundColor: '#fff', textAlign: 'right' }}
+                    style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
                   />
                 </View>
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text>{isEmi ? t('ডাউন পেমেন্ট (৳) *', 'Down Payment (৳) *') : t('প্রদত্ত টাকা (৳) *', 'Paid Amount (৳) *')}</Text>
+                <Text style={{ color: theme.colors.onSurface }}>{isEmi ? t('ডাউন পেমেন্ট (৳) *', 'Down Payment (৳) *') : t('প্রদত্ত টাকা (৳) *', 'Paid Amount (৳) *')}</Text>
                 <TextInput
                   mode="outlined"
                   placeholder="0"
                   keyboardType="numeric"
                   value={paidAmount}
                   onChangeText={setPaidAmount}
-                  style={{ height: 36, width: 100, backgroundColor: '#fff', textAlign: 'right' }}
+                  style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
                 />
               </View>
               <Divider style={{ marginVertical: 8 }} />
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 18 }}>{t('মোট', 'Total')}</Text>
+                <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.colors.onSurface }}>{t('মোট', 'Total')}</Text>
                 <Text style={{ fontWeight: 'bold', fontSize: 24, color: theme.colors.primary }}>৳ {total.toFixed(2)}</Text>
               </View>
               
@@ -888,14 +888,14 @@ export default function POSScreen() {
               )}
               {paidAmount !== '' && paidNum < total && (
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <Text style={{ fontSize: 14, color: 'red', fontWeight: 'bold' }}>{t('বাকি', 'Due')}</Text>
-                  <Text style={{ fontSize: 16, color: 'red', fontWeight: 'bold' }}>৳ {(total - paidNum).toFixed(2)}</Text>
+                  <Text style={{ fontSize: 14, color: '#ef4444', fontWeight: 'bold' }}>{t('বাকি', 'Due')}</Text>
+                  <Text style={{ fontSize: 16, color: '#ef4444', fontWeight: 'bold' }}>৳ {(total - paidNum).toFixed(2)}</Text>
                 </View>
               )}
             </Surface>
 
             {/* 4. Payment Method */}
-            <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16 }}>{t('পেমেন্ট মাধ্যম', 'Payment Method')}</Text>
+            <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16, color: theme.colors.onSurface }}>{t('পেমেন্ট মাধ্যম', 'Payment Method')}</Text>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
               {(['cash', 'card', 'bkash', 'nagad', 'bank_transfer'] as const).map(method => (
                 <TouchableOpacity
@@ -903,21 +903,21 @@ export default function POSScreen() {
                   onPress={() => setPaymentMethod(method)}
                   style={{
                     flex: 1, minWidth: 95, padding: 8, borderRadius: 8, alignItems: 'center',
-                    borderWidth: 1, borderColor: paymentMethod === method ? theme.colors.primary : '#ccc',
-                    backgroundColor: paymentMethod === method ? theme.colors.primaryContainer : '#fff'
+                    borderWidth: 1, borderColor: paymentMethod === method ? theme.colors.primary : isDarkMode ? '#334155' : '#ccc',
+                    backgroundColor: paymentMethod === method ? (isDarkMode ? '#1e1b4b' : theme.colors.primaryContainer) : theme.colors.surface
                   }}
                 >
-                  <MaterialCommunityIcons name={method === 'cash' ? 'cash' : method === 'card' ? 'credit-card' : method === 'bank_transfer' ? 'bank' : 'cellphone'} size={20} color={paymentMethod === method ? theme.colors.primary : 'gray'} />
-                  <Text style={{ marginTop: 4, fontSize: 12, color: paymentMethod === method ? theme.colors.primary : 'gray', textTransform: 'capitalize' }}>{method.replace('_', ' ')}</Text>
+                  <MaterialCommunityIcons name={method === 'cash' ? 'cash' : method === 'card' ? 'credit-card' : method === 'bank_transfer' ? 'bank' : 'cellphone'} size={20} color={paymentMethod === method ? theme.colors.primary : (isDarkMode ? '#94a3b8' : 'gray')} />
+                  <Text style={{ marginTop: 4, fontSize: 12, color: paymentMethod === method ? theme.colors.primary : (isDarkMode ? '#94a3b8' : 'gray'), textTransform: 'capitalize', fontWeight: paymentMethod === method ? 'bold' : 'normal' }}>{method.replace('_', ' ')}</Text>
                 </TouchableOpacity>
               ))}
             </View>
 
             {/* EMI Options */}
             {!!(user as any)?.shop_emi_enabled && (
-              <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 24, backgroundColor: '#fff' }}>
+              <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 24, backgroundColor: theme.colors.surface }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#4338ca' }}>{t('ইএমআই (কিস্তি) সুবিধা', 'EMI Setup')}</Text>
+                  <Text style={{ fontWeight: 'bold', fontSize: 16, color: isDarkMode ? '#818cf8' : '#4338ca' }}>{t('ইএমআই (কিস্তি) সুবিধা', 'EMI Setup')}</Text>
                   <Checkbox.Android status={isEmi ? 'checked' : 'unchecked'} onPress={() => setIsEmi(!isEmi)} color="#4338ca" />
                 </View>
                 
@@ -925,17 +925,17 @@ export default function POSScreen() {
                   <View style={{ marginTop: 12 }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12, alignItems: 'flex-end' }}>
                       <View style={{ flex: 1, marginRight: 8 }}>
-                        <Text style={{ fontSize: 12, marginBottom: 8, color: 'gray', fontWeight: '600' }}>{t('কিস্তির মেয়াদ (মাস)', 'EMI Duration (Months)')}</Text>
+                        <Text style={{ fontSize: 12, marginBottom: 8, color: isDarkMode ? '#94a3b8' : 'gray', fontWeight: '600' }}>{t('কিস্তির মেয়াদ (মাস)', 'EMI Duration (Months)')}</Text>
                         <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
                           {[3, 6, 9, 12, 18, 24].map(m => (
-                            <TouchableOpacity key={m} onPress={() => setEmiMonths(m)} style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: emiMonths === m ? '#4338ca' : '#f1f5f9', marginRight: 6, marginBottom: 6 }}>
-                              <Text style={{ color: emiMonths === m ? '#fff' : '#64748b', fontSize: 13, fontWeight: emiMonths === m ? 'bold' : 'normal' }}>{m}</Text>
+                            <TouchableOpacity key={m} onPress={() => setEmiMonths(m)} style={{ paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16, backgroundColor: emiMonths === m ? '#4338ca' : (isDarkMode ? '#334155' : '#f1f5f9'), marginRight: 6, marginBottom: 6 }}>
+                              <Text style={{ color: emiMonths === m ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontSize: 13, fontWeight: emiMonths === m ? 'bold' : 'normal' }}>{m}</Text>
                             </TouchableOpacity>
                           ))}
                         </View>
                       </View>
                       <View style={{ width: 110 }}>
-                        <TextInput mode="outlined" label={t('ইন্টারেস্ট %', 'Interest %')} value={emiInterestPercent} onChangeText={setEmiInterestPercent} keyboardType="numeric" style={{ backgroundColor: '#fff' }} dense />
+                        <TextInput mode="outlined" label={t('ইন্টারেস্ট %', 'Interest %')} value={emiInterestPercent} onChangeText={setEmiInterestPercent} keyboardType="numeric" style={{ backgroundColor: theme.colors.surface }} dense />
                       </View>
                     </View>
                     
@@ -1221,13 +1221,13 @@ export default function POSScreen() {
         </TouchableOpacity>
       </Modal>
       <Modal visible={!!saleResult} transparent animationType="fade" onRequestClose={() => setSaleResult(null)}>
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <Surface style={{ width: '100%', maxWidth: 400, padding: 24, borderRadius: 12, backgroundColor: '#fff', alignItems: 'center' }}>
-            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
-              <MaterialCommunityIcons name="check" size={40} color="#16a34a" />
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Surface style={{ width: '100%', maxWidth: 400, padding: 24, borderRadius: 12, backgroundColor: theme.colors.surface, alignItems: 'center' }}>
+            <View style={{ width: 64, height: 64, borderRadius: 32, backgroundColor: isDarkMode ? '#064e3b' : '#dcfce7', justifyContent: 'center', alignItems: 'center', marginBottom: 16 }}>
+              <MaterialCommunityIcons name="check" size={40} color={isDarkMode ? '#4ade80' : '#16a34a'} />
             </View>
-            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8, textAlign: 'center' }}>{t('বিক্রি সম্পন্ন হয়েছে!', 'Sale Completed!')}</Text>
-            <Text style={{ fontSize: 14, color: 'gray', marginBottom: 24, textAlign: 'center' }}>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', marginBottom: 8, textAlign: 'center', color: theme.colors.onSurface }}>{t('বিক্রি সম্পন্ন হয়েছে!', 'Sale Completed!')}</Text>
+            <Text style={{ fontSize: 14, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 24, textAlign: 'center' }}>
               {t('ইনভয়েস', 'Invoice')}: {saleResult?.invoice_no}
             </Text>
 
@@ -1295,9 +1295,9 @@ export default function POSScreen() {
 
       {/* Custom Ad-hoc Item Modal */}
       <Modal visible={showCustomItemModal} onDismiss={() => setShowCustomItemModal(false)} transparent animationType="fade">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)', padding: 16 }}>
-          <Surface style={{ width: '100%', maxWidth: 400, borderRadius: 12, padding: 20, backgroundColor: '#fff', elevation: 5 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16 }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', padding: 16 }}>
+          <Surface style={{ width: '100%', maxWidth: 400, borderRadius: 12, padding: 20, backgroundColor: theme.colors.surface, elevation: 5 }}>
+            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: theme.colors.onSurface }}>
               {t('কাস্টম আইটেম যুক্ত করুন', 'Add Custom / Ad-hoc Item')}
             </Text>
             <TextInput
@@ -1305,7 +1305,7 @@ export default function POSScreen() {
               label={t('পণ্যের বা সেবার নাম', 'Item or Service Name')}
               value={customItemName}
               onChangeText={setCustomItemName}
-              style={{ marginBottom: 12, backgroundColor: '#fff' }}
+              style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
               placeholder={t('যেমন: স্পেশাল রিপেয়ার ফি', 'e.g. Special repair fee')}
             />
             <TextInput
@@ -1314,7 +1314,7 @@ export default function POSScreen() {
               value={customItemPrice}
               onChangeText={setCustomItemPrice}
               keyboardType="numeric"
-              style={{ marginBottom: 12, backgroundColor: '#fff' }}
+              style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
             />
             <TextInput
               mode="outlined"
@@ -1322,7 +1322,7 @@ export default function POSScreen() {
               value={customItemQty}
               onChangeText={setCustomItemQty}
               keyboardType="numeric"
-              style={{ marginBottom: 20, backgroundColor: '#fff' }}
+              style={{ marginBottom: 20, backgroundColor: theme.colors.surface }}
             />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
               <Button mode="outlined" onPress={() => setShowCustomItemModal(false)}>
