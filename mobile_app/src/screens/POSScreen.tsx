@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert, Modal, Dimensions, Linking, Platform, BackHandler } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert, Modal, Dimensions, Linking, Platform, BackHandler, Keyboard } from 'react-native';
 import { Text, Appbar, useTheme, Surface, IconButton, TextInput, Button, Divider, ActivityIndicator, Badge, Chip, Checkbox } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -84,6 +84,7 @@ export default function POSScreen() {
   const [customItemQty, setCustomItemQty] = useState('1');
 
   const handleAddCustomItem = () => {
+    Keyboard.dismiss();
     if (!customItemName.trim() || !customItemPrice) {
       Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'পণ্যের নাম ও বিক্রয় মূল্য দিন।' : 'Please enter item name and price.');
       return;
@@ -128,7 +129,7 @@ export default function POSScreen() {
     }, [view])
   );
 
-  const CART_DRAFT_KEY = 'stockwhisk_pos_cart_draft';
+  const CART_DRAFT_KEY = `stockwhisk_pos_cart_draft_${user?.id || 'default'}`;
 
   // Load draft cart on mount
   useEffect(() => {
@@ -150,7 +151,7 @@ export default function POSScreen() {
       } catch {}
     };
     loadDraft();
-  }, []);
+  }, [user?.id]);
 
   // Handle scanned barcode from external screens (e.g. Dashboard)
   useEffect(() => {
@@ -177,7 +178,7 @@ export default function POSScreen() {
       } catch {}
     };
     saveDraft();
-  }, [cart]);
+  }, [cart, user?.id]);
 
   useEffect(() => {
     if (customerMode === "existing" && selectedCustomer) {
@@ -426,6 +427,7 @@ export default function POSScreen() {
   const totalItemsCount = cart.reduce((s, l) => s + l.qty, 0);
 
   const handleCheckout = async (asQuotation: boolean = false) => {
+    Keyboard.dismiss();
     if (cart.length === 0) return;
     setIsCheckoutLoading(true);
     try {

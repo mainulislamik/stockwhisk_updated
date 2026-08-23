@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator, FlatList } from 'react-native';
+import { View, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator, FlatList, Keyboard } from 'react-native';
 import { Text, useTheme, TextInput, Button, Card, Divider, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -204,31 +204,36 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   };
 
   const saveProduct = async () => {
+    Keyboard.dismiss();
     if (!form.name.trim()) {
       Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'পণ্যের নাম আবশ্যক।' : 'Product name is required.');
       return;
     }
-    if (!form.selling_price) {
-      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'বিক্রয় মূল্য আবশ্যক।' : 'Selling price is required.');
+    const cleanSell = String(form.selling_price || '').trim().replace(/,/g, '');
+    if (!cleanSell || isNaN(Number(cleanSell))) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'সঠিক বিক্রয় মূল্য আবশ্যক।' : 'Valid selling price is required.');
       return;
     }
 
     setSaving(true);
     try {
+      const cleanCost = String(form.cost_price || '0').trim().replace(/,/g, '');
+      const cleanReorder = String(form.reorder_level || '5').trim().replace(/,/g, '');
+      const cleanStock = String(form.current_stock || '0').trim().replace(/,/g, '');
       const primaryBarcode = serialBarcodes.length > 0 ? serialBarcodes[0] : (currentBarcodeInput.trim() || form.barcode?.trim() || undefined);
 
       const payload: any = {
         name: form.name.trim(),
         sku: form.sku?.trim() || undefined,
         barcode: primaryBarcode,
-        cost_price: form.cost_price || '0',
-        selling_price: form.selling_price,
-        reorder_level: form.reorder_level ? Number(form.reorder_level) : 5,
+        cost_price: isNaN(Number(cleanCost)) ? '0' : cleanCost,
+        selling_price: cleanSell,
+        reorder_level: isNaN(Number(cleanReorder)) ? 5 : Number(cleanReorder),
         category: form.category || null,
       };
 
       if (isNew) {
-        const initialQty = Number(form.current_stock) || (serialBarcodes.length > 0 ? serialBarcodes.length : 0);
+        const initialQty = (!isNaN(Number(cleanStock)) ? Number(cleanStock) : 0) || (serialBarcodes.length > 0 ? serialBarcodes.length : 0);
         payload.initial_stock = initialQty;
         const res = await api.post('/catalog/products/', payload);
         const createdProd = res.data;

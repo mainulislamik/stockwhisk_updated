@@ -16,14 +16,16 @@ from .serializers import (
 
 class CategoryViewSet(TenantScopedViewSet):
     serializer_class = CategorySerializer
-    required_perm = "manage_products"
+    required_perm = "view_products"
+    required_write_perm = "manage_products"
 
     def get_queryset(self):
         return Category.objects.all()
 
 class ProductUnitViewSet(TenantScopedViewSet):
     serializer_class = ProductUnitSerializer
-    required_perm = "manage_products"
+    required_perm = "view_products"
+    required_write_perm = "manage_products"
 
     def get_queryset(self):
         qs = ProductUnit.objects.all()
