@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchAll } from "@/lib/api";
+import { api, fetchAll } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import ConvertQuotationModal from "@/components/ConvertQuotationModal";
 
 type InvoiceRow = {
   id: number;
@@ -46,52 +47,52 @@ export default function SalesPage() {
   const [error, setError] = useState("");
   const [filter, setFilter] = useState("");
   const [activeTab, setActiveTab] = useState<"all" | "sale" | "service" | "quotation">("all");
-  const [convertingId, setConvertingId] = useState<number | null>(null);
   const [busyAction, setBusyAction] = useState(false);
+  const [convertModalSale, setConvertModalSale] = useState<any | null>(null);
 
   async function loadData() {
+    setLoading(true);
+    setError("");
     try {
       const [salesData, serviceData] = await Promise.all([
         fetchAll<any>("/sales/sales/").catch(() => []),
         fetchAll<any>("/service/tickets/").catch(() => []),
       ]);
 
-      const saleRows: InvoiceRow[] = (salesData || []).map((s: any) => {
+      const salesList = (salesData || []).map((s: any) => {
         const isQ = s.status === "quotation" || s.status === "QUOTATION" || (s.note && String(s.note).toLowerCase().includes("quotation"));
         return {
           id: s.id,
           type: isQ ? "quotation" : "sale",
-          invoice_no: s.invoice_no || `#INV-${s.id}`,
+          invoice_no: s.invoice_no,
           customer_id: s.customer,
-          customer_name: s.customer_name,
-          date: s.sale_date || s.created_at,
-          total: s.total || "0",
-          paid: s.paid || "0",
-          due: s.due || "0",
-          status: s.status || "paid",
+          customer_name: s.customer_name || s.bill_name || (lang === "bn" ? "খুচরা ক্রেতা" : "Walk-in"),
+          date: s.sale_date,
+          total: s.total,
+          paid: s.paid,
+          due: s.due,
+          status: s.status,
           href: `/app/sales/${s.id}`,
-        };
+        } as InvoiceRow;
       });
 
-      const serviceRows: InvoiceRow[] = (serviceData || []).map((tk: any) => ({
+      const ticketsList = (serviceData || []).map((tk: any) => ({
         id: tk.id,
-        type: "service",
-        invoice_no: tk.ticket_no || `#SVC-${tk.id}`,
+        type: "service" as const,
+        invoice_no: tk.ticket_number || tk.ticket_no || `#SVC-${tk.id}`,
         customer_id: tk.customer,
         customer_name: tk.customer_name,
-        date: tk.received_at || tk.created_at,
-        total: tk.bill_total || "0",
-        paid: tk.paid || "0",
-        due: tk.due || "0",
-        status: tk.status || "received",
+        date: tk.received_at,
+        total: tk.total_charge || tk.bill_total || "0",
+        paid: tk.paid_amount || tk.paid || "0",
+        due: tk.due_amount || tk.due || "0",
+        status: tk.status,
         href: `/app/service/tickets/${tk.id}`,
       }));
 
-      const combined = [...saleRows, ...serviceRows].sort((a, b) => {
-        const da = new Date(a.date).getTime() || 0;
-        const db = new Date(b.date).getTime() || 0;
-        return db - da;
-      });
+      const combined = [...salesList, ...ticketsList].sort(
+        (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
 
       setRows(combined);
     } catch (e: any) {
@@ -106,14 +107,12 @@ export default function SalesPage() {
   }, []);
 
   async function handleConvertToSale(id: number) {
-    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত যে এই কোটেশনটিকে আসল বিক্রয় চালানে রূপান্তর করবেন?" : "Convert this quotation into a completed sale?")) return;
     setBusyAction(true);
     try {
-      const { api } = await import("@/lib/api");
-      await api(`/sales/sales/${id}/convert-quotation/`, { method: "POST", body: {} });
-      await loadData();
+      const saleData = await api<any>(`/sales/sales/${id}/`);
+      setConvertModalSale(saleData);
     } catch (e: any) {
-      alert(e?.message || "Failed to convert quotation");
+      alert(e?.message || "Failed to load quotation details");
     } finally {
       setBusyAction(false);
     }
@@ -317,6 +316,16 @@ export default function SalesPage() {
         </div>
         <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
       </div>
+
+      <ConvertQuotationModal
+        isOpen={!!convertModalSale}
+        onClose={() => setConvertModalSale(null)}
+        sale={convertModalSale}
+        onSuccess={() => {
+          setConvertModalSale(null);
+          loadData();
+        }}
+      />
     </div>
   );
 }

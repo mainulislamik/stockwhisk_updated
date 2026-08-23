@@ -162,14 +162,14 @@ export default function InvoicePage() {
               <div className="inv-status-badge" style={{ background: statusColor + "1a", color: statusColor, borderColor: statusColor }}>
                 ● {statusLabel}
               </div>
-              <div className="inv-title-text">INVOICE</div>
+              <div className="inv-title-text">{sale.status === "quotation" ? "QUOTATION" : "INVOICE"}</div>
             </div>
             <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
               <Barcode value={sale.invoice_no} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
             </div>
             <table className="inv-meta-table">
               <tbody>
-                <tr><td className="inv-meta-label">INVOICE #</td><td className="inv-meta-val">{sale.invoice_no}</td></tr>
+                <tr><td className="inv-meta-label">{sale.status === "quotation" ? "QUOTE #" : "INVOICE #"}</td><td className="inv-meta-val">{sale.invoice_no}</td></tr>
                 <tr><td className="inv-meta-label">DATE</td><td className="inv-meta-val">{fmtDate(sale.sale_date)}</td></tr>
                 {paymentMethods && <tr><td className="inv-meta-label">METHOD</td><td className="inv-meta-val">{paymentMethods}</td></tr>}
               </tbody>

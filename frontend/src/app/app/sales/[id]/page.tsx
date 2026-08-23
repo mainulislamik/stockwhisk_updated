@@ -8,8 +8,10 @@ import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
 import InvoiceLockModal from "@/components/InvoiceLockModal";
+import ConvertQuotationModal from "@/components/ConvertQuotationModal";
+import toast from "react-hot-toast";
 
-type SaleItem = { id: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
+type SaleItem = { id: number; product?: any; product_id?: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
 type Payment = { id: number; amount: string; method: string; paid_at: string; note: string };
 type Sale = {
   id: number;
@@ -37,7 +39,7 @@ type Sale = {
 };
 
 export default function SaleDetailPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user } = useAuth();
@@ -46,6 +48,7 @@ export default function SaleDetailPage() {
   const [error, setError] = useState("");
   const [showLockModal, setShowLockModal] = useState(false);
   const [lockReason, setLockReason] = useState("");
+  const [showConvertModal, setShowConvertModal] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -59,15 +62,35 @@ export default function SaleDetailPage() {
     })();
   }, [id]);
 
+  async function handleDeleteQuotation() {
+    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত যে এই কোটেশনটি মুছে ফেলবেন?" : "Delete this quotation?")) return;
+    try {
+      await api(`/sales/sales/${id}/`, { method: "DELETE" });
+      toast.success(lang === "bn" ? "কোটেশন মুছে ফেলা হয়েছে。" : "Quotation deleted.");
+      router.push("/app/sales");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to delete quotation");
+    }
+  }
+
   if (loading) return <Spinner label={t("inv_loading")} />;
   if (error) return <ErrorState error={error} />;
   if (!sale) return null;
+
+  const isQuotation = sale.status?.toLowerCase() === "quotation";
 
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div>
-          <h1 className="h4 fw-bold text-brand mb-0">{t("inv_title")} {sale.invoice_no || `#${sale.id}`}</h1>
+          <div className="d-flex align-items-center gap-2">
+            <h1 className="h4 fw-bold text-brand mb-0">{t("inv_title")} {sale.invoice_no || `#${sale.id}`}</h1>
+            {isQuotation && (
+              <span className="badge bg-info text-dark">
+                <i className="bi bi-file-earmark-text me-1"></i> {lang === "bn" ? "প্রাক-বিক্রয় কোটেশন" : "Quotation"}
+              </span>
+            )}
+          </div>
           <div className="text-secondary small">
             {sale.customer_name || t("inv_walk_in")} · {fmtDate(sale.sale_date)}
             {sale.is_corrected && <span className="badge bg-warning text-dark ms-2">{t("inv_corrected")}</span>}
@@ -77,7 +100,32 @@ export default function SaleDetailPage() {
           )}
         </div>
         <div className="d-flex gap-2 align-items-center">
-          {(() => {
+          {isQuotation ? (
+            <>
+              <button
+                type="button"
+                className="btn btn-success btn-sm d-flex align-items-center gap-1 shadow-sm"
+                onClick={() => setShowConvertModal(true)}
+              >
+                <i className="bi bi-cart-check-fill"></i>
+                <span>{lang === "bn" ? "বিক্রয়ে রূপান্তর করুন" : "Convert to Sale"}</span>
+              </button>
+
+              <Link href={`/app/sales/${sale.id}/edit`} className="btn btn-primary btn-sm d-flex align-items-center gap-1">
+                <i className="bi bi-pencil-square"></i>
+                <span>{lang === "bn" ? "কোটেশন সম্পাদন" : "Edit Quotation"}</span>
+              </Link>
+
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm d-flex align-items-center gap-1"
+                onClick={handleDeleteQuotation}
+              >
+                <i className="bi bi-trash"></i>
+                <span>{lang === "bn" ? "মুছুন" : "Delete"}</span>
+              </button>
+            </>
+          ) : (() => {
             if (user?.role !== "owner") return null;
             
             const saleDate = new Date(sale.sale_date).toLocaleDateString();
@@ -302,6 +350,16 @@ export default function SaleDetailPage() {
         invoiceType="sale"
         invoiceNo={sale.invoice_no || `#${sale.id}`}
         reason={lockReason}
+      />
+
+      {/* Convert Quotation to Sale Modal */}
+      <ConvertQuotationModal
+        isOpen={showConvertModal}
+        onClose={() => setShowConvertModal(false)}
+        sale={sale}
+        onSuccess={(updatedSale) => {
+          setSale(updatedSale);
+        }}
       />
     </div>
   );

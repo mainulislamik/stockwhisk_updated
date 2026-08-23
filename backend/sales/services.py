@@ -465,10 +465,9 @@ def cancel_sale(*, sale, created_by=None):
 @transaction.atomic
 def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, customer_id=None, customer_name=None, customer_phone=None, customer_address=None, created_by=None, correction_reason=""):
     """
-    Edit a completed sale's line items + discount (item 12). Ledger-safe:
-    reverses the old lines with SALE_RETURN_IN, deletes old SaleItems, then
-    re-sells the new lines with SALE_OUT — keeping the same invoice number.
-    Payments are untouched; the due is recomputed. Blocks cancelled/returned.
+    Edit a completed sale's line items + discount (item 12) or a quotation.
+    For sales: ledger-safe, reverses old lines, updates inventory & units.
+    For quotations: simply updates items, customer, and financials without stock/unit locking.
     """
     if sale.status in (Sale.Status.CANCELLED, Sale.Status.RETURNED, Sale.Status.PARTIALLY_RETURNED):
         raise ValueError("This sale can no longer be edited.")
@@ -476,14 +475,20 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
         raise ValueError("A sale needs at least one item.")
     if hasattr(sale, "emi_schedule"):
         raise ValueError("EMI sales cannot be corrected. Please cancel and recreate.")
-    if not correction_reason:
-        raise ValueError("A correction reason is required.")
+
+    is_quotation = sale.status == Sale.Status.QUOTATION
+    if not is_quotation:
+        if not correction_reason:
+            raise ValueError("A correction reason is required.")
         
-    local_sale_date = timezone.localtime(sale.sale_date).date()
-    local_today = timezone.localtime(timezone.now()).date()
-    is_owner = getattr(created_by, "role", "") == "owner" or getattr(created_by, "is_superuser", False)
-    if local_sale_date != local_today and not is_owner:
-        raise ValueError("Invoice locked: correction is only available on the day of creation.")
+        local_sale_date = timezone.localtime(sale.sale_date).date()
+        local_today = timezone.localtime(timezone.now()).date()
+        is_owner = getattr(created_by, "role", "") == "owner" or getattr(created_by, "is_superuser", False)
+        if local_sale_date != local_today and not is_owner:
+            raise ValueError("Invoice locked: correction is only available on the day of creation.")
+    else:
+        if not correction_reason:
+            correction_reason = "Quotation updated"
 
     old_total = sale.total or ZERO
     paid = sale.paid or ZERO
@@ -493,27 +498,28 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
     from catalog.models import ProductUnit
     from service.models import Warranty
 
-    # 1. Release physical units back to stock and void old warranties
-    ProductUnit.all_objects.filter(shop_id=sale.shop_id, sale=sale).update(
-        status=ProductUnit.Status.IN_STOCK, sale=None, sold_at=None
-    )
-    Warranty.all_objects.filter(shop_id=sale.shop_id, sale_item__sale=sale).update(status=Warranty.Status.VOID)
+    if not is_quotation:
+        # 1. Release physical units back to stock and void old warranties
+        ProductUnit.all_objects.filter(shop_id=sale.shop_id, sale=sale).update(
+            status=ProductUnit.Status.IN_STOCK, sale=None, sold_at=None
+        )
+        Warranty.all_objects.filter(shop_id=sale.shop_id, sale_item__sale=sale).update(status=Warranty.Status.VOID)
 
-    # 2. Reverse old stock, then drop the old lines.
-    for item in sale.items.select_related("product", "variation").all():
-        if item.product.track_inventory:
-            apply_movement(
-                shop=sale.shop, product=item.product, variation=item.variation,
-                movement_type=MovementType.SALE_RETURN_IN, quantity=item.quantity,
-                unit_cost=item.unit_cost, reference_type="Sale",
-                reference_id=sale.id, note="Edit: reverse", created_by=created_by,
-            )
+        # 2. Reverse old stock, then drop the old lines.
+        for item in sale.items.select_related("product", "variation").all():
+            if item.product.track_inventory:
+                apply_movement(
+                    shop=sale.shop, product=item.product, variation=item.variation,
+                    movement_type=MovementType.SALE_RETURN_IN, quantity=item.quantity,
+                    unit_cost=item.unit_cost, reference_type="Sale",
+                    reference_id=sale.id, note="Edit: reverse", created_by=created_by,
+                )
     sale.items.all().delete()
 
-    # 3. Validate stock (post-reversal) + re-sell the new lines.
+    # 3. Validate stock (for sales post-reversal) + create new lines.
     for row in items:
         product = row["product"]
-        if product.track_inventory:
+        if not is_quotation and product.track_inventory:
             product.refresh_from_db(fields=["current_stock"])
             qty = Decimal(str(row["quantity"]))
             if qty > product.current_stock:
@@ -533,7 +539,7 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
             discount=Decimal(str(row.get("discount", 0))),
         )
         subtotal += item.subtotal
-        if product.track_inventory:
+        if not is_quotation and product.track_inventory:
             apply_movement(
                 shop=sale.shop, product=product, variation=variation,
                 movement_type=MovementType.SALE_OUT, quantity=qty, unit_cost=unit_cost,
@@ -550,7 +556,7 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
     new_due = total - paid
     
     # Store original state for audit if not already corrected
-    if not sale.is_corrected:
+    if not sale.is_corrected and not is_quotation:
         sale.original_total = old_total
 
     if customer_id is not None:
@@ -570,9 +576,10 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
     sale.subtotal = subtotal
     sale.discount = discount
     sale.total = total
-    sale.status = _resolve_status(total, paid)
-    sale.is_corrected = True
-    sale.correction_reason = correction_reason
+    sale.status = Sale.Status.QUOTATION if is_quotation else _resolve_status(total, paid)
+    if not is_quotation:
+        sale.is_corrected = True
+        sale.correction_reason = correction_reason
     sale.save(update_fields=[
         "subtotal", "discount", "total", "status", "updated_at",
         "is_corrected", "correction_reason", "original_total",
@@ -580,24 +587,25 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
         "delivery_charge", "tax"
     ])
 
-    # 4. Adjust customer balances
-    new_customer = sale.customer
-    if old_customer and new_customer and old_customer.id == new_customer.id:
-        new_customer.due_balance = max(ZERO, (new_customer.due_balance or ZERO) + (new_due - old_due))
-        new_customer.total_purchased = max(ZERO, (new_customer.total_purchased or ZERO) + (total - old_total))
-        new_customer.save(update_fields=["due_balance", "total_purchased"])
-    else:
-        if old_customer:
-            old_customer.due_balance = max(ZERO, (old_customer.due_balance or ZERO) - old_due)
-            old_customer.total_purchased = max(ZERO, (old_customer.total_purchased or ZERO) - old_total)
-            old_customer.save(update_fields=["due_balance", "total_purchased"])
-        if new_customer:
-            new_customer.due_balance = max(ZERO, (new_customer.due_balance or ZERO) + new_due)
-            new_customer.total_purchased = max(ZERO, (new_customer.total_purchased or ZERO) + total)
+    if not is_quotation:
+        # 4. Adjust customer balances
+        new_customer = sale.customer
+        if old_customer and new_customer and old_customer.id == new_customer.id:
+            new_customer.due_balance = max(ZERO, (new_customer.due_balance or ZERO) + (new_due - old_due))
+            new_customer.total_purchased = max(ZERO, (new_customer.total_purchased or ZERO) + (total - old_total))
             new_customer.save(update_fields=["due_balance", "total_purchased"])
+        else:
+            if old_customer:
+                old_customer.due_balance = max(ZERO, (old_customer.due_balance or ZERO) - old_due)
+                old_customer.total_purchased = max(ZERO, (old_customer.total_purchased or ZERO) - old_total)
+                old_customer.save(update_fields=["due_balance", "total_purchased"])
+            if new_customer:
+                new_customer.due_balance = max(ZERO, (new_customer.due_balance or ZERO) + new_due)
+                new_customer.total_purchased = max(ZERO, (new_customer.total_purchased or ZERO) + total)
+                new_customer.save(update_fields=["due_balance", "total_purchased"])
 
-    # 5. Re-bind units and create new warranties for the new items
-    _mark_units_sold(sale.shop, sale, items)
+        # 5. Re-bind units and create new warranties for the new items
+        _mark_units_sold(sale.shop, sale, items)
 
     from analytics.services import invalidate_dashboard_cache
     invalidate_dashboard_cache(sale.shop_id)

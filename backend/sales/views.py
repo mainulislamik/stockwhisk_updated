@@ -608,12 +608,24 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
             return Response({"detail": "This invoice is not a quotation."}, status=status.HTTP_400_BAD_REQUEST)
         
         from django.db import transaction
+        from django.utils import timezone
         from inventory.models import MovementType
         from inventory.services import apply_movement
         from accounting.models import LedgerEntry
+        from catalog.models import ProductUnit
+        from service.models import Warranty
         from .models import Payment
         from audit.models import AuditLog
         from audit.services import record
+
+        items_input = request.data.get("items", [])
+        # Map by sale_item_id or product_id
+        items_map = {}
+        for row in items_input:
+            if row.get("sale_item_id"):
+                items_map[str(row["sale_item_id"])] = row.get("unit_ids", [])
+            if row.get("product_id"):
+                items_map[str(row["product_id"])] = row.get("unit_ids", [])
 
         payments_data = request.data.get("payments", [])
         paid_amount = Decimal(str(request.data.get("paid_amount", 0) or 0))
@@ -621,16 +633,87 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
         if not payments_data and paid_amount > 0:
             payments_data = [{"amount": paid_amount, "method": payment_method}]
 
+        today = timezone.localdate()
+
         with transaction.atomic():
-            # 1. Deduct stock for all tracked items
+            # 1. Deduct stock and assign unit barcodes for all tracked items
             for item in sale.items.select_related("product", "variation").all():
-                if item.product.track_inventory:
+                product = item.product
+                try:
+                    need = int(item.quantity)
+                except (TypeError, ValueError):
+                    need = 1
+
+                # Check if product uses serialized units (has in-stock ProductUnits)
+                has_in_stock_units = ProductUnit.objects.filter(
+                    shop_id=request.user.shop_id,
+                    product=product,
+                    status=ProductUnit.Status.IN_STOCK
+                ).exists()
+
+                req_unit_ids = items_map.get(str(item.id)) or items_map.get(str(product.id)) or []
+
+                if has_in_stock_units:
+                    if len(req_unit_ids) < need:
+                        return Response({
+                            "detail": f"Please assign {need} barcode(s) for '{product.name}'. (You provided {len(req_unit_ids)})."
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                    
+                    valid_units = list(ProductUnit.objects.filter(
+                        shop_id=request.user.shop_id,
+                        product=product,
+                        status=ProductUnit.Status.IN_STOCK,
+                        id__in=req_unit_ids[:need]
+                    ))
+                    if len(valid_units) < need:
+                        return Response({
+                            "detail": f"Some selected barcodes for '{product.name}' are no longer in stock. Please refresh."
+                        }, status=status.HTTP_400_BAD_REQUEST)
+
+                    selected_ids = [u.id for u in valid_units]
+                    ProductUnit.objects.filter(id__in=selected_ids).update(
+                        status=ProductUnit.Status.SOLD,
+                        sale=sale,
+                        sold_at=timezone.now()
+                    )
+
+                    # Start / bind warranties for these units
+                    started = 0
+                    for u in valid_units:
+                        w_qs = Warranty.objects.filter(shop_id=request.user.shop_id, product_unit=u)
+                        if w_qs.exists():
+                            w_qs.update(
+                                customer=sale.customer,
+                                sale_item=item,
+                                start_date=today,
+                                status=Warranty.Status.ACTIVE
+                            )
+                            started += 1
+                        else:
+                            months = u.warranty_months or product.warranty_months or 0
+                            if months > 0:
+                                Warranty.objects.create(
+                                    shop_id=request.user.shop_id,
+                                    product=product,
+                                    product_unit=u,
+                                    customer=sale.customer,
+                                    sale_item=item,
+                                    serial_no=u.barcode,
+                                    period_months=months,
+                                    start_date=today,
+                                    status=Warranty.Status.ACTIVE
+                                )
+                                started += 1
+
+                if product.track_inventory:
                     if not getattr(request.user.shop, "offline_sale_mode", False):
-                        if item.product.current_stock < item.quantity:
-                            return Response({"detail": f"'{item.product.name}' lacks sufficient stock ({item.product.current_stock} available)."}, status=status.HTTP_400_BAD_REQUEST)
+                        if product.current_stock < item.quantity:
+                            return Response({
+                                "detail": f"'{product.name}' lacks sufficient stock ({product.current_stock} available)."
+                            }, status=status.HTTP_400_BAD_REQUEST)
                     apply_movement(
                         shop=request.user.shop,
-                        product=item.product,
+                        product=product,
                         variation=item.variation,
                         movement_type=MovementType.SALE_OUT,
                         quantity=item.quantity,
@@ -672,13 +755,17 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
                 sale.status = Sale.Status.PARTIAL
             else:
                 sale.status = Sale.Status.DUE
-            sale.save(update_fields=["paid", "status"])
+            sale.sale_date = timezone.now()
+            sale.save(update_fields=["paid", "status", "sale_date"])
 
             # 3. Update customer balance
             if sale.customer is not None:
                 due = max(Decimal("0"), sale.total - total_paid)
                 from .services import _update_customer_after_sale
                 _update_customer_after_sale(sale.customer, total=sale.total, due=due, when=sale.sale_date)
+
+            from analytics.services import invalidate_dashboard_cache
+            invalidate_dashboard_cache(sale.shop_id)
 
             record(
                 action=AuditLog.Action.UPDATE,

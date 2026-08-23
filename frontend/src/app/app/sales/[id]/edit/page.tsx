@@ -81,7 +81,7 @@ type CartItem = {
 type CustomerHit = { id: number; name: string; phone: string; address?: string };
 
 export default function EditInvoicePage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { user, isOwner, can } = useAuth();
@@ -422,6 +422,7 @@ export default function EditInvoicePage() {
   const total = Math.max(0, subtotal - saleDiscount + saleTax + saleDelivery);
   const previouslyPaid = sale ? Number(sale.paid) || 0 : 0;
   const newDue = total - previouslyPaid;
+  const isQuotation = sale?.status?.toLowerCase() === "quotation";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -429,7 +430,7 @@ export default function EditInvoicePage() {
       toast.error(t("edit_err_cart_empty"));
       return;
     }
-    if (!reason.trim()) {
+    if (!isQuotation && !reason.trim()) {
       toast.error(t("edit_err_reason_req"));
       return;
     }
@@ -444,7 +445,7 @@ export default function EditInvoicePage() {
             quantity: c.quantity,
             unit_price: c.unit_price,
             discount: c.discount,
-            unit_ids: c.selectedUnits ? c.selectedUnits.filter(u => u.id > 0).map(u => u.id) : [],
+            unit_ids: isQuotation ? [] : (c.selectedUnits ? c.selectedUnits.filter(u => u.id > 0).map(u => u.id) : []),
           })),
           discount: saleDiscount,
           tax: saleTax,
@@ -453,10 +454,10 @@ export default function EditInvoicePage() {
           customer_name: customerName.trim(),
           customer_phone: customerPhone.trim(),
           customer_address: customerAddress.trim(),
-          correction_reason: reason.trim()
+          correction_reason: isQuotation ? (reason.trim() || "Quotation updated") : reason.trim()
         }
       });
-      toast.success(t("edit_success"));
+      toast.success(isQuotation ? (lang === "bn" ? "কোটেশন আপডেট হয়েছে!" : "Quotation updated!") : t("edit_success"));
       router.push(`/app/sales/${id}`);
     } catch (err: any) {
       toast.error(err?.data?.detail || err?.message || t("edit_failed"));
@@ -485,9 +486,13 @@ export default function EditInvoicePage() {
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
             <Link href={`/app/sales/${id}`} className="btn btn-outline-secondary btn-sm">&larr; {t("edit_btn_back")}</Link>
-            <h1 className="h4 fw-bold text-brand mb-0">{t("edit_title")} {sale.invoice_no}</h1>
+            <h1 className="h4 fw-bold text-brand mb-0">
+              {isQuotation ? (lang === "bn" ? "কোটেশন সম্পাদন" : "Edit Quotation") : t("edit_title")} {sale.invoice_no}
+            </h1>
           </div>
-          <span className="badge bg-primary fs-6 font-monospace">#{sale.invoice_no}</span>
+          <span className={`badge fs-6 font-monospace ${isQuotation ? "bg-info text-dark" : "bg-primary"}`}>
+            #{sale.invoice_no} {isQuotation ? `(${lang === "bn" ? "কোটেশন" : "Quotation"})` : ""}
+          </span>
         </div>
       </div>
 
@@ -748,16 +753,18 @@ export default function EditInvoicePage() {
               </div>
             </div>
 
-            {/* Correction Reason */}
+            {/* Correction Reason / Note */}
             <div className="mt-4 pt-3 border-top">
-              <label className="form-label small fw-bold text-danger">{t("edit_lbl_reason")} *</label>
+              <label className={`form-label small fw-bold ${isQuotation ? "text-secondary" : "text-danger"}`}>
+                {isQuotation ? (lang === "bn" ? "নোট (ঐচ্ছিক)" : "Note (Optional)") : `${t("edit_lbl_reason")} *`}
+              </label>
               <textarea 
                 className="form-control form-control-sm" 
                 rows={2} 
-                placeholder={t("edit_reason_ph")}
+                placeholder={isQuotation ? (lang === "bn" ? "কোটেশনের সাথে কোনো নোট যুক্ত করতে পারেন..." : "Add a note for this quotation...") : t("edit_reason_ph")}
                 value={reason} 
                 onChange={e => setReason(e.target.value)}
-                required
+                required={!isQuotation}
               />
             </div>
           </div>

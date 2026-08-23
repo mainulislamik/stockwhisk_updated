@@ -140,7 +140,7 @@ export default function PosCustomerPage() {
             quantity: l.qty, 
             unit_price: l.price, 
             discount: l.discount,
-            unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : []
+            unit_ids: asQuotation ? [] : (l.selectedUnits ? l.selectedUnits.map(u => u.id) : [])
           })),
           payments: asQuotation ? [] : (finalPaid > 0 ? [{ amount: finalPaid, method }] : []),
           sale_date: user?.shop_offline_sale_mode && saleDate ? new Date(saleDate).toISOString() : undefined,
