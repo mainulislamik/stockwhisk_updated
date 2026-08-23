@@ -749,6 +749,24 @@ export default function POSScreen() {
                   placeholder="YYYY-MM-DDTHH:mm"
                   style={{ backgroundColor: '#fff' }} 
                 />
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 8, alignItems: 'center' }}>
+                  <Button
+                    mode="outlined"
+                    compact
+                    onPress={() => {
+                      const now = new Date();
+                      const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                      setSaleDate(localIso);
+                    }}
+                  >
+                    {isBN ? '⏱️ বর্তমান সময়' : '⏱️ Current Time'}
+                  </Button>
+                  {!!saleDate && (
+                    <Button mode="text" compact textColor="#dc2626" onPress={() => setSaleDate('')}>
+                      {isBN ? 'রিসেট' : 'Reset'}
+                    </Button>
+                  )}
+                </View>
               </Surface>
             )}
 

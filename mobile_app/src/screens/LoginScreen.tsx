@@ -20,11 +20,14 @@ import {
   Divider,
 } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import * as SecureStore from 'expo-secure-store';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 
 type AuthMode = 'login' | 'signup' | 'forgot';
+
+const REMEMBER_EMAIL_KEY = 'stockwhisk_remembered_email';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -42,6 +45,25 @@ export default function LoginScreen() {
   const [loginPassword, setLoginPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(true);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+
+  // Load remembered email on mount
+  useEffect(() => {
+    const loadRememberedEmail = async () => {
+      try {
+        let saved = '';
+        if (Platform.OS === 'web') {
+          saved = localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
+        } else {
+          saved = (await SecureStore.getItemAsync(REMEMBER_EMAIL_KEY)) || '';
+        }
+        if (saved) {
+          setLoginEmail(saved);
+          setRememberMe(true);
+        }
+      } catch {}
+    };
+    loadRememberedEmail();
+  }, []);
 
   // 2. Signup State
   const [signupStep, setSignupStep] = useState<1 | 2>(1);
@@ -115,6 +137,16 @@ export default function LoginScreen() {
         email: loginEmail.trim().toLowerCase(),
         password: loginPassword,
       });
+      try {
+        if (rememberMe) {
+          if (Platform.OS === 'web') localStorage.setItem(REMEMBER_EMAIL_KEY, loginEmail.trim());
+          else await SecureStore.setItemAsync(REMEMBER_EMAIL_KEY, loginEmail.trim());
+        } else {
+          if (Platform.OS === 'web') localStorage.removeItem(REMEMBER_EMAIL_KEY);
+          else await SecureStore.deleteItemAsync(REMEMBER_EMAIL_KEY);
+        }
+      } catch {}
+
       await login(res.data.access, res.data.refresh);
     } catch (e: any) {
       if (e.message === 'Network Error') {

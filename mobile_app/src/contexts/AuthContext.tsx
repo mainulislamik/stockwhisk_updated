@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
-import { api, setMemoryToken, setOnSessionExpired } from '../api';
+import { api, setMemoryToken, setMemoryRefreshToken, setOnSessionExpired } from '../api';
 
 type User = {
   id: number;
@@ -112,6 +112,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       await SecureStore.deleteItemAsync('refresh_token');
     }
     setMemoryToken(null);
+    setMemoryRefreshToken(null);
     setUser(null);
     setBilling(null);
   };
