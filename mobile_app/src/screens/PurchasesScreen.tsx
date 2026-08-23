@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme } from 'react-native-paper';
+import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -171,8 +171,8 @@ export default function PurchasesScreen() {
 
       {/* PO Detail Modal */}
       {selectedPO && (
-        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
-          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+        <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
           <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
             <Card style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}>
               <Card.Title
