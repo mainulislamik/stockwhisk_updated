@@ -49,6 +49,10 @@ export default function POSScreen() {
   const [selectedProductForUnit, setSelectedProductForUnit] = useState<Product | null>(null);
   const [tempSelectedUnits, setTempSelectedUnits] = useState<ProductUnit[]>([]);
   const [fetchingUnits, setFetchingUnits] = useState(false);
+  const [modalQty, setModalQty] = useState('1');
+  const [modalPrice, setModalPrice] = useState('');
+  const [modalDiscount, setModalDiscount] = useState('0');
+  const [unitSearchQuery, setUnitSearchQuery] = useState('');
 
   // Cart / Checkout State
   const [customerQuery, setCustomerQuery] = useState('');
@@ -242,22 +246,39 @@ export default function POSScreen() {
     setFetchingUnits(true);
     try {
       const res = await api.get(`/catalog/products/${product.id}/`);
-      const fullProduct = res.data;
-      if (fullProduct.units && fullProduct.units.length > 0) {
-        setSelectedProductForUnit(fullProduct);
-        const existingLine = cart.find(l => l.product.id === fullProduct.id);
-        if (existingLine) {
-          setTempSelectedUnits(existingLine.selectedUnits);
-        } else {
-          setTempSelectedUnits([]);
-        }
-        setUnitModalVisible(true);
+      const fullProduct = res.data || product;
+      setSelectedProductForUnit(fullProduct);
+      setUnitSearchQuery('');
+      const existingLine = cart.find(l => l.product.id === fullProduct.id);
+      if (existingLine) {
+        setTempSelectedUnits(existingLine.selectedUnits || []);
+        setModalQty(String(existingLine.qty || 1));
+        setModalPrice(String(existingLine.price !== undefined ? existingLine.price : fullProduct.selling_price));
+        setModalDiscount(String(existingLine.discount || 0));
       } else {
-        addToCart(product, []);
+        setTempSelectedUnits([]);
+        setModalQty('1');
+        setModalPrice(String(fullProduct.selling_price || '0'));
+        setModalDiscount('0');
       }
+      setUnitModalVisible(true);
     } catch (e) {
       console.log('Error fetching full product', e);
-      addToCart(product, []);
+      setSelectedProductForUnit(product);
+      setUnitSearchQuery('');
+      const existingLine = cart.find(l => l.product.id === product.id);
+      if (existingLine) {
+        setTempSelectedUnits(existingLine.selectedUnits || []);
+        setModalQty(String(existingLine.qty || 1));
+        setModalPrice(String(existingLine.price !== undefined ? existingLine.price : product.selling_price));
+        setModalDiscount(String(existingLine.discount || 0));
+      } else {
+        setTempSelectedUnits([]);
+        setModalQty('1');
+        setModalPrice(String(product.selling_price || '0'));
+        setModalDiscount('0');
+      }
+      setUnitModalVisible(true);
     } finally {
       setFetchingUnits(false);
     }
@@ -272,9 +293,51 @@ export default function POSScreen() {
   };
 
   const confirmUnitSelection = () => {
-    if (selectedProductForUnit) {
-      addToCart(selectedProductForUnit, tempSelectedUnits, tempSelectedUnits.length);
+    if (!selectedProductForUnit) return;
+    
+    const hasUnits = Array.isArray(selectedProductForUnit.units) && selectedProductForUnit.units.length > 0;
+    const priceNum = parseFloat(modalPrice) || Number(selectedProductForUnit.selling_price) || 0;
+    const discountNum = parseFloat(modalDiscount) || 0;
+    
+    let finalQty = 1;
+    if (hasUnits) {
+      finalQty = tempSelectedUnits.length;
+      if (finalQty === 0) {
+        Alert.alert(
+          isBN ? 'সতর্কতা' : 'Warning',
+          isBN ? 'অনুগ্রহ করে কমপক্ষে ১টি ইউনিট বা বারকোড নির্বাচন করুন।' : 'Please select at least 1 unit or barcode.'
+        );
+        return;
+      }
+    } else {
+      finalQty = parseFloat(modalQty) || 1;
+      if (finalQty <= 0) {
+        Alert.alert(
+          isBN ? 'সতর্কতা' : 'Warning',
+          isBN ? 'কমপক্ষে ১টি পরিমাণ নির্বাচন করুন।' : 'Please enter a quantity of at least 1.'
+        );
+        return;
+      }
     }
+
+    setCart(prev => {
+      const idx = prev.findIndex(l => l.product.id === selectedProductForUnit.id);
+      const newLine: CartLine = {
+        product: selectedProductForUnit,
+        qty: finalQty,
+        price: priceNum,
+        discount: discountNum,
+        selectedUnits: hasUnits ? tempSelectedUnits : [],
+      };
+      if (idx >= 0) {
+        const nextCart = [...prev];
+        nextCart[idx] = newLine;
+        return nextCart;
+      } else {
+        return [...prev, newLine];
+      }
+    });
+
     setUnitModalVisible(false);
     setSelectedProductForUnit(null);
     setTempSelectedUnits([]);
@@ -936,61 +999,224 @@ export default function POSScreen() {
 
       <Modal visible={unitModalVisible} transparent animationType="fade" onRequestClose={() => setUnitModalVisible(false)}>
         <TouchableOpacity 
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} 
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }} 
           activeOpacity={1} 
           onPressOut={() => setUnitModalVisible(false)}
         >
-          <TouchableOpacity activeOpacity={1} style={{ maxHeight: '80%', width: '100%', maxWidth: 500, flexShrink: 1 }}>
-            <Surface style={{ borderRadius: 12, padding: 16, backgroundColor: '#fff', flexShrink: 1 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexShrink: 0 }}>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+          <TouchableOpacity activeOpacity={1} style={{ maxHeight: '90%', width: '100%', maxWidth: 480, flexShrink: 1 }}>
+            <Surface style={{ borderRadius: 16, padding: 18, backgroundColor: theme.colors.surface, elevation: 8, flexShrink: 1 }}>
+              {/* Modal Header */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9', paddingBottom: 10 }}>
+                <View style={{ flex: 1, paddingRight: 8 }}>
+                  <Text style={{ fontSize: 17, fontWeight: 'bold', color: theme.colors.onSurface }}>
                     {selectedProductForUnit?.name}
                   </Text>
-                  <Text style={{ color: 'gray', marginTop: 4 }}>{t('ইউনিট নির্বাচন করুন', 'Select units')}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8, flexWrap: 'wrap' }}>
+                    <Text style={{ fontSize: 11, color: '#64748b' }}>
+                      SKU: {selectedProductForUnit?.sku || 'N/A'}
+                    </Text>
+                    <View style={{ backgroundColor: Number(selectedProductForUnit?.current_stock || 0) > 0 ? '#dcfce7' : '#fee2e2', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: Number(selectedProductForUnit?.current_stock || 0) > 0 ? '#16a34a' : '#dc2626' }}>
+                        {isBN ? `মজুদ: ${selectedProductForUnit?.current_stock || 0}` : `Stock: ${selectedProductForUnit?.current_stock || 0}`}
+                      </Text>
+                    </View>
+                  </View>
                 </View>
-                <IconButton icon="close" size={24} onPress={() => setUnitModalVisible(false)} style={{ margin: 0, marginTop: -8, marginRight: -8 }} />
+                <IconButton icon="close" size={22} onPress={() => setUnitModalVisible(false)} style={{ margin: 0, marginTop: -6, marginRight: -6 }} />
               </View>
               
-              <ScrollView style={{ marginBottom: 16, flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 4 }}>
-              {selectedProductForUnit?.units?.map(u => {
-                const isSelected = tempSelectedUnits.some(tu => tu.id === u.id);
-                return (
-                  <TouchableOpacity
-                    key={u.id}
-                    onPress={() => toggleUnitSelection(u)}
-                    style={{
-                      flexDirection: 'row', alignItems: 'center', padding: 12, borderRadius: 8,
-                      borderWidth: 1, borderColor: isSelected ? theme.colors.primary : '#eee',
-                      backgroundColor: isSelected ? theme.colors.primaryContainer : '#fff',
-                      marginBottom: 8
-                    }}
-                  >
-                    <Checkbox status={isSelected ? 'checked' : 'unchecked'} />
-                    <View style={{ flex: 1, marginLeft: 8 }}>
-                      <Text style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>{u.barcode}</Text>
-                      {!!u.effective_warranty_months && (
-                        <Text style={{ fontSize: 10, color: '#f59e0b' }}><MaterialCommunityIcons name="shield-check" size={10} /> {u.effective_warranty_months} Months</Text>
+              <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 6 }}>
+                {/* 1. If Serialized / Units Available */}
+                {selectedProductForUnit?.units && selectedProductForUnit.units.length > 0 ? (
+                  <View style={{ marginBottom: 14 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 13, color: theme.colors.onSurface }}>
+                        🏷️ {isBN ? `বারকোড / সিরিয়াল নির্বাচন (${tempSelectedUnits.length} টি)` : `Select Barcodes (${tempSelectedUnits.length})`}
+                      </Text>
+                      {selectedProductForUnit.units.length > 1 && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            if (tempSelectedUnits.length === selectedProductForUnit.units?.length) {
+                              setTempSelectedUnits([]);
+                            } else {
+                              setTempSelectedUnits([...(selectedProductForUnit.units || [])]);
+                            }
+                          }}
+                        >
+                          <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: 'bold' }}>
+                            {tempSelectedUnits.length === selectedProductForUnit.units?.length 
+                              ? (isBN ? 'সব বাতিল' : 'Deselect All') 
+                              : (isBN ? 'সব নির্বাচন' : 'Select All')}
+                          </Text>
+                        </TouchableOpacity>
                       )}
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Text style={{ color: 'gray', fontSize: 10 }}>Cost: ৳{u.effective_cost_price || selectedProductForUnit.cost_price}</Text>
-                      <Text style={{ fontWeight: 'bold' }}>৳{u.effective_selling_price || selectedProductForUnit.selling_price}</Text>
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
 
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
-              <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>
-                {tempSelectedUnits.length} {t('নির্বাচিত', 'selected')}
-              </Text>
-              <Button mode="contained" onPress={confirmUnitSelection}>
-                {t('সম্পন্ন', 'Done')}
-              </Button>
-            </View>
-          </Surface>
+                    {selectedProductForUnit.units.length > 4 && (
+                      <TextInput
+                        mode="outlined"
+                        dense
+                        placeholder={isBN ? 'বারকোড বা সিরিয়াল খুঁজুন...' : 'Search barcode / serial...'}
+                        value={unitSearchQuery}
+                        onChangeText={setUnitSearchQuery}
+                        style={{ marginBottom: 8, backgroundColor: theme.colors.surface, height: 38 }}
+                        left={<TextInput.Icon icon="magnify" size={18} />}
+                      />
+                    )}
+
+                    <View style={{ maxHeight: 200 }}>
+                      <ScrollView nestedScrollEnabled style={{ flexGrow: 0 }}>
+                        {selectedProductForUnit.units
+                          .filter(u => !unitSearchQuery || String(u.barcode || '').toLowerCase().includes(unitSearchQuery.toLowerCase()))
+                          .map(u => {
+                            const isSelected = tempSelectedUnits.some(tu => tu.id === u.id);
+                            return (
+                              <TouchableOpacity
+                                key={u.id}
+                                onPress={() => toggleUnitSelection(u)}
+                                style={{
+                                  flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
+                                  borderWidth: 1, borderColor: isSelected ? '#4f46e5' : isDarkMode ? '#334155' : '#e2e8f0',
+                                  backgroundColor: isSelected ? (isDarkMode ? '#1e1b4b' : '#eff6ff') : theme.colors.surface,
+                                  marginBottom: 6
+                                }}
+                              >
+                                <Checkbox status={isSelected ? 'checked' : 'unchecked'} color="#4f46e5" />
+                                <View style={{ flex: 1, marginLeft: 6 }}>
+                                  <Text style={{ fontFamily: 'monospace', fontWeight: 'bold', fontSize: 13, color: theme.colors.onSurface }}>
+                                    {u.barcode}
+                                  </Text>
+                                  {!!u.effective_warranty_months && (
+                                    <Text style={{ fontSize: 10, color: '#d97706' }}>
+                                      <MaterialCommunityIcons name="shield-check" size={10} /> {u.effective_warranty_months} {isBN ? 'মাস ওয়ারেন্টি' : 'Months Warranty'}
+                                    </Text>
+                                  )}
+                                </View>
+                                <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#16a34a' }}>
+                                  ৳{u.effective_selling_price || selectedProductForUnit.selling_price}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </ScrollView>
+                    </View>
+                  </View>
+                ) : (
+                  /* 2. Non-serialized / Bulk Quantity Selector */
+                  <View style={{ marginBottom: 14, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', padding: 12, borderRadius: 10 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 8, color: theme.colors.onSurface }}>
+                      📦 {isBN ? 'পরিমাণ (Quantity)' : 'Quantity'}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          const current = parseFloat(modalQty) || 1;
+                          if (current > 1) setModalQty(String(current - 1));
+                        }}
+                        style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        <MaterialCommunityIcons name="minus" size={20} color={theme.colors.onSurface} />
+                      </TouchableOpacity>
+
+                      <TextInput
+                        mode="outlined"
+                        dense
+                        keyboardType="numeric"
+                        value={modalQty}
+                        onChangeText={setModalQty}
+                        style={{ flex: 1, textAlign: 'center', fontWeight: 'bold', fontSize: 16, height: 40, backgroundColor: theme.colors.surface }}
+                      />
+
+                      <TouchableOpacity
+                        onPress={() => {
+                          const current = parseFloat(modalQty) || 0;
+                          setModalQty(String(current + 1));
+                        }}
+                        style={{ width: 40, height: 40, borderRadius: 8, backgroundColor: '#4f46e5', justifyContent: 'center', alignItems: 'center' }}
+                      >
+                        <MaterialCommunityIcons name="plus" size={20} color="#fff" />
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Quick quantity chips */}
+                    <View style={{ flexDirection: 'row', gap: 6, marginTop: 8 }}>
+                      {[1, 2, 5, 10].map(q => (
+                        <TouchableOpacity
+                          key={q}
+                          onPress={() => setModalQty(String(q))}
+                          style={{
+                            paddingHorizontal: 12, paddingVertical: 4, borderRadius: 6,
+                            backgroundColor: modalQty === String(q) ? '#4f46e5' : isDarkMode ? '#334155' : '#e2e8f0'
+                          }}
+                        >
+                          <Text style={{ fontSize: 11, fontWeight: 'bold', color: modalQty === String(q) ? '#fff' : theme.colors.onSurface }}>
+                            {q}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                )}
+
+                {/* 3. Price & Item Discount row */}
+                <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>
+                      {isBN ? 'একক মূল্য (৳)' : 'Unit Price (৳)'}
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      keyboardType="numeric"
+                      value={modalPrice}
+                      onChangeText={setModalPrice}
+                      style={{ height: 40, backgroundColor: theme.colors.surface }}
+                    />
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 4 }}>
+                      {isBN ? 'আইটেম ছাড় (৳)' : 'Item Discount (৳)'}
+                    </Text>
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      keyboardType="numeric"
+                      placeholder="0"
+                      value={modalDiscount}
+                      onChangeText={setModalDiscount}
+                      style={{ height: 40, backgroundColor: theme.colors.surface }}
+                    />
+                  </View>
+                </View>
+              </ScrollView>
+
+              {/* Modal Footer / Total & Add to Cart button */}
+              <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9', paddingTop: 12, flexShrink: 0 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <Text style={{ fontSize: 13, color: '#64748b' }}>
+                    {isBN ? 'মোট নির্বাচিত' : 'Total Items'}: <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>
+                      {selectedProductForUnit?.units && selectedProductForUnit.units.length > 0 
+                        ? `${tempSelectedUnits.length} টি` 
+                        : `${modalQty} টি`}
+                    </Text>
+                  </Text>
+                  <Text style={{ fontSize: 17, fontWeight: 'bold', color: '#4f46e5' }}>
+                    ৳{Math.max(0, (((selectedProductForUnit?.units && selectedProductForUnit.units.length > 0 ? tempSelectedUnits.length : (parseFloat(modalQty) || 1)) * (parseFloat(modalPrice) || 0)) - (parseFloat(modalDiscount) || 0))).toFixed(2)}
+                  </Text>
+                </View>
+
+                <Button 
+                  mode="contained" 
+                  icon="cart-plus"
+                  onPress={confirmUnitSelection}
+                  style={{ borderRadius: 8, backgroundColor: '#4f46e5' }}
+                  labelStyle={{ fontSize: 14, fontWeight: 'bold', paddingVertical: 2 }}
+                >
+                  {isBN ? 'কার্টে যুক্ত করুন' : 'Add to Cart'}
+                </Button>
+              </View>
+            </Surface>
           </TouchableOpacity>
         </TouchableOpacity>
       </Modal>
