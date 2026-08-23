@@ -768,35 +768,57 @@ export default function PurchaseProductPage() {
         {/* ── Bulk Barcode Scan Card ───────────────────────────────────────── */}
         <div className="card shadow-sm mb-3">
           <div className="card-body">
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 border-bottom pb-2">
               <div className="d-flex flex-wrap align-items-center gap-3">
-                <h2 className="h6 fw-bold mb-0 text-brand">▦ Bulk Barcode Scan &amp; Ingestion</h2>
+                <h2 className="h6 fw-bold mb-0 text-brand text-nowrap">▦ Bulk Barcode Scan &amp; Ingestion</h2>
                 
-                {/* Modern Auto-Barcode Generator Toggle Switch */}
-                <div className="form-check form-switch d-flex align-items-center gap-2 mb-0 bg-light px-3 py-1 rounded border shadow-xs">
-                  <input
-                    className="form-check-input mt-0 cursor-pointer"
-                    type="checkbox"
-                    role="switch"
-                    id="autoBarcodeToggle"
-                    checked={autoGenerateBarcodes}
-                    onChange={(e) => {
-                      const next = e.target.checked;
-                      setAutoGenerateBarcodes(next);
-                      if (next && selected) {
-                        const cnt = Number(bulkQty) || (parsedBarcodes.length > 0 ? parsedBarcodes.length : 1);
-                        const generated = generateBarcodesHelper(selected, cnt);
-                        setBarcodeText(generated.join("\n") + "\n");
-                        toast.success(`${cnt} টি অটো বারকোড তৈরি হয়েছে`);
-                      }
+                {/* Modern Self-Contained Auto-Barcode Toggle Pill */}
+                <div
+                  onClick={() => {
+                    const next = !autoGenerateBarcodes;
+                    setAutoGenerateBarcodes(next);
+                    if (next && selected) {
+                      const cnt = Number(bulkQty) || (parsedBarcodes.length > 0 ? parsedBarcodes.length : 1);
+                      const generated = generateBarcodesHelper(selected, cnt);
+                      setBarcodeText(generated.join("\n") + "\n");
+                      toast.success(`${cnt} টি অটো বারকোড তৈরি হয়েছে`);
+                    }
+                  }}
+                  className={`d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill border user-select-none ${
+                    autoGenerateBarcodes
+                      ? "bg-primary text-white border-primary shadow-sm"
+                      : "bg-white text-dark border-secondary-subtle"
+                  }`}
+                  style={{ cursor: "pointer", transition: "all 0.2s ease" }}
+                  role="button"
+                >
+                  <span className="small fw-bold">⚡ অটো-বারকোড তৈরি (Auto Barcode)</span>
+                  <div
+                    style={{
+                      width: "34px",
+                      height: "18px",
+                      backgroundColor: autoGenerateBarcodes ? "rgba(255,255,255,0.3)" : "#cbd5e1",
+                      borderRadius: "10px",
+                      padding: "2px",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: autoGenerateBarcodes ? "flex-end" : "flex-start",
+                      transition: "all 0.2s ease",
                     }}
-                  />
-                  <label className="form-check-label small fw-bold cursor-pointer user-select-none mb-0 d-flex align-items-center gap-1" htmlFor="autoBarcodeToggle">
-                    <span>⚡ অটো-বারকোড তৈরি (Auto Barcode)</span>
-                    <span className={`badge ${autoGenerateBarcodes ? "bg-success" : "bg-secondary"}`} style={{ fontSize: "0.65rem" }}>
-                      {autoGenerateBarcodes ? "ON" : "OFF"}
-                    </span>
-                  </label>
+                  >
+                    <div
+                      style={{
+                        width: "14px",
+                        height: "14px",
+                        backgroundColor: autoGenerateBarcodes ? "#ffffff" : "#64748b",
+                        borderRadius: "50%",
+                        boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
+                      }}
+                    />
+                  </div>
+                  <span className={`badge ${autoGenerateBarcodes ? "bg-white text-primary" : "bg-secondary"}`} style={{ fontSize: "0.65rem" }}>
+                    {autoGenerateBarcodes ? "ON" : "OFF"}
+                  </span>
                 </div>
               </div>
 
