@@ -451,11 +451,15 @@ export default function ProductsScreen() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                           {isOutOfStock ? (
                             <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#dc2626', height: 24 }}>
-                              {isBN ? 'স্টক নেই' : 'Out of Stock'}
+                              {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
                             </Chip>
                           ) : isLowStock ? (
                             <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#d97706', height: 24 }}>
                               {isBN ? '⚠️ লো স্টক' : '⚠️ Low Stock'}
+                            </Chip>
+                          ) : product.is_active === false ? (
+                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#64748b', height: 24 }}>
+                              {isBN ? 'বন্ধ' : 'Inactive'}
                             </Chip>
                           ) : (
                             <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#16a34a', height: 24 }}>

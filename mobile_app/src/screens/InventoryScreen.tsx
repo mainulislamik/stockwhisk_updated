@@ -391,11 +391,25 @@ export default function InventoryScreen() {
                       <TouchableOpacity onPress={() => confirmDelete(item)} style={{ padding: 4, marginRight: 8 }}>
                         <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
                       </TouchableOpacity>
-                      <View style={{ backgroundColor: item.is_active !== false ? (isDarkMode ? '#064e3b' : '#dcfce7') : (isDarkMode ? '#334155' : '#f1f5f9'), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
-                        <Text style={{ color: item.is_active !== false ? (isDarkMode ? '#4ade80' : '#16a34a') : (isDarkMode ? '#94a3b8' : '#64748b'), fontSize: 11, fontWeight: 'bold' }}>
-                          {item.is_active !== false ? (isBN ? 'চালু' : 'Active') : (isBN ? 'বন্ধ' : 'Inactive')}
-                        </Text>
-                      </View>
+                      {Number(item.current_stock || 0) <= 0 ? (
+                        <View style={{ backgroundColor: isDarkMode ? '#450a0a' : '#fee2e2', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                          <Text style={{ color: '#dc2626', fontSize: 11, fontWeight: 'bold' }}>
+                            {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
+                          </Text>
+                        </View>
+                      ) : item.is_active === false ? (
+                        <View style={{ backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                          <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 11, fontWeight: 'bold' }}>
+                            {isBN ? 'বন্ধ' : 'Inactive'}
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={{ backgroundColor: isDarkMode ? '#064e3b' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                          <Text style={{ color: isDarkMode ? '#4ade80' : '#16a34a', fontSize: 11, fontWeight: 'bold' }}>
+                            {isBN ? 'চালু' : 'Active'}
+                          </Text>
+                        </View>
+                      )}
                     </View>
                   </View>
                   {/* Row 2: Cost | Selling | Stock */}
