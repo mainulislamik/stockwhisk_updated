@@ -31,9 +31,9 @@ def profit_summary(shop, start=None, end=None):
     including both product sales and service/repair revenue."""
     from service.models import ServiceTicket, ServiceTicketPart
 
-    sales = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+    sales = Sale.all_objects.filter(shop_id=shop.id).exclude(status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION])
     items = SaleItem.all_objects.filter(shop_id=shop.id).exclude(
-        sale__status=Sale.Status.CANCELLED
+        sale__status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION]
     )
     returns = SaleReturn.all_objects.filter(shop_id=shop.id)
     expenses = Expense.all_objects.filter(shop_id=shop.id).exclude(category__name="Product Purchase")

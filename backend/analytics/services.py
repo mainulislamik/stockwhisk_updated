@@ -39,7 +39,9 @@ def _sum(qs, expr):
 
 def _sale_items(shop, start=None, end=None):
     from django.db.models import Q
-    qs = SaleItem.all_objects.filter(Q(shop_id=shop.id) | Q(sale__shop_id=shop.id)).exclude(sale__status=Sale.Status.CANCELLED)
+    qs = SaleItem.all_objects.filter(Q(shop_id=shop.id) | Q(sale__shop_id=shop.id)).exclude(
+        sale__status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION]
+    )
     if start is not None:
         qs = qs.filter(sale__sale_date__gte=start)
     if end is not None:
@@ -50,7 +52,7 @@ def _sale_items(shop, start=None, end=None):
 def _sale_discount_total(shop, start=None, end=None):
     """Σ of invoice-level discounts over the same non-cancelled sales. Item
     subtotals only carry line discounts, so top-line revenue must subtract this."""
-    qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+    qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION])
     if start is not None:
         qs = qs.filter(sale_date__gte=start)
     if end is not None:
@@ -221,7 +223,9 @@ def sales_overview(shop):
 
 
 def _completed_orders(shop, start=None, end=None):
-    qs = Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+    qs = Sale.all_objects.filter(shop_id=shop.id).exclude(
+        status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION]
+    )
     t_qs = ServiceTicket.all_objects.filter(shop_id=shop.id).exclude(status=ServiceTicket.Status.CANCELLED)
     if start is not None:
         qs = qs.filter(sale_date__gte=start)
@@ -240,7 +244,7 @@ def _pct_change(cur, prev):
     return round((cur - prev) / prev * 100, 2)
 
 
-def _resolve_profit_range(key, custom_start, custom_end, now):
+def _resolve_profit_range(key, custom_start, custom_end, now, shop=None):
     """Return (start, end, prev_start, prev_end, bucket) for a range key.
     Calendar ranges compare against the same elapsed slice of the previous
     calendar period; rolling ranges compare against the immediately preceding
@@ -297,16 +301,17 @@ def _resolve_profit_range(key, custom_start, custom_end, now):
         prev_start = timezone.make_aware(datetime.combine(py_day, time.min))
         prev_end = prev_start + (now - start)
     elif key == "all_time":
-        first_sale = Sale.all_objects.filter(shop_id=shop.id).order_by("sale_date").first()
-        first_ticket = ServiceTicket.all_objects.filter(shop_id=shop.id).order_by("received_at").first()
         earliest_dates = []
-        if first_sale and first_sale.sale_date:
-            earliest_dates.append(first_sale.sale_date)
-        if first_ticket and first_ticket.received_at:
-            earliest_dates.append(first_ticket.received_at)
-        start = min(earliest_dates) if earliest_dates else (day - timedelta(days=30))
+        if shop:
+            first_sale = Sale.all_objects.filter(shop_id=shop.id).order_by("sale_date").first()
+            first_ticket = ServiceTicket.all_objects.filter(shop_id=shop.id).order_by("received_at").first()
+            if first_sale and first_sale.sale_date:
+                earliest_dates.append(first_sale.sale_date)
+            if first_ticket and first_ticket.received_at:
+                earliest_dates.append(first_ticket.received_at)
+        start = min(earliest_dates) if earliest_dates else (day_start - timedelta(days=365))
         end = now
-        prev_start, prev_end = start, end
+        prev_start, prev_end = None, None
     elif key == "custom":
         from datetime import datetime as _dt, time as _time
         from django.utils.dateparse import parse_date, parse_datetime
@@ -355,12 +360,16 @@ def _profit_trend(shop, start, end, bucket):
             subtotal=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC),
             cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
         )
+        .order_by()
     )
     sale_rows = (
-        Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+        Sale.all_objects.filter(shop_id=shop.id).exclude(
+            status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION]
+        )
         .filter(sale_date__gte=start, sale_date__lte=end)
         .annotate(b=trunc("sale_date")).values("b")
         .annotate(discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC), orders=Count("id"))
+        .order_by()
     )
 
     ticket_base = (
@@ -375,6 +384,7 @@ def _profit_trend(shop, start, end, bucket):
             discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC),
             orders=Count("id"),
         )
+        .order_by()
     )
     ticket_part_rows = (
         ServiceTicketPart.all_objects.filter(ticket__in=ticket_base)
@@ -383,6 +393,7 @@ def _profit_trend(shop, start, end, bucket):
             parts_revenue=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_price"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
             parts_cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
         )
+        .order_by()
     )
 
     buckets = {}
@@ -390,12 +401,17 @@ def _profit_trend(shop, start, end, bucket):
         if r["b"] is None:
             continue
         k = _trend_key(r["b"], bucket)
-        buckets.setdefault(k, {}).update(subtotal=r["subtotal"], cost=r["cost"])
+        b = buckets.setdefault(k, {})
+        b["subtotal"] = b.get("subtotal", ZERO) + r["subtotal"]
+        b["cost"] = b.get("cost", ZERO) + r["cost"]
+
     for r in sale_rows:
         if r["b"] is None:
             continue
         k = _trend_key(r["b"], bucket)
-        buckets.setdefault(k, {}).update(discount=r["discount"], orders=r["orders"])
+        b = buckets.setdefault(k, {})
+        b["discount"] = b.get("discount", ZERO) + r["discount"]
+        b["orders"] = b.get("orders", 0) + r["orders"]
 
     for r in ticket_rows:
         if r["b"] is None:
@@ -441,7 +457,7 @@ def profit_overview(shop, range_key="30d", custom_start=None, custom_end=None):
     from accounting.services import profit_summary
 
     now = timezone.now()
-    start, end, pstart, pend, bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+    start, end, pstart, pend, bucket = _resolve_profit_range(range_key, custom_start, custom_end, now, shop=shop)
 
     cur = profit_summary(shop, start=start, end=end)
     prev = profit_summary(shop, start=pstart, end=pend)
@@ -479,7 +495,7 @@ def profit_overview(shop, range_key="30d", custom_start=None, custom_end=None):
             "has_previous": bool(p_revenue or p_gp or prev_orders),
         },
         "trend": _profit_trend(shop, start, end, bucket),
-        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat(), "bucket": bucket},
+        "range": {"key": range_key, "start": start.isoformat() if start else "", "end": end.isoformat() if end else "", "bucket": bucket},
     }
 
 
@@ -496,7 +512,7 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
     from sales.models import SaleReturnItem
 
     now = timezone.now()
-    start, end, _ps, _pe, _bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+    start, end, _ps, _pe, _bucket = _resolve_profit_range(range_key, custom_start, custom_end, now, shop=shop)
 
     # One aggregated row per product from the sale items (not per transaction).
     sales_rows = (
@@ -507,6 +523,7 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
             gross_cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
             gross_qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
         )
+        .order_by()
     )
 
     ret_base = SaleReturnItem.all_objects.filter(shop_id=shop.id)
@@ -518,10 +535,10 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
     ret_rev = ret_base.values("sale_item__product_id").annotate(
         r_revenue=Coalesce(Sum("refund_amount", output_field=_DEC), ZERO, output_field=_DEC),
         r_qty=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
-    )
+    ).order_by()
     ret_cost = ret_base.filter(sale_return__restocked=True).values("sale_item__product_id").annotate(
         r_cost=Coalesce(Sum(ExpressionWrapper(F("quantity") * F("sale_item__unit_cost"), output_field=_DEC), output_field=_DEC), ZERO, output_field=_DEC),
-    )
+    ).order_by()
     ret_rev_map = {r["sale_item__product_id"]: r for r in ret_rev}
     ret_cost_map = {r["sale_item__product_id"]: float(r["r_cost"]) for r in ret_cost}
 
@@ -560,7 +577,7 @@ def profitability_performance(shop, range_key="30d", custom_start=None, custom_e
         lowest_margin = sorted(products, key=lambda p: p["margin"])[:5]
 
     return {
-        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat()},
+        "range": {"key": range_key, "start": start.isoformat() if start else "", "end": end.isoformat() if end else ""},
         "top_profitable_products": top_profitable,
         "top_loss_products": top_loss,
         "lowest_margin_products": lowest_margin,
@@ -581,7 +598,7 @@ def product_performance_overview(shop, range_key="30d", custom_start=None, custo
     from sales.models import SaleReturnItem
 
     now = timezone.now()
-    start, end, _ps, _pe, _bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+    start, end, _ps, _pe, _bucket = _resolve_profit_range(range_key, custom_start, custom_end, now, shop=shop)
 
     # --- Most sold (date range, minus returned quantity) ---
     sales_rows = (
@@ -592,6 +609,7 @@ def product_performance_overview(shop, range_key="30d", custom_start=None, custo
             revenue=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC),
             orders=Count("sale_id", distinct=True),
         )
+        .order_by()
     )
     ret_base = SaleReturnItem.all_objects.filter(shop_id=shop.id)
     if start is not None:
@@ -600,7 +618,7 @@ def product_performance_overview(shop, range_key="30d", custom_start=None, custo
         ret_base = ret_base.filter(sale_return__created_at__lte=end)
     ret_qty = {
         r["sale_item__product_id"]: float(r["q"])
-        for r in ret_base.values("sale_item__product_id").annotate(q=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC))
+        for r in ret_base.values("sale_item__product_id").annotate(q=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC)).order_by()
     }
 
     most_sold_all = []
@@ -640,7 +658,7 @@ def product_performance_overview(shop, range_key="30d", custom_start=None, custo
         for r in (_sale_items(shop, start, end).filter(product_id__in=oos_ids)
                   .values("product_id")
                   .annotate(q=Coalesce(Sum("quantity", output_field=_DEC), ZERO, output_field=_DEC),
-                            rev=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC))):
+                            rev=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC)).order_by()):
             recent[r["product_id"]] = (float(r["q"]), float(r["rev"]))
     out_of_stock_all = [{
         "product_id": p["id"], "product_name": p["name"], "sku": p["sku"] or "",
@@ -651,7 +669,7 @@ def product_performance_overview(shop, range_key="30d", custom_start=None, custo
     out_of_stock = sorted(out_of_stock_all, key=lambda p: (p["recent_units_sold"], p["recent_revenue"]), reverse=True)[:5]
 
     return {
-        "range": {"key": range_key, "start": start.isoformat(), "end": end.isoformat()},
+        "range": {"key": range_key, "start": start.isoformat() if start else "", "end": end.isoformat() if end else ""},
         "most_sold_products": most_sold,
         "low_stock_products": low_stock,
         "out_of_stock_products": out_of_stock,
@@ -659,8 +677,20 @@ def product_performance_overview(shop, range_key="30d", custom_start=None, custo
 
 
 def _trend_key(b, bucket):
+    if b is None:
+        return ""
+    if isinstance(b, str):
+        import dateutil.parser
+        try:
+            b = dateutil.parser.parse(b)
+        except Exception:
+            return b[:10]
     if bucket == "hour":
-        return timezone.localtime(b).strftime("%Y-%m-%dT%H:00")
+        if hasattr(b, "hour"):
+            if timezone.is_aware(b):
+                b = timezone.localtime(b)
+            return b.strftime("%Y-%m-%dT%H:00")
+        return b.strftime("%Y-%m-%d") + "T00:00"
     if bucket == "month":
         return b.strftime("%Y-%m-01")
     return b.strftime("%Y-%m-%d")
@@ -670,6 +700,8 @@ def _bucket_sequence(start, end, bucket):
     """Continuous list of bucket keys from start..end (local time) so the trend
     chart has no gaps — quiet periods show as zero, not missing points."""
     keys = []
+    if start is None:
+        start = timezone.now() - timedelta(days=365)
     if bucket == "hour":
         cur = timezone.localtime(start).replace(minute=0, second=0, microsecond=0)
         endl = timezone.localtime(end)
@@ -698,28 +730,36 @@ def _sales_trend_buckets(shop, start, end, bucket):
     items = (
         _sale_items(shop, start, end).annotate(b=trunc("sale__sale_date")).values("b")
         .annotate(subtotal=Coalesce(Sum("subtotal", output_field=_DEC), ZERO, output_field=_DEC))
+        .order_by()
     )
     sales = (
-        Sale.all_objects.filter(shop_id=shop.id).exclude(status=Sale.Status.CANCELLED)
+        Sale.all_objects.filter(shop_id=shop.id).exclude(
+            status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION]
+        )
         .filter(sale_date__gte=start, sale_date__lte=end)
         .annotate(b=trunc("sale_date")).values("b")
         .annotate(discount=Coalesce(Sum("discount", output_field=_DEC), ZERO, output_field=_DEC), orders=Count("id"))
+        .order_by()
     )
     data = {}
     for r in items:
         if r["b"] is None:
             continue
-        data.setdefault(_trend_key(r["b"], bucket), {})["subtotal"] = r["subtotal"]
+        k = _trend_key(r["b"], bucket)
+        d = data.setdefault(k, {})
+        d["subtotal"] = d.get("subtotal", ZERO) + r["subtotal"]
     for r in sales:
         if r["b"] is None:
             continue
-        d = data.setdefault(_trend_key(r["b"], bucket), {})
-        d["discount"] = r["discount"]; d["orders"] = r["orders"]
+        k = _trend_key(r["b"], bucket)
+        d = data.setdefault(k, {})
+        d["discount"] = d.get("discount", ZERO) + r["discount"]
+        d["orders"] = d.get("orders", 0) + r["orders"]
 
     out = []
     for k in _bucket_sequence(start, end, bucket):
         v = data.get(k, {})
-        revenue = float(v.get("subtotal", ZERO) - v.get("discount", ZERO))
+        revenue = float(max(ZERO, v.get("subtotal", ZERO) - v.get("discount", ZERO)))
         out.append({"date": k, "sales": round(revenue, 2), "orders": int(v.get("orders", 0))})
     return out
 
@@ -736,7 +776,7 @@ def profitability_analytics(shop, range_key="30d", custom_start=None, custom_end
     Shop-scoped throughout.
     """
     now = timezone.now()
-    start, end, _ps, _pe, bucket = _resolve_profit_range(range_key, custom_start, custom_end, now)
+    start, end, _ps, _pe, bucket = _resolve_profit_range(range_key, custom_start, custom_end, now, shop=shop)
     if range_key in ("today", "yesterday"):
         bucket = "hour"
 
@@ -748,7 +788,7 @@ def profitability_analytics(shop, range_key="30d", custom_start=None, custom_end
 
     total_all = base.count()
     cancelled = base.filter(status=Sale.Status.CANCELLED).count()
-    non_cancelled = base.exclude(status=Sale.Status.CANCELLED)
+    non_cancelled = base.exclude(status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION])
     eligible = non_cancelled.count()
     fulfilled = non_cancelled.filter(paid__gte=F("total")).count()
     pending = eligible - fulfilled

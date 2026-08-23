@@ -93,6 +93,7 @@ export default function ReportsPage() {
     { key: "last_month", label: t("rep_filter_last_month") },
     { key: "this_quarter", label: t("rep_filter_this_quarter") },
     { key: "this_year", label: t("rep_filter_this_year") },
+    { key: "all_time", label: "All Time / সব সময়" },
   ];
 
   const [data, setData] = useState<DashboardData | null>(null);
@@ -192,74 +193,80 @@ export default function ReportsPage() {
 
   // Build the 4 Profit Overview charts whenever the profit data changes.
   useEffect(() => {
+    let animId: number;
     const Chart = (window as any).Chart;
     if (!Chart || !profit || !profit.trend || profit.trend.length === 0) return;
-    const monthly = profit.range.bucket === "month";
-    const hourly = profit.range.bucket === "hour";
-    const labels = profit.trend.map((p) => {
-      const d = new Date(p.date);
-      if (hourly) return d.toLocaleTimeString(undefined, { hour: "numeric" });
-      if (monthly) return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
-      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-    });
-    const REV = "#2f4b7c", COST = "#f95d6a", PROFIT = "#008c54", MARGIN = "#a05195";
-    const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const moneyTip = { callbacks: { label: (c: any) => `${c.dataset.label}: ${tk(c.parsed.y)}` } };
 
-    // 1. Profit Trend (area line): Revenue / Cost / Gross Profit
-    if (pTrendRef.current) {
-      pTrendInst.current?.destroy();
-      pTrendInst.current = new Chart(pTrendRef.current, {
-        type: "line",
-        data: { labels, datasets: [
-          { label: "Revenue", data: profit.trend.map((p) => p.revenue), borderColor: REV, backgroundColor: "rgba(47,75,124,.10)", fill: true, tension: 0.3 },
-          { label: "Total Cost", data: profit.trend.map((p) => p.cost), borderColor: COST, backgroundColor: "rgba(249,93,106,.08)", fill: true, tension: 0.3 },
-          { label: "Gross Profit", data: profit.trend.map((p) => p.profit), borderColor: PROFIT, backgroundColor: "rgba(0,140,84,.12)", fill: true, tension: 0.3 },
-        ] },
-        options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { tooltip: moneyTip } },
+    animId = requestAnimationFrame(() => {
+      const monthly = profit.range.bucket === "month";
+      const hourly = profit.range.bucket === "hour";
+      const labels = profit.trend.map((p) => {
+        const d = new Date(p.date);
+        if (hourly) return d.toLocaleTimeString(undefined, { hour: "numeric" });
+        if (monthly) return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
       });
-    }
-    // 2. Revenue vs Cost vs Profit (grouped bar)
-    if (pBarRef.current) {
-      pBarInst.current?.destroy();
-      pBarInst.current = new Chart(pBarRef.current, {
-        type: "bar",
-        data: { labels, datasets: [
-          { label: "Revenue", data: profit.trend.map((p) => p.revenue), backgroundColor: REV },
-          { label: "Cost", data: profit.trend.map((p) => p.cost), backgroundColor: COST },
-          { label: "Profit", data: profit.trend.map((p) => p.profit), backgroundColor: PROFIT },
-        ] },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: moneyTip } },
-      });
-    }
-    // 3. Profit Margin Trend (line, %)
-    if (pMarginRef.current) {
-      pMarginInst.current?.destroy();
-      pMarginInst.current = new Chart(pMarginRef.current, {
-        type: "line",
-        data: { labels, datasets: [
-          { label: "Profit Margin", data: profit.trend.map((p) => p.margin), borderColor: MARGIN, backgroundColor: "rgba(160,81,149,.10)", fill: true, tension: 0.3 },
-        ] },
-        options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: (v: any) => v + "%" } } },
-          plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c: any) => `Profit Margin: ${Number(c.parsed.y).toFixed(2)}%` } } } },
-      });
-    }
-    // 4. Average Profit Per Order (bar)
-    if (pAvgRef.current) {
-      pAvgInst.current?.destroy();
-      pAvgInst.current = new Chart(pAvgRef.current, {
-        type: "bar",
-        data: { labels, datasets: [
-          { label: "Avg. Profit / Order", data: profit.trend.map((p) => p.avg_profit), backgroundColor: PROFIT },
-        ] },
-        options: { responsive: true, maintainAspectRatio: false,
-          plugins: { legend: { display: false }, tooltip: { callbacks: {
-            label: (c: any) => `Avg. Profit / Order: ${tk(c.parsed.y)}`,
-            afterLabel: (c: any) => `Orders: ${profit.trend[c.dataIndex]?.orders ?? 0}`,
-          } } } },
-      });
-    }
+      const REV = "#2f4b7c", COST = "#f95d6a", PROFIT = "#008c54", MARGIN = "#a05195";
+      const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      const moneyTip = { callbacks: { label: (c: any) => `${c.dataset.label}: ${tk(c.parsed?.y ?? c.raw ?? 0)}` } };
+
+      // 1. Profit Trend (area line): Revenue / Cost / Gross Profit
+      if (pTrendRef.current) {
+        pTrendInst.current?.destroy();
+        pTrendInst.current = new Chart(pTrendRef.current, {
+          type: "line",
+          data: { labels, datasets: [
+            { label: "Revenue", data: profit.trend.map((p) => p.revenue), borderColor: REV, backgroundColor: "rgba(47,75,124,.10)", fill: true, tension: 0.3 },
+            { label: "Total Cost", data: profit.trend.map((p) => p.cost), borderColor: COST, backgroundColor: "rgba(249,93,106,.08)", fill: true, tension: 0.3 },
+            { label: "Gross Profit", data: profit.trend.map((p) => p.profit), borderColor: PROFIT, backgroundColor: "rgba(0,140,84,.12)", fill: true, tension: 0.3 },
+          ] },
+          options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false }, plugins: { tooltip: moneyTip } },
+        });
+      }
+      // 2. Revenue vs Cost vs Profit (grouped bar)
+      if (pBarRef.current) {
+        pBarInst.current?.destroy();
+        pBarInst.current = new Chart(pBarRef.current, {
+          type: "bar",
+          data: { labels, datasets: [
+            { label: "Revenue", data: profit.trend.map((p) => p.revenue), backgroundColor: REV },
+            { label: "Cost", data: profit.trend.map((p) => p.cost), backgroundColor: COST },
+            { label: "Profit", data: profit.trend.map((p) => p.profit), backgroundColor: PROFIT },
+          ] },
+          options: { responsive: true, maintainAspectRatio: false, plugins: { tooltip: moneyTip } },
+        });
+      }
+      // 3. Profit Margin Trend (line, %)
+      if (pMarginRef.current) {
+        pMarginInst.current?.destroy();
+        pMarginInst.current = new Chart(pMarginRef.current, {
+          type: "line",
+          data: { labels, datasets: [
+            { label: "Profit Margin", data: profit.trend.map((p) => p.margin), borderColor: MARGIN, backgroundColor: "rgba(160,81,149,.10)", fill: true, tension: 0.3 },
+          ] },
+          options: { responsive: true, maintainAspectRatio: false, scales: { y: { ticks: { callback: (v: any) => v + "%" } } },
+            plugins: { legend: { display: false }, tooltip: { callbacks: { label: (c: any) => `Profit Margin: ${Number(c.parsed?.y ?? c.raw ?? 0).toFixed(2)}%` } } } },
+        });
+      }
+      // 4. Average Profit Per Order (bar)
+      if (pAvgRef.current) {
+        pAvgInst.current?.destroy();
+        pAvgInst.current = new Chart(pAvgRef.current, {
+          type: "bar",
+          data: { labels, datasets: [
+            { label: "Avg. Profit / Order", data: profit.trend.map((p) => p.avg_profit), backgroundColor: PROFIT },
+          ] },
+          options: { responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+              label: (c: any) => `Avg. Profit / Order: ${tk(c.parsed?.y ?? c.raw ?? 0)}`,
+              afterLabel: (c: any) => `Orders: ${profit.trend[c.dataIndex]?.orders ?? 0}`,
+            } } } },
+        });
+      }
+    });
+
     return () => {
+      cancelAnimationFrame(animId);
       pTrendInst.current?.destroy(); pBarInst.current?.destroy();
       pMarginInst.current?.destroy(); pAvgInst.current?.destroy();
     };
@@ -278,49 +285,56 @@ export default function ReportsPage() {
 
   // Build the 3 horizontal-bar profitability charts.
   useEffect(() => {
+    let animId: number;
     const Chart = (window as any).Chart;
     if (!Chart || !perf) return;
-    const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const trunc = (s: string) => (s && s.length > 22 ? s.slice(0, 21) + "…" : s || "—");
-    const hbar = (ref: any, inst: any, rows: PerfProduct[], color: string | string[], valueKey: (p: PerfProduct) => number, tip: (p: PerfProduct) => string[], isPct = false) => {
-      if (!ref.current) return;
-      inst.current?.destroy();
-      if (rows.length === 0) { inst.current = null; return; }
-      inst.current = new Chart(ref.current, {
-        type: "bar",
-        data: {
-          labels: rows.map((p, i) => `#${i + 1} ${trunc(p.product_name)}`),
-          datasets: [{ data: rows.map(valueKey), backgroundColor: color, borderRadius: 4 }],
-        },
-        options: {
-          indexAxis: "y", responsive: true, maintainAspectRatio: false,
-          scales: { x: { ticks: { callback: (v: any) => (isPct ? v + "%" : tk(v)) } } },
-          plugins: {
-            legend: { display: false },
-            tooltip: { callbacks: {
-              title: (items: any) => rows[items[0].dataIndex]?.product_name || "",
-              label: () => "",
-              afterBody: (items: any) => tip(rows[items[0].dataIndex]),
-            } },
+
+    animId = requestAnimationFrame(() => {
+      const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      const trunc = (s: string) => (s && s.length > 22 ? s.slice(0, 21) + "…" : s || "—");
+      const hbar = (ref: any, inst: any, rows: PerfProduct[], color: string | string[], valueKey: (p: PerfProduct) => number, tip: (p: PerfProduct) => string[], isPct = false) => {
+        if (!ref.current) return;
+        inst.current?.destroy();
+        if (rows.length === 0) { inst.current = null; return; }
+        inst.current = new Chart(ref.current, {
+          type: "bar",
+          data: {
+            labels: rows.map((p, i) => `#${i + 1} ${trunc(p.product_name)}`),
+            datasets: [{ data: rows.map(valueKey), backgroundColor: color, borderRadius: 4 }],
           },
-        },
-      });
+          options: {
+            indexAxis: "y", responsive: true, maintainAspectRatio: false,
+            scales: { x: { ticks: { callback: (v: any) => (isPct ? v + "%" : tk(v)) } } },
+            plugins: {
+              legend: { display: false },
+              tooltip: { callbacks: {
+                title: (items: any) => items[0] ? (rows[items[0].dataIndex]?.product_name || "") : "",
+                label: () => "",
+                afterBody: (items: any) => items[0] ? tip(rows[items[0].dataIndex]) : [],
+              } },
+            },
+          },
+        });
+      };
+
+      hbar(profRef, profInst, perf.top_profitable_products, "#008c54", (p) => p.profit, (p) => [
+        `Profit: ${tk(p.profit)}`, `Revenue: ${tk(p.revenue)}`, `Cost: ${tk(p.cost)}`,
+        `Units Sold: ${p.units_sold}`, `Margin: ${p.margin.toFixed(2)}%`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+      ]);
+      hbar(lossRef, lossInst, perf.top_loss_products, "#d64550", (p) => p.loss ?? -p.profit, (p) => [
+        `Loss: ${tk(p.loss ?? -p.profit)}`, `Revenue: ${tk(p.revenue)}`, `Cost: ${tk(p.cost)}`,
+        `Units Sold: ${p.units_sold}`, `Margin: ${p.margin.toFixed(2)}%`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+      ]);
+      hbar(marginRef, marginInst, perf.lowest_margin_products, perf.lowest_margin_products.map((p) => (p.margin < 0 ? "#d64550" : "#ffa600")), (p) => p.margin, (p) => [
+        `Profit Margin: ${p.margin.toFixed(2)}%`, `Profit: ${tk(p.profit)}`, `Revenue: ${tk(p.revenue)}`,
+        `Cost: ${tk(p.cost)}`, `Units Sold: ${p.units_sold}`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
+      ], true);
+    });
+
+    return () => {
+      cancelAnimationFrame(animId);
+      profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy();
     };
-
-    hbar(profRef, profInst, perf.top_profitable_products, "#008c54", (p) => p.profit, (p) => [
-      `Profit: ${tk(p.profit)}`, `Revenue: ${tk(p.revenue)}`, `Cost: ${tk(p.cost)}`,
-      `Units Sold: ${p.units_sold}`, `Margin: ${p.margin.toFixed(2)}%`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
-    ]);
-    hbar(lossRef, lossInst, perf.top_loss_products, "#d64550", (p) => p.loss ?? -p.profit, (p) => [
-      `Loss: ${tk(p.loss ?? -p.profit)}`, `Revenue: ${tk(p.revenue)}`, `Cost: ${tk(p.cost)}`,
-      `Units Sold: ${p.units_sold}`, `Margin: ${p.margin.toFixed(2)}%`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
-    ]);
-    hbar(marginRef, marginInst, perf.lowest_margin_products, perf.lowest_margin_products.map((p) => (p.margin < 0 ? "#d64550" : "#ffa600")), (p) => p.margin, (p) => [
-      `Profit Margin: ${p.margin.toFixed(2)}%`, `Profit: ${tk(p.profit)}`, `Revenue: ${tk(p.revenue)}`,
-      `Cost: ${tk(p.cost)}`, `Units Sold: ${p.units_sold}`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
-    ], true);
-
-    return () => { profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy(); };
   }, [perf, chartLoaded]);
 
   // Product Performance: refetch on range change.
@@ -336,32 +350,37 @@ export default function ReportsPage() {
 
   // Most Sold horizontal-bar chart.
   useEffect(() => {
+    let animId: number;
     const Chart = (window as any).Chart;
     if (!Chart || !pp) return;
-    const rows = pp.most_sold_products;
-    const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
-    const trunc = (s: string) => (s && s.length > 22 ? s.slice(0, 21) + "…" : s || "—");
-    if (mostSoldRef.current) {
-      mostSoldInst.current?.destroy();
-      if (rows.length > 0) {
-        mostSoldInst.current = new Chart(mostSoldRef.current, {
-          type: "bar",
-          data: { labels: rows.map((p, i) => `#${i + 1} ${trunc(p.product_name)}`), datasets: [{ data: rows.map((p) => p.units_sold), backgroundColor: "#2f4b7c", borderRadius: 4 }] },
-          options: {
-            indexAxis: "y", responsive: true, maintainAspectRatio: false,
-            plugins: { legend: { display: false }, tooltip: { callbacks: {
-              title: (items: any) => rows[items[0].dataIndex]?.product_name || "",
-              label: () => "",
-              afterBody: (items: any) => { const p = rows[items[0].dataIndex]; return [
-                `Units Sold: ${p.units_sold}`, `Revenue: ${tk(p.revenue)}`, `Orders: ${p.orders}`,
-                `Current Stock: ${p.current_stock}`, ...(p.sku ? [`SKU: ${p.sku}`] : []),
-              ]; },
-            } } },
-          },
-        });
-      } else { mostSoldInst.current = null; }
-    }
-    return () => { mostSoldInst.current?.destroy(); };
+
+    animId = requestAnimationFrame(() => {
+      const rows = pp.most_sold_products;
+      const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+      const trunc = (s: string) => (s && s.length > 22 ? s.slice(0, 21) + "…" : s || "—");
+      if (mostSoldRef.current) {
+        mostSoldInst.current?.destroy();
+        if (rows.length > 0) {
+          mostSoldInst.current = new Chart(mostSoldRef.current, {
+            type: "bar",
+            data: { labels: rows.map((p, i) => `#${i + 1} ${trunc(p.product_name)}`), datasets: [{ data: rows.map((p) => p.units_sold), backgroundColor: "#2f4b7c", borderRadius: 4 }] },
+            options: {
+              indexAxis: "y", responsive: true, maintainAspectRatio: false,
+              plugins: { legend: { display: false }, tooltip: { callbacks: {
+                title: (items: any) => items[0] ? (rows[items[0].dataIndex]?.product_name || "") : "",
+                label: () => "",
+                afterBody: (items: any) => items[0] ? [
+                  `Units Sold: ${rows[items[0].dataIndex].units_sold}`, `Revenue: ${tk(rows[items[0].dataIndex].revenue)}`, `Orders: ${rows[items[0].dataIndex].orders}`,
+                  `Current Stock: ${rows[items[0].dataIndex].current_stock}`, ...(rows[items[0].dataIndex].sku ? [`SKU: ${rows[items[0].dataIndex].sku}`] : []),
+                ] : [],
+              } } },
+            },
+          });
+        } else { mostSoldInst.current = null; }
+      }
+    });
+
+    return () => { cancelAnimationFrame(animId); mostSoldInst.current?.destroy(); };
   }, [pp, chartLoaded]);
 
   // Profitability Analytics: refetch on range change.
@@ -377,51 +396,58 @@ export default function ReportsPage() {
 
   // Build the 3 donut charts + Sales Trend line.
   useEffect(() => {
+    let animId: number;
     const Chart = (window as any).Chart;
     if (!Chart || !pa) return;
-    const donut = (ref: any, inst: any, value: number, color: string) => {
-      if (!ref.current) return;
-      inst.current?.destroy();
-      inst.current = new Chart(ref.current, {
-        type: "doughnut",
-        data: { labels: ["", ""], datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, "rgba(148,163,184,.18)"], borderWidth: 0 }] },
-        options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { display: false }, tooltip: { enabled: false } } },
-      });
+
+    animId = requestAnimationFrame(() => {
+      const donut = (ref: any, inst: any, value: number, color: string) => {
+        if (!ref.current) return;
+        inst.current?.destroy();
+        inst.current = new Chart(ref.current, {
+          type: "doughnut",
+          data: { labels: ["", ""], datasets: [{ data: [value, Math.max(0, 100 - value)], backgroundColor: [color, "rgba(148,163,184,.18)"], borderWidth: 0 }] },
+          options: { responsive: true, maintainAspectRatio: false, cutout: "72%", plugins: { legend: { display: false }, tooltip: { enabled: false } } },
+        });
+      };
+      const pm = pa.payment_metrics;
+      if (pm.fulfill_payment_ratio.total_count > 0) donut(fulfillRef, fulfillInst, pm.fulfill_payment_ratio.percentage, "#008c54");
+      else fulfillInst.current?.destroy();
+      if (pm.pending_payment_ratio.total_count > 0) donut(pendingRef, pendingInst, pm.pending_payment_ratio.percentage, "#ffa600");
+      else pendingInst.current?.destroy();
+      if (pm.cancellation_ratio.total_count > 0) donut(cancelRef, cancelInst, pm.cancellation_ratio.percentage, "#d64550");
+      else cancelInst.current?.destroy();
+
+      // Sales Trend (area line)
+      if (saleTrendRef.current && pa.sales_trend.length > 0) {
+        saleTrendInst.current?.destroy();
+        const monthly = pa.range.bucket === "month", hourly = pa.range.bucket === "hour";
+        const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
+        const labels = pa.sales_trend.map((p) => {
+          const d = new Date(p.date);
+          if (hourly) return d.toLocaleTimeString(undefined, { hour: "numeric" });
+          if (monthly) return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
+          return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+        });
+        saleTrendInst.current = new Chart(saleTrendRef.current, {
+          type: "line",
+          data: { labels, datasets: [{ label: "Sales", data: pa.sales_trend.map((p) => p.sales), borderColor: "#2f4b7c", backgroundColor: "rgba(47,75,124,.12)", fill: true, tension: 0.3, pointRadius: pa.sales_trend.length > 40 ? 0 : 2 }] },
+          options: {
+            responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+            scales: { y: { ticks: { callback: (v: any) => tk(v) } } },
+            plugins: { legend: { display: false }, tooltip: { callbacks: {
+              label: (c: any) => `Sales: ${tk(c.parsed?.y ?? c.raw ?? 0)}`,
+              afterLabel: (c: any) => `Orders: ${pa.sales_trend[c.dataIndex]?.orders ?? 0}`,
+            } } },
+          },
+        });
+      } else { saleTrendInst.current?.destroy(); }
+    });
+
+    return () => {
+      cancelAnimationFrame(animId);
+      fulfillInst.current?.destroy(); pendingInst.current?.destroy(); cancelInst.current?.destroy(); saleTrendInst.current?.destroy();
     };
-    const pm = pa.payment_metrics;
-    if (pm.fulfill_payment_ratio.total_count > 0) donut(fulfillRef, fulfillInst, pm.fulfill_payment_ratio.percentage, "#008c54");
-    else fulfillInst.current?.destroy();
-    if (pm.pending_payment_ratio.total_count > 0) donut(pendingRef, pendingInst, pm.pending_payment_ratio.percentage, "#ffa600");
-    else pendingInst.current?.destroy();
-    if (pm.cancellation_ratio.total_count > 0) donut(cancelRef, cancelInst, pm.cancellation_ratio.percentage, "#d64550");
-    else cancelInst.current?.destroy();
-
-    // Sales Trend (area line)
-    if (saleTrendRef.current && pa.sales_trend.length > 0) {
-      saleTrendInst.current?.destroy();
-      const monthly = pa.range.bucket === "month", hourly = pa.range.bucket === "hour";
-      const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
-      const labels = pa.sales_trend.map((p) => {
-        const d = new Date(p.date);
-        if (hourly) return d.toLocaleTimeString(undefined, { hour: "numeric" });
-        if (monthly) return d.toLocaleDateString(undefined, { month: "short", year: "2-digit" });
-        return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
-      });
-      saleTrendInst.current = new Chart(saleTrendRef.current, {
-        type: "line",
-        data: { labels, datasets: [{ label: "Sales", data: pa.sales_trend.map((p) => p.sales), borderColor: "#2f4b7c", backgroundColor: "rgba(47,75,124,.12)", fill: true, tension: 0.3, pointRadius: pa.sales_trend.length > 40 ? 0 : 2 }] },
-        options: {
-          responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
-          scales: { y: { ticks: { callback: (v: any) => tk(v) } } },
-          plugins: { legend: { display: false }, tooltip: { callbacks: {
-            label: (c: any) => `Sales: ${tk(c.parsed.y)}`,
-            afterLabel: (c: any) => `Orders: ${pa.sales_trend[c.dataIndex]?.orders ?? 0}`,
-          } } },
-        },
-      });
-    } else { saleTrendInst.current?.destroy(); }
-
-    return () => { fulfillInst.current?.destroy(); pendingInst.current?.destroy(); cancelInst.current?.destroy(); saleTrendInst.current?.destroy(); };
   }, [pa, chartLoaded]);
 
   useEffect(() => {
