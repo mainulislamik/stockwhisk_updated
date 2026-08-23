@@ -4,6 +4,7 @@ import { useTheme, Text, Surface } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { View, TouchableOpacity, ScrollView, Platform, StyleSheet } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreferences } from '../contexts/PreferencesContext';
 
 import DashboardScreen from '../screens/DashboardScreen';
@@ -76,26 +77,25 @@ function MoreMenuScreen() {
               {isBn ? sec.titleBn : sec.titleEn}
             </Text>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 6 }}>
               {sec.items.map((item, idx) => (
                 <TouchableOpacity
                   key={idx}
                   activeOpacity={0.7}
                   style={{
-                    width: '48%',
+                    flex: 1,
+                    minWidth: 145,
                     backgroundColor: theme.colors.surface,
-                    padding: 14,
+                    padding: 12,
                     borderRadius: 14,
-                    marginBottom: 10,
+                    marginBottom: 4,
                     flexDirection: 'row',
                     alignItems: 'center',
                     borderWidth: 1,
-                    borderColor: isDarkMode ? '#1e293b' : '#f1f5f9',
+                    borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
                     elevation: 1,
                   }}
-                  onPress={() => {
-                    (navigation as any).navigate(item.name);
-                  }}
+                  onPress={() => (navigation as any).navigate(item.name)}
                 >
                   <View
                     style={{
@@ -131,6 +131,10 @@ export default function TabNavigator() {
   const theme = useTheme();
   const { language, isDarkMode } = usePreferences();
   const isBn = language === 'BN';
+  const insets = useSafeAreaInsets();
+
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 8);
+  const tabHeight = 60 + bottomPadding;
 
   return (
     <Tab.Navigator
@@ -147,14 +151,14 @@ export default function TabNavigator() {
           shadowOffset: { width: 0, height: -3 },
           shadowOpacity: 0.08,
           shadowRadius: 6,
-          height: Platform.OS === 'ios' ? 88 : (Platform.OS === 'web' ? 70 : 66),
-          paddingBottom: Platform.OS === 'ios' ? 26 : 10,
-          paddingTop: 8,
+          height: tabHeight,
+          paddingBottom: bottomPadding,
+          paddingTop: 6,
         },
         tabBarLabelStyle: {
           fontSize: 11,
           fontWeight: '700',
-          marginTop: 2,
+          paddingBottom: 2,
         },
         tabBarItemStyle: {
           justifyContent: 'center',
