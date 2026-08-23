@@ -81,6 +81,18 @@ export default function ProductsScreen() {
   const [pushingToStock, setPushingToStock] = useState(false);
   const [purchaseBarcodes, setPurchaseBarcodes] = useState<string[]>([]);
   const [customBarcodeInput, setCustomBarcodeInput] = useState('');
+  const [autoGenerateBarcodes, setAutoGenerateBarcodes] = useState(false);
+
+  const generateBarcodesHelper = (p: Product, count: number): string[] => {
+    const prefix = p.sku ? p.sku.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'BC';
+    const timestamp = Date.now().toString().slice(-5);
+    const generated: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      const rand = Math.floor(100 + Math.random() * 900);
+      generated.push(`${prefix}${timestamp}${i.toString().padStart(2, '0')}${rand}`);
+    }
+    return generated;
+  };
 
   // Quick Add Vendor state
   const [showAddVendorModal, setShowAddVendorModal] = useState(false);
@@ -202,7 +214,11 @@ export default function ProductsScreen() {
     setSellingPrice(p.selling_price?.toString() || '');
     setWarrantyMonths(p.warranty_months?.toString() || '0');
     setQuantity('1');
-    setPurchaseBarcodes([]);
+    if (autoGenerateBarcodes) {
+      setPurchaseBarcodes(generateBarcodesHelper(p, 1));
+    } else {
+      setPurchaseBarcodes([]);
+    }
     setCustomBarcodeInput('');
     setPurchaseSearch('');
     setPurchaseResults([]);
@@ -245,6 +261,12 @@ export default function ProductsScreen() {
 
     setPushingToStock(true);
     try {
+      let finalBarcodes = [...purchaseBarcodes];
+      if (autoGenerateBarcodes && finalBarcodes.length < qtyNum) {
+        const needed = qtyNum - finalBarcodes.length;
+        finalBarcodes = [...finalBarcodes, ...generateBarcodesHelper(selectedPurchaseProduct, needed)];
+      }
+
       // 1. Update product selling price & warranty if changed
       await api.patch(`/catalog/products/${selectedPurchaseProduct.id}/`, {
         cost_price: costPrice,
@@ -259,7 +281,7 @@ export default function ProductsScreen() {
           product: selectedPurchaseProduct.id,
           quantity: qtyNum,
           unit_cost: costNum,
-          barcodes: purchaseBarcodes
+          barcodes: finalBarcodes
         }]
       });
 
@@ -562,7 +584,13 @@ export default function ProductsScreen() {
                 mode="outlined"
                 label={isBN ? 'পরিমাণ (ইউনিট) *' : 'Quantity (Units) *'}
                 value={quantity}
-                onChangeText={setQuantity}
+                onChangeText={(val) => {
+                  setQuantity(val);
+                  if (autoGenerateBarcodes && selectedPurchaseProduct && val.trim() !== '') {
+                    const cnt = Math.max(1, Math.round(Number(val) || 1));
+                    setPurchaseBarcodes(generateBarcodesHelper(selectedPurchaseProduct, cnt));
+                  }
+                }}
                 keyboardType="numeric"
                 style={{ flex: 1, backgroundColor: theme.colors.surface }}
               />
@@ -570,9 +598,55 @@ export default function ProductsScreen() {
 
             {/* Serial Barcodes Entry for Batch */}
             <Card style={{ marginBottom: 14, padding: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: '#e2e8f0' }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#4f46e5', marginBottom: 8 }}>
-                {isBN ? '🔢 প্রতিটি ইউনিটের আলাদা বারকোড স্ক্যান/লিখুন (ঐচ্ছিক):' : '🔢 Add Serial Barcodes per Unit (Optional):'}
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#4f46e5' }}>
+                  {isBN ? '🔢 প্রতিটি ইউনিটের বারকোড' : '🔢 Unit Serial Barcodes'}
+                </Text>
+                
+                {/* Modern Auto-Barcode Generator Toggle Switch */}
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => {
+                    const next = !autoGenerateBarcodes;
+                    setAutoGenerateBarcodes(next);
+                    if (next && selectedPurchaseProduct) {
+                      const count = Math.max(1, Math.round(Number(quantity) || 1));
+                      setPurchaseBarcodes(generateBarcodesHelper(selectedPurchaseProduct, count));
+                    }
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: autoGenerateBarcodes ? '#4f46e5' : isDarkMode ? '#334155' : '#f1f5f9',
+                    paddingHorizontal: 10,
+                    paddingVertical: 5,
+                    borderRadius: 16,
+                    gap: 6
+                  }}
+                >
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: autoGenerateBarcodes ? '#fff' : isDarkMode ? '#cbd5e1' : '#64748b' }}>
+                    ⚡ {isBN ? 'অটো-বারকোড' : 'Auto Barcode'}
+                  </Text>
+                  <View
+                    style={{
+                      width: 26,
+                      height: 15,
+                      borderRadius: 8,
+                      backgroundColor: autoGenerateBarcodes ? 'rgba(255,255,255,0.4)' : '#cbd5e1',
+                      padding: 2,
+                      justifyContent: 'center',
+                      alignItems: autoGenerateBarcodes ? 'flex-end' : 'flex-start'
+                    }}
+                  >
+                    <View style={{ width: 11, height: 11, borderRadius: 6, backgroundColor: autoGenerateBarcodes ? '#fff' : '#64748b' }} />
+                  </View>
+                  <View style={{ backgroundColor: autoGenerateBarcodes ? '#fff' : '#94a3b8', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                    <Text style={{ fontSize: 9, fontWeight: 'bold', color: autoGenerateBarcodes ? '#4f46e5' : '#fff' }}>
+                      {autoGenerateBarcodes ? 'ON' : 'OFF'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <TextInput
                   mode="outlined"
