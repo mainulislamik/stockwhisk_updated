@@ -649,7 +649,7 @@ export default function ReportsScreen() {
 
         {/* 13. Low Stock & Out of Stock Alerts */}
         <View style={styles.sectionHeaderRow}>
-          <MaterialCommunityIcons name="alert-triangle-outline" size={20} color="#ea580c" style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="alert-outline" size={20} color="#ea580c" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
             {isBN ? 'ইনভেন্টরি লো-স্টক অ্যালার্ট' : 'Inventory Low Stock Alerts'}
           </Text>
@@ -781,7 +781,7 @@ export default function ReportsScreen() {
                     <View style={{ flexDirection: 'row', gap: 6 }}>
                       <Button
                         mode="outlined"
-                        dense
+                        compact
                         icon="file-excel"
                         loading={downloadingReport === `${rep}-excel`}
                         disabled={!!downloadingReport}
@@ -793,7 +793,7 @@ export default function ReportsScreen() {
                       </Button>
                       <Button
                         mode="outlined"
-                        dense
+                        compact
                         icon="file-pdf-box"
                         loading={downloadingReport === `${rep}-pdf`}
                         disabled={!!downloadingReport}
@@ -805,7 +805,7 @@ export default function ReportsScreen() {
                       </Button>
                       <Button
                         mode="outlined"
-                        dense
+                        compact
                         icon="file-delimited"
                         loading={downloadingReport === `${rep}-csv`}
                         disabled={!!downloadingReport}
@@ -823,7 +823,7 @@ export default function ReportsScreen() {
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <Button
                   mode="outlined"
-                  dense
+                  compact
                   icon="file-excel"
                   onPress={() => handleDownloadReport('sales', 'excel')}
                   style={{ flex: 1, borderColor: '#16a34a' }}
@@ -833,7 +833,7 @@ export default function ReportsScreen() {
                 </Button>
                 <Button
                   mode="outlined"
-                  dense
+                  compact
                   icon="file-pdf-box"
                   onPress={() => handleDownloadReport('sales', 'pdf')}
                   style={{ flex: 1, borderColor: '#dc2626' }}
