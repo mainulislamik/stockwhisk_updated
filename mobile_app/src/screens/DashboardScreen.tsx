@@ -19,21 +19,7 @@ import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
 
 const getGreeting = (lang: string, userName: string) => {
-  const bdTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Dhaka' });
-  const bdHour = new Date(bdTime).getHours();
-  let greetingStr = '';
-
-  if (bdHour >= 5 && bdHour < 12) {
-    greetingStr = lang === 'BN' ? 'শুভ সকাল, ' : 'Good morning, ';
-  } else if (bdHour >= 12 && bdHour < 16) {
-    greetingStr = lang === 'BN' ? 'শুভ দুপুর, ' : 'Good afternoon, ';
-  } else if (bdHour >= 16 && bdHour < 18) {
-    greetingStr = lang === 'BN' ? 'শুভ বিকেল, ' : 'Good afternoon, ';
-  } else if (bdHour >= 18 && bdHour < 20) {
-    greetingStr = lang === 'BN' ? 'শুভ সন্ধ্যা, ' : 'Good evening, ';
-  } else {
-    greetingStr = lang === 'BN' ? 'শুভ রাত্রি, ' : 'Good night, ';
-  }
+  const greetingStr = lang === 'BN' ? 'স্বাগতম, ' : 'Welcome, ';
   return greetingStr + userName;
 };
 
