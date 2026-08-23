@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import Chart from "chart.js/auto";
 import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import toast from "react-hot-toast";
@@ -77,12 +78,6 @@ type DashboardData = {
 
 export default function ReportsPage() {
   const { t } = useLanguage();
-  const [chartLoaded, setChartLoaded] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); return; }
-    const timer = setInterval(() => { if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); clearInterval(timer); } }, 200);
-    return () => clearInterval(timer);
-  }, []);
   
   const PROFIT_RANGES: { key: string; label: string }[] = [
     { key: "today", label: t("rep_filter_today") },
@@ -194,8 +189,7 @@ export default function ReportsPage() {
   // Build the 4 Profit Overview charts whenever the profit data changes.
   useEffect(() => {
     let animId: number;
-    const Chart = (window as any).Chart;
-    if (!Chart || !profit || !profit.trend || profit.trend.length === 0) return;
+    if (!profit || !profit.trend || profit.trend.length === 0) return;
 
     animId = requestAnimationFrame(() => {
       const monthly = profit.range.bucket === "month";
@@ -270,7 +264,7 @@ export default function ReportsPage() {
       pTrendInst.current?.destroy(); pBarInst.current?.destroy();
       pMarginInst.current?.destroy(); pAvgInst.current?.destroy();
     };
-  }, [profit, chartLoaded]);
+  }, [profit]);
 
   // Profitability Performance: refetch on range change.
   useEffect(() => {
@@ -286,8 +280,7 @@ export default function ReportsPage() {
   // Build the 3 horizontal-bar profitability charts.
   useEffect(() => {
     let animId: number;
-    const Chart = (window as any).Chart;
-    if (!Chart || !perf) return;
+    if (!perf) return;
 
     animId = requestAnimationFrame(() => {
       const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -335,7 +328,7 @@ export default function ReportsPage() {
       cancelAnimationFrame(animId);
       profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy();
     };
-  }, [perf, chartLoaded]);
+  }, [perf]);
 
   // Product Performance: refetch on range change.
   useEffect(() => {
@@ -351,8 +344,7 @@ export default function ReportsPage() {
   // Most Sold horizontal-bar chart.
   useEffect(() => {
     let animId: number;
-    const Chart = (window as any).Chart;
-    if (!Chart || !pp) return;
+    if (!pp) return;
 
     animId = requestAnimationFrame(() => {
       const rows = pp.most_sold_products;
@@ -381,7 +373,7 @@ export default function ReportsPage() {
     });
 
     return () => { cancelAnimationFrame(animId); mostSoldInst.current?.destroy(); };
-  }, [pp, chartLoaded]);
+  }, [pp]);
 
   // Profitability Analytics: refetch on range change.
   useEffect(() => {
@@ -397,8 +389,7 @@ export default function ReportsPage() {
   // Build the 3 donut charts + Sales Trend line.
   useEffect(() => {
     let animId: number;
-    const Chart = (window as any).Chart;
-    if (!Chart || !pa) return;
+    if (!pa) return;
 
     animId = requestAnimationFrame(() => {
       const donut = (ref: any, inst: any, value: number, color: string) => {
@@ -448,140 +439,143 @@ export default function ReportsPage() {
       cancelAnimationFrame(animId);
       fulfillInst.current?.destroy(); pendingInst.current?.destroy(); cancelInst.current?.destroy(); saleTrendInst.current?.destroy();
     };
-  }, [pa, chartLoaded]);
+  }, [pa]);
 
   useEffect(() => {
-    const Chart = (window as any).Chart;
-    if (!Chart || !data) return;
+    let animId: number;
+    if (!data) return;
 
-    // 1. Revenue & Discount Trend Line Chart
-    if (trendChartRef.current) {
-      if (trendChartInst.current) trendChartInst.current.destroy();
-      trendChartInst.current = new Chart(trendChartRef.current, {
-        type: "line",
-        data: {
-          labels: data.trend.map(t => new Date(t.day).toLocaleDateString()),
-          datasets: [
-            {
-              label: "Revenue",
-              data: data.trend.map(t => Number(t.revenue)),
-              borderColor: "#008c54",
-              backgroundColor: "rgba(0, 140, 84, 0.1)",
-              fill: true,
-              tension: 0.3
-            },
-            {
-              label: "Discounts Given",
-              data: data.trend.map(t => Number(t.discount)),
-              borderColor: "#ffa600",
-              backgroundColor: "rgba(255, 166, 0, 0.1)",
-              fill: true,
-              tension: 0.3
-            }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-    }
+    animId = requestAnimationFrame(() => {
+      // 1. Revenue & Discount Trend Line Chart
+      if (trendChartRef.current) {
+        if (trendChartInst.current) trendChartInst.current.destroy();
+        trendChartInst.current = new Chart(trendChartRef.current, {
+          type: "line",
+          data: {
+            labels: data.trend.map(t => new Date(t.day).toLocaleDateString()),
+            datasets: [
+              {
+                label: "Revenue",
+                data: data.trend.map(t => Number(t.revenue)),
+                borderColor: "#008c54",
+                backgroundColor: "rgba(0, 140, 84, 0.1)",
+                fill: true,
+                tension: 0.3
+              },
+              {
+                label: "Discounts Given",
+                data: data.trend.map(t => Number(t.discount)),
+                borderColor: "#ffa600",
+                backgroundColor: "rgba(255, 166, 0, 0.1)",
+                fill: true,
+                tension: 0.3
+              }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
 
-    // 2. Payment Methods Doughnut Chart
-    if (paymentChartRef.current) {
-      if (paymentChartInst.current) paymentChartInst.current.destroy();
-      paymentChartInst.current = new Chart(paymentChartRef.current, {
-        type: "doughnut",
-        data: {
-          labels: data.payment_methods.map(p => p.method.toUpperCase()),
-          datasets: [
-            {
-              data: data.payment_methods.map(p => Number(p.total)),
-              backgroundColor: ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600"]
-            }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-    }
+      // 2. Payment Methods Doughnut Chart
+      if (paymentChartRef.current) {
+        if (paymentChartInst.current) paymentChartInst.current.destroy();
+        paymentChartInst.current = new Chart(paymentChartRef.current, {
+          type: "doughnut",
+          data: {
+            labels: data.payment_methods.map(p => p.method.toUpperCase()),
+            datasets: [
+              {
+                data: data.payment_methods.map(p => Number(p.total)),
+                backgroundColor: ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600"]
+              }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
 
-    // 3. New vs Returning Customers Stacked Bar Chart
-    if (acqChartRef.current && data.customer_acquisition) {
-      if (acqChartInst.current) acqChartInst.current.destroy();
-      acqChartInst.current = new Chart(acqChartRef.current, {
-        type: "bar",
-        data: {
-          labels: data.customer_acquisition.labels,
-          datasets: [
-            {
-              label: "New Customers",
-              data: data.customer_acquisition.new,
-              backgroundColor: "#008c54",
-            },
-            {
-              label: "Returning Customers",
-              data: data.customer_acquisition.returning,
-              backgroundColor: "#2f4b7c",
+      // 3. New vs Returning Customers Stacked Bar Chart
+      if (acqChartRef.current && data.customer_acquisition) {
+        if (acqChartInst.current) acqChartInst.current.destroy();
+        acqChartInst.current = new Chart(acqChartRef.current, {
+          type: "bar",
+          data: {
+            labels: data.customer_acquisition.labels,
+            datasets: [
+              {
+                label: "New Customers",
+                data: data.customer_acquisition.new,
+                backgroundColor: "#008c54",
+              },
+              {
+                label: "Returning Customers",
+                data: data.customer_acquisition.returning,
+                backgroundColor: "#2f4b7c",
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true },
+              y: { stacked: true }
             }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { stacked: true },
-            y: { stacked: true }
           }
-        }
-      });
-    }
+        });
+      }
 
-    // 4. Sales by Category Doughnut Chart
-    if (catChartRef.current && data.sales_by_category) {
-      if (catChartInst.current) catChartInst.current.destroy();
-      catChartInst.current = new Chart(catChartRef.current, {
-        type: "doughnut",
-        data: {
-          labels: data.sales_by_category.map(c => c.product__category__name || "Uncategorized"),
-          datasets: [
-            {
-              data: data.sales_by_category.map(c => Number(c.revenue)),
-              backgroundColor: ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600"]
-            }
-          ]
-        },
-        options: { responsive: true, maintainAspectRatio: false }
-      });
-    }
+      // 4. Sales by Category Doughnut Chart
+      if (catChartRef.current && data.sales_by_category) {
+        if (catChartInst.current) catChartInst.current.destroy();
+        catChartInst.current = new Chart(catChartRef.current, {
+          type: "doughnut",
+          data: {
+            labels: data.sales_by_category.map(c => c.product__category__name || "Uncategorized"),
+            datasets: [
+              {
+                data: data.sales_by_category.map(c => Number(c.revenue)),
+                backgroundColor: ["#003f5c", "#2f4b7c", "#665191", "#a05195", "#d45087", "#f95d6a", "#ff7c43", "#ffa600"]
+              }
+            ]
+          },
+          options: { responsive: true, maintainAspectRatio: false }
+        });
+      }
 
-    // 5. Top Products Horizontal Bar Chart
-    if (topProdChartRef.current && data.top_products) {
-      if (topProdChartInst.current) topProdChartInst.current.destroy();
-      topProdChartInst.current = new Chart(topProdChartRef.current, {
-        type: "bar",
-        data: {
-          labels: data.top_products.map(p => p.product__name.substring(0, 20) + (p.product__name.length > 20 ? "..." : "")),
-          datasets: [
-            {
-              label: "Revenue",
-              data: data.top_products.map(p => Number(p.revenue)),
-              backgroundColor: "#008c54",
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          indexAxis: "y", // horizontal bar
-        }
-      });
-    }
+      // 5. Top Products Horizontal Bar Chart
+      if (topProdChartRef.current && data.top_products) {
+        if (topProdChartInst.current) topProdChartInst.current.destroy();
+        topProdChartInst.current = new Chart(topProdChartRef.current, {
+          type: "bar",
+          data: {
+            labels: data.top_products.map(p => p.product__name.substring(0, 20) + (p.product__name.length > 20 ? "..." : "")),
+            datasets: [
+              {
+                label: "Revenue",
+                data: data.top_products.map(p => Number(p.revenue)),
+                backgroundColor: "#008c54",
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            indexAxis: "y", // horizontal bar
+          }
+        });
+      }
+    });
 
     return () => {
+      cancelAnimationFrame(animId);
       trendChartInst.current?.destroy();
       paymentChartInst.current?.destroy();
       acqChartInst.current?.destroy();
       catChartInst.current?.destroy();
       topProdChartInst.current?.destroy();
     };
-  }, [data, chartLoaded]);
+  }, [data]);
 
   async function download(type: string, fmt: string) {
     try {

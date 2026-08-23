@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Chart from "chart.js/auto";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -114,12 +115,6 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, loading: authLoading, can, isOwner } = useAuth();
   const { t } = useLanguage();
-  const [chartLoaded, setChartLoaded] = useState(false);
-  useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); return; }
-    const timer = setInterval(() => { if (typeof window !== "undefined" && (window as any).Chart) { setChartLoaded(true); clearInterval(timer); } }, 200);
-    return () => clearInterval(timer);
-  }, []);
   const canDashboard = isOwner || can("view_reports");
   const canProfit = isOwner || can("view_profit");
   const [data, setData] = useState<Summary | null>(null);
@@ -163,28 +158,35 @@ export default function DashboardPage() {
   }, [canDashboard, profitRange]);
 
   useEffect(() => {
-    const Chart = (window as any).Chart;
-    if (!Chart || !data || !chartRef.current) return;
-    if (chartInst.current) chartInst.current.destroy();
-    chartInst.current = new Chart(chartRef.current, {
-      type: "line",
-      data: {
-        labels: data.sales_trend.map((r) => r.day),
-        datasets: [
-          {
-            label: t("dash_revenue"),
-            data: data.sales_trend.map((r) => Number(r.revenue)),
-            borderColor: "#234C6A",
-            backgroundColor: "rgba(69,104,130,.15)",
-            fill: true,
-            tension: 0.3,
-          },
-        ],
-      },
-      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+    let animId: number;
+    if (!data || !chartRef.current) return;
+
+    animId = requestAnimationFrame(() => {
+      if (chartInst.current) chartInst.current.destroy();
+      chartInst.current = new Chart(chartRef.current!, {
+        type: "line",
+        data: {
+          labels: data.sales_trend.map((r) => r.day),
+          datasets: [
+            {
+              label: t("dash_revenue"),
+              data: data.sales_trend.map((r) => Number(r.revenue)),
+              borderColor: "#234C6A",
+              backgroundColor: "rgba(69,104,130,.15)",
+              fill: true,
+              tension: 0.3,
+            },
+          ],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } },
+      });
     });
-    return () => chartInst.current?.destroy();
-  }, [data, t, chartLoaded]);
+
+    return () => {
+      cancelAnimationFrame(animId);
+      chartInst.current?.destroy();
+    };
+  }, [data, t]);
 
   if (!canDashboard) return <Spinner label={t("dash_redirecting")} />;
   if (loading) return <Spinner label={t("dash_loading")} />;
