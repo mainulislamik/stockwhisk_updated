@@ -42,6 +42,12 @@
           "cameraPermission": "Allow StockWhisk to access camera to scan barcodes."
         }
       ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow StockWhisk to access photos to upload shop logo."
+        }
+      ],
       "expo-secure-store"
     ]
   }
