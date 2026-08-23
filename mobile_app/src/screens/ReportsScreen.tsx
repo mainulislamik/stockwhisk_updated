@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Linking, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity, Alert, Linking, Platform, Modal } from 'react-native';
 import { Text, Card, ActivityIndicator, useTheme, Appbar, Surface, Chip, ProgressBar, Button, Divider } from 'react-native-paper';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -34,6 +34,19 @@ const PAYMENT_COLORS: { [key: string]: string } = {
   other: '#64748b',
 };
 
+const REPORT_INFO: { [key: string]: { label: string; labelBN: string; icon: string } } = {
+  sales: { label: 'Sales Report', labelBN: 'বিক্রয় রিপোর্ট', icon: 'cart-outline' },
+  inventory: { label: 'Inventory / Stock Report', labelBN: 'ইনভেন্টরি ও স্টক রিপোর্ট', icon: 'package-variant-closed' },
+  profit_loss: { label: 'Profit & Loss Statement', labelBN: 'লাভ-ক্ষতি বিবরণী (P&L)', icon: 'chart-line' },
+  profit: { label: 'Profit Analysis Report', labelBN: 'প্রফিট অ্যানালাইসিস', icon: 'chart-areaspline' },
+  customer_due: { label: 'Customer Due Report', labelBN: 'কাস্টমার বকেয়া রিপোর্ট', icon: 'account-cash' },
+  employee_sales: { label: 'Employee / Staff Sales', labelBN: 'কর্মীদের বিক্রয় রিপোর্ট', icon: 'account-tie' },
+  expense: { label: 'Expense Report', labelBN: 'খরচ রিপোর্ট', icon: 'cash-minus' },
+  purchase: { label: 'Purchase / Inward Report', labelBN: 'ক্রয় ও ইনওয়ার্ড রিপোর্ট', icon: 'truck-delivery' },
+  taxes: { label: 'Tax & VAT Report', labelBN: 'ট্যাক্স ও ভ্যাট রিপোর্ট', icon: 'receipt' },
+  customers: { label: 'Customers Ledger', labelBN: 'গ্রাহক লেজার ও তালিকা', icon: 'account-group' },
+};
+
 export default function ReportsScreen() {
   const navigation = useNavigation<any>();
   const theme = useTheme();
@@ -50,6 +63,11 @@ export default function ReportsScreen() {
   const [reportsList, setReportsList] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingReport, setDownloadingReport] = useState<string | null>(null);
+
+  // Modern Export Selector State
+  const [selectedExportReport, setSelectedExportReport] = useState<string>('sales');
+  const [selectedExportFormat, setSelectedExportFormat] = useState<'excel' | 'pdf' | 'csv'>('excel');
+  const [showReportPicker, setShowReportPicker] = useState<boolean>(false);
 
   useFocusEffect(
     useCallback(() => {
@@ -758,7 +776,7 @@ export default function ReportsScreen() {
           </Card.Content>
         </Card>
 
-        {/* 16. Report Exports (Excel / PDF / CSV) */}
+        {/* 16. Modernized Report Exports */}
         <View style={styles.sectionHeaderRow}>
           <MaterialCommunityIcons name="file-download-outline" size={20} color="#0891b2" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
@@ -767,86 +785,164 @@ export default function ReportsScreen() {
         </View>
         <Card style={[styles.fullCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
-            <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 12 }}>
-              {isBN ? 'যেকোনো রিপোর্ট এক ক্লিকে Excel, PDF বা CSV ফাইল হিসেবে ডাউনলোড ও শেয়ার করুন:' : 'Download or share reports instantly in Excel, PDF or CSV format:'}
+            <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 14 }}>
+              {isBN ? 'যেকোনো রিপোর্ট নির্বাচন করে Excel, PDF বা CSV ফরম্যাটে সরাসরি ডাউনলোড ও শেয়ার করুন:' : 'Select any report and export directly in Excel, PDF or CSV format:'}
             </Text>
-            {reportsList.length > 0 ? (
-              reportsList.map((rep) => {
-                const title = rep.replace(/_/g, ' ').toUpperCase();
-                return (
-                  <View key={rep} style={[styles.listItem, { flexDirection: 'column', alignItems: 'stretch', paddingVertical: 10 }]}>
-                    <Text style={{ fontWeight: 'bold', fontSize: 13, marginBottom: 6 }}>
-                      📄 {title}
-                    </Text>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      <Button
-                        mode="outlined"
-                        compact
-                        icon="file-excel"
-                        loading={downloadingReport === `${rep}-excel`}
-                        disabled={!!downloadingReport}
-                        onPress={() => handleDownloadReport(rep, 'excel')}
-                        style={{ flex: 1, borderColor: '#16a34a' }}
-                        textColor="#16a34a"
-                      >
-                        Excel
-                      </Button>
-                      <Button
-                        mode="outlined"
-                        compact
-                        icon="file-pdf-box"
-                        loading={downloadingReport === `${rep}-pdf`}
-                        disabled={!!downloadingReport}
-                        onPress={() => handleDownloadReport(rep, 'pdf')}
-                        style={{ flex: 1, borderColor: '#dc2626' }}
-                        textColor="#dc2626"
-                      >
-                        PDF
-                      </Button>
-                      <Button
-                        mode="outlined"
-                        compact
-                        icon="file-delimited"
-                        loading={downloadingReport === `${rep}-csv`}
-                        disabled={!!downloadingReport}
-                        onPress={() => handleDownloadReport(rep, 'csv')}
-                        style={{ flex: 1, borderColor: '#2563eb' }}
-                        textColor="#2563eb"
-                      >
-                        CSV
-                      </Button>
-                    </View>
-                  </View>
-                );
-              })
-            ) : (
-              <View style={{ flexDirection: 'row', gap: 6 }}>
-                <Button
-                  mode="outlined"
-                  compact
-                  icon="file-excel"
-                  onPress={() => handleDownloadReport('sales', 'excel')}
-                  style={{ flex: 1, borderColor: '#16a34a' }}
-                  textColor="#16a34a"
-                >
-                  Sales Excel
-                </Button>
-                <Button
-                  mode="outlined"
-                  compact
-                  icon="file-pdf-box"
-                  onPress={() => handleDownloadReport('sales', 'pdf')}
-                  style={{ flex: 1, borderColor: '#dc2626' }}
-                  textColor="#dc2626"
-                >
-                  Sales PDF
-                </Button>
+
+            {/* 1. Report Selector Dropdown Box */}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569', marginBottom: 6 }}>
+              {isBN ? '১. রিপোর্টের ধরণ নির্বাচন করুন (Report Type)' : '1. Select Report Type'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowReportPicker(true)}
+              style={{
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                paddingHorizontal: 14,
+                paddingVertical: 12,
+                borderRadius: 12,
+                borderWidth: 1.5,
+                borderColor: '#2563eb',
+                backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff',
+                marginBottom: 16,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                <MaterialCommunityIcons
+                  name={(REPORT_INFO[selectedExportReport]?.icon as any) || 'file-document-outline'}
+                  size={22}
+                  color="#2563eb"
+                  style={{ marginRight: 10 }}
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDarkMode ? '#f8fafc' : '#1e293b' }}>
+                    {isBN
+                      ? (REPORT_INFO[selectedExportReport]?.labelBN || selectedExportReport.replace(/_/g, ' ').toUpperCase())
+                      : (REPORT_INFO[selectedExportReport]?.label || selectedExportReport.replace(/_/g, ' ').toUpperCase())}
+                  </Text>
+                  <Text style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>
+                    {selectedExportReport.replace(/_/g, ' ').toUpperCase()}
+                  </Text>
+                </View>
               </View>
-            )}
+              <MaterialCommunityIcons name="chevron-down" size={24} color="#2563eb" />
+            </TouchableOpacity>
+
+            {/* 2. Format Selection Tabs */}
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569', marginBottom: 6 }}>
+              {isBN ? '২. এক্সপোর্ট ফরম্যাট (Export Format)' : '2. Select Export Format'}
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+              {[
+                { key: 'excel', label: 'Excel (.xlsx)', icon: 'file-excel', color: '#16a34a', bg: isDarkMode ? '#064e3b' : '#dcfce7' },
+                { key: 'pdf', label: 'PDF Document', icon: 'file-pdf-box', color: '#dc2626', bg: isDarkMode ? '#450a0a' : '#fee2e2' },
+                { key: 'csv', label: 'CSV Data', icon: 'file-delimited', color: '#2563eb', bg: isDarkMode ? '#1e3a8a' : '#dbeafe' },
+              ].map(fmt => {
+                const isSelected = selectedExportFormat === fmt.key;
+                return (
+                  <TouchableOpacity
+                    key={fmt.key}
+                    onPress={() => setSelectedExportFormat(fmt.key as any)}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 10,
+                      paddingHorizontal: 4,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      borderWidth: 2,
+                      borderColor: isSelected ? fmt.color : (isDarkMode ? '#334155' : '#e2e8f0'),
+                      backgroundColor: isSelected ? fmt.bg : (isDarkMode ? '#0f172a' : '#f8fafc'),
+                    }}
+                  >
+                    <MaterialCommunityIcons name={fmt.icon as any} size={20} color={isSelected ? fmt.color : '#64748b'} style={{ marginBottom: 3 }} />
+                    <Text style={{ fontSize: 11, fontWeight: isSelected ? 'bold' : '600', color: isSelected ? fmt.color : (isDarkMode ? '#94a3b8' : '#64748b') }}>
+                      {fmt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* 3. Main Download Button */}
+            <Button
+              mode="contained"
+              buttonColor={selectedExportFormat === 'excel' ? '#16a34a' : (selectedExportFormat === 'pdf' ? '#dc2626' : '#2563eb')}
+              icon="download"
+              loading={!!downloadingReport}
+              disabled={!!downloadingReport}
+              onPress={() => handleDownloadReport(selectedExportReport, selectedExportFormat)}
+              style={{ borderRadius: 12, paddingVertical: 4 }}
+              contentStyle={{ height: 48 }}
+            >
+              <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#fff' }}>
+                {isBN ? '📥 রিপোর্ট ডাউনলোড করুন' : '📥 Download & Export Report'}
+              </Text>
+            </Button>
           </Card.Content>
         </Card>
 
       </ScrollView>
+
+      {/* Report Type Selector Modal */}
+      <Modal visible={showReportPicker} transparent animationType="fade" onRequestClose={() => setShowReportPicker(false)}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setShowReportPicker(false)}>
+          <Card style={{ width: '100%', maxWidth: 420, maxHeight: '80%', padding: 16, backgroundColor: theme.colors.surface }} onPress={e => e.stopPropagation()}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#2563eb' }}>
+                {isBN ? 'রিপোর্ট নির্বাচন করুন' : 'Select Report Type'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowReportPicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
+              {(reportsList.length > 0 ? reportsList : ['sales', 'inventory', 'profit_loss', 'customer_due', 'employee_sales', 'expense', 'purchase', 'taxes', 'customers']).map(rep => {
+                const info = REPORT_INFO[rep] || { label: rep.replace(/_/g, ' ').toUpperCase(), labelBN: rep.replace(/_/g, ' '), icon: 'file-document-outline' };
+                const isSelected = selectedExportReport === rep;
+                return (
+                  <TouchableOpacity
+                    key={rep}
+                    onPress={() => {
+                      setSelectedExportReport(rep);
+                      setShowReportPicker(false);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      paddingVertical: 12,
+                      paddingHorizontal: 12,
+                      borderRadius: 10,
+                      marginBottom: 6,
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                      backgroundColor: isSelected ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                      <MaterialCommunityIcons name={info.icon as any} size={22} color={isSelected ? '#2563eb' : '#64748b'} style={{ marginRight: 10 }} />
+                      <View>
+                        <Text style={{ fontWeight: 'bold', fontSize: 13, color: isSelected ? '#2563eb' : theme.colors.onSurface }}>
+                          {isBN ? info.labelBN : info.label}
+                        </Text>
+                        <Text style={{ fontSize: 11, color: '#64748b' }}>
+                          {rep.replace(/_/g, ' ').toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+                    {isSelected && (
+                      <MaterialCommunityIcons name="check-circle" size={20} color="#2563eb" />
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </Card>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
