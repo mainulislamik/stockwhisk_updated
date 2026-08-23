@@ -91,9 +91,10 @@ export default function EMIScreen() {
     const intl = digits.startsWith('880') ? digits : (digits.startsWith('01') ? `88${digits}` : digits);
     const remaining = (Number(inst.amount) - Number(inst.paid_amount || 0)).toFixed(2);
 
+    const instNum = (inst as any).installment_number ?? inst.month_number ?? 1;
     const msg = isBN
-      ? `প্রিয় ${sched.customer_name},\n\nআপনার ইনভয়েস #${sched.sale_invoice_no} এর কিস্তি #${inst.month_number} এর বকেয়া ৳${remaining}। পরিশোধের শেষ তারিখ: ${inst.due_date}।\n\nধন্যবাদ!`
-      : `Dear ${sched.customer_name},\n\nYour EMI installment #${inst.month_number} for invoice #${sched.sale_invoice_no} due amount is ৳${remaining}. Due date: ${inst.due_date}.\n\nThank you!`;
+      ? `প্রিয় ${sched.customer_name},\n\nআপনার ইনভয়েস #${sched.sale_invoice_no} এর কিস্তি #${instNum} এর বকেয়া ৳${remaining}। পরিশোধের শেষ তারিখ: ${inst.due_date}।\n\nধন্যবাদ!`
+      : `Dear ${sched.customer_name},\n\nYour EMI installment #${instNum} for invoice #${sched.sale_invoice_no} due amount is ৳${remaining}. Due date: ${inst.due_date}.\n\nThank you!`;
 
     Linking.openURL(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`);
   };

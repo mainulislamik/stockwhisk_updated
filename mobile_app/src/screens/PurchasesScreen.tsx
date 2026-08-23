@@ -71,6 +71,24 @@ export default function PurchasesScreen() {
     }
   };
 
+  const [selectedPO, setSelectedPO] = useState<any | null>(null);
+  const [poDetailLoading, setPoDetailLoading] = useState(false);
+
+  const handlePOClick = async (po: any) => {
+    setSelectedPO(po);
+    setPoDetailLoading(true);
+    try {
+      const res = await api.get(`/purchasing/purchase-orders/${po.id}/`);
+      if (res.data) {
+        setSelectedPO(res.data);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setPoDetailLoading(false);
+    }
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
@@ -85,7 +103,7 @@ export default function PurchasesScreen() {
           value={search} 
           onChangeText={setSearch} 
           left={<TextInput.Icon icon="magnify" />}
-          style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+          style={{ marginBottom: 8, backgroundColor: theme.colors.surface }}
         />
       </View>
 
@@ -93,13 +111,13 @@ export default function PurchasesScreen() {
         <ActivityIndicator style={{ marginTop: 20 }} color={theme.colors.primary} />
       ) : (
         <ScrollView 
-          style={{ position: 'absolute', top: 136, left: 0, right: 0, bottom: 0 }} 
+          style={{ flex: 1 }} 
           contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
           onScroll={handleScroll}
           scrollEventThrottle={16}
         >
           {purchases.map(po => (
-            <Card key={po.id} style={[styles.card, { backgroundColor: theme.colors.surface }]}>
+            <Card key={po.id} style={[styles.card, { backgroundColor: theme.colors.surface }]} onPress={() => handlePOClick(po)}>
               <Card.Content>
                 <View style={styles.rowBetween}>
                   <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{po.po_number || '#' + po.id}</Text>
@@ -131,7 +149,9 @@ export default function PurchasesScreen() {
                     <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#16a34a' }}>৳ {Number(po.paid || 0).toFixed(2)}</Text>
                   </View>
                   <View>
-                    <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>{isBn ? 'বকেয়া' : 'Due'}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>{isBn ? 'বকেয়া' : 'Due'}</Text>
+                    </View>
                     <Text style={{ fontWeight: 'bold', fontSize: 14, color: Number(po.due || 0) > 0 ? '#dc2626' : theme.colors.onSurface }}>
                       ৳ {Number(po.due || 0).toFixed(2)}
                     </Text>
@@ -147,6 +167,65 @@ export default function PurchasesScreen() {
             </View>
           )}
         </ScrollView>
+      )}
+
+      {/* PO Detail Modal */}
+      {selectedPO && (
+        <View style={StyleSheet.absoluteFillObject} pointerEvents="box-none">
+          <View style={[StyleSheet.absoluteFillObject, { backgroundColor: 'rgba(0,0,0,0.5)' }]} />
+          <View style={{ flex: 1, justifyContent: 'center', padding: 20 }}>
+            <Card style={{ backgroundColor: theme.colors.surface, maxHeight: '80%' }}>
+              <Card.Title
+                title={selectedPO.po_number || `#${selectedPO.id}`}
+                subtitle={`${selectedPO.supplier_name || 'Supplier'} · ${selectedPO.order_date || ''}`}
+                titleStyle={{ fontWeight: 'bold' }}
+              />
+              <Card.Content>
+                {poDetailLoading ? (
+                  <ActivityIndicator style={{ margin: 20 }} color={theme.colors.primary} />
+                ) : (
+                  <ScrollView showsVerticalScrollIndicator={false}>
+                    <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 14 }}>
+                      {isBn ? 'ক্রয়কৃত পণ্যসমূহ:' : 'Purchased Items:'}
+                    </Text>
+                    {(selectedPO.items || []).map((it: any, idx: number) => (
+                      <View key={it.id || idx} style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ fontWeight: '600', fontSize: 13 }}>{it.product_name || it.product?.name || 'Product'}</Text>
+                          <Text variant="bodySmall" style={{ color: theme.colors.secondary }}>
+                            {it.quantity} x ৳{Number(it.unit_cost || 0).toFixed(2)}
+                          </Text>
+                        </View>
+                        <Text style={{ fontWeight: 'bold', fontSize: 13 }}>
+                          ৳{Number(it.subtotal || (it.quantity * it.unit_cost) || 0).toFixed(2)}
+                        </Text>
+                      </View>
+                    ))}
+                    <View style={{ marginTop: 16, backgroundColor: '#f8fafc', padding: 12, borderRadius: 8 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#64748b' }}>{isBn ? 'মোট ক্রয়মূল্য:' : 'Total Amount:'}</Text>
+                        <Text style={{ fontSize: 14, fontWeight: 'bold' }}>৳{Number(selectedPO.total || 0).toFixed(2)}</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13, color: '#16a34a' }}>{isBn ? 'পরিশোধ:' : 'Paid:'}</Text>
+                        <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#16a34a' }}>৳{Number(selectedPO.paid || 0).toFixed(2)}</Text>
+                      </View>
+                      {Number(selectedPO.due || 0) > 0 && (
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                          <Text style={{ fontSize: 13, color: '#dc2626' }}>{isBn ? 'বকেয়া:' : 'Due:'}</Text>
+                          <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#dc2626' }}>৳{Number(selectedPO.due).toFixed(2)}</Text>
+                        </View>
+                      )}
+                    </View>
+                  </ScrollView>
+                )}
+              </Card.Content>
+              <Card.Actions>
+                <Button onPress={() => setSelectedPO(null)}>{isBn ? 'বন্ধ করুন' : 'Close'}</Button>
+              </Card.Actions>
+            </Card>
+          </View>
+        </View>
       )}
     </View>
   );

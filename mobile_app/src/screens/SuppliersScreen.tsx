@@ -149,7 +149,7 @@ export default function SuppliersScreen() {
       </View>
 
       <ScrollView
-        style={{ position: 'absolute', top: 130, left: 0, right: 0, bottom: 0 }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
       >
         {loading && <ActivityIndicator style={{ margin: 16 }} color={theme.colors.primary} />}

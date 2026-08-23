@@ -83,7 +83,7 @@ export default function ReturnsScreen() {
     }
     setProcessing(true);
     try {
-      await api.post('/sales/sales/process-scan-replace/', {
+      await api.post('/sales/sales/replace-unit/', {
         old_barcode: oldScanResult.unit?.barcode || oldScanResult.barcode,
         new_barcode: newBarcode.trim()
       });

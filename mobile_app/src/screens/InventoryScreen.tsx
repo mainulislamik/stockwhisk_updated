@@ -63,7 +63,8 @@ export default function InventoryScreen() {
       setProducts(prev => prev.filter(p => p.id !== id));
       loadSummary();
     } catch (e: any) {
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.message || 'Failed to delete');
+      const msg = e.response?.data?.detail || e.response?.data?.error || e.message || (isBN ? 'পণ্যটি ডিলিট করা যায়নি।' : 'Failed to delete product');
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', msg);
     }
   };
 

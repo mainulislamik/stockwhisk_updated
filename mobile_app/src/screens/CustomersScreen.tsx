@@ -23,6 +23,7 @@ export default function CustomersScreen() {
   const isBN = language === 'BN';
   
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -43,8 +44,13 @@ export default function CustomersScreen() {
   const [newCust, setNewCust] = useState({ name: '', phone: '', email: '', address: '' });
 
   useEffect(() => {
-    fetchCustomers(1, search, true);
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
   }, [search]);
+
+  useEffect(() => {
+    fetchCustomers(1, debouncedSearch, true);
+  }, [debouncedSearch]);
 
   const fetchCustomers = async (pageNum: number, searchQuery: string, reset: boolean = false) => {
     if (loading || (!hasMore && !reset)) return;
