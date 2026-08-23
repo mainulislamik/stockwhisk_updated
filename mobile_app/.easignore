@@ -2,11 +2,8 @@ node_modules/
 .expo/
 dist/
 web-build/
-.git/
 android/
 ios/
+.git/
 *.apk
 *.aab
-*.tmp
-*.bak
-*.log
