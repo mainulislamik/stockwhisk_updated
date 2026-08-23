@@ -314,18 +314,18 @@ export default function SalesScreen() {
               <Card key={`${sale.id}-${index}`} style={[styles.card, { backgroundColor: theme.colors.surface }]} onPress={() => handleSaleClick(sale)}>
                 <Card.Content>
                   <View style={styles.rowBetween}>
-                    <Text style={styles.invoiceNo}>{inv}</Text>
+                    <Text style={[styles.invoiceNo, { color: theme.colors.onSurface }]}>{inv}</Text>
                     <Chip textStyle={{ color: 'white', fontWeight: 'bold', fontSize: 11 }} style={{ backgroundColor: getStatusColor(sale.status), height: 26 }}>
                       {getStatusLabel(sale.status)}
                     </Chip>
                   </View>
                   <Text style={[styles.customerName, { color: isDarkMode ? '#cbd5e1' : '#475569' }]}>{sale.customer_name || (isBN ? 'সাধারণ ক্রেতা' : 'Walk-in Customer')}</Text>
-                  <Text style={styles.date}>{new Date(sale.sale_date).toLocaleDateString()}</Text>
+                  <Text style={[styles.date, { color: isDarkMode ? '#94a3b8' : '#888' }]}>{new Date(sale.sale_date).toLocaleDateString()}</Text>
                   
                   <Divider style={styles.divider} />
                   
                   <View style={styles.rowBetween}>
-                    <Text style={{ fontWeight: '600' }}>{isBN ? 'মোট:' : 'Total:'} ৳{Number(sale.total || 0).toFixed(2)}</Text>
+                    <Text style={{ fontWeight: '600', color: theme.colors.onSurface }}>{isBN ? 'মোট:' : 'Total:'} ৳{Number(sale.total || 0).toFixed(2)}</Text>
                     {Number(sale.due || 0) > 0 && (
                       <Text style={styles.dueText}>{isBN ? 'বকেয়া:' : 'Due:'} ৳{Number(sale.due).toFixed(2)}</Text>
                     )}

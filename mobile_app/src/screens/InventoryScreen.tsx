@@ -210,8 +210,8 @@ export default function InventoryScreen() {
   };
 
   const getStockBg = (item: FullProduct) => {
-    if (Number(item.current_stock) <= 0) return '#fef2f2';
-    if (item.is_low_stock) return '#fffbeb';
+    if (Number(item.current_stock) <= 0) return isDarkMode ? '#2d1515' : '#fef2f2';
+    if (item.is_low_stock) return isDarkMode ? '#2d2006' : '#fffbeb';
     return theme.colors.surface;
   };
   const getStockColor = (item: FullProduct) => {
@@ -283,15 +283,15 @@ export default function InventoryScreen() {
             {/* Categories Expansion */}
             {expandedCard === 'categories' && summary?.by_category && (
               <Surface style={{ borderRadius: 16, padding: 16, marginTop: 8, marginBottom: 4, backgroundColor: theme.colors.surface, elevation: 2 }}>
-                <Text style={{ fontWeight: 'bold', marginBottom: 12, fontSize: 15 }}>{isBN ? 'ক্যাটাগরি বিভাজন' : 'Category Breakdown'}</Text>
+                <Text style={{ fontWeight: 'bold', marginBottom: 12, fontSize: 15, color: theme.colors.onSurface }}>{isBN ? 'ক্যাটাগরি বিভাজন' : 'Category Breakdown'}</Text>
                 {summary.by_category.map((c, i) => (
-                  <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9' }}>
+                  <View key={i} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
                       <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: '#6366f1', marginRight: 10 }} />
-                      <Text style={{ fontWeight: '500' }}>{c.category__name || (isBN ? 'আনক্যাটাগরাইজড' : 'Uncategorized')}</Text>
+                      <Text style={{ fontWeight: '500', color: theme.colors.onSurface }}>{c.category__name || (isBN ? 'আনক্যাটাগরাইজড' : 'Uncategorized')}</Text>
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 13 }}>{c.units} {isBN ? 'পিস' : 'units'}</Text>
-                    <Text style={{ fontWeight: 'bold', color: '#4338ca', marginLeft: 12 }}>৳{Number(c.value).toLocaleString()}</Text>
+                    <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 13 }}>{c.units} {isBN ? 'পিস' : 'units'}</Text>
+                    <Text style={{ fontWeight: 'bold', color: isDarkMode ? '#818cf8' : '#4338ca', marginLeft: 12 }}>৳{Number(c.value).toLocaleString()}</Text>
                   </View>
                 ))}
               </Surface>
@@ -305,9 +305,9 @@ export default function InventoryScreen() {
                   <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#f59e0b' }}>{isBN ? 'লো স্টক পণ্য' : 'Low Stock Products'}</Text>
                 </View>
                 {summary.low_stock.slice(0, lowStockLimit).map((p) => (
-                  <TouchableOpacity key={p.id} onPress={() => setSelectedProduct(p as any)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#fffbeb' }}>
+                  <TouchableOpacity key={p.id} onPress={() => setSelectedProduct(p as any)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#fffbeb' }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '600', color: '#92400e', fontSize: 13 }}>{p.name}</Text>
+                      <Text style={{ fontWeight: '600', color: isDarkMode ? '#fde68a' : '#92400e', fontSize: 13 }}>{p.name}</Text>
                       <Text style={{ color: '#94a3b8', fontSize: 11 }}>{p.sku}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -333,12 +333,12 @@ export default function InventoryScreen() {
                   <Text style={{ fontWeight: 'bold', fontSize: 15, color: '#ef4444' }}>{isBN ? 'আউট অফ স্টক পণ্য' : 'Out of Stock Products'}</Text>
                 </View>
                 {summary.out_of_stock.slice(0, outOfStockLimit).map((p) => (
-                  <TouchableOpacity key={p.id} onPress={() => setSelectedProduct(p as any)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#fef2f2' }}>
+                  <TouchableOpacity key={p.id} onPress={() => setSelectedProduct(p as any)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#fef2f2' }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '600', color: '#991b1b', fontSize: 13 }}>{p.name}</Text>
+                      <Text style={{ fontWeight: '600', color: isDarkMode ? '#fca5a5' : '#991b1b', fontSize: 13 }}>{p.name}</Text>
                       <Text style={{ color: '#94a3b8', fontSize: 11 }}>{p.sku}</Text>
                     </View>
-                    <View style={{ backgroundColor: '#fef2f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
+                    <View style={{ backgroundColor: isDarkMode ? '#450a0a' : '#fef2f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
                       <Text style={{ color: '#ef4444', fontWeight: 'bold', fontSize: 12 }}>0</Text>
                     </View>
                   </TouchableOpacity>
@@ -356,7 +356,7 @@ export default function InventoryScreen() {
 
         {/* Product List */}
         <View style={{ marginTop: 16 }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12 }}>{isBN ? 'সব পণ্য' : 'All Products'}</Text>
+          <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: theme.colors.onSurface }}>{isBN ? 'সব পণ্য' : 'All Products'}</Text>
           <TextInput
             mode="outlined"
             placeholder={isBN ? 'পণ্য খুঁজুন...' : 'Search products...'}
@@ -381,7 +381,7 @@ export default function InventoryScreen() {
                   {/* Row 1: Name + Status Badge */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <TouchableOpacity style={{ flex: 1, marginRight: 8 }} onPress={() => setSelectedProduct(item)}>
-                      <Text style={{ fontWeight: '700', fontSize: 14, color: isDarkMode ? '#e2e8f0' : '#1e293b' }} numberOfLines={2}>{item.name}</Text>
+                      <Text style={{ fontWeight: '700', fontSize: 14, color: isDarkMode ? '#f8fafc' : '#1e293b' }} numberOfLines={2}>{item.name}</Text>
                       <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 2, fontFamily: 'monospace' }}>{item.sku}</Text>
                     </TouchableOpacity>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -391,8 +391,8 @@ export default function InventoryScreen() {
                       <TouchableOpacity onPress={() => confirmDelete(item)} style={{ padding: 4, marginRight: 8 }}>
                         <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
                       </TouchableOpacity>
-                      <View style={{ backgroundColor: item.is_active !== false ? '#dcfce7' : '#f1f5f9', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
-                        <Text style={{ color: item.is_active !== false ? '#16a34a' : '#64748b', fontSize: 11, fontWeight: 'bold' }}>
+                      <View style={{ backgroundColor: item.is_active !== false ? (isDarkMode ? '#064e3b' : '#dcfce7') : (isDarkMode ? '#334155' : '#f1f5f9'), paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 }}>
+                        <Text style={{ color: item.is_active !== false ? (isDarkMode ? '#4ade80' : '#16a34a') : (isDarkMode ? '#94a3b8' : '#64748b'), fontSize: 11, fontWeight: 'bold' }}>
                           {item.is_active !== false ? (isBN ? 'চালু' : 'Active') : (isBN ? 'বন্ধ' : 'Inactive')}
                         </Text>
                       </View>
@@ -400,19 +400,19 @@ export default function InventoryScreen() {
                   </View>
                   {/* Row 2: Cost | Selling | Stock */}
                   <TouchableOpacity onPress={() => setSelectedProduct(item)}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: isDarkMode ? '#1e293b' : '#f1f5f9', paddingTop: 8 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9', paddingTop: 8 }}>
                       <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>{isBN ? 'ক্রয় মূল্য' : 'Cost'}</Text>
-                        <Text style={{ fontWeight: '600', fontSize: 13, color: isDarkMode ? '#cbd5e1' : '#475569' }}>৳{Number(item.cost_price).toLocaleString()}</Text>
+                        <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, marginBottom: 2 }}>{isBN ? 'ক্রয় মূল্য' : 'Cost'}</Text>
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: isDarkMode ? '#e2e8f0' : '#475569' }}>৳{Number(item.cost_price).toLocaleString()}</Text>
                       </View>
-                      <View style={{ width: 1, backgroundColor: isDarkMode ? '#1e293b' : '#e2e8f0' }} />
+                      <View style={{ width: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
                       <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>{isBN ? 'বিক্রয় মূল্য' : 'Selling'}</Text>
-                        <Text style={{ fontWeight: '600', fontSize: 13, color: '#3b82f6' }}>৳{Number(item.selling_price).toLocaleString()}</Text>
+                        <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, marginBottom: 2 }}>{isBN ? 'বিক্রয় মূল্য' : 'Selling'}</Text>
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: isDarkMode ? '#60a5fa' : '#3b82f6' }}>৳{Number(item.selling_price).toLocaleString()}</Text>
                       </View>
-                      <View style={{ width: 1, backgroundColor: isDarkMode ? '#1e293b' : '#e2e8f0' }} />
+                      <View style={{ width: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
                       <View style={{ alignItems: 'center', flex: 1 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 10, marginBottom: 2 }}>{isBN ? 'স্টক' : 'Stock'}</Text>
+                        <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, marginBottom: 2 }}>{isBN ? 'স্টক' : 'Stock'}</Text>
                         <Text style={{ fontWeight: '600', fontSize: 13, color: getStockColor(item) }}>{Number(item.current_stock).toFixed(0)}</Text>
                       </View>
                     </View>

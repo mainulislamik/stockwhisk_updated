@@ -188,23 +188,23 @@ export default function AccountingScreen() {
 
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
               {/* Cash in Hand */}
-              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e293b' : '#f0fdf4', borderWidth: 1, borderColor: '#86efac' }}>
+              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4', borderWidth: 1, borderColor: isDarkMode ? '#059669' : '#86efac' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, color: '#16a34a', fontWeight: '600' }}>{isBN ? 'নগদ ক্যাশ' : 'Cash in Hand'}</Text>
-                  <MaterialCommunityIcons name="cash" size={18} color="#16a34a" />
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#16a34a', fontWeight: '600' }}>{isBN ? 'নগদ ক্যাশ' : 'Cash in Hand'}</Text>
+                  <MaterialCommunityIcons name="cash" size={18} color={isDarkMode ? '#34d399' : '#16a34a'} />
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#15803d' }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#4ade80' : '#15803d' }}>
                   ৳{cashBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
               </Card>
 
               {/* Bank & MFS */}
-              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff', borderWidth: 1, borderColor: '#93c5fd' }}>
+              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', borderWidth: 1, borderColor: isDarkMode ? '#3b82f6' : '#93c5fd' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: '600' }}>{isBN ? 'ব্যাংক / ওয়ালেট' : 'Bank / MFS'}</Text>
-                  <MaterialCommunityIcons name="bank" size={18} color="#2563eb" />
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#bfdbfe' : '#2563eb', fontWeight: '600' }}>{isBN ? 'ব্যাংক / ওয়ালেট' : 'Bank / MFS'}</Text>
+                  <MaterialCommunityIcons name="bank" size={18} color={isDarkMode ? '#60a5fa' : '#2563eb'} />
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#1d4ed8' }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#93c5fd' : '#1d4ed8' }}>
                   ৳{bankBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
               </Card>
@@ -212,30 +212,30 @@ export default function AccountingScreen() {
 
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 18 }}>
               {/* Customer Receivables */}
-              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e293b' : '#fffbeb', borderWidth: 1, borderColor: '#fde047' }}>
+              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#451a03' : '#fffbeb', borderWidth: 1, borderColor: isDarkMode ? '#d97706' : '#fde047' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, color: '#b45309', fontWeight: '600' }}>{isBN ? 'কাস্টমার বাকি' : 'Receivables'}</Text>
-                  <MaterialCommunityIcons name="account-clock" size={18} color="#b45309" />
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#fde68a' : '#b45309', fontWeight: '600' }}>{isBN ? 'কাস্টমার বাকি' : 'Receivables'}</Text>
+                  <MaterialCommunityIcons name="account-clock" size={18} color={isDarkMode ? '#fbbf24' : '#b45309'} />
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#b45309' }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#fbbf24' : '#b45309' }}>
                   ৳{receivables.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
               </Card>
 
               {/* Supplier Payables */}
-              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e293b' : '#fef2f2', borderWidth: 1, borderColor: '#fca5a5' }}>
+              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#450a0a' : '#fef2f2', borderWidth: 1, borderColor: isDarkMode ? '#dc2626' : '#fca5a5' }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, color: '#b91c1c', fontWeight: '600' }}>{isBN ? 'সাপ্লায়ার পাওনা' : 'Payables'}</Text>
-                  <MaterialCommunityIcons name="truck-delivery" size={18} color="#b91c1c" />
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#fecaca' : '#b91c1c', fontWeight: '600' }}>{isBN ? 'সাপ্লায়ার পাওনা' : 'Payables'}</Text>
+                  <MaterialCommunityIcons name="truck-delivery" size={18} color={isDarkMode ? '#f87171' : '#b91c1c'} />
                 </View>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#b91c1c' }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#f87171' : '#b91c1c' }}>
                   ৳{payables.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
               </Card>
             </View>
 
             {/* 3. Profit & Loss Statement (P&L Breakdown) */}
-            <Card style={{ padding: 14, backgroundColor: theme.colors.surface, marginBottom: 18, borderWidth: 1, borderColor: '#e2e8f0' }}>
+            <Card style={{ padding: 14, backgroundColor: theme.colors.surface, marginBottom: 18, borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0' }}>
               <Text style={{ fontWeight: 'bold', fontSize: 15, marginBottom: 12, color: theme.colors.onSurface }}>
                 📊 {isBN ? 'লাভ-ক্ষতি বিবরণী (P&L Breakdown)' : 'Profit & Loss Statement'}
               </Text>

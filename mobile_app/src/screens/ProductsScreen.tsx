@@ -443,16 +443,16 @@ export default function ProductsScreen() {
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <View>
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'কেনা দাম:' : 'Cost:'}</Text>
-                          <Text style={{ fontWeight: '600', fontSize: 13 }}>৳{Number(product.cost_price || 0).toFixed(2)}</Text>
+                          <Text style={{ fontWeight: '600', fontSize: 13, color: isDarkMode ? '#e2e8f0' : '#475569' }}>৳{Number(product.cost_price || 0).toFixed(2)}</Text>
                         </View>
                         <View>
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'বিক্রি দাম:' : 'Selling:'}</Text>
-                          <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#2563eb' }}>৳{Number(product.selling_price || 0).toFixed(2)}</Text>
+                          <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDarkMode ? '#60a5fa' : '#2563eb' }}>৳{Number(product.selling_price || 0).toFixed(2)}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'স্টক:' : 'Stock:'}</Text>
-                          <View style={{ backgroundColor: isOutOfStock ? '#fee2e2' : (isLowStock ? '#fef3c7' : '#dcfce7'), paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-                            <Text style={{ fontWeight: 'bold', fontSize: 12, color: isOutOfStock ? '#dc2626' : (isLowStock ? '#d97706' : '#16a34a') }}>
+                          <View style={{ backgroundColor: isOutOfStock ? (isDarkMode ? '#450a0a' : '#fee2e2') : (isLowStock ? (isDarkMode ? '#451a03' : '#fef3c7') : (isDarkMode ? '#064e3b' : '#dcfce7')), paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ fontWeight: 'bold', fontSize: 12, color: isOutOfStock ? '#dc2626' : (isLowStock ? '#d97706' : (isDarkMode ? '#4ade80' : '#16a34a')) }}>
                               {product.current_stock}
                             </Text>
                           </View>
