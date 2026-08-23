@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList, Platform
+  View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList, Platform, KeyboardAvoidingView
 } from 'react-native';
 import { Text, useTheme, Surface, TextInput, Button, Chip, Divider, Appbar } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -459,77 +459,82 @@ export default function InventoryScreen() {
 
       {/* Stock Adjustment Modal */}
       <Modal visible={showAdjForm} transparent animationType="slide" onRequestClose={() => setShowAdjForm(false)}>
-        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setShowAdjForm(false)} />
-        <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, position: 'absolute', bottom: 0, alignSelf: 'center', width: '100%', maxWidth: 500, maxHeight: '85%' }}>
-          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1', alignSelf: 'center', marginBottom: 16 }} />
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18 }}>{isBN ? 'স্টক অ্যাডজাস্টমেন্ট' : 'Stock Adjustment'}</Text>
-            <TouchableOpacity onPress={() => setShowAdjForm(false)}>
-              <MaterialCommunityIcons name="close" size={24} color="#64748b" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView showsVerticalScrollIndicator={false}>
-            {/* Product Picker */}
-            <Text style={{ fontWeight: '600', marginBottom: 6, color: '#64748b' }}>{isBN ? 'পণ্য নির্বাচন' : 'Select Product'}</Text>
-            <TextInput
-              mode="outlined"
-              placeholder={isBN ? 'পণ্য খুঁজুন...' : 'Search product...'}
-              value={adjSearch}
-              onChangeText={t => { setAdjSearch(t); setShowAdjDropdown(true); }}
-              onFocus={() => setShowAdjDropdown(true)}
-              left={<TextInput.Icon icon="magnify" />}
-              style={{ marginBottom: 4, backgroundColor: theme.colors.surface }}
-              outlineStyle={{ borderRadius: 12 }}
-            />
-            {adjProduct && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0e7ff', padding: 10, borderRadius: 10, marginBottom: 8 }}>
-                <MaterialCommunityIcons name="check-circle" size={16} color="#4338ca" style={{ marginRight: 8 }} />
-                <Text style={{ color: '#4338ca', fontWeight: '600', flex: 1 }}>{adjProduct.name}</Text>
-                <TouchableOpacity onPress={() => { setAdjProduct(null); setAdjSearch(''); }}>
-                  <MaterialCommunityIcons name="close-circle" size={18} color="#4338ca" />
-                </TouchableOpacity>
-              </View>
-            )}
-            {showAdjDropdown && !adjProduct && adjSearch.length > 0 && (
-              <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', maxHeight: 180, marginBottom: 8, overflow: 'hidden' }}>
-                <ScrollView nestedScrollEnabled>
-                  {filteredAdjProducts.slice(0, 15).map(p => (
-                    <TouchableOpacity key={p.id} onPress={() => { setAdjProduct(p); setAdjSearch(p.name); setShowAdjDropdown(false); }}
-                      style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
-                      <Text>{p.name}</Text>
-                    </TouchableOpacity>
-                  ))}
-                  {filteredAdjProducts.length === 0 && <Text style={{ padding: 12, color: '#94a3b8', textAlign: 'center' }}>{isBN ? 'পাওয়া যায়নি' : 'Not found'}</Text>}
-                </ScrollView>
-              </View>
-            )}
-
-            {/* Movement Type */}
-            <Text style={{ fontWeight: '600', marginBottom: 8, color: '#64748b', marginTop: 4 }}>{isBN ? 'ধরণ' : 'Type'}</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
-              {ADJ_TYPES.map(type => (
-                <TouchableOpacity key={type.value} onPress={() => setAdjType(type.value)}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
-                    backgroundColor: adjType === type.value ? type.color : (isDarkMode ? '#1e293b' : '#f1f5f9'),
-                    borderWidth: 1, borderColor: adjType === type.value ? type.color : 'transparent' }}>
-                  <MaterialCommunityIcons name={type.icon as any} size={14} color={adjType === type.value ? '#fff' : '#64748b'} style={{ marginRight: 4 }} />
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: adjType === type.value ? '#fff' : '#64748b' }}>{type.label}</Text>
-                </TouchableOpacity>
-              ))}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1 }}
+        >
+          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setShowAdjForm(false)} />
+          <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, position: 'absolute', bottom: 0, alignSelf: 'center', width: '100%', maxWidth: 500, maxHeight: '85%' }}>
+            <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1', alignSelf: 'center', marginBottom: 16 }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 18 }}>{isBN ? 'স্টক অ্যাডজাস্টমেন্ট' : 'Stock Adjustment'}</Text>
+              <TouchableOpacity onPress={() => setShowAdjForm(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
             </View>
 
-            <TextInput mode="outlined" label={isBN ? 'পরিমাণ' : 'Quantity'} keyboardType="numeric" value={adjQty} onChangeText={setAdjQty}
-              style={{ marginBottom: 12, backgroundColor: theme.colors.surface }} outlineStyle={{ borderRadius: 12 }} />
-            <TextInput mode="outlined" label={isBN ? 'নোট (ঐচ্ছিক)' : 'Note (optional)'} value={adjNote} onChangeText={setAdjNote}
-              style={{ marginBottom: 20, backgroundColor: theme.colors.surface }} outlineStyle={{ borderRadius: 12 }} />
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+              {/* Product Picker */}
+              <Text style={{ fontWeight: '600', marginBottom: 6, color: '#64748b' }}>{isBN ? 'পণ্য নির্বাচন' : 'Select Product'}</Text>
+              <TextInput
+                mode="outlined"
+                placeholder={isBN ? 'পণ্য খুঁজুন...' : 'Search product...'}
+                value={adjSearch}
+                onChangeText={t => { setAdjSearch(t); setShowAdjDropdown(true); }}
+                onFocus={() => setShowAdjDropdown(true)}
+                left={<TextInput.Icon icon="magnify" />}
+                style={{ marginBottom: 4, backgroundColor: theme.colors.surface }}
+                outlineStyle={{ borderRadius: 12 }}
+              />
+              {adjProduct && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0e7ff', padding: 10, borderRadius: 10, marginBottom: 8 }}>
+                  <MaterialCommunityIcons name="check-circle" size={16} color="#4338ca" style={{ marginRight: 8 }} />
+                  <Text style={{ color: '#4338ca', fontWeight: '600', flex: 1 }}>{adjProduct.name}</Text>
+                  <TouchableOpacity onPress={() => { setAdjProduct(null); setAdjSearch(''); }}>
+                    <MaterialCommunityIcons name="close-circle" size={18} color="#4338ca" />
+                  </TouchableOpacity>
+                </View>
+              )}
+              {showAdjDropdown && !adjProduct && adjSearch.length > 0 && (
+                <View style={{ borderRadius: 12, borderWidth: 1, borderColor: '#e2e8f0', maxHeight: 180, marginBottom: 8, overflow: 'hidden' }}>
+                  <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled">
+                    {filteredAdjProducts.slice(0, 15).map(p => (
+                      <TouchableOpacity key={p.id} onPress={() => { setAdjProduct(p); setAdjSearch(p.name); setShowAdjDropdown(false); }}
+                        style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}>
+                        <Text>{p.name}</Text>
+                      </TouchableOpacity>
+                    ))}
+                    {filteredAdjProducts.length === 0 && <Text style={{ padding: 12, color: '#94a3b8', textAlign: 'center' }}>{isBN ? 'পাওয়া যায়নি' : 'Not found'}</Text>}
+                  </ScrollView>
+                </View>
+              )}
 
-            <Button mode="contained" onPress={handleAdjustSubmit} loading={saving} disabled={saving || !adjProduct || !adjQty}
-              style={{ borderRadius: 12 }} contentStyle={{ height: 50 }}>
-              {isBN ? 'সেভ করুন' : 'Save Adjustment'}
-            </Button>
-          </ScrollView>
-        </View>
+              {/* Movement Type */}
+              <Text style={{ fontWeight: '600', marginBottom: 8, color: '#64748b', marginTop: 4 }}>{isBN ? 'ধরণ' : 'Type'}</Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 }}>
+                {ADJ_TYPES.map(type => (
+                  <TouchableOpacity key={type.value} onPress={() => setAdjType(type.value)}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+                      backgroundColor: adjType === type.value ? type.color : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                      borderWidth: 1, borderColor: adjType === type.value ? type.color : 'transparent' }}>
+                    <MaterialCommunityIcons name={type.icon as any} size={14} color={adjType === type.value ? '#fff' : '#64748b'} style={{ marginRight: 4 }} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: adjType === type.value ? '#fff' : '#64748b' }}>{type.label}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              <TextInput mode="outlined" label={isBN ? 'পরিমাণ' : 'Quantity'} keyboardType="numeric" value={adjQty} onChangeText={setAdjQty}
+                style={{ marginBottom: 12, backgroundColor: theme.colors.surface }} outlineStyle={{ borderRadius: 12 }} />
+              <TextInput mode="outlined" label={isBN ? 'নোট (ঐচ্ছিক)' : 'Note (optional)'} value={adjNote} onChangeText={setAdjNote}
+                style={{ marginBottom: 20, backgroundColor: theme.colors.surface }} outlineStyle={{ borderRadius: 12 }} />
+
+              <Button mode="contained" onPress={handleAdjustSubmit} loading={saving} disabled={saving || !adjProduct || !adjQty}
+                style={{ borderRadius: 12 }} contentStyle={{ height: 50 }}>
+                {isBN ? 'সেভ করুন' : 'Save Adjustment'}
+              </Button>
+            </ScrollView>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
       <ProductDetailModal 

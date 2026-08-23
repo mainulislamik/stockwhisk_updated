@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert, Modal, Dimensions, Linking, Platform, BackHandler, Keyboard } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert, Modal, Dimensions, Linking, Platform, BackHandler, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { Text, Appbar, useTheme, Surface, IconButton, TextInput, Button, Divider, ActivityIndicator, Badge, Chip, Checkbox } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
@@ -661,8 +661,17 @@ export default function POSScreen() {
       )}
 
       {view === 'cart' && (
-        <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingBottom: 120 }}>
-          <View style={{ padding: 16 }}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1 }}
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
+        >
+          <ScrollView 
+            style={{ flex: 1, backgroundColor: theme.colors.background }} 
+            contentContainerStyle={{ paddingBottom: 140 }}
+            keyboardShouldPersistTaps="handled"
+          >
+            <View style={{ padding: 16 }}>
             {/* 1. Order Summary */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{t('অর্ডারের সারাংশ', 'Order Summary')}</Text>
@@ -988,6 +997,7 @@ export default function POSScreen() {
             </View>
           </View>
         </ScrollView>
+        </KeyboardAvoidingView>
       )}
 
       {/* Barcode Scanner Modal */}
@@ -998,34 +1008,38 @@ export default function POSScreen() {
       />
 
       <Modal visible={unitModalVisible} transparent animationType="fade" onRequestClose={() => setUnitModalVisible(false)}>
-        <TouchableOpacity 
-          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }} 
-          activeOpacity={1} 
-          onPressOut={() => setUnitModalVisible(false)}
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1 }}
         >
-          <TouchableOpacity activeOpacity={1} style={{ maxHeight: '90%', width: '100%', maxWidth: 480, flexShrink: 1 }}>
-            <Surface style={{ borderRadius: 16, padding: 18, backgroundColor: theme.colors.surface, elevation: 8, flexShrink: 1 }}>
-              {/* Modal Header */}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9', paddingBottom: 10 }}>
-                <View style={{ flex: 1, paddingRight: 8 }}>
-                  <Text style={{ fontSize: 17, fontWeight: 'bold', color: theme.colors.onSurface }}>
-                    {selectedProductForUnit?.name}
-                  </Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8, flexWrap: 'wrap' }}>
-                    <Text style={{ fontSize: 11, color: '#64748b' }}>
-                      SKU: {selectedProductForUnit?.sku || 'N/A'}
+          <TouchableOpacity 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }} 
+            activeOpacity={1} 
+            onPressOut={() => setUnitModalVisible(false)}
+          >
+            <TouchableOpacity activeOpacity={1} style={{ maxHeight: '90%', width: '100%', maxWidth: 480, flexShrink: 1 }}>
+              <Surface style={{ borderRadius: 16, padding: 18, backgroundColor: theme.colors.surface, elevation: 8, flexShrink: 1 }}>
+                {/* Modal Header */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9', paddingBottom: 10 }}>
+                  <View style={{ flex: 1, paddingRight: 8 }}>
+                    <Text style={{ fontSize: 17, fontWeight: 'bold', color: theme.colors.onSurface }}>
+                      {selectedProductForUnit?.name}
                     </Text>
-                    <View style={{ backgroundColor: Number(selectedProductForUnit?.current_stock || 0) > 0 ? '#dcfce7' : '#fee2e2', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
-                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: Number(selectedProductForUnit?.current_stock || 0) > 0 ? '#16a34a' : '#dc2626' }}>
-                        {isBN ? `মজুদ: ${selectedProductForUnit?.current_stock || 0}` : `Stock: ${selectedProductForUnit?.current_stock || 0}`}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8, flexWrap: 'wrap' }}>
+                      <Text style={{ fontSize: 11, color: '#64748b' }}>
+                        SKU: {selectedProductForUnit?.sku || 'N/A'}
                       </Text>
+                      <View style={{ backgroundColor: Number(selectedProductForUnit?.current_stock || 0) > 0 ? '#dcfce7' : '#fee2e2', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
+                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: Number(selectedProductForUnit?.current_stock || 0) > 0 ? '#16a34a' : '#dc2626' }}>
+                          {isBN ? `মজুদ: ${selectedProductForUnit?.current_stock || 0}` : `Stock: ${selectedProductForUnit?.current_stock || 0}`}
+                        </Text>
+                      </View>
                     </View>
                   </View>
+                  <IconButton icon="close" size={22} onPress={() => setUnitModalVisible(false)} style={{ margin: 0, marginTop: -6, marginRight: -6 }} />
                 </View>
-                <IconButton icon="close" size={22} onPress={() => setUnitModalVisible(false)} style={{ margin: 0, marginTop: -6, marginRight: -6 }} />
-              </View>
-              
-              <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 6 }}>
+                
+                <ScrollView style={{ flexShrink: 1 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 6 }} keyboardShouldPersistTaps="handled">
                 {/* 1. If Serialized / Units Available */}
                 {selectedProductForUnit?.units && selectedProductForUnit.units.length > 0 ? (
                   <View style={{ marginBottom: 14 }}>
@@ -1219,6 +1233,7 @@ export default function POSScreen() {
             </Surface>
           </TouchableOpacity>
         </TouchableOpacity>
+        </KeyboardAvoidingView>
       </Modal>
       <Modal visible={!!saleResult} transparent animationType="fade" onRequestClose={() => setSaleResult(null)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
@@ -1295,45 +1310,50 @@ export default function POSScreen() {
 
       {/* Custom Ad-hoc Item Modal */}
       <Modal visible={showCustomItemModal} onDismiss={() => setShowCustomItemModal(false)} transparent animationType="fade">
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', padding: 16 }}>
-          <Surface style={{ width: '100%', maxWidth: 400, borderRadius: 12, padding: 20, backgroundColor: theme.colors.surface, elevation: 5 }}>
-            <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: theme.colors.onSurface }}>
-              {t('কাস্টম আইটেম যুক্ত করুন', 'Add Custom / Ad-hoc Item')}
-            </Text>
-            <TextInput
-              mode="outlined"
-              label={t('পণ্যের বা সেবার নাম', 'Item or Service Name')}
-              value={customItemName}
-              onChangeText={setCustomItemName}
-              style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
-              placeholder={t('যেমন: স্পেশাল রিপেয়ার ফি', 'e.g. Special repair fee')}
-            />
-            <TextInput
-              mode="outlined"
-              label={t('বিক্রয় মূল্য (৳)', 'Selling Price (৳)')}
-              value={customItemPrice}
-              onChangeText={setCustomItemPrice}
-              keyboardType="numeric"
-              style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
-            />
-            <TextInput
-              mode="outlined"
-              label={t('পরিমাণ', 'Quantity')}
-              value={customItemQty}
-              onChangeText={setCustomItemQty}
-              keyboardType="numeric"
-              style={{ marginBottom: 20, backgroundColor: theme.colors.surface }}
-            />
-            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
-              <Button mode="outlined" onPress={() => setShowCustomItemModal(false)}>
-                {t('বাতিল', 'Cancel')}
-              </Button>
-              <Button mode="contained" buttonColor="#4f46e5" onPress={handleAddCustomItem}>
-                {t('কার্টে যোগ করুন', 'Add to Cart')}
-              </Button>
-            </View>
-          </Surface>
-        </View>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          style={{ flex: 1 }}
+        >
+          <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.6)', padding: 16 }}>
+            <Surface style={{ width: '100%', maxWidth: 400, borderRadius: 12, padding: 20, backgroundColor: theme.colors.surface, elevation: 5 }}>
+              <Text style={{ fontSize: 18, fontWeight: 'bold', marginBottom: 16, color: theme.colors.onSurface }}>
+                {t('কাস্টম আইটেম যুক্ত করুন', 'Add Custom / Ad-hoc Item')}
+              </Text>
+              <TextInput
+                mode="outlined"
+                label={t('পণ্যের বা সেবার নাম', 'Item or Service Name')}
+                value={customItemName}
+                onChangeText={setCustomItemName}
+                style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
+                placeholder={t('যেমন: স্পেশাল রিপেয়ার ফি', 'e.g. Special repair fee')}
+              />
+              <TextInput
+                mode="outlined"
+                label={t('বিক্রয় মূল্য (৳)', 'Selling Price (৳)')}
+                value={customItemPrice}
+                onChangeText={setCustomItemPrice}
+                keyboardType="numeric"
+                style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
+              />
+              <TextInput
+                mode="outlined"
+                label={t('পরিমাণ', 'Quantity')}
+                value={customItemQty}
+                onChangeText={setCustomItemQty}
+                keyboardType="numeric"
+                style={{ marginBottom: 20, backgroundColor: theme.colors.surface }}
+              />
+              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 10 }}>
+                <Button mode="outlined" onPress={() => setShowCustomItemModal(false)}>
+                  {t('বাতিল', 'Cancel')}
+                </Button>
+                <Button mode="contained" buttonColor="#4f46e5" onPress={handleAddCustomItem}>
+                  {t('কার্টে যোগ করুন', 'Add to Cart')}
+                </Button>
+              </View>
+            </Surface>
+          </View>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>

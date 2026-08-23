@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, useTheme, TextInput, Button, Card, Divider, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -204,21 +204,25 @@ export default function EditInvoiceModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={onClose} />
-      <View
-        style={{
-          backgroundColor: theme.colors.background,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
-          position: 'absolute',
-          bottom: 0,
-          alignSelf: 'center',
-          width: '100%',
-          maxWidth: 500,
-          height: '92%',
-          paddingBottom: 20,
-        }}
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={{ flex: 1 }}
       >
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={onClose} />
+        <View
+          style={{
+            backgroundColor: theme.colors.background,
+            borderTopLeftRadius: 24,
+            borderTopRightRadius: 24,
+            position: 'absolute',
+            bottom: 0,
+            alignSelf: 'center',
+            width: '100%',
+            maxWidth: 500,
+            height: '92%',
+            paddingBottom: 20,
+          }}
+        >
         {/* Header */}
         <View
           style={{
@@ -482,6 +486,7 @@ export default function EditInvoiceModal({
           </ScrollView>
         )}
       </View>
+      </KeyboardAvoidingView>
 
       <CameraBarcodeScannerModal
         visible={showCameraScanner}

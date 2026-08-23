@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator, FlatList, Keyboard } from 'react-native';
+import { View, ScrollView, Modal, TouchableOpacity, Alert, ActivityIndicator, FlatList, Keyboard, KeyboardAvoidingView, Platform } from 'react-native';
 import { Text, useTheme, TextInput, Button, Card, Divider, Chip } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -295,16 +295,20 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={onClose} />
-      <View style={{ 
-        backgroundColor: theme.colors.background, 
-        borderTopLeftRadius: 24, 
-        borderTopRightRadius: 24, 
-        position: 'absolute', bottom: 0, alignSelf: 'center',
-        width: '100%', maxWidth: 500,
-        height: '90%',
-        paddingBottom: 20
-      }}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        style={{ flex: 1 }}
+      >
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={onClose} />
+        <View style={{ 
+          backgroundColor: theme.colors.background, 
+          borderTopLeftRadius: 24, 
+          borderTopRightRadius: 24, 
+          position: 'absolute', bottom: 0, alignSelf: 'center',
+          width: '100%', maxWidth: 500,
+          height: '90%',
+          paddingBottom: 20
+        }}>
         {/* Header */}
         <View style={{ backgroundColor: theme.colors.surface, padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#2563eb' }}>
@@ -607,6 +611,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           </Button>
         </ScrollView>
       </View>
+      </KeyboardAvoidingView>
 
       {/* Robust Supplier Selector Modal */}
       <Modal visible={showSupplierPicker} transparent animationType="fade" onRequestClose={() => setShowSupplierPicker(false)}>

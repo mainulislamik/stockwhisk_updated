@@ -24,7 +24,8 @@
         "INTERNET",
         "ACCESS_NETWORK_STATE"
       ],
-      "usesCleartextTraffic": true
+      "usesCleartextTraffic": true,
+      "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
