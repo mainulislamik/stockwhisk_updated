@@ -598,7 +598,7 @@ export default function POSScreen() {
       )}
 
       {view === 'cart' && (
-        <ScrollView style={{ flex: 1, position: 'absolute', top: 56, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingBottom: 100 }}>
+        <ScrollView style={{ flex: 1, backgroundColor: theme.colors.background }} contentContainerStyle={{ paddingBottom: 120 }}>
           <View style={{ padding: 16 }}>
             {/* 1. Order Summary */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
@@ -833,13 +833,13 @@ export default function POSScreen() {
 
             {/* 4. Payment Method */}
             <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16 }}>{t('পেমেন্ট মাধ্যম', 'Payment Method')}</Text>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 24 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
               {(['cash', 'card', 'bkash', 'nagad', 'bank_transfer'] as const).map(method => (
                 <TouchableOpacity
                   key={method}
                   onPress={() => setPaymentMethod(method)}
                   style={{
-                    width: '31%', padding: 8, marginBottom: 8, borderRadius: 8, alignItems: 'center',
+                    flex: 1, minWidth: 95, padding: 8, borderRadius: 8, alignItems: 'center',
                     borderWidth: 1, borderColor: paymentMethod === method ? theme.colors.primary : '#ccc',
                     backgroundColor: paymentMethod === method ? theme.colors.primaryContainer : '#fff'
                   }}

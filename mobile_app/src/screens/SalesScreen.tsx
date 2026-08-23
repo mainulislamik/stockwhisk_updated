@@ -524,8 +524,8 @@ export default function SalesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  listContainer: { flex: 1, position: 'relative' },
-  scrollView: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 },
+  listContainer: { flex: 1 },
+  scrollView: { flex: 1 },
   scrollContent: { padding: 16, paddingBottom: 100 },
   searchContainer: { padding: 16, backgroundColor: 'transparent' },
   card: { marginBottom: 12, elevation: 1 },
