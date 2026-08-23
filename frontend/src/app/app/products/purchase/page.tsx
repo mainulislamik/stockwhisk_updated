@@ -54,6 +54,7 @@ export default function PurchaseProductPage() {
   const [showScanner, setShowScanner] = useState(false);
   const [bulkQty, setBulkQty] = useState("");
   const [qtyTouched, setQtyTouched] = useState(false);
+  const [autoGenerateBarcodes, setAutoGenerateBarcodes] = useState(false);
 
   const { user } = useAuth();
   const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop ?? undefined, (barcode) => {
@@ -119,14 +120,30 @@ export default function PurchaseProductPage() {
     return () => clearTimeout(timer);
   }, [searchName, searchBarcode, doSearch]);
 
+  function generateBarcodesHelper(p: Product, count: number): string[] {
+    const prefix = p.sku ? p.sku.replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase() : "BC";
+    const timestamp = Date.now().toString().slice(-5);
+    const generated: string[] = [];
+    for (let i = 1; i <= count; i++) {
+      const rand = Math.floor(100 + Math.random() * 900);
+      generated.push(`${prefix}${timestamp}${i.toString().padStart(2, "0")}${rand}`);
+    }
+    return generated;
+  }
+
   function selectProduct(p: Product) {
     setSelected(p);
     setSearchResults(null);
     setSearchName("");
     setSearchBarcode("");
-    setBarcodeText("");
     setBulkQty("");
     setQtyTouched(false);
+    if (autoGenerateBarcodes) {
+      const generated = generateBarcodesHelper(p, 1);
+      setBarcodeText(generated.join("\n") + "\n");
+    } else {
+      setBarcodeText("");
+    }
   }
 
   // ─── New product creation ────────────────────────────────────────────────
@@ -154,7 +171,7 @@ export default function PurchaseProductPage() {
       selectProduct(p);
       setLines((prev) => [
         ...prev,
-        { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: [] },
+        { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: autoGenerateBarcodes ? generateBarcodesHelper(p, 1) : [] },
       ]);
       toast.success(t("pp_success_create_prod") || "Product created successfully");
     } catch (e: any) {
@@ -195,19 +212,13 @@ export default function PurchaseProductPage() {
   const qtyDisplay = qtyTouched ? bulkQty : (parsedBarcodes.length ? String(parsedBarcodes.length) : "");
 
   // Auto-generate barcodes for batch
-  function generateBarcodesForSelected() {
+  function generateBarcodesForSelected(overrideCount?: number) {
     if (!selected) {
       toast.error("Please select a product first");
       return;
     }
-    const count = Number(bulkQty) || (parsedBarcodes.length > 0 ? parsedBarcodes.length : 1);
-    const prefix = selected.sku ? selected.sku.replace(/[^A-Za-z0-9]/g, "").slice(0, 6).toUpperCase() : "BC";
-    const timestamp = Date.now().toString().slice(-5);
-    const generated: string[] = [];
-    for (let i = 1; i <= count; i++) {
-      const rand = Math.floor(100 + Math.random() * 900);
-      generated.push(`${prefix}${timestamp}${i.toString().padStart(2, "0")}${rand}`);
-    }
+    const count = overrideCount ?? (Number(bulkQty) || (parsedBarcodes.length > 0 ? parsedBarcodes.length : 1));
+    const generated = generateBarcodesHelper(selected, count);
     setBarcodeText(generated.join("\n") + "\n");
     if (!qtyTouched) {
       setBulkQty(String(count));
@@ -236,17 +247,23 @@ export default function PurchaseProductPage() {
 
       if (selected) {
         const qty = hasBulkQty ? effQty : (parsedBarcodes.length || 1);
+        let finalBarcodes = [...parsedBarcodes];
+        if (autoGenerateBarcodes && finalBarcodes.length < qty) {
+          const needed = qty - finalBarcodes.length;
+          const extra = generateBarcodesHelper(selected, needed);
+          finalBarcodes = [...finalBarcodes, ...extra];
+        }
         const existing = newLines.find((l) => l.product.id === selected.id);
 
         if (existing) {
           existing.quantity += qty;
-          existing.barcodes = [...existing.barcodes, ...parsedBarcodes];
+          existing.barcodes = [...existing.barcodes, ...finalBarcodes];
         } else {
           newLines.push({
             product: selected,
             quantity: qty,
             unit_cost: Number(selected.cost_price) || 0,
-            barcodes: [...parsedBarcodes],
+            barcodes: finalBarcodes,
           });
         }
       } else {
@@ -308,18 +325,36 @@ export default function PurchaseProductPage() {
 
   function addManualLine() {
     if (!selected) return;
+    const qty = hasBulkQty ? effQty : (parsedBarcodes.length || 1);
+    let finalBarcodes = [...parsedBarcodes];
+    if (autoGenerateBarcodes && finalBarcodes.length < qty) {
+      const needed = qty - finalBarcodes.length;
+      const extra = generateBarcodesHelper(selected, needed);
+      finalBarcodes = [...finalBarcodes, ...extra];
+    }
     setLines((prev) => {
-      if (prev.find((l) => l.product.id === selected.id)) return prev;
+      const existing = prev.find((l) => l.product.id === selected.id);
+      if (existing) {
+        return prev.map((l) =>
+          l.product.id === selected.id
+            ? { ...l, quantity: l.quantity + qty, barcodes: [...l.barcodes, ...finalBarcodes] }
+            : l
+        );
+      }
       return [
         ...prev,
         {
           product: selected,
-          quantity: 1,
+          quantity: qty,
           unit_cost: Number(selected.cost_price) || 0,
-          barcodes: [],
+          barcodes: finalBarcodes,
         },
       ];
     });
+    setBarcodeText("");
+    setBulkQty("");
+    setQtyTouched(false);
+    toast.success(`"${selected.name}" (${qty} টি) রিসিভ তালিকায় যুক্ত হয়েছে`);
   }
 
   function updateLine(id: number, field: "quantity" | "unit_cost", val: number) {
@@ -366,12 +401,19 @@ export default function PurchaseProductPage() {
     setBusy(true);
     try {
       const poData: Record<string, any> = {
-        items: lines.map((l) => ({
-          product: l.product.id,
-          quantity: l.quantity,
-          unit_cost: l.unit_cost,
-          barcodes: l.barcodes,
-        })),
+        items: lines.map((l) => {
+          let bcs = [...l.barcodes];
+          if (autoGenerateBarcodes && bcs.length < l.quantity) {
+            const needed = l.quantity - bcs.length;
+            bcs = [...bcs, ...generateBarcodesHelper(l.product, needed)];
+          }
+          return {
+            product: l.product.id,
+            quantity: l.quantity,
+            unit_cost: l.unit_cost,
+            barcodes: bcs,
+          };
+        }),
       };
       if (supplier) poData.supplier = Number(supplier);
       if (branch) poData.branch = Number(branch);
@@ -697,6 +739,11 @@ export default function PurchaseProductPage() {
                     const v = e.target.value;
                     setBulkQty(v);
                     setQtyTouched(v.trim() !== "");
+                    if (autoGenerateBarcodes && selected && v.trim() !== "") {
+                      const cnt = Math.max(1, Math.round(Number(v) || 0));
+                      const generated = generateBarcodesHelper(selected, cnt);
+                      setBarcodeText(generated.join("\n") + "\n");
+                    }
                   }}
                 />
                 <div className={`small mt-1 ${tooManyBarcodes ? "text-danger" : "text-muted"}`}>
@@ -721,17 +768,47 @@ export default function PurchaseProductPage() {
         {/* ── Bulk Barcode Scan Card ───────────────────────────────────────── */}
         <div className="card shadow-sm mb-3">
           <div className="card-body">
-            <div className="d-flex justify-content-between align-items-center mb-3">
-              <h2 className="h6 fw-bold mb-0 text-brand">▦ Bulk Barcode Scan &amp; Ingestion</h2>
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+              <div className="d-flex flex-wrap align-items-center gap-3">
+                <h2 className="h6 fw-bold mb-0 text-brand">▦ Bulk Barcode Scan &amp; Ingestion</h2>
+                
+                {/* Modern Auto-Barcode Generator Toggle Switch */}
+                <div className="form-check form-switch d-flex align-items-center gap-2 mb-0 bg-light px-3 py-1 rounded border shadow-xs">
+                  <input
+                    className="form-check-input mt-0 cursor-pointer"
+                    type="checkbox"
+                    role="switch"
+                    id="autoBarcodeToggle"
+                    checked={autoGenerateBarcodes}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      setAutoGenerateBarcodes(next);
+                      if (next && selected) {
+                        const cnt = Number(bulkQty) || (parsedBarcodes.length > 0 ? parsedBarcodes.length : 1);
+                        const generated = generateBarcodesHelper(selected, cnt);
+                        setBarcodeText(generated.join("\n") + "\n");
+                        toast.success(`${cnt} টি অটো বারকোড তৈরি হয়েছে`);
+                      }
+                    }}
+                  />
+                  <label className="form-check-label small fw-bold cursor-pointer user-select-none mb-0 d-flex align-items-center gap-1" htmlFor="autoBarcodeToggle">
+                    <span>⚡ অটো-বারকোড তৈরি (Auto Barcode)</span>
+                    <span className={`badge ${autoGenerateBarcodes ? "bg-success" : "bg-secondary"}`} style={{ fontSize: "0.65rem" }}>
+                      {autoGenerateBarcodes ? "ON" : "OFF"}
+                    </span>
+                  </label>
+                </div>
+              </div>
+
               <div className="d-flex gap-2 align-items-center">
                 <span className="badge text-bg-primary">{parsedBarcodes.length} BARCODES</span>
                 {selected && (
                   <button
                     type="button"
                     className="btn btn-outline-brand btn-sm"
-                    onClick={generateBarcodesForSelected}
+                    onClick={() => generateBarcodesForSelected()}
                   >
-                    ⚡ অটো-বারকোড তৈরি করুন ({effQty})
+                    ⚡ রিফ্রেশ বারকোড ({effQty})
                   </button>
                 )}
               </div>
