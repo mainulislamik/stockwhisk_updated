@@ -175,10 +175,20 @@ export default function SalesScreen() {
     );
   };
 
+  function escapeHtml(str: any): string {
+    if (str == null) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   const generateReceiptHTML = (sale: Sale) => {
     const itemsHtml = (sale.items || []).map((it: any) => `
       <tr>
-        <td style="padding: 4px 0; border-bottom: 1px dashed #ddd;">${it.product_name || it.name || 'Product'}</td>
+        <td style="padding: 4px 0; border-bottom: 1px dashed #ddd;">${escapeHtml(it.product_name || it.name || 'Product')}</td>
         <td style="text-align: center; padding: 4px 0; border-bottom: 1px dashed #ddd;">${it.quantity}</td>
         <td style="text-align: right; padding: 4px 0; border-bottom: 1px dashed #ddd;">${Number(it.unit_price || 0).toFixed(2)}</td>
         <td style="text-align: right; padding: 4px 0; border-bottom: 1px dashed #ddd;">${Number(it.subtotal || (it.quantity * it.unit_price) || 0).toFixed(2)}</td>
@@ -208,13 +218,13 @@ export default function SalesScreen() {
       </head>
       <body>
         <div class="header">
-          <div class="title">${user?.shop_name || 'StockWhisk Store'}</div>
-          ${(user as any)?.shop_address ? `<div class="info">${(user as any).shop_address}</div>` : ''}
-          ${(user as any)?.shop_phone ? `<div class="info">Phone: ${(user as any).shop_phone}</div>` : ''}
-          <div class="info">Invoice: #${sale.invoice_no || sale.invoice_number || sale.id}</div>
-          <div class="info">Date: ${sale.sale_date?.slice(0, 10) || ''}</div>
-          <div class="info">Customer: ${sale.customer_name || 'Walk-in'} ${sale.customer_phone ? `(${sale.customer_phone})` : ''}</div>
-          ${sale.courier_name || sale.courier_tracking_code ? `<div class="info" style="font-weight: bold; margin-top: 2px;">Courier: ${sale.courier_name || ''} ${sale.courier_tracking_code ? `(#${sale.courier_tracking_code})` : ''}</div>` : ''}
+          <div class="title">${escapeHtml(user?.shop_name || 'StockWhisk Store')}</div>
+          ${(user as any)?.shop_address ? `<div class="info">${escapeHtml((user as any).shop_address)}</div>` : ''}
+          ${(user as any)?.shop_phone ? `<div class="info">Phone: ${escapeHtml((user as any).shop_phone)}</div>` : ''}
+          <div class="info">Invoice: #${escapeHtml(sale.invoice_no || sale.invoice_number || sale.id)}</div>
+          <div class="info">Date: ${escapeHtml(sale.sale_date?.slice(0, 10) || '')}</div>
+          <div class="info">Customer: ${escapeHtml(sale.customer_name || 'Walk-in')} ${sale.customer_phone ? `(${escapeHtml(sale.customer_phone)})` : ''}</div>
+          ${sale.courier_name || sale.courier_tracking_code ? `<div class="info" style="font-weight: bold; margin-top: 2px;">Courier: ${escapeHtml(sale.courier_name || '')} ${sale.courier_tracking_code ? `(#${escapeHtml(sale.courier_tracking_code)})` : ''}</div>` : ''}
         </div>
         <table>
           <thead>

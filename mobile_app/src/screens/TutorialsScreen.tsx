@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Linking } from 'react-native';
 import { Text, Appbar, useTheme, Card, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api';
@@ -79,6 +79,18 @@ export default function TutorialsScreen() {
                 <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
                   {activeVideo.sequence}. {activeVideo.title}
                 </Text>
+                <Button
+                  mode="outlined"
+                  icon="youtube"
+                  textColor="#dc2626"
+                  style={{ borderColor: '#dc2626', marginTop: 10, alignSelf: 'flex-start' }}
+                  onPress={() => {
+                    const url = activeVideo.youtube_url || (activeVideo.video_id ? `https://www.youtube.com/watch?v=${activeVideo.video_id}` : '');
+                    if (url) Linking.openURL(url);
+                  }}
+                >
+                  {isBN ? 'ইউটিউবে দেখুন' : 'Watch on YouTube'}
+                </Button>
               </View>
             </View>
           )}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Modal, StyleSheet, Platform, Alert, Dimensions, Vibration } from 'react-native';
+import { View, Modal, StyleSheet, Platform, Alert, Dimensions, Vibration, Linking } from 'react-native';
 import { Text, IconButton, Button } from 'react-native-paper';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -115,6 +115,14 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
                 style={{ marginTop: 16 }}
               >
                 {isBN ? 'ক্যামেরা চালু করুন' : 'Grant Camera Permission'}
+              </Button>
+              <Button
+                mode="outlined"
+                textColor="#ffffff"
+                onPress={() => Linking.openSettings()}
+                style={{ marginTop: 10, borderColor: '#64748b' }}
+              >
+                {isBN ? '⚙️ ফোন সেটিংসে গিয়ে পারমিশন দিন' : '⚙️ Open Phone Settings'}
               </Button>
             </View>
           )}

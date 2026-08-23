@@ -132,12 +132,18 @@ export default function DashboardScreen() {
     }, [periodDays, topProductsDays, trendDays])
   );
 
-  const onRefresh = () => {
+  const onRefresh = async () => {
     setRefreshing(true);
-    loadBaseData();
-    loadTopCardsData();
-    loadTopProductsData();
-    loadTrendData();
+    try {
+      await Promise.all([
+        loadBaseData(),
+        loadTopCardsData(),
+        loadTopProductsData(),
+        loadTrendData()
+      ]);
+    } finally {
+      setRefreshing(false);
+    }
   };
 
   const chartWidth = Math.min(Dimensions.get('window').width - 48, 440);
