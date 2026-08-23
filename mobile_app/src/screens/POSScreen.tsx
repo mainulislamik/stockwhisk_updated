@@ -25,7 +25,7 @@ type Customer = { id: number; name: string; phone?: string; };
 export default function POSScreen() {
   const route = useRoute<any>();
   const theme = useTheme();
-  const { language } = usePreferences();
+  const { language, isDarkMode } = usePreferences();
   const isBN = language === 'BN';
   const t = (bn: string, en: string) => isBN ? bn : en;
 
