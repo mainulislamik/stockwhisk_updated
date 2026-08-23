@@ -117,7 +117,7 @@ export default function DuesScreen() {
       setAmount('');
       setNote('');
       fetchTotalDues();
-      fetchDues(1, true);
+      fetchDues(1, debouncedSearch, true);
 
       if (custPhone) {
         Alert.alert(
