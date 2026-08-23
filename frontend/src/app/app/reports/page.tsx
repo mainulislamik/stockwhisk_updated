@@ -189,7 +189,7 @@ export default function ReportsPage() {
   // Build the 4 Profit Overview charts whenever the profit data changes.
   useEffect(() => {
     let animId: number;
-    if (!profit || !profit.trend || profit.trend.length === 0) return;
+    if (loading || !profit || !profit.trend || profit.trend.length === 0) return;
 
     animId = requestAnimationFrame(() => {
       const monthly = profit.range.bucket === "month";
@@ -264,7 +264,7 @@ export default function ReportsPage() {
       pTrendInst.current?.destroy(); pBarInst.current?.destroy();
       pMarginInst.current?.destroy(); pAvgInst.current?.destroy();
     };
-  }, [profit]);
+  }, [profit, loading]);
 
   // Profitability Performance: refetch on range change.
   useEffect(() => {
@@ -280,7 +280,7 @@ export default function ReportsPage() {
   // Build the 3 horizontal-bar profitability charts.
   useEffect(() => {
     let animId: number;
-    if (!perf) return;
+    if (loading || !perf) return;
 
     animId = requestAnimationFrame(() => {
       const tk = (v: number) => "৳" + Number(v || 0).toLocaleString(undefined, { maximumFractionDigits: 0 });
@@ -328,7 +328,7 @@ export default function ReportsPage() {
       cancelAnimationFrame(animId);
       profInst.current?.destroy(); lossInst.current?.destroy(); marginInst.current?.destroy();
     };
-  }, [perf]);
+  }, [perf, loading]);
 
   // Product Performance: refetch on range change.
   useEffect(() => {
@@ -344,7 +344,7 @@ export default function ReportsPage() {
   // Most Sold horizontal-bar chart.
   useEffect(() => {
     let animId: number;
-    if (!pp) return;
+    if (loading || !pp) return;
 
     animId = requestAnimationFrame(() => {
       const rows = pp.most_sold_products;
@@ -373,7 +373,7 @@ export default function ReportsPage() {
     });
 
     return () => { cancelAnimationFrame(animId); mostSoldInst.current?.destroy(); };
-  }, [pp]);
+  }, [pp, loading]);
 
   // Profitability Analytics: refetch on range change.
   useEffect(() => {
@@ -389,7 +389,7 @@ export default function ReportsPage() {
   // Build the 3 donut charts + Sales Trend line.
   useEffect(() => {
     let animId: number;
-    if (!pa) return;
+    if (loading || !pa) return;
 
     animId = requestAnimationFrame(() => {
       const donut = (ref: any, inst: any, value: number, color: string) => {
@@ -439,7 +439,7 @@ export default function ReportsPage() {
       cancelAnimationFrame(animId);
       fulfillInst.current?.destroy(); pendingInst.current?.destroy(); cancelInst.current?.destroy(); saleTrendInst.current?.destroy();
     };
-  }, [pa]);
+  }, [pa, loading]);
 
   useEffect(() => {
     let animId: number;
@@ -705,7 +705,7 @@ export default function ReportsPage() {
                   <div className="card-body">
                     <div className="fw-semibold">{t("rep_profit_trend")}</div>
                     <div className="small text-secondary mb-3">{t("rep_profit_trend_desc")}</div>
-                    <div style={{ height: 300 }}><canvas ref={pTrendRef} /></div>
+                    <div style={{ position: "relative", height: 300, width: "100%" }}><canvas ref={pTrendRef} /></div>
                   </div>
                 </div>
 
@@ -714,7 +714,7 @@ export default function ReportsPage() {
                     <div className="card border-0 shadow-sm h-100">
                       <div className="card-body">
                         <div className="fw-semibold mb-3">{t("rep_rev_cost_profit")}</div>
-                        <div style={{ height: 280 }}><canvas ref={pBarRef} /></div>
+                        <div style={{ position: "relative", height: 280, width: "100%" }}><canvas ref={pBarRef} /></div>
                       </div>
                     </div>
                   </div>
@@ -723,7 +723,7 @@ export default function ReportsPage() {
                       <div className="card-body">
                         <div className="fw-semibold">{t("rep_margin_trend")}</div>
                         <div className="small text-secondary mb-3">{t("rep_margin_trend_desc")}</div>
-                        <div style={{ height: 280 }}><canvas ref={pMarginRef} /></div>
+                        <div style={{ position: "relative", height: 280, width: "100%" }}><canvas ref={pMarginRef} /></div>
                       </div>
                     </div>
                   </div>
@@ -733,7 +733,7 @@ export default function ReportsPage() {
                   <div className="card-body">
                     <div className="fw-semibold">{t("rep_avg_profit")}</div>
                     <div className="small text-secondary mb-3">{t("rep_avg_profit_desc")}</div>
-                    <div style={{ height: 260 }}><canvas ref={pAvgRef} /></div>
+                    <div style={{ position: "relative", height: 260, width: "100%" }}><canvas ref={pAvgRef} /></div>
                   </div>
                 </div>
               </>
@@ -775,7 +775,7 @@ export default function ReportsPage() {
                       <div className="text-secondary small py-4 text-center">{t("rep_no_profit_data")}</div>
                     ) : (
                       <>
-                        <div style={{ height: 240 }}><canvas ref={profRef} /></div>
+                        <div style={{ position: "relative", height: 240, width: "100%" }}><canvas ref={profRef} /></div>
                         <div className="small text-secondary mt-2">
                           <b>{perf.top_profitable_products[0].product_name}</b> {t("rep_generated_profit", { profit: money(String(perf.top_profitable_products[0].profit)) })}
                         </div>
@@ -794,7 +794,7 @@ export default function ReportsPage() {
                       <div className="text-secondary small py-4 text-center">{t("rep_no_loss_data")}</div>
                     ) : (
                       <>
-                        <div style={{ height: 240 }}><canvas ref={lossRef} /></div>
+                        <div style={{ position: "relative", height: 240, width: "100%" }}><canvas ref={lossRef} /></div>
                         <div className="small text-danger mt-2">
                           <b>{perf.top_loss_products[0].product_name}</b> {t("rep_highest_loss", { loss: money(String(perf.top_loss_products[0].loss ?? -perf.top_loss_products[0].profit)) })}
                         </div>
@@ -814,7 +814,7 @@ export default function ReportsPage() {
                   <div className="text-secondary small py-4 text-center">{t("rep_no_profit_data")}</div>
                 ) : (
                   <>
-                    <div style={{ height: 260 }}><canvas ref={marginRef} /></div>
+                    <div style={{ position: "relative", height: 260, width: "100%" }}><canvas ref={marginRef} /></div>
                     <div className="small text-secondary mt-2">
                       <b>{perf.lowest_margin_products[0].product_name}</b> {t("rep_lowest_margin", { margin: perf.lowest_margin_products[0].margin.toFixed(2) })}
                     </div>
@@ -858,7 +858,7 @@ export default function ReportsPage() {
                     {pp.most_sold_products.length === 0 ? (
                       <div className="text-secondary small py-4 text-center">{t("rep_no_sales_data")}</div>
                     ) : (
-                      <div style={{ height: 240 }}><canvas ref={mostSoldRef} /></div>
+                      <div style={{ position: "relative", height: 240, width: "100%" }}><canvas ref={mostSoldRef} /></div>
                     )}
                   </div>
                 </div>
@@ -1000,7 +1000,7 @@ export default function ReportsPage() {
                         </div>
                       );
                     })()}
-                    <div style={{ height: 300 }}><canvas ref={saleTrendRef} /></div>
+                    <div style={{ position: "relative", height: 300, width: "100%" }}><canvas ref={saleTrendRef} /></div>
                   </>
                 )}
               </div>
