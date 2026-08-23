@@ -42,6 +42,11 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const [vendorPaidAmount, setVendorPaidAmount] = useState('');
   const [vendorPayMethod, setVendorPayMethod] = useState('cash');
 
+  // Quick Add Category Modal
+  const [showAddCategory, setShowAddCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [savingCategory, setSavingCategory] = useState(false);
+
   // Quick Add Vendor Modal
   const [showAddVendor, setShowAddVendor] = useState(false);
   const [newVendor, setNewVendor] = useState({ name: '', phone: '', address: '' });
@@ -179,6 +184,28 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
     } else {
       setForm({ ...form, barcode: '', current_stock: '0' });
       setCurrentBarcodeInput('');
+    }
+  };
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ক্যাটাগরির নাম আবশ্যক।' : 'Category name is required.');
+      return;
+    }
+    setSavingCategory(true);
+    try {
+      const res = await api.post('/catalog/categories/', { name: newCategoryName.trim() });
+      const created = res.data;
+      setCategories(prev => [...prev, created]);
+      setForm((prev: any) => ({ ...prev, category: created.id, category_name: created.name }));
+      setShowAddCategory(false);
+      setShowCategoryPicker(false);
+      setNewCategoryName('');
+      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'নতুন ক্যাটাগরি তৈরি হয়েছে।' : 'Category created successfully!');
+    } catch (e: any) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || e.message || 'Failed to create category');
+    } finally {
+      setSavingCategory(false);
     }
   };
 
@@ -765,8 +792,42 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                 </TouchableOpacity>
               ))}
             </ScrollView>
+
+            <Button
+              mode="text"
+              icon="plus"
+              onPress={() => { setShowCategoryPicker(false); setShowAddCategory(true); }}
+              style={{ marginTop: 8 }}
+            >
+              {isBN ? '+ নতুন ক্যাটাগরি তৈরি করুন' : '+ Create New Category'}
+            </Button>
           </Card>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Quick Add Category Modal */}
+      <Modal visible={showAddCategory} transparent animationType="fade" onRequestClose={() => setShowAddCategory(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Card style={{ width: '100%', maxWidth: 400, padding: 16, backgroundColor: theme.colors.surface }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: theme.colors.onSurface }}>
+              {isBN ? 'নতুন ক্যাটাগরি তৈরি করুন' : 'Add New Category'}
+            </Text>
+            <TextInput
+              mode="outlined"
+              label={isBN ? 'ক্যাটাগরির নাম *' : 'Category Name *'}
+              value={newCategoryName}
+              onChangeText={setNewCategoryName}
+              placeholder={isBN ? 'যেমন: Monitor, Mouse, Grocery' : 'e.g. Monitor, Mouse, Grocery'}
+              style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <Button disabled={savingCategory} onPress={() => setShowAddCategory(false)}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
+              <Button mode="contained" buttonColor="#2563eb" loading={savingCategory} disabled={savingCategory} onPress={handleCreateCategory}>
+                {isBN ? 'যোগ করুন' : 'Add Category'}
+              </Button>
+            </View>
+          </Card>
+        </View>
       </Modal>
 
       {/* Quick Add Vendor Modal */}

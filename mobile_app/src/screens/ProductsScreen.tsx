@@ -65,6 +65,33 @@ export default function ProductsScreen() {
   const [selectedProduct, setSelectedProduct] = useState<any | null>(null);
   const [productToEdit, setProductToEdit] = useState<any | null>(null);
 
+  // Quick Add Category State
+  const [showAddCatModal, setShowAddCatModal] = useState(false);
+  const [newCatName, setNewCatName] = useState('');
+  const [addingCat, setAddingCat] = useState(false);
+
+  const handleAddCategory = async () => {
+    if (!newCatName.trim()) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ক্যাটাগরির নাম আবশ্যক।' : 'Category name is required.');
+      return;
+    }
+    setAddingCat(true);
+    try {
+      const res = await api.post('/catalog/categories/', { name: newCatName.trim() });
+      if (res.data?.id) {
+        setCategories(prev => [...prev, res.data]);
+        setSelectedCategory(res.data.id);
+        setShowAddCatModal(false);
+        setNewCatName('');
+        Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'নতুন ক্যাটাগরি তৈরি হয়েছে!' : 'Category created successfully!');
+      }
+    } catch (e: any) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || (isBN ? 'ক্যাটাগরি তৈরি করতে ব্যর্থ হয়েছে।' : 'Failed to create category.'));
+    } finally {
+      setAddingCat(false);
+    }
+  };
+
   // Purchase / Inward State
   const [purchaseSearch, setPurchaseSearch] = useState('');
   const [purchaseResults, setPurchaseResults] = useState<Product[]>([]);
@@ -370,27 +397,33 @@ export default function ProductsScreen() {
               right={<TextInput.Icon icon="barcode-scan" onPress={() => setScannerTarget('list')} />}
               style={[styles.searchInput, { backgroundColor: theme.colors.surface }]}
             />
-            {categories.length > 0 && (
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
+              <Chip 
+                selected={selectedCategory === null} 
+                onPress={() => setSelectedCategory(null)}
+                style={styles.chip}
+              >
+                {isBN ? 'সকল' : 'All'}
+              </Chip>
+              {categories.map(cat => (
                 <Chip 
-                  selected={selectedCategory === null} 
-                  onPress={() => setSelectedCategory(null)}
+                  key={cat.id} 
+                  selected={selectedCategory === cat.id} 
+                  onPress={() => setSelectedCategory(cat.id)}
                   style={styles.chip}
                 >
-                  {isBN ? 'সকল' : 'All'}
+                  {cat.name}
                 </Chip>
-                {categories.map(cat => (
-                  <Chip 
-                    key={cat.id} 
-                    selected={selectedCategory === cat.id} 
-                    onPress={() => setSelectedCategory(cat.id)}
-                    style={styles.chip}
-                  >
-                    {cat.name}
-                  </Chip>
-                ))}
-              </ScrollView>
-            )}
+              ))}
+              <Chip 
+                icon="plus"
+                onPress={() => setShowAddCatModal(true)}
+                style={[styles.chip, { backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff' }]}
+                textStyle={{ color: '#2563eb', fontWeight: 'bold' }}
+              >
+                {isBN ? '+ ক্যাটাগরি' : '+ Category'}
+              </Chip>
+            </ScrollView>
           </View>
 
           <View style={styles.listContainer}>
@@ -951,6 +984,31 @@ export default function ProductsScreen() {
             </ScrollView>
           </Card>
         </TouchableOpacity>
+      </Modal>
+
+      {/* Quick Add Category Modal */}
+      <Modal visible={showAddCatModal} transparent animationType="fade" onRequestClose={() => setShowAddCatModal(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+          <Card style={{ width: '100%', maxWidth: 400, padding: 16, backgroundColor: theme.colors.surface }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: theme.colors.onSurface }}>
+              {isBN ? 'নতুন ক্যাটাগরি তৈরি করুন' : 'Add New Category'}
+            </Text>
+            <TextInput
+              mode="outlined"
+              label={isBN ? 'ক্যাটাগরির নাম *' : 'Category Name *'}
+              value={newCatName}
+              onChangeText={setNewCatName}
+              placeholder={isBN ? 'যেমন: Monitor, Mouse, Grocery' : 'e.g. Monitor, Mouse, Grocery'}
+              style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+            />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <Button disabled={addingCat} onPress={() => setShowAddCatModal(false)}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
+              <Button mode="contained" buttonColor="#2563eb" loading={addingCat} disabled={addingCat} onPress={handleAddCategory}>
+                {isBN ? 'যোগ করুন' : 'Add Category'}
+              </Button>
+            </View>
+          </Card>
+        </View>
       </Modal>
 
       <CameraBarcodeScannerModal
