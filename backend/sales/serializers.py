@@ -16,7 +16,19 @@ class SaleItemSerializer(serializers.ModelSerializer):
     unit_warranties = serializers.SerializerMethodField()
     unit_replacement_guarantees = serializers.SerializerMethodField()
 
+    def _is_quotation(self, obj):
+        sale = getattr(obj, "sale", None)
+        if not sale:
+            return False
+        return (
+            getattr(sale, "status", None) == Sale.Status.QUOTATION
+            or "quotation" in str(getattr(sale, "note", "") or "").lower()
+            or "কোটেশন" in str(getattr(sale, "note", "") or "")
+        )
+
     def get_unit_barcodes(self, obj):
+        if self._is_quotation(obj):
+            return []
         if not getattr(obj, "sale", None):
             return []
         units = getattr(obj.sale, "units", None)
@@ -27,6 +39,8 @@ class SaleItemSerializer(serializers.ModelSerializer):
         return [u.barcode for u in units if u.product_id == obj.product_id]
 
     def get_unit_warranties(self, obj):
+        if self._is_quotation(obj):
+            return []
         if not getattr(obj, "sale", None):
             return []
         units = getattr(obj.sale, "units", None)
@@ -38,7 +52,10 @@ class SaleItemSerializer(serializers.ModelSerializer):
             u.warranty_months if u.warranty_months is not None else getattr(obj.product, "warranty_months", 0)
             for u in units if u.product_id == obj.product_id
         ]
+
     def get_unit_replacement_guarantees(self, obj):
+        if self._is_quotation(obj):
+            return []
         if not getattr(obj, "sale", None):
             return []
         units = getattr(obj.sale, "units", None)

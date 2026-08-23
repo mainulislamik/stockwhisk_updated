@@ -119,8 +119,12 @@ export default function InvoicePage() {
 
   const shopName = user?.shop_name || "StockWhisk Shop";
   const shopPhone = user?.shop_phone || "";
-  const statusLabel = sale.status.replace("_", " ").toUpperCase();
-  const statusColor = STATUS_COLOR[sale.status] || "#6b7280";
+  const isQuotation =
+    sale.status?.toLowerCase() === "quotation" ||
+    (sale.note && sale.note.toLowerCase().includes("quotation")) ||
+    (sale.note && sale.note.includes("কোটেশন"));
+  const statusLabel = isQuotation ? "QUOTATION" : sale.status.replace("_", " ").toUpperCase();
+  const statusColor = isQuotation ? "#0284c7" : (STATUS_COLOR[sale.status] || "#6b7280");
   const totalDiscount = sale.items.reduce((s, i) => s + Number(i.discount), 0) + Number(sale.discount);
   const paymentMethods = sale.payments.map(p => METHOD_LABEL[p.method] || p.method).join(", ");
 
@@ -162,14 +166,14 @@ export default function InvoicePage() {
               <div className="inv-status-badge" style={{ background: statusColor + "1a", color: statusColor, borderColor: statusColor }}>
                 ● {statusLabel}
               </div>
-              <div className="inv-title-text">{sale.status === "quotation" ? "QUOTATION" : "INVOICE"}</div>
+              <div className="inv-title-text">{isQuotation ? "QUOTATION" : "INVOICE"}</div>
             </div>
             <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
               <Barcode value={sale.invoice_no} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
             </div>
             <table className="inv-meta-table">
               <tbody>
-                <tr><td className="inv-meta-label">{sale.status === "quotation" ? "QUOTE #" : "INVOICE #"}</td><td className="inv-meta-val">{sale.invoice_no}</td></tr>
+                <tr><td className="inv-meta-label">{isQuotation ? "QUOTE #" : "INVOICE #"}</td><td className="inv-meta-val">{sale.invoice_no}</td></tr>
                 <tr><td className="inv-meta-label">DATE</td><td className="inv-meta-val">{fmtDate(sale.sale_date)}</td></tr>
                 {paymentMethods && <tr><td className="inv-meta-label">METHOD</td><td className="inv-meta-val">{paymentMethods}</td></tr>}
               </tbody>
@@ -205,9 +209,9 @@ export default function InvoicePage() {
                   _extId: `${it.id}-${i}`,
                   _qty: 1,
                   _subtotal: Number(it.subtotal) / qty,
-                  _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || "",
-                  _warranty: (it.unit_warranties && it.unit_warranties[i]) ?? it.product_warranty_months ?? 0,
-                  _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[i]) ?? it.product_replacement_guarantee_days ?? 0,
+                  _barcode: isQuotation ? "" : ((it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || ""),
+                  _warranty: isQuotation ? 0 : ((it.unit_warranties && it.unit_warranties[i]) ?? it.product_warranty_months ?? 0),
+                  _guarantee: isQuotation ? 0 : ((it.unit_replacement_guarantees && it.unit_replacement_guarantees[i]) ?? it.product_replacement_guarantee_days ?? 0),
                 }));
               }
               return [{
@@ -215,9 +219,9 @@ export default function InvoicePage() {
                 _extId: String(it.id),
                 _qty: qty,
                 _subtotal: Number(it.subtotal),
-                _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || "",
-                _warranty: (it.unit_warranties && it.unit_warranties[0]) ?? it.product_warranty_months ?? 0,
-                _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[0]) ?? it.product_replacement_guarantee_days ?? 0,
+                _barcode: isQuotation ? "" : ((it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || ""),
+                _warranty: isQuotation ? 0 : ((it.unit_warranties && it.unit_warranties[0]) ?? it.product_warranty_months ?? 0),
+                _guarantee: isQuotation ? 0 : ((it.unit_replacement_guarantees && it.unit_replacement_guarantees[0]) ?? it.product_replacement_guarantee_days ?? 0),
               }];
             }).map((item, i) => (
               <tr key={item._extId} className={i % 2 === 0 ? "inv-row-even" : "inv-row-odd"}>

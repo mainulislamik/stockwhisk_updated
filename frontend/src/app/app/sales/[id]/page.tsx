@@ -77,7 +77,10 @@ export default function SaleDetailPage() {
   if (error) return <ErrorState error={error} />;
   if (!sale) return null;
 
-  const isQuotation = sale.status?.toLowerCase() === "quotation";
+  const isQuotation =
+    sale.status?.toLowerCase() === "quotation" ||
+    (sale.note && sale.note.toLowerCase().includes("quotation")) ||
+    (sale.note && sale.note.includes("কোটেশন"));
 
   return (
     <div className="vstack gap-3">
@@ -240,9 +243,9 @@ export default function SaleDetailPage() {
                     _qty: 1,
                     _subtotal: Number(it.subtotal) / qty,
                     _discount: Number(it.discount) / qty,
-                    _barcode: (it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || "",
-                    _warranty: (it.unit_warranties && it.unit_warranties[i]) ?? it.product_warranty_months ?? 0,
-                    _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[i]) ?? it.product_replacement_guarantee_days ?? 0,
+                    _barcode: isQuotation ? "" : ((it.unit_barcodes && it.unit_barcodes[i]) || it.product_barcode || ""),
+                    _warranty: isQuotation ? 0 : ((it.unit_warranties && it.unit_warranties[i]) ?? it.product_warranty_months ?? 0),
+                    _guarantee: isQuotation ? 0 : ((it.unit_replacement_guarantees && it.unit_replacement_guarantees[i]) ?? it.product_replacement_guarantee_days ?? 0),
                   }));
                 }
                 return [{
@@ -251,9 +254,9 @@ export default function SaleDetailPage() {
                   _qty: qty,
                   _subtotal: Number(it.subtotal),
                   _discount: Number(it.discount),
-                  _barcode: (it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || "",
-                  _warranty: (it.unit_warranties && it.unit_warranties[0]) ?? it.product_warranty_months ?? 0,
-                  _guarantee: (it.unit_replacement_guarantees && it.unit_replacement_guarantees[0]) ?? it.product_replacement_guarantee_days ?? 0,
+                  _barcode: isQuotation ? "" : ((it.unit_barcodes && it.unit_barcodes[0]) || it.product_barcode || ""),
+                  _warranty: isQuotation ? 0 : ((it.unit_warranties && it.unit_warranties[0]) ?? it.product_warranty_months ?? 0),
+                  _guarantee: isQuotation ? 0 : ((it.unit_replacement_guarantees && it.unit_replacement_guarantees[0]) ?? it.product_replacement_guarantee_days ?? 0),
                 }];
               }).map((it) => (
                 <tr key={it._extId}>
