@@ -511,12 +511,14 @@ class SaleViewSet(
         from accounting.models import LedgerEntry
         from catalog.models import ProductUnit
         from service.models import Warranty
-        from .models import Payment
+        from .models import Payment, EMISchedule, EMIInstallment
         from audit.models import AuditLog
         from audit.services import record
+        from crm.models import Customer
+        from dateutil.relativedelta import relativedelta
+        import dateutil.parser
 
         items_input = request.data.get("items", [])
-        # Map by sale_item_id or product_id
         items_map = {}
         for row in items_input:
             if row.get("sale_item_id"):
@@ -524,13 +526,83 @@ class SaleViewSet(
             if row.get("product_id"):
                 items_map[str(row["product_id"])] = row.get("unit_ids", [])
 
+        # Customer handling
+        cust_id = request.data.get("customer") or request.data.get("customer_id")
+        cust_name = str(request.data.get("customer_name", "")).strip()
+        cust_phone = str(request.data.get("customer_phone", "")).strip()
+        cust_email = str(request.data.get("customer_email", "")).strip()
+        cust_address = str(request.data.get("customer_address", "")).strip()
+
+        customer = None
+        if cust_id:
+            customer = Customer.objects.filter(shop_id=request.user.shop_id, id=cust_id).first()
+        elif cust_phone:
+            customer = Customer.objects.filter(shop=request.user.shop, phone=cust_phone).first()
+            if not customer and cust_name:
+                customer = Customer.objects.create(
+                    shop=request.user.shop,
+                    name=cust_name[:150],
+                    phone=cust_phone[:30],
+                    email=cust_email[:254],
+                    address=cust_address
+                )
+
+        if customer:
+            if cust_email and customer.email != cust_email:
+                customer.email = cust_email[:254]
+                customer.save(update_fields=["email"])
+            sale.customer = customer
+            sale.customer_name = customer.name
+            sale.customer_phone = customer.phone
+            sale.customer_email = customer.email
+            sale.customer_address = customer.address
+        else:
+            if cust_name:
+                sale.customer_name = cust_name
+            if cust_phone:
+                sale.customer_phone = cust_phone
+            if cust_email:
+                sale.customer_email = cust_email
+            if cust_address:
+                sale.customer_address = cust_address
+
+        # Financial calculations
+        discount = Decimal(str(request.data.get("discount", sale.discount or 0) or 0))
+        delivery_charge = Decimal(str(request.data.get("delivery_charge", sale.delivery_charge or 0) or 0))
+        tax = Decimal(str(request.data.get("tax", sale.tax or 0) or 0))
+        
+        subtotal = sum(item.subtotal for item in sale.items.all())
+        total = max(Decimal("0"), subtotal - discount + delivery_charge + tax)
+        sale.subtotal = subtotal
+        sale.discount = discount
+        sale.delivery_charge = delivery_charge
+        sale.tax = tax
+        sale.total = total
+
         payments_data = request.data.get("payments", [])
         paid_amount = Decimal(str(request.data.get("paid_amount", 0) or 0))
         payment_method = request.data.get("payment_method", "cash")
         if not payments_data and paid_amount > 0:
             payments_data = [{"amount": paid_amount, "method": payment_method}]
 
-        today = timezone.localdate()
+        # Sale date
+        sale_date_raw = request.data.get("sale_date")
+        if sale_date_raw:
+            try:
+                sale_date = dateutil.parser.parse(str(sale_date_raw))
+                if timezone.is_naive(sale_date):
+                    sale_date = timezone.make_aware(sale_date)
+            except Exception:
+                sale_date = timezone.now()
+        else:
+            sale_date = timezone.now()
+
+        today = sale_date.date()
+
+        # EMI options
+        is_emi = bool(request.data.get("is_emi", False))
+        emi_months = int(request.data.get("emi_months", 0) or 0)
+        emi_interest_percent = Decimal(str(request.data.get("emi_interest_percent", 0) or 0))
 
         with transaction.atomic():
             # 1. Deduct stock and assign unit barcodes for all tracked items
@@ -571,7 +643,7 @@ class SaleViewSet(
                     ProductUnit.objects.filter(id__in=selected_ids).update(
                         status=ProductUnit.Status.SOLD,
                         sale=sale,
-                        sold_at=timezone.now()
+                        sold_at=sale_date
                     )
 
                     # Start / bind warranties for these units
@@ -652,14 +724,52 @@ class SaleViewSet(
                 sale.status = Sale.Status.PARTIAL
             else:
                 sale.status = Sale.Status.DUE
-            sale.sale_date = timezone.now()
-            sale.save(update_fields=["paid", "status", "sale_date"])
+            sale.sale_date = sale_date
+            sale.save()
 
-            # 3. Update customer balance
+            # 3. EMI schedule creation
+            total_emi_amount = Decimal("0")
+            if is_emi and emi_months > 0:
+                emi_principal = total - total_paid
+                if emi_principal > Decimal("0"):
+                    interest_amount = (emi_principal * emi_interest_percent / Decimal("100")).quantize(Decimal("0.01"))
+                    total_emi_amount = emi_principal + interest_amount
+                    monthly_installment = (total_emi_amount / Decimal(emi_months)).quantize(Decimal("0.01"))
+
+                    schedule = EMISchedule.objects.create(
+                        shop=request.user.shop,
+                        sale=sale,
+                        customer=sale.customer,
+                        total_emi_amount=total_emi_amount,
+                        down_payment=total_paid,
+                        interest_percent=emi_interest_percent,
+                        total_months=emi_months,
+                        monthly_installment=monthly_installment,
+                    )
+
+                    installments = []
+                    for i in range(emi_months):
+                        due_date = today + relativedelta(months=i+1)
+                        amt = monthly_installment
+                        if i == emi_months - 1:
+                            amt = total_emi_amount - (monthly_installment * (emi_months - 1))
+                        installments.append(EMIInstallment(
+                            shop=request.user.shop,
+                            schedule=schedule,
+                            installment_number=i+1,
+                            due_date=due_date,
+                            amount=amt,
+                        ))
+                    EMIInstallment.objects.bulk_create(installments)
+
+                    from .tasks import send_emi_welcome_email
+                    transaction.on_commit(lambda: send_emi_welcome_email.delay(schedule.id))
+
+            # 4. Update customer balance
             if sale.customer is not None:
-                due = max(Decimal("0"), sale.total - total_paid)
+                effective_due = total_emi_amount if is_emi else max(Decimal("0"), total - total_paid)
                 from .services import _update_customer_after_sale
-                _update_customer_after_sale(sale.customer, total=sale.total, due=due, when=sale.sale_date)
+                _update_customer_after_sale(sale.customer, total=total, due=effective_due, when=sale.sale_date)
 
             from analytics.services import invalidate_dashboard_cache
             invalidate_dashboard_cache(sale.shop_id)
@@ -672,7 +782,7 @@ class SaleViewSet(
                 description=f"Quotation {sale.invoice_no} converted to Sale (Status: {sale.status}, Paid: {total_paid})",
             )
 
-        return Response(SaleSerializer(sale).data)
+        return Response(SaleSerializer(sale, context={"request": request}).data)
 
     def perform_destroy(self, instance):
         if instance.status != Sale.Status.QUOTATION and "quotation" not in str(instance.note or "").lower() and "কোটেশন" not in str(instance.note or ""):
