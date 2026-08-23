@@ -627,46 +627,104 @@ export default function ReportsScreen() {
         <View style={styles.sectionHeaderRow}>
           <MaterialCommunityIcons name="alert-outline" size={20} color="#ea580c" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            {isBN ? 'ইনভেন্টরি লো-স্টক অ্যালার্ট' : 'Inventory Low Stock Alerts'}
+            {isBN ? 'ইনভেন্টরি লো-স্টক ও স্টক আউট অ্যালার্ট' : 'Inventory Stock Alerts'}
           </Text>
         </View>
         <Card style={[styles.fullCard, { backgroundColor: theme.colors.surface }]}>
           <Card.Content>
             {outOfStock.length > 0 || lowStock.length > 0 ? (
               <>
-                {outOfStock.slice(0, 5).map((s: any, i: number) => (
-                  <View key={`out-${i}`} style={styles.listItem}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: 'bold' }}>{s.name || s.product_name}</Text>
-                      <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600' }}>
-                        🚫 {isBN ? 'স্টক আউট (নিষ্ক্রিয়)' : 'Out of Stock (Deactive)'}
+                {/* Out of Stock Subsection */}
+                {outOfStock.length > 0 && (
+                  <View style={{ marginBottom: lowStock.length > 0 ? 12 : 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#dc2626', textTransform: 'uppercase' }}>
+                        🚫 {isBN ? `সম্পূর্ণ স্টক আউট (${outOfStock.length}টি)` : `Out of Stock (${outOfStock.length})`}
                       </Text>
                     </View>
-                    <Chip textStyle={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }} style={{ backgroundColor: '#dc2626', height: 24 }}>
-                      0 {isBN ? 'পিস' : 'pcs'}
-                    </Chip>
-                  </View>
-                ))}
-                {lowStock.slice(0, 5).map((s: any, i: number) => {
-                  const min = Number(s.minimum_stock || s.reorder_level || 5);
-                  const curr = Number(s.current_stock || 0);
-                  const ratio = Math.min(1, Math.max(0.1, curr / (min || 1)));
-                  return (
-                    <View key={`low-${i}`} style={[styles.listItem, { flexDirection: 'column', alignItems: 'stretch' }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <Text style={{ fontWeight: 'bold', flex: 1 }}>{s.name || s.product_name}</Text>
-                        <Text style={{ fontWeight: 'bold', color: '#d97706' }}>{curr} / {min}</Text>
+                    {outOfStock.slice(0, 5).map((s: any, i: number) => (
+                      <View key={`out-${i}`} style={styles.listItem}>
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <Text style={{ fontWeight: 'bold', fontSize: 13 }} numberOfLines={2}>
+                            {s.name || s.product_name}
+                          </Text>
+                          <Text style={{ fontSize: 11, color: '#dc2626', fontWeight: '600', marginTop: 2 }}>
+                            {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
+                          </Text>
+                        </View>
+                        <Chip
+                          textStyle={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}
+                          style={{ backgroundColor: '#dc2626', height: 24 }}
+                        >
+                          0 {isBN ? 'পিস' : 'pcs'}
+                        </Chip>
                       </View>
-                      <ProgressBar progress={ratio} color="#d97706" style={{ height: 6, borderRadius: 3 }} />
-                      <Text style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>
-                        {isBN ? 'রিঅর্ডার প্রয়োজন (ঘাটতি রয়েছে)' : 'Needs reorder (Deficit)'}
+                    ))}
+                  </View>
+                )}
+
+                {outOfStock.length > 0 && lowStock.length > 0 && (
+                  <Divider style={{ marginVertical: 10, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
+                )}
+
+                {/* Low Stock Subsection */}
+                {lowStock.length > 0 && (
+                  <View>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 8 }}>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#d97706', textTransform: 'uppercase' }}>
+                        ⚠️ {isBN ? `রিঅর্ডার প্রয়োজন (${lowStock.length}টি)` : `Low Stock / Reorder Needed (${lowStock.length})`}
                       </Text>
                     </View>
-                  );
-                })}
+                    {lowStock.slice(0, 5).map((s: any, i: number) => {
+                      const min = Number(s.minimum_stock || s.reorder_level || 5);
+                      const curr = Number(s.current_stock || 0);
+                      const ratio = Math.min(1, Math.max(0.05, curr / (min || 1)));
+                      const deficit = Math.max(0, min - curr);
+                      return (
+                        <View
+                          key={`low-${i}`}
+                          style={{
+                            paddingVertical: 10,
+                            borderBottomWidth: i === lowStock.slice(0, 5).length - 1 ? 0 : 1,
+                            borderBottomColor: isDarkMode ? '#334155' : 'rgba(100, 116, 139, 0.1)',
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 6 }}>
+                            <Text style={{ fontWeight: 'bold', fontSize: 13, flex: 1, paddingRight: 8 }} numberOfLines={2}>
+                              {s.name || s.product_name}
+                            </Text>
+                            <View style={{ backgroundColor: isDarkMode ? '#78350f' : '#fef3c7', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                              <Text style={{ fontWeight: 'bold', fontSize: 12, color: '#d97706' }}>
+                                {curr} / {min}
+                              </Text>
+                            </View>
+                          </View>
+
+                          {/* Clean Robust Progress Bar */}
+                          <View style={{ height: 6, backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9', borderRadius: 3, overflow: 'hidden', marginVertical: 4 }}>
+                            <View style={{ width: `${Math.round(ratio * 100)}%`, height: '100%', backgroundColor: '#d97706', borderRadius: 3 }} />
+                          </View>
+
+                          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                            <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+                              {isBN ? 'রিঅর্ডার প্রয়োজন (ঘাটতি রয়েছে)' : 'Needs reorder'}
+                            </Text>
+                            {deficit > 0 && (
+                              <Text style={{ fontSize: 11, color: '#d97706', fontWeight: 'bold' }}>
+                                {isBN ? `ঘাটতি: ${deficit} পিস` : `Deficit: ${deficit} pcs`}
+                              </Text>
+                            )}
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
               </>
             ) : (
-              <Text style={{ textAlign: 'center', color: '#16a34a' }}>✅ {isBN ? 'সব ঠিক আছে (ইনভেন্টরি পর্যাপ্ত)' : 'Inventory Healthy'}</Text>
+              <Text style={{ textAlign: 'center', color: '#16a34a', paddingVertical: 12 }}>
+                ✅ {isBN ? 'সব ঠিক আছে (ইনভেন্টরি পর্যাপ্ত)' : 'Inventory Healthy'}
+              </Text>
             )}
           </Card.Content>
         </Card>
