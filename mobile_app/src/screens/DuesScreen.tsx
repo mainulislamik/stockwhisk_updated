@@ -25,6 +25,7 @@ export default function DuesScreen() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
   
@@ -35,8 +36,16 @@ export default function DuesScreen() {
 
   useEffect(() => {
     fetchTotalDues();
-    fetchDues(1, true);
   }, []);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedSearch(search), 400);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  useEffect(() => {
+    fetchDues(1, debouncedSearch, true);
+  }, [debouncedSearch]);
 
   const fetchTotalDues = async () => {
     try {
@@ -47,11 +56,12 @@ export default function DuesScreen() {
     }
   };
 
-  const fetchDues = async (pageNum: number, reset: boolean = false) => {
+  const fetchDues = async (pageNum: number, searchQuery: string = '', reset: boolean = false) => {
     if (loading || (!hasMore && !reset)) return;
     setLoading(true);
     try {
-      const res = await api.get(`/crm/customers/?with_due=1&page=${pageNum}&page_size=20`);
+      const queryParam = searchQuery ? `&search=${encodeURIComponent(searchQuery)}` : '';
+      const res = await api.get(`/crm/customers/?with_due=1&page=${pageNum}&page_size=20${queryParam}`);
       const newCustomers = res.data.results || [];
       if (reset) {
         setCustomers(newCustomers);
@@ -71,7 +81,7 @@ export default function DuesScreen() {
     const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
     const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
     if (isCloseToBottom && hasMore && !loading) {
-      fetchDues(page);
+      fetchDues(page, debouncedSearch);
     }
   };
 
@@ -182,12 +192,12 @@ export default function DuesScreen() {
       </View>
 
       <ScrollView
-        style={{ position: 'absolute', top: 220, left: 0, right: 0, bottom: 0 }}
+        style={{ flex: 1 }}
         contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
         onScroll={handleScroll}
         scrollEventThrottle={400}
       >
-        {filteredCustomers.map((c) => (
+        {customers.map((c) => (
           <Card key={c.id} style={{ marginBottom: 12, backgroundColor: theme.colors.surface }} onPress={() => {
             setSelectedCustomer(c);
             setAmount(c.due_balance);

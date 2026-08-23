@@ -1,8 +1,8 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
-import { Text, Card, ActivityIndicator, useTheme } from 'react-native-paper';
+import { Text, Card, ActivityIndicator, useTheme, Appbar } from 'react-native-paper';
 import { LineChart } from 'react-native-chart-kit';
-import { useFocusEffect } from '@react-navigation/native';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 
@@ -15,6 +15,7 @@ const RANGES = [
 ];
 
 export default function ReportsScreen() {
+  const navigation = useNavigation();
   const theme = useTheme();
   const { language, isDarkMode } = usePreferences();
   const isBN = language === 'BN';
@@ -92,11 +93,17 @@ export default function ReportsScreen() {
   const profitTrend = profitOverview?.trend || [];
 
   return (
-    <ScrollView
-      style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: theme.colors.background }}
-      contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-    >
-      {renderChips()}
+    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+        <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <Appbar.Content title={isBN ? 'রিপোর্ট ও অ্যানালিটিক্স' : 'Reports & Analytics'} titleStyle={{ fontWeight: 'bold' }} />
+      </Appbar.Header>
+
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
+      >
+        {renderChips()}
 
       {loading && <ActivityIndicator style={{ marginBottom: 16 }} />}
 
@@ -420,7 +427,8 @@ export default function ReportsScreen() {
           )}
         </Card.Content>
       </Card>
-    </ScrollView>
+      </ScrollView>
+    </View>
   );
 }
 

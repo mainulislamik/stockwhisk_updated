@@ -443,12 +443,15 @@ export default function POSScreen() {
             try {
               const pRes = await api.post('/catalog/products/', {
                 name: l.product.name,
+                sku: `CUST-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
                 selling_price: l.price,
                 cost_price: 0,
                 track_inventory: false,
               });
               pId = pRes.data.id;
-            } catch (e) {}
+            } catch (e: any) {
+              throw new Error(isBN ? `কাস্টম পণ্য "${l.product.name}" যোগ করতে ব্যর্থ হয়েছে।` : `Failed to save custom item "${l.product.name}".`);
+            }
           }
           return {
             product: pId,
