@@ -24,6 +24,7 @@ import EMIScreen from './src/screens/EMIScreen';
 import ReturnsScreen from './src/screens/ReturnsScreen';
 import SettlementScreen from './src/screens/SettlementScreen';
 import AccountingScreen from './src/screens/AccountingScreen';
+import BarcodesScreen from './src/screens/BarcodesScreen';
 import GlobalHeader from './src/components/GlobalHeader';
 import { View, LogBox, Platform } from 'react-native';
 
@@ -96,6 +97,7 @@ function RootNavigator() {
             <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
             <Stack.Screen name="UsersAndRoles" component={UsersAndRolesScreen} />
             <Stack.Screen name="TutorialsScreen" component={TutorialsScreen} />
+            <Stack.Screen name="BarcodesScreen" component={BarcodesScreen} />
           </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />

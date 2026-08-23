@@ -35,6 +35,7 @@ function MoreMenuScreen() {
         { name: 'ProductsScreen', icon: 'package-variant', color: '#7c3aed', bg: '#f5f3ff', labelEn: 'Products & Inward', labelBn: 'পণ্য ও ইনওয়ার্ড' },
         { name: 'PurchasesScreen', icon: 'shopping', color: '#0891b2', bg: '#ecfeff', labelEn: 'Purchase History', labelBn: 'ক্রয় ইতিহাস' },
         { name: 'SuppliersScreen', icon: 'truck-delivery', color: '#d97706', bg: '#fffbeb', labelEn: 'Suppliers / Vendors', labelBn: 'সরবরাহকারী' },
+        { name: 'BarcodesScreen', icon: 'barcode-scan', color: '#0284c7', bg: '#f0f9ff', labelEn: 'Barcode Generator', labelBn: 'বারকোড জেনারেটর' },
       ],
     },
     {

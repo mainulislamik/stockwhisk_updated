@@ -3,6 +3,7 @@ import { View, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpaci
 import { Appbar, Text, Card, ActivityIndicator, useTheme, TextInput, Button, Switch } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
+import * as ImagePicker from 'expo-image-picker';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -17,6 +18,7 @@ export default function SettingsScreen() {
   const [loading, setLoading] = useState(true);
   const [profileSaving, setProfileSaving] = useState(false);
   const [shopSaving, setShopSaving] = useState(false);
+  const [backupDownloading, setBackupDownloading] = useState(false);
 
   const [profileForm, setProfileForm] = useState({ first_name: '', last_name: '', phone: '' });
   const [shopForm, setShopForm] = useState({ 
@@ -65,7 +67,7 @@ export default function SettingsScreen() {
     }
   };
 
-  const handleLogoUpload = () => {
+  const handleLogoUpload = async () => {
     if (Platform.OS === 'web') {
       const input = document.createElement('input');
       input.type = 'file';
@@ -82,10 +84,11 @@ export default function SettingsScreen() {
             });
             if (res.data && res.data.logo) {
               setShopForm(prev => ({ ...prev, logo: res.data.logo }));
-              Alert.alert('Success', 'Logo updated successfully!');
+              if (loadUser) await loadUser();
+              Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'লোগো সফলভাবে আপডেট হয়েছে!' : 'Logo updated successfully!');
             }
           } catch (error) {
-            Alert.alert('Error', 'Failed to upload logo');
+            Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'লোগো আপলোড করতে ব্যর্থ হয়েছে।' : 'Failed to upload logo');
           } finally {
             setShopSaving(false);
           }
@@ -93,7 +96,74 @@ export default function SettingsScreen() {
       };
       input.click();
     } else {
-      Alert.alert('Notice', 'Logo upload is only supported on Web version currently.');
+      try {
+        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (!perm.granted) {
+          Alert.alert(isBN ? 'অনুমতি প্রয়োজন' : 'Permission Required', isBN ? 'গ্যালারি থেকে লোগো সিলেক্ট করতে পারমিশন দিন।' : 'Media library permission is required to choose logo.');
+          return;
+        }
+
+        const result = await ImagePicker.launchImageLibraryAsync({
+          mediaTypes: ['images'],
+          allowsEditing: true,
+          aspect: [1, 1],
+          quality: 0.8,
+        });
+
+        if (!result.canceled && result.assets && result.assets.length > 0) {
+          const asset = result.assets[0];
+          setShopSaving(true);
+
+          const uri = asset.uri;
+          const uriParts = uri.split('.');
+          const fileType = uriParts[uriParts.length - 1] || 'jpg';
+
+          const formData = new FormData();
+          formData.append('logo', {
+            uri: Platform.OS === 'ios' ? uri.replace('file://', '') : uri,
+            name: `shop_logo_${Date.now()}.${fileType}`,
+            type: `image/${fileType === 'jpg' ? 'jpeg' : fileType}`,
+          } as any);
+
+          const res = await api.patch('/auth/shop-settings/', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+          });
+
+          if (res.data && res.data.logo) {
+            setShopForm(prev => ({ ...prev, logo: res.data.logo }));
+            if (loadUser) await loadUser();
+            Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'লোগো সফলভাবে আপডেট হয়েছে!' : 'Logo updated successfully!');
+          }
+        }
+      } catch (err) {
+        console.error(err);
+        Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'মোবাইল থেকে লোগো আপলোড করতে সমস্যা হয়েছে।' : 'Failed to upload logo from device.');
+      } finally {
+        setShopSaving(false);
+      }
+    }
+  };
+
+  const handleDownloadBackup = async () => {
+    setBackupDownloading(true);
+    try {
+      if (Platform.OS === 'web') {
+        const res = await api.get('/backup/download/', { responseType: 'blob' });
+        const url = window.URL.createObjectURL(new Blob([res.data]));
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', `shop_backup_${new Date().toISOString().split('T')[0]}.json`);
+        document.body.appendChild(link);
+        link.click();
+        link.parentNode?.removeChild(link);
+      } else {
+        await Linking.openURL('https://stockwhisk.com/api/backup/download/');
+      }
+    } catch (err) {
+      console.error('Backup download failed', err);
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'ব্যাকআপ ডাউনলোড করতে ব্যর্থ হয়েছে।' : 'Failed to download backup.');
+    } finally {
+      setBackupDownloading(false);
     }
   };
 
@@ -282,7 +352,7 @@ export default function SettingsScreen() {
               {/* Users & Roles */}
               <TouchableOpacity
                 onPress={() => (navigation as any).navigate('UsersAndRoles')}
-                style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}
                 activeOpacity={0.7}
               >
                 <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#ecfdf5', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
@@ -293,6 +363,31 @@ export default function SettingsScreen() {
                   <Text style={{ fontSize: 13, color: subTextColor }}>স্টাফ ও পারমিশন ম্যানেজ করুন</Text>
                 </View>
                 <MaterialCommunityIcons name="chevron-right" size={22} color={subTextColor} />
+              </TouchableOpacity>
+
+              {/* Data Backup */}
+              <TouchableOpacity
+                onPress={handleDownloadBackup}
+                disabled={backupDownloading}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}
+                activeOpacity={0.7}
+              >
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                  {backupDownloading ? (
+                    <ActivityIndicator size="small" color="#2563eb" />
+                  ) : (
+                    <MaterialCommunityIcons name="database-arrow-down-outline" size={26} color="#2563eb" />
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '600', color: textColor, marginBottom: 2 }}>
+                    {isBN ? 'দোকানের ডাটা ব্যাকআপ' : 'Shop Data Backup'}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: subTextColor }}>
+                    {isBN ? 'সব ডাটা JSON ফাইলে ডাউনলোড করুন' : 'Export & download complete JSON backup'}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="download" size={22} color="#2563eb" />
               </TouchableOpacity>
 
             </View>
