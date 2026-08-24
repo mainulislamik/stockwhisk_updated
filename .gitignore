@@ -34,3 +34,6 @@ db.sqlite3
 # Project specific
 pgdata/
 redisdata/
+
+StockWhisk.apk
+*.apk
