@@ -490,7 +490,7 @@ export default function ProductsScreen() {
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'স্টক:' : 'Stock:'}</Text>
                           <View style={{ backgroundColor: isOutOfStock ? (isDarkMode ? '#450a0a' : '#fee2e2') : (isLowStock ? (isDarkMode ? '#451a03' : '#fef3c7') : (isDarkMode ? '#064e3b' : '#dcfce7')), paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
                             <Text style={{ fontWeight: 'bold', fontSize: 12, color: isOutOfStock ? '#dc2626' : (isLowStock ? '#d97706' : (isDarkMode ? '#4ade80' : '#16a34a')) }}>
-                              {product.current_stock}
+                              {Math.max(0, Number(product.current_stock || 0))}
                             </Text>
                           </View>
                         </View>

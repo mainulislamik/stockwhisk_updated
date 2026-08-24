@@ -427,7 +427,7 @@ export default function InventoryScreen() {
                       <View style={{ width: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
                       <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, marginBottom: 2 }}>{isBN ? 'স্টক' : 'Stock'}</Text>
-                        <Text style={{ fontWeight: '600', fontSize: 13, color: getStockColor(item) }}>{Number(item.current_stock).toFixed(0)}</Text>
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: getStockColor(item) }}>{Math.max(0, Number(item.current_stock || 0)).toFixed(0)}</Text>
                       </View>
                     </View>
                   </TouchableOpacity>

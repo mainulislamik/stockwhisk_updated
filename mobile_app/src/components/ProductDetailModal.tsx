@@ -80,8 +80,8 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
 
   if (!product) return null;
 
-  const totalCostValue = Number(product.cost_price || 0) * Number(product.current_stock || 0);
-  const totalSellValue = Number(product.selling_price || 0) * Number(product.current_stock || 0);
+  const totalCostValue = Number(product.cost_price || 0) * Math.max(0, Number(product.current_stock || 0));
+  const totalSellValue = Number(product.selling_price || 0) * Math.max(0, Number(product.current_stock || 0));
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
@@ -122,7 +122,7 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
             
             <Surface style={{ width: '48%', padding: 16, borderRadius: 12, marginBottom: 12, backgroundColor: theme.colors.surface, elevation: 1 }}>
               <Text style={{ color: '#64748b', fontSize: 12, marginBottom: 4 }}>{isBN ? 'স্টকে আছে' : 'In Stock'}</Text>
-              <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#16a34a' }}>{Number(product.current_stock).toFixed(2)}</Text>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#16a34a' }}>{Math.max(0, Number(product.current_stock || 0)).toFixed(0)}</Text>
             </Surface>
             
             <Surface style={{ width: '48%', padding: 16, borderRadius: 12, marginBottom: 12, backgroundColor: theme.colors.surface, elevation: 1 }}>
