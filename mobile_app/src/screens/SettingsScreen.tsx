@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Linking } from 'react-native';
+import { View, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Linking, Image } from 'react-native';
 import { Appbar, Text, Card, ActivityIndicator, useTheme, TextInput, Button, Switch } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -258,10 +258,10 @@ export default function SettingsScreen() {
                 <Text style={{ fontSize: 14, color: subTextColor, marginBottom: 12 }}>Shop Logo</Text>
                 <View style={{ width: 90, height: 90, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', borderRadius: 45, overflow: 'hidden', justifyContent: 'center', alignItems: 'center', marginBottom: 12, borderWidth: 2, borderColor: primaryColor }}>
                   {shopForm.logo ? (
-                    <img 
-                      src={shopForm.logo.startsWith('http') ? shopForm.logo : `https://stockwhisk.com${shopForm.logo.startsWith('/') ? '' : '/'}${shopForm.logo}`} 
-                      style={{ width: '100%', height: '100%', objectFit: 'contain' }} 
-                      alt="Logo" 
+                    <Image 
+                      source={{ uri: shopForm.logo.startsWith('http') ? shopForm.logo : `https://stockwhisk.com${shopForm.logo.startsWith('/') ? '' : '/'}${shopForm.logo}` }} 
+                      style={{ width: '100%', height: '100%' }} 
+                      resizeMode="contain"
                     />
                   ) : (
                     <MaterialCommunityIcons name="storefront" size={40} color={subTextColor} />
