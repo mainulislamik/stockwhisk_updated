@@ -618,7 +618,7 @@ export default function PurchaseProductPage() {
                       <div>
                         <div className="fw-semibold">{p.name}</div>
                         <div className="small text-secondary">
-                          {t("pp_sku")}: {p.sku || "—"} &bull; {t("pp_stock")}: {p.current_stock}
+                          {t("pp_sku")}: {p.sku || "—"} &bull; {t("pp_stock")}: {Math.max(0, Number(p.current_stock || 0))}
                         </div>
                       </div>
                     </label>
@@ -632,7 +632,7 @@ export default function PurchaseProductPage() {
                 <div>
                   <span className="fw-semibold">✓ {selected.name}</span>
                   <span className="text-secondary small ms-2">
-                    {t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {selected.current_stock}
+                    {t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {Math.max(0, Number(selected.current_stock || 0))}
                   </span>
                 </div>
                 <div className="d-flex gap-2">

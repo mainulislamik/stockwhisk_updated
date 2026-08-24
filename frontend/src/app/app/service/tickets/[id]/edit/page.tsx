@@ -417,7 +417,7 @@ export default function EditServiceTicketPage() {
                           <div>
                             <div className="fw-semibold small">{p.name}</div>
                             <div className="text-muted" style={{ fontSize: "0.75rem" }}>
-                              স্টক: {p.current_stock}
+                              স্টক: {Math.max(0, Number(p.current_stock || 0))}
                             </div>
                           </div>
                           <div className="text-end">

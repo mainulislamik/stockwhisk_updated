@@ -595,7 +595,7 @@ export default function EditInvoicePage() {
                             {p.name}
                             {unitLoadingId === p.id && <span className="spinner-border spinner-border-sm ms-2 text-primary"></span>}
                           </div>
-                          <div className="text-muted" style={{ fontSize: "0.75rem" }}>স্টক: {p.current_stock}</div>
+                          <div className="text-muted" style={{ fontSize: "0.75rem" }}>স্টক: {Math.max(0, Number(p.current_stock || 0))}</div>
                         </div>
                         <span className="text-primary fw-bold small">{money(p.selling_price)}</span>
                       </button>

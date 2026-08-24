@@ -44,7 +44,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
           products: unwrap<any>(prod).slice(0, 4).map((p: any) => ({
             url: `/app/products/${p.id}`,
             label: p.name,
-            sub: `SKU ${p.sku || "—"} · Barcode ${p.barcode || "—"} · Stock ${p.current_stock ?? 0}`,
+            sub: `SKU ${p.sku || "—"} · Barcode ${p.barcode || "—"} · Stock ${Math.max(0, Number(p.current_stock || 0))}`,
           })),
           customers: unwrap<any>(cust).slice(0, 4).map((c: any) => ({
             url: `/app/customers`,
