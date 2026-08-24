@@ -507,16 +507,31 @@ export default function ReportsScreen() {
               <Card.Content>
                 {lowestMargin.slice(0, 5).map((p: any, i: number) => (
                   <View key={i} style={styles.listItem}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 13 }}>#{i + 1} {p.product_name}</Text>
+                    <View style={{ flex: 1, paddingRight: 10 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 13 }} numberOfLines={2}>#{i + 1} {p.product_name}</Text>
                       <Text style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                         {isBN ? 'বিক্রিত' : 'Sold'}: {p.units_sold} | {isBN ? 'প্রফিট' : 'Profit'}: ৳{Number(p.profit || 0).toLocaleString()}
                       </Text>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <Chip textStyle={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }} style={{ backgroundColor: '#d97706', height: 24 }}>
+                    <View style={{
+                      backgroundColor: '#d97706',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 64,
+                    }}>
+                      <Text style={{
+                        color: '#fff',
+                        fontSize: 12,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        includeFontPadding: false,
+                        lineHeight: 16,
+                      }}>
                         {Number(p.margin || 0).toFixed(2)}%
-                      </Chip>
+                      </Text>
                     </View>
                   </View>
                 ))}
@@ -644,7 +659,7 @@ export default function ReportsScreen() {
                     </View>
                     {outOfStock.slice(0, 5).map((s: any, i: number) => (
                       <View key={`out-${i}`} style={styles.listItem}>
-                        <View style={{ flex: 1, paddingRight: 8 }}>
+                        <View style={{ flex: 1, paddingRight: 10 }}>
                           <Text style={{ fontWeight: 'bold', fontSize: 13 }} numberOfLines={2}>
                             {s.name || s.product_name}
                           </Text>
@@ -652,12 +667,26 @@ export default function ReportsScreen() {
                             {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
                           </Text>
                         </View>
-                        <Chip
-                          textStyle={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}
-                          style={{ backgroundColor: '#dc2626', height: 24 }}
-                        >
-                          0 {isBN ? 'পিস' : 'pcs'}
-                        </Chip>
+                        <View style={{
+                          backgroundColor: '#dc2626',
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                          borderRadius: 12,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minWidth: 54,
+                        }}>
+                          <Text style={{
+                            color: '#fff',
+                            fontSize: 11,
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            includeFontPadding: false,
+                            lineHeight: 15,
+                          }}>
+                            0 {isBN ? 'পিস' : 'pcs'}
+                          </Text>
+                        </View>
                       </View>
                     ))}
                   </View>

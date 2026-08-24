@@ -448,23 +448,31 @@ export default function ProductsScreen() {
                           </Text>
                           <Text style={styles.sku}>{product.sku ? `SKU: ${product.sku}` : (product.barcode ? `Barcode: ${product.barcode}` : '')}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           {isOutOfStock ? (
-                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#dc2626', height: 24 }}>
-                              {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
-                            </Chip>
+                            <View style={{ backgroundColor: isDarkMode ? '#450a0a' : '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: '#dc2626', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                                {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
+                              </Text>
+                            </View>
                           ) : isLowStock ? (
-                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#d97706', height: 24 }}>
-                              {isBN ? '⚠️ লো স্টক' : '⚠️ Low Stock'}
-                            </Chip>
+                            <View style={{ backgroundColor: isDarkMode ? '#451a03' : '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: '#d97706', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                                {isBN ? '⚠️ লো স্টক' : '⚠️ Low Stock'}
+                              </Text>
+                            </View>
                           ) : product.is_active === false ? (
-                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#64748b', height: 24 }}>
-                              {isBN ? 'বন্ধ' : 'Inactive'}
-                            </Chip>
+                            <View style={{ backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                                {isBN ? 'বন্ধ' : 'Inactive'}
+                              </Text>
+                            </View>
                           ) : (
-                            <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#16a34a', height: 24 }}>
-                              {isBN ? 'চালু' : 'Active'}
-                            </Chip>
+                            <View style={{ backgroundColor: isDarkMode ? '#064e3b' : '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: isDarkMode ? '#4ade80' : '#16a34a', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                                {isBN ? 'চালু' : 'Active'}
+                              </Text>
+                            </View>
                           )}
                           <TouchableOpacity onPress={() => setProductToEdit(product)} style={{ padding: 6 }}>
                             <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
