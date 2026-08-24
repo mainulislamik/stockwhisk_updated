@@ -146,9 +146,11 @@ export default function BarcodesScreen() {
               <Text style={{ fontSize: 13, color: '#1e40af', marginRight: 6 }}>
                 {isBN ? 'শপ প্রিফিক্স:' : 'Shop Prefix:'}
               </Text>
-              <Chip style={{ backgroundColor: '#2563eb' }} textStyle={{ color: '#fff', fontWeight: 'bold' }}>
-                {shopPrefix}
-              </Chip>
+              <View style={{ backgroundColor: '#2563eb', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12, includeFontPadding: false }}>
+                  {shopPrefix}
+                </Text>
+              </View>
             </View>
           )}
 
@@ -162,16 +164,35 @@ export default function BarcodesScreen() {
           />
 
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-            {['5', '10', '20', '50'].map(q => (
-              <Chip 
-                key={q} 
-                selected={quantity === q} 
-                onPress={() => setQuantity(q)}
-                style={{ flex: 1, alignItems: 'center' }}
-              >
-                {q} {isBN ? 'টি' : 'pcs'}
-              </Chip>
-            ))}
+            {['5', '10', '20', '50'].map(q => {
+              const isSelected = quantity === q;
+              return (
+                <TouchableOpacity 
+                  key={q} 
+                  onPress={() => setQuantity(q)}
+                  style={{
+                    flex: 1,
+                    paddingVertical: 8,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: isSelected ? '#4f46e5' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                    borderWidth: 1,
+                    borderColor: isSelected ? '#4f46e5' : (isDarkMode ? '#334155' : '#cbd5e1'),
+                  }}
+                >
+                  <Text style={{
+                    fontSize: 12,
+                    fontWeight: isSelected ? 'bold' : '600',
+                    color: isSelected ? '#ffffff' : (isDarkMode ? '#cbd5e1' : '#475569'),
+                    includeFontPadding: false,
+                    textAlign: 'center',
+                  }}>
+                    {q} {isBN ? 'টি' : 'pcs'}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
 
           <Button

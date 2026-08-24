@@ -107,24 +107,74 @@ export default function SalesScreen() {
 
   const getStatusColor = (status: string) => {
     switch((status || '').toUpperCase()) {
-      case 'PAID': return '#16a34a'; // green
-      case 'PARTIAL': return '#ea580c'; // orange
-      case 'DUE': return '#dc2626'; // red
-      case 'QUOTATION': return '#0ea5e9'; // sky blue
-      case 'CANCELLED': return '#64748b'; // gray
-      default: return theme.colors.primary;
+      case 'PAID':
+      case 'COMPLETED':
+        return '#16a34a'; // green
+      case 'PARTIAL':
+        return '#ea580c'; // orange
+      case 'DUE':
+      case 'UNPAID':
+      case 'PENDING':
+        return '#dc2626'; // red
+      case 'QUOTATION':
+        return '#0284c7'; // blue
+      case 'RETURNED':
+      case 'RETURN':
+        return '#7c3aed'; // purple
+      case 'CANCELLED':
+      case 'VOID':
+        return '#64748b'; // gray
+      default:
+        return theme.colors.primary;
     }
   };
 
   const getStatusLabel = (status: string) => {
-    if (!isBN) return status;
-    switch((status || '').toUpperCase()) {
-      case 'PAID': return 'পরিশোধিত';
-      case 'PARTIAL': return 'আংশিক';
-      case 'DUE': return 'বকেয়া';
-      case 'QUOTATION': return 'কোটেশন';
-      case 'CANCELLED': return 'বাতিল';
-      default: return status;
+    const s = (status || '').toUpperCase();
+    if (isBN) {
+      switch(s) {
+        case 'PAID':
+        case 'COMPLETED':
+          return 'পরিশোধিত';
+        case 'PARTIAL':
+          return 'আংশিক';
+        case 'DUE':
+        case 'UNPAID':
+        case 'PENDING':
+          return 'বকেয়া';
+        case 'QUOTATION':
+          return 'কোটেশন';
+        case 'RETURNED':
+        case 'RETURN':
+          return 'পণ্য ফেরত';
+        case 'CANCELLED':
+        case 'VOID':
+          return 'বাতিল';
+        default:
+          return status || 'অজানা';
+      }
+    } else {
+      switch(s) {
+        case 'PAID':
+        case 'COMPLETED':
+          return 'PAID';
+        case 'PARTIAL':
+          return 'PARTIAL';
+        case 'DUE':
+        case 'UNPAID':
+        case 'PENDING':
+          return 'DUE';
+        case 'QUOTATION':
+          return 'QUOTATION';
+        case 'RETURNED':
+        case 'RETURN':
+          return 'RETURNED';
+        case 'CANCELLED':
+        case 'VOID':
+          return 'CANCELLED';
+        default:
+          return status || 'UNKNOWN';
+      }
     }
   };
 
@@ -315,9 +365,26 @@ export default function SalesScreen() {
                 <Card.Content>
                   <View style={styles.rowBetween}>
                     <Text style={[styles.invoiceNo, { color: theme.colors.onSurface }]}>{inv}</Text>
-                    <Chip textStyle={{ color: 'white', fontWeight: 'bold', fontSize: 11 }} style={{ backgroundColor: getStatusColor(sale.status), height: 26 }}>
-                      {getStatusLabel(sale.status)}
-                    </Chip>
+                    <View style={{
+                      backgroundColor: getStatusColor(sale.status),
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 12,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      minWidth: 58,
+                    }}>
+                      <Text style={{
+                        color: '#ffffff',
+                        fontWeight: 'bold',
+                        fontSize: 11,
+                        textAlign: 'center',
+                        includeFontPadding: false,
+                        lineHeight: 15,
+                      }}>
+                        {getStatusLabel(sale.status)}
+                      </Text>
+                    </View>
                   </View>
                   <Text style={[styles.customerName, { color: isDarkMode ? '#cbd5e1' : '#475569' }]}>{sale.customer_name || (isBN ? 'সাধারণ ক্রেতা' : 'Walk-in Customer')}</Text>
                   <Text style={[styles.date, { color: isDarkMode ? '#94a3b8' : '#888' }]}>{new Date(sale.sale_date).toLocaleDateString()}</Text>
@@ -366,9 +433,25 @@ export default function SalesScreen() {
                 <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
                   {selectedSale.invoice_no || selectedSale.invoice_number || `#${selectedSale.id}`}
                 </Text>
-                <Chip textStyle={{ color: 'white', fontWeight: 'bold' }} style={{ backgroundColor: getStatusColor(selectedSale.status) }}>
-                  {getStatusLabel(selectedSale.status)}
-                </Chip>
+                <View style={{
+                  backgroundColor: getStatusColor(selectedSale.status),
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    includeFontPadding: false,
+                    lineHeight: 16,
+                  }}>
+                    {getStatusLabel(selectedSale.status)}
+                  </Text>
+                </View>
               </View>
 
               <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', fontSize: 13, marginBottom: 4 }}>

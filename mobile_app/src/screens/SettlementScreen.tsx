@@ -141,7 +141,18 @@ export default function SettlementScreen() {
                     {isBN ? 'বর্তমান শিফট চালু আছে (OPEN)' : 'Current Shift is OPEN'}
                   </Text>
                 </View>
-                <Chip textStyle={{ fontSize: 11 }}>#{current.id}</Chip>
+                <View style={{
+                  backgroundColor: isDarkMode ? '#334155' : '#e2e8f0',
+                  paddingHorizontal: 8,
+                  paddingVertical: 2,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: theme.colors.primary, includeFontPadding: false }}>
+                    #{current.id}
+                  </Text>
+                </View>
               </View>
 
               <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', fontSize: 13, marginBottom: 12 }}>
@@ -203,9 +214,24 @@ export default function SettlementScreen() {
                     <Text style={{ fontWeight: 'bold', fontSize: 14 }}>
                       {new Date(s.opened_at).toLocaleDateString()}
                     </Text>
-                    <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: '#64748b', height: 24 }}>
-                      {isBN ? 'বন্ধ' : 'CLOSED'}
-                    </Chip>
+                    <View style={{
+                      backgroundColor: isDarkMode ? '#334155' : '#64748b',
+                      paddingHorizontal: 8,
+                      paddingVertical: 3,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Text style={{
+                        color: '#ffffff',
+                        fontSize: 10,
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        includeFontPadding: false,
+                      }}>
+                        {isBN ? 'বন্ধ' : 'CLOSED'}
+                      </Text>
+                    </View>
                   </View>
 
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>

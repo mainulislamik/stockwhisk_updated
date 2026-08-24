@@ -157,9 +157,24 @@ export default function ReturnsScreen() {
               <Card style={{ backgroundColor: theme.colors.surface, padding: 16 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                   <Text style={{ fontWeight: 'bold', fontSize: 17 }}>{scanResult.product?.name || scanResult.product_name || 'Product'}</Text>
-                  <Chip textStyle={{ color: '#fff', fontWeight: 'bold', fontSize: 11 }} style={{ backgroundColor: '#16a34a' }}>
-                    {isBN ? 'বিক্রিত' : 'Sold'}
-                  </Chip>
+                  <View style={{
+                    backgroundColor: '#16a34a',
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: '#ffffff',
+                      fontWeight: 'bold',
+                      fontSize: 11,
+                      textAlign: 'center',
+                      includeFontPadding: false,
+                    }}>
+                      {isBN ? 'বিক্রিত' : 'Sold'}
+                    </Text>
+                  </View>
                 </View>
 
                 <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', marginBottom: 4 }}>

@@ -124,9 +124,24 @@ export default function EMIScreen() {
               <Card.Content>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                   <Text style={{ fontWeight: 'bold', fontSize: 16 }}>#{sched.sale_invoice_no || sched.sale}</Text>
-                  <Chip textStyle={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }} style={{ backgroundColor: sched.status === 'COMPLETED' ? '#16a34a' : '#4f46e5' }}>
-                    {sched.status}
-                  </Chip>
+                  <View style={{
+                    backgroundColor: sched.status === 'COMPLETED' ? '#16a34a' : '#4f46e5',
+                    paddingHorizontal: 10,
+                    paddingVertical: 4,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{
+                      color: '#ffffff',
+                      fontSize: 11,
+                      fontWeight: 'bold',
+                      textAlign: 'center',
+                      includeFontPadding: false,
+                    }}>
+                      {sched.status === 'COMPLETED' ? (isBN ? 'সম্পন্ন' : 'COMPLETED') : (isBN ? 'চলমান' : 'ACTIVE')}
+                    </Text>
+                  </View>
                 </View>
                 <Text style={{ fontSize: 15, fontWeight: '600', marginTop: 4 }}>{sched.customer_name || (isBN ? 'গ্রাহক' : 'Customer')}</Text>
                 
@@ -178,9 +193,25 @@ export default function EMIScreen() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <Text style={{ fontSize: 18, fontWeight: 'bold' }}>#{selectedSchedule.sale_invoice_no}</Text>
-                <Chip textStyle={{ color: '#fff', fontWeight: 'bold' }} style={{ backgroundColor: selectedSchedule.status === 'COMPLETED' ? '#16a34a' : '#4f46e5' }}>
-                  {selectedSchedule.status}
-                </Chip>
+                <View style={{
+                  backgroundColor: selectedSchedule.status === 'COMPLETED' ? '#16a34a' : '#4f46e5',
+                  paddingHorizontal: 12,
+                  paddingVertical: 5,
+                  borderRadius: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    fontSize: 12,
+                    textAlign: 'center',
+                    includeFontPadding: false,
+                    lineHeight: 16,
+                  }}>
+                    {selectedSchedule.status === 'COMPLETED' ? (isBN ? 'সম্পন্ন' : 'COMPLETED') : (isBN ? 'চলমান' : 'ACTIVE')}
+                  </Text>
+                </View>
               </View>
 
               <Text style={{ fontSize: 15, fontWeight: '600', marginBottom: 4 }}>{selectedSchedule.customer_name}</Text>
@@ -200,9 +231,25 @@ export default function EMIScreen() {
                   <View key={inst.id} style={{ padding: 10, borderRadius: 8, marginBottom: 8, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', borderWidth: 1, borderColor: isPaid ? '#16a34a' : '#e2e8f0' }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text style={{ fontWeight: 'bold' }}>{isBN ? `কিস্তি #${inst.month_number}` : `Month #${inst.month_number}`}</Text>
-                      <Chip textStyle={{ color: '#fff', fontSize: 10, fontWeight: 'bold' }} style={{ backgroundColor: isPaid ? '#16a34a' : inst.status === 'PARTIAL' ? '#ea580c' : '#dc2626', height: 24 }}>
-                        {inst.status}
-                      </Chip>
+                      <View style={{
+                        backgroundColor: isPaid ? '#16a34a' : inst.status === 'PARTIAL' ? '#ea580c' : '#dc2626',
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 10,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: 50,
+                      }}>
+                        <Text style={{
+                          color: '#ffffff',
+                          fontSize: 10,
+                          fontWeight: 'bold',
+                          textAlign: 'center',
+                          includeFontPadding: false,
+                        }}>
+                          {inst.status === 'PAID' ? (isBN ? 'পরিশোধিত' : 'PAID') : inst.status === 'PARTIAL' ? (isBN ? 'আংশিক' : 'PARTIAL') : (isBN ? 'বকেয়া' : 'UNPAID')}
+                        </Text>
+                      </View>
                     </View>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 4 }}>
                       <Text style={{ fontSize: 12, color: isDarkMode ? '#cbd5e1' : '#64748b' }}>{isBN ? 'তারিখ:' : 'Due Date:'} {inst.due_date}</Text>

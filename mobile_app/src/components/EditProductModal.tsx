@@ -467,14 +467,26 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               </View>
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
                 {serialBarcodes.map((code, idx) => (
-                  <Chip
+                  <View
                     key={`${code}-${idx}`}
-                    onClose={() => removeSerialBarcode(code)}
-                    style={{ backgroundColor: isDarkMode ? '#334155' : '#dbeafe' }}
-                    textStyle={{ fontSize: 11, color: '#1e40af' }}
+                    style={{
+                      backgroundColor: isDarkMode ? '#334155' : '#dbeafe',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 14,
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? '#475569' : '#bfdbfe',
+                    }}
                   >
-                    #{idx + 1}: {code}
-                  </Chip>
+                    <Text style={{ fontSize: 11, color: isDarkMode ? '#93c5fd' : '#1e40af', fontWeight: '600', marginRight: 6, includeFontPadding: false }}>
+                      #{idx + 1}: {code}
+                    </Text>
+                    <TouchableOpacity onPress={() => removeSerialBarcode(code)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <MaterialCommunityIcons name="close-circle" size={16} color={isDarkMode ? '#f87171' : '#ef4444'} />
+                    </TouchableOpacity>
+                  </View>
                 ))}
               </View>
             </View>

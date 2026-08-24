@@ -229,9 +229,24 @@ export default function ServiceTicketsScreen() {
                     <Card.Content>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                         <Text style={{ fontWeight: 'bold', fontSize: 16 }}>#{tkt.ticket_no}</Text>
-                        <Chip textStyle={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }} style={{ backgroundColor: cfg.color, height: 26 }}>
-                          {isBN ? cfg.labelBn : cfg.labelEn}
-                        </Chip>
+                        <View style={{
+                          backgroundColor: cfg.color,
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 12,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}>
+                          <Text style={{
+                            color: '#ffffff',
+                            fontSize: 11,
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            includeFontPadding: false,
+                          }}>
+                            {isBN ? cfg.labelBn : cfg.labelEn}
+                          </Text>
+                        </View>
                       </View>
                       <Text style={{ fontWeight: '600', fontSize: 15, marginTop: 4 }}>{tkt.device_description}</Text>
                       <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', fontSize: 13, marginTop: 2 }}>{isBN ? 'সমস্যা:' : 'Issue:'} {tkt.complaint}</Text>
@@ -290,9 +305,24 @@ export default function ServiceTicketsScreen() {
             <Card style={{ backgroundColor: theme.colors.surface, padding: 16 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{warrantyResult.product_name || 'Item Warranty'}</Text>
-                <Chip textStyle={{ color: '#fff', fontWeight: 'bold' }} style={{ backgroundColor: warrantyResult.is_valid !== false ? '#16a34a' : '#dc2626' }}>
-                  {warrantyResult.is_valid !== false ? (isBN ? 'সক্রিয়' : 'Active') : (isBN ? 'মেয়াদোত্তীর্ণ' : 'Expired')}
-                </Chip>
+                <View style={{
+                  backgroundColor: warrantyResult.is_valid !== false ? '#16a34a' : '#dc2626',
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{
+                    color: '#ffffff',
+                    fontWeight: 'bold',
+                    fontSize: 11,
+                    textAlign: 'center',
+                    includeFontPadding: false,
+                  }}>
+                    {warrantyResult.is_valid !== false ? (isBN ? 'সক্রিয়' : 'Active') : (isBN ? 'মেয়াদোত্তীর্ণ' : 'Expired')}
+                  </Text>
+                </View>
               </View>
               <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', marginBottom: 4 }}>{isBN ? 'বারকোড:' : 'Barcode:'} {warrantyResult.barcode || warrantyBarcode}</Text>
               <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', marginBottom: 4 }}>{isBN ? 'মেয়াদ:' : 'Warranty:'} {warrantyResult.warranty_months} {isBN ? 'মাস' : 'Months'}</Text>

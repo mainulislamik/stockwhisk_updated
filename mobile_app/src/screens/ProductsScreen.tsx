@@ -397,32 +397,78 @@ export default function ProductsScreen() {
               right={<TextInput.Icon icon="barcode-scan" onPress={() => setScannerTarget('list')} />}
               style={[styles.searchInput, { backgroundColor: theme.colors.surface }]}
             />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.chipScroll}>
-              <Chip 
-                selected={selectedCategory === null} 
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4, alignItems: 'center' }} style={styles.chipScroll}>
+              <TouchableOpacity 
                 onPress={() => setSelectedCategory(null)}
-                style={styles.chip}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  marginRight: 8,
+                  backgroundColor: selectedCategory === null ? '#2563eb' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                  borderWidth: 1,
+                  borderColor: selectedCategory === null ? '#2563eb' : (isDarkMode ? '#334155' : '#cbd5e1'),
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                {isBN ? 'সকল' : 'All'}
-              </Chip>
-              {categories.map(cat => (
-                <Chip 
-                  key={cat.id} 
-                  selected={selectedCategory === cat.id} 
-                  onPress={() => setSelectedCategory(cat.id)}
-                  style={styles.chip}
-                >
-                  {cat.name}
-                </Chip>
-              ))}
-              <Chip 
-                icon="plus"
+                <Text style={{
+                  color: selectedCategory === null ? '#ffffff' : (isDarkMode ? '#cbd5e1' : '#475569'),
+                  fontWeight: selectedCategory === null ? 'bold' : '600',
+                  fontSize: 12,
+                  includeFontPadding: false,
+                }}>
+                  {isBN ? 'সকল' : 'All'}
+                </Text>
+              </TouchableOpacity>
+              {categories.map(cat => {
+                const isSelected = selectedCategory === cat.id;
+                return (
+                  <TouchableOpacity 
+                    key={cat.id} 
+                    onPress={() => setSelectedCategory(cat.id)}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      borderRadius: 20,
+                      marginRight: 8,
+                      backgroundColor: isSelected ? '#2563eb' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#cbd5e1'),
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{
+                      color: isSelected ? '#ffffff' : (isDarkMode ? '#cbd5e1' : '#475569'),
+                      fontWeight: isSelected ? 'bold' : '600',
+                      fontSize: 12,
+                      includeFontPadding: false,
+                    }}>
+                      {cat.name}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+              <TouchableOpacity 
                 onPress={() => setShowAddCatModal(true)}
-                style={[styles.chip, { backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff' }]}
-                textStyle={{ color: '#2563eb', fontWeight: 'bold' }}
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 7,
+                  borderRadius: 20,
+                  backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff',
+                  borderWidth: 1,
+                  borderColor: '#93c5fd',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
               >
-                {isBN ? '+ ক্যাটাগরি' : '+ Category'}
-              </Chip>
+                <MaterialCommunityIcons name="plus" size={14} color="#2563eb" style={{ marginRight: 2 }} />
+                <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 12, includeFontPadding: false }}>
+                  {isBN ? 'ক্যাটাগরি' : 'Category'}
+                </Text>
+              </TouchableOpacity>
             </ScrollView>
           </View>
 
@@ -711,14 +757,26 @@ export default function ProductsScreen() {
               {purchaseBarcodes.length > 0 && (
                 <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
                   {purchaseBarcodes.map((code, idx) => (
-                    <Chip
+                    <View
                       key={`${code}-${idx}`}
-                      onClose={() => removePurchaseBarcode(code)}
-                      style={{ backgroundColor: isDarkMode ? '#334155' : '#e0e7ff' }}
-                      textStyle={{ fontSize: 11, color: '#3730a3' }}
+                      style={{
+                        backgroundColor: isDarkMode ? '#334155' : '#e0e7ff',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 14,
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#475569' : '#c7d2fe',
+                      }}
                     >
-                      #{idx + 1}: {code}
-                    </Chip>
+                      <Text style={{ fontSize: 11, color: isDarkMode ? '#c7d2fe' : '#3730a3', fontWeight: '600', marginRight: 6, includeFontPadding: false }}>
+                        #{idx + 1}: {code}
+                      </Text>
+                      <TouchableOpacity onPress={() => removePurchaseBarcode(code)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                        <MaterialCommunityIcons name="close-circle" size={16} color={isDarkMode ? '#f87171' : '#ef4444'} />
+                      </TouchableOpacity>
+                    </View>
                   ))}
                 </View>
               )}
