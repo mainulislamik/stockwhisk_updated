@@ -179,7 +179,7 @@ export default function DuesPage() {
     });
   }, [activeTab, customerDues, purchaseDues, search]);
 
-  const { paged, page, setPage, totalPages, total } = usePagination(combinedList, 20);
+  const { paged, page, setPage, totalPages, total } = usePagination(combinedList, [activeTab, search]);
 
   // Open Settle Modal
   function handleOpenSettle(item: DueItem) {
