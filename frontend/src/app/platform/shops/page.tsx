@@ -139,7 +139,7 @@ export default function ShopsPage() {
                             {s.subscription_info.plan_tier || "—"}
                           </span>
                           {s.subscription_info.state === "free" && (
-                            <span className="badge bg-success" style={{ fontSize: '0.7rem' }}>🎁 Free for life</span>
+                            <span className="badge bg-success" style={{ fontSize: '0.7rem' }}>🎁 Free</span>
                           )}
                           {s.is_free && s.subscription_info.state !== "free" && (
                             <span className="badge bg-secondary" style={{ fontSize: '0.7rem' }} title="Free grant is paused because the reseller is inactive — shop must pay">🎁 Free (paused)</span>

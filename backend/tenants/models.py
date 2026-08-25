@@ -213,6 +213,8 @@ class Shop(TimeStampedModel):
 
     @property
     def on_trial(self) -> bool:
+        if self.has_free_access:
+            return False
         return bool(self.trial_ends_at and self.trial_ends_at > timezone.now())
 
     def has_feature(self, flag: str) -> bool:

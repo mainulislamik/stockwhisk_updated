@@ -158,6 +158,16 @@ def shop_subscription_info(shop):
     from tenants.models import Subscription
     now = timezone.now()
     sub = Subscription.objects.filter(shop_id=shop.id, is_current=True).select_related("plan").first()
+    
+    if shop.has_free_access:
+        return {
+            "state": "free",
+            "plan_tier": shop.plan.tier if shop.plan else None,
+            "ends_at": None,
+            "days_left": 0,
+            "status": "free",
+        }
+
     if shop.on_trial:
         return {
             "state": "trial",
