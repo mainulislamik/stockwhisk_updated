@@ -65,12 +65,25 @@ export default function PosCustomerPage() {
   const [saleDate, setSaleDate] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");
+  const [dueDate, setDueDate] = useState("");
   const [method, setMethod] = useState("cash");
   const [isEmi, setIsEmi] = useState(false);
   const [emiMonths, setEmiMonths] = useState(3);
   const [emiInterestPercent, setEmiInterestPercent] = useState(0);
   const [busy, setBusy] = useState(false);
   const [saleResult, setSaleResult] = useState<{ id: number; invoice_no: string; phone: string; name: string; total: number; pdfUrl: string } | null>(null);
+
+  function addDays(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split("T")[0];
+  }
+
+  function getNextMonthFirstDay() {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1, 1);
+    return d.toISOString().split("T")[0];
+  }
 
   useEffect(() => {
     const saved = sessionStorage.getItem("pos_cart");
@@ -144,6 +157,7 @@ export default function PosCustomerPage() {
           })),
           payments: asQuotation ? [] : (finalPaid > 0 ? [{ amount: finalPaid, method }] : []),
           sale_date: user?.shop_offline_sale_mode && saleDate ? new Date(saleDate).toISOString() : undefined,
+          due_date: (!asQuotation && !isEmi && paid !== "" && paidNum < total && dueDate) ? dueDate : undefined,
           is_emi: asQuotation ? false : isEmi,
           emi_months: (isEmi && !asQuotation) ? emiMonths : 0,
           down_payment: (isEmi && !asQuotation) ? finalPaid : 0,
@@ -381,6 +395,72 @@ export default function PosCustomerPage() {
                 <div className="d-flex justify-content-between fs-5 text-primary fw-bold">
                   <span>{t("pos_checkout_emi_per_month")}</span>
                   <span>{money((Math.max(0, total - paidNum) * (1 + (emiInterestPercent / 100))) / emiMonths)} {t("pos_checkout_mo")}</span>
+                </div>
+              </div>
+            )}
+
+            {!isEmi && paid !== "" && paidNum < total && (
+              <div className="p-3 bg-danger bg-opacity-10 rounded-3 border border-danger-subtle vstack gap-2 shadow-sm">
+                <div className="d-flex align-items-center justify-content-between">
+                  <div className="fw-bold text-danger small d-flex align-items-center gap-1">
+                    <i className="bi bi-calendar-event-fill"></i>
+                    <span>{t("pos_checkout_due_date_title")}</span>
+                  </div>
+                  <span className="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                    {t("sales_list_col_due") || "Due"}: {money(total - paidNum)}
+                  </span>
+                </div>
+                <div className="text-secondary small" style={{ fontSize: "0.78rem" }}>
+                  {t("pos_checkout_due_date_desc")}
+                </div>
+
+                <div className="d-flex flex-wrap gap-1 my-1">
+                  <button
+                    type="button"
+                    className={`btn btn-xs rounded-pill px-2 py-1 ${dueDate === addDays(7) ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setDueDate(addDays(7))}
+                  >
+                    {t("pos_checkout_quick_7d")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-xs rounded-pill px-2 py-1 ${dueDate === addDays(15) ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setDueDate(addDays(15))}
+                  >
+                    {t("pos_checkout_quick_15d")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-xs rounded-pill px-2 py-1 ${dueDate === addDays(30) ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setDueDate(addDays(30))}
+                  >
+                    {t("pos_checkout_quick_30d")}
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-xs rounded-pill px-2 py-1 ${dueDate === getNextMonthFirstDay() ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setDueDate(getNextMonthFirstDay())}
+                  >
+                    {t("pos_checkout_quick_next_month")}
+                  </button>
+                </div>
+
+                <div className="form-floating">
+                  <input
+                    type="date"
+                    className="form-control bg-white shadow-sm border-danger-subtle"
+                    id="dueDateInput"
+                    min={new Date().toISOString().split("T")[0]}
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                  />
+                  <label htmlFor="dueDateInput" className="text-danger fw-medium">
+                    📅 {t("pos_checkout_due_date_placeholder")}
+                  </label>
                 </div>
               </div>
             )}

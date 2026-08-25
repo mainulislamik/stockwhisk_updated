@@ -32,7 +32,7 @@ def _next_invoice_no(shop) -> str:
 @transaction.atomic
 def create_sale(
     *, shop, items, customer=None, branch=None, discount=ZERO, delivery_charge=ZERO, tax=ZERO,
-    payments=None, sale_date=None, note="", created_by=None,
+    payments=None, sale_date=None, due_date=None, note="", created_by=None,
     customer_name="", customer_phone="", customer_address="",
     idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO,
     is_quotation=False,
@@ -102,7 +102,7 @@ def create_sale(
     # constraint retries with a fresh number instead of 500-ing. Each attempt is
     # a savepoint inside the outer atomic block.
     common = dict(
-        shop=shop, customer=customer, branch=branch, sale_date=sale_date,
+        shop=shop, customer=customer, branch=branch, sale_date=sale_date, due_date=due_date,
         discount=discount, delivery_charge=delivery_charge, tax=tax, note=note, created_by=created_by,
         status=Sale.Status.DUE, idempotency_key=idempotency_key,
         # Clip walk-in receipt fields to their CharField limits (Postgres/MySQL
@@ -463,7 +463,7 @@ def cancel_sale(*, sale, created_by=None):
 
 
 @transaction.atomic
-def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, customer_id=None, customer_name=None, customer_phone=None, customer_address=None, created_by=None, correction_reason=""):
+def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, due_date=None, customer_id=None, customer_name=None, customer_phone=None, customer_address=None, created_by=None, correction_reason=""):
     """
     Edit a completed sale's line items + discount (item 12) or a quotation.
     For sales: ledger-safe, reverses old lines, updates inventory & units.
@@ -576,6 +576,8 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
     sale.subtotal = subtotal
     sale.discount = discount
     sale.total = total
+    if due_date is not None:
+        sale.due_date = due_date
     sale.status = Sale.Status.QUOTATION if is_quotation else _resolve_status(total, paid)
     if not is_quotation:
         sale.is_corrected = True
@@ -584,7 +586,7 @@ def edit_sale(*, sale, items, discount=ZERO, delivery_charge=None, tax=None, cus
         "subtotal", "discount", "total", "status", "updated_at",
         "is_corrected", "correction_reason", "original_total",
         "customer", "customer_name", "customer_phone", "customer_address",
-        "delivery_charge", "tax"
+        "delivery_charge", "tax", "due_date"
     ])
 
     if not is_quotation:

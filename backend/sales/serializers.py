@@ -122,7 +122,7 @@ class SaleSerializer(serializers.ModelSerializer):
         model = Sale
         fields = [
             "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone", "bill_address",
-            "branch", "sale_date",
+            "branch", "sale_date", "due_date",
             "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
             "note", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
         ]
@@ -166,6 +166,7 @@ class SaleCreateSerializer(serializers.Serializer):
     items = SaleItemInputSerializer(many=True)
     payments = PaymentInputSerializer(many=True, required=False, default=list)
     sale_date = serializers.DateTimeField(required=False, allow_null=True)
+    due_date = serializers.DateField(required=False, allow_null=True)
     
     # EMI Fields
     is_emi = serializers.BooleanField(default=False)

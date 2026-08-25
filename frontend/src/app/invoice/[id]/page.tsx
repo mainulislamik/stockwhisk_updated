@@ -47,6 +47,7 @@ type Sale = {
   bill_name: string;
   bill_phone: string;
   sale_date: string;
+  due_date?: string;
   subtotal: string;
   discount: string;
   delivery_charge: string;
@@ -299,6 +300,11 @@ export default function InvoicePage() {
             <div className={`inv-total-row inv-due-row ${Number(sale.due) > 0 ? "inv-due-outstanding" : "inv-due-clear"}`}>
               <span>Balance Due</span><span>{fmt(sale.due)}</span>
             </div>
+            {Number(sale.due) > 0 && sale.due_date && (
+              <div className="inv-total-row" style={{ color: "#dc2626", fontWeight: 600, fontSize: "0.9em" }}>
+                <span>Promised Date</span><span>{fmtDate(sale.due_date)}</span>
+              </div>
+            )}
           </div>
         </div>
 

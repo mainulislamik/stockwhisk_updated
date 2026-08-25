@@ -83,6 +83,7 @@ class SaleViewSet(
                 customer=data.get("customer"),
                 discount=data.get("discount", 0),
                 tax=data.get("tax", 0),
+                due_date=data.get("due_date"),
                 note=data.get("note", ""),
                 items=data["items"],
                 payments=data.get("payments", []),
@@ -585,7 +586,7 @@ class SaleViewSet(
         if not payments_data and paid_amount > 0:
             payments_data = [{"amount": paid_amount, "method": payment_method}]
 
-        # Sale date
+        # Sale date & Due date
         sale_date_raw = request.data.get("sale_date")
         if sale_date_raw:
             try:
@@ -596,6 +597,13 @@ class SaleViewSet(
                 sale_date = timezone.now()
         else:
             sale_date = timezone.now()
+
+        due_date_raw = request.data.get("due_date")
+        if due_date_raw:
+            try:
+                sale.due_date = dateutil.parser.parse(str(due_date_raw)).date()
+            except Exception:
+                pass
 
         today = sale_date.date()
 

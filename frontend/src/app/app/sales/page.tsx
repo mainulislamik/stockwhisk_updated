@@ -17,6 +17,7 @@ type InvoiceRow = {
   total: string;
   paid: string;
   due: string;
+  due_date?: string;
   status: string;
   href: string;
 };
@@ -71,6 +72,7 @@ export default function SalesPage() {
           total: s.total,
           paid: s.paid,
           due: s.due,
+          due_date: s.due_date,
           status: s.status,
           href: `/app/sales/${s.id}`,
         } as InvoiceRow;
@@ -269,7 +271,12 @@ export default function SalesPage() {
                     <td className="text-end fw-semibold">{money(s.total)}</td>
                     <td className="text-end text-success">{money(s.paid)}</td>
                     <td className={`text-end ${Number(s.due) > 0 ? "text-danger fw-bold" : "text-secondary"}`}>
-                      {money(s.due)}
+                      <div>{money(s.due)}</div>
+                      {Number(s.due) > 0 && s.due_date && (
+                        <div style={{ fontSize: "0.7rem" }} className="text-danger opacity-75 fw-normal">
+                          📅 {fmtDate(s.due_date)}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <span className={`badge ${statusBadge[s.status] || "text-bg-light"}`}>

@@ -84,6 +84,7 @@
         <tr class="fw-bold border-top"><td>Grand total</td><td class="text-end">{{ shop.currency }} {{ sale.total }}</td></tr>
         <tr><td class="text-secondary">Paid</td><td class="text-end">{{ sale.paid }}</td></tr>
         <tr><td class="text-secondary">Due</td><td class="text-end {% if sale.due > 0 %}text-danger fw-semibold{% endif %}">{{ sale.due }}</td></tr>
+        {% if sale.due > 0 and sale.due_date %}<tr><td class="text-secondary">Promised Date</td><td class="text-end text-danger fw-semibold">{{ sale.due_date|date:"d M Y" }}</td></tr>{% endif %}
         <tr><td class="text-secondary">Payment method</td><td class="text-end">{% for p in sale.payments.all %}{{ p.get_method_display }}{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td></tr>
       </table>
     </div>

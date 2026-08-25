@@ -31,6 +31,7 @@ class Sale(TenantScopedModel):
         "tenants.Branch", on_delete=models.SET_NULL, null=True, blank=True, related_name="sales"
     )
     sale_date = models.DateTimeField()
+    due_date = models.DateField(null=True, blank=True, help_text="Promised payment date for due balance")
 
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     discount = models.DecimalField(max_digits=14, decimal_places=2, default=0)

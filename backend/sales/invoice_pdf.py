@@ -180,6 +180,8 @@ def build_invoice_pdf(sale) -> bytes:
     due = (sale.total or 0) - (sale.paid or 0)
     if due > 0:
         total_row("Due", _money(due), bold=True)
+        if sale.due_date:
+            total_row("Promised Date", sale.due_date.strftime("%d %b %Y"))
 
     # ── EMI Schedule ──
     from .models import EMISchedule, EMIInstallment

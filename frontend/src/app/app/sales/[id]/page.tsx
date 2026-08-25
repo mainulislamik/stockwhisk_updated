@@ -21,6 +21,7 @@ type Sale = {
   bill_phone?: string | null;
   public_invoice_url?: string;
   sale_date: string;
+  due_date?: string;
   subtotal: string;
   discount: string;
   delivery_charge: string;
@@ -339,6 +340,14 @@ export default function SaleDetailPage() {
                     <td className="text-secondary">{t("inv_lbl_due")}</td>
                     <td className={`text-end ${Number(sale.due) > 0 ? "text-danger fw-semibold" : ""}`}>{money(sale.due)}</td>
                   </tr>
+                  {Number(sale.due) > 0 && sale.due_date && (
+                    <tr>
+                      <td className="text-danger fw-medium">
+                        <i className="bi bi-calendar-event me-1"></i> {lang === "bn" ? "পরিশোধের প্রতিশ্রুত তারিখ" : "Promised Date"}
+                      </td>
+                      <td className="text-end text-danger fw-semibold">{fmtDate(sale.due_date)}</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

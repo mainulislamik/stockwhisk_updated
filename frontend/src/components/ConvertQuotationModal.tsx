@@ -91,7 +91,20 @@ export default function ConvertQuotationModal({
   const [deliveryCharge, setDeliveryCharge] = useState<number>(0);
   const [paidAmount, setPaidAmount] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState("cash");
+  const [dueDate, setDueDate] = useState("");
   const [saleDate, setSaleDate] = useState("");
+
+  function addDays(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split("T")[0];
+  }
+
+  function getNextMonthFirstDay() {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1, 1);
+    return d.toISOString().split("T")[0];
+  }
 
   // EMI Options
   const [isEmi, setIsEmi] = useState(false);
@@ -338,6 +351,7 @@ export default function ConvertQuotationModal({
         tax: 0,
         paid_amount: paidNum,
         payment_method: paymentMethod,
+        due_date: (!isEmi && paidNum < total && dueDate) ? dueDate : undefined,
         sale_date: saleDate ? new Date(saleDate).toISOString() : undefined,
         is_emi: isEmi,
         emi_months: isEmi ? emiMonths : 0,
@@ -1014,6 +1028,68 @@ export default function ConvertQuotationModal({
                                   : "Paid Amount (৳)"}
                               </label>
                             </div>
+
+                            {/* Promised Payment Date if due exists */}
+                            {!isEmi && paidAmount !== "" && paidNum < total && (
+                              <div className="p-2 mb-2 bg-danger bg-opacity-10 rounded-3 border border-danger-subtle vstack gap-1">
+                                <div className="d-flex align-items-center justify-content-between">
+                                  <span className="text-danger fw-bold small">
+                                    <i className="bi bi-calendar-event-fill me-1"></i>
+                                    {lang === "bn" ? "পরিশোধের প্রতিশ্রুত তারিখ (Promised Date)" : "Promised Payment Date"}
+                                  </span>
+                                  <span className="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill">
+                                    {lang === "bn" ? "বকেয়া" : "Due"}: {money(total - paidNum)}
+                                  </span>
+                                </div>
+                                <div className="d-flex flex-wrap gap-1 my-1">
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs rounded-pill px-2 py-0 ${dueDate === addDays(7) ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                                    style={{ fontSize: "0.72rem" }}
+                                    onClick={() => setDueDate(addDays(7))}
+                                  >
+                                    {lang === "bn" ? "+৭ দিন" : "+7 Days"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs rounded-pill px-2 py-0 ${dueDate === addDays(15) ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                                    style={{ fontSize: "0.72rem" }}
+                                    onClick={() => setDueDate(addDays(15))}
+                                  >
+                                    {lang === "bn" ? "+১৫ দিন" : "+15 Days"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs rounded-pill px-2 py-0 ${dueDate === addDays(30) ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                                    style={{ fontSize: "0.72rem" }}
+                                    onClick={() => setDueDate(addDays(30))}
+                                  >
+                                    {lang === "bn" ? "+৩০ দিন" : "+30 Days"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs rounded-pill px-2 py-0 ${dueDate === getNextMonthFirstDay() ? "btn-danger text-white fw-bold" : "btn-outline-danger bg-white"}`}
+                                    style={{ fontSize: "0.72rem" }}
+                                    onClick={() => setDueDate(getNextMonthFirstDay())}
+                                  >
+                                    {lang === "bn" ? "পরবর্তী মাসের ১ তারিখ" : "Next Month 1st"}
+                                  </button>
+                                </div>
+                                <div className="form-floating">
+                                  <input
+                                    type="date"
+                                    className="form-control bg-white shadow-sm border-danger-subtle form-control-sm"
+                                    id="modalDueDateInput"
+                                    min={new Date().toISOString().split("T")[0]}
+                                    value={dueDate}
+                                    onChange={(e) => setDueDate(e.target.value)}
+                                  />
+                                  <label htmlFor="modalDueDateInput" className="text-danger fw-medium small">
+                                    📅 {lang === "bn" ? "প্রতিশ্রুত তারিখ নির্বাচন করুন" : "Select Promised Date"}
+                                  </label>
+                                </div>
+                              </div>
+                            )}
 
                             {/* Financial Summary */}
                             <div className="bg-light p-2 rounded-3 border">

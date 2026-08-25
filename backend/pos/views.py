@@ -133,6 +133,7 @@ class CheckoutView(_POSBase):
                 shop=request.user.shop,
                 customer=customer,
                 sale_date=data.get("sale_date"),
+                due_date=data.get("due_date"),
                 discount=data.get("discount", 0),
                 tax=data.get("tax", 0),
                 note=data.get("note", ""),
