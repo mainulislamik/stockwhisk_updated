@@ -7,10 +7,35 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Swal from "sweetalert2";
+import { useAuth } from "@/components/AuthProvider";
+import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 
 export default function ReturnsPage() {
   const { t, lang } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"return" | "replace">("return");
+  const [scanTarget, setScanTarget] = useState<"return" | "old" | "new" | null>(null);
+
+  const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop, (code) => {
+    if (scanTarget === "return" || (activeTab === "return" && !scanTarget)) {
+      setBarcode(code);
+    } else if (scanTarget === "old" || (activeTab === "replace" && !oldScanResult)) {
+      setOldBarcode(code);
+    } else if (scanTarget === "new" || (activeTab === "replace" && oldScanResult)) {
+      setNewBarcode(code);
+    }
+    setScanTarget(null);
+  });
+
+  const handleMobileScanClick = (target: "return" | "old" | "new") => {
+    setScanTarget(target);
+    const isAndroid = /Android/i.test(navigator.userAgent);
+    if (isAndroid) {
+      window.location.href = "intent://#Intent;package=com.mainulislamik.scanner_app;end";
+    } else {
+      toast.success("Ready for mobile scan. Please scan using the app.", { icon: "📱" });
+    }
+  };
   
   // Return State
   const [barcode, setBarcode] = useState("");
@@ -228,7 +253,12 @@ export default function ReturnsPage() {
             <div className="card-body p-4">
               <form onSubmit={handleReturnScan} className="d-flex gap-2">
                 <div className="flex-grow-1 position-relative">
-                  <i className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                  <i 
+                    className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-brand"
+                    style={{ cursor: "pointer", zIndex: 10, fontSize: "1.2rem" }}
+                    onClick={() => handleMobileScanClick("return")}
+                    title="Scan with Mobile App"
+                  ></i>
                   <input
                     ref={returnInputRef}
                     type="text"
@@ -360,7 +390,12 @@ export default function ReturnsPage() {
                   {!oldScanResult ? (
                     <form onSubmit={e => handleReplaceScan(e, "old")} className="d-flex gap-2">
                       <div className="flex-grow-1 position-relative">
-                        <i className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                        <i 
+                          className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-brand"
+                          style={{ cursor: "pointer", zIndex: 10, fontSize: "1.2rem" }}
+                          onClick={() => handleMobileScanClick("old")}
+                          title="Scan with Mobile App"
+                        ></i>
                         <input
                           ref={oldBarcodeRef}
                           type="text"
@@ -400,7 +435,12 @@ export default function ReturnsPage() {
                   {!newScanResult ? (
                     <form onSubmit={e => handleReplaceScan(e, "new")} className="d-flex gap-2">
                       <div className="flex-grow-1 position-relative">
-                        <i className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
+                        <i 
+                          className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-brand"
+                          style={{ cursor: "pointer", zIndex: 10, fontSize: "1.2rem" }}
+                          onClick={() => handleMobileScanClick("new")}
+                          title="Scan with Mobile App"
+                        ></i>
                         <input
                           ref={newBarcodeRef}
                           type="text"
