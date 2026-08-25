@@ -36,6 +36,7 @@ class PurchaseOrder(TenantScopedModel):
     po_number = models.CharField(max_length=40, blank=True)
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DRAFT)
     order_date = models.DateField(null=True, blank=True)
+    due_date = models.DateField(null=True, blank=True, help_text="Promised payment date for PO due")
     received_at = models.DateTimeField(null=True, blank=True)
 
     subtotal = models.DecimalField(max_digits=14, decimal_places=2, default=0)

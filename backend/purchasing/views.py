@@ -21,6 +21,8 @@ class SupplierViewSet(TenantScopedViewSet):
 
     def get_queryset(self):
         qs = Supplier.objects.all()
+        if self.request.query_params.get("with_due") in {"1", "true"}:
+            qs = qs.filter(due_balance__gt=0)
         if search := self.request.query_params.get("search"):
             from django.db.models import Q
             qs = qs.filter(
@@ -29,6 +31,12 @@ class SupplierViewSet(TenantScopedViewSet):
                 Q(email__icontains=search)
             )
         return qs
+
+    @action(detail=False, methods=["get"], url_path="dues-total")
+    def dues_total(self, request):
+        from django.db.models import Sum
+        total = Supplier.objects.filter(due_balance__gt=0).aggregate(t=Sum("due_balance"))["t"] or 0
+        return Response({"total": total})
 
     def destroy(self, request, *args, **kwargs):
         from django.db.models import ProtectedError
@@ -92,7 +100,11 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
     required_perm = "manage_purchasing"
 
     def get_queryset(self):
-        return PurchaseOrder.objects.select_related("supplier").prefetch_related("items")
+        qs = PurchaseOrder.objects.select_related("supplier").prefetch_related("items")
+        if self.request.query_params.get("with_due") in {"1", "true"}:
+            from django.db.models import F
+            qs = qs.filter(status=PurchaseOrder.Status.RECEIVED, total__gt=F("paid"))
+        return qs
 
     def get_serializer_class(self):
         if self.action == "create":
@@ -108,6 +120,7 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
             supplier=data["supplier"],
             branch=data.get("branch"),
             discount=data.get("discount", 0),
+            due_date=data.get("due_date"),
             note=data.get("note", ""),
             items=data["items"],
             created_by=request.user,
@@ -116,13 +129,14 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
 
     @action(detail=True, methods=["post"])
     def receive(self, request, pk=None):
-        """Receive the PO into stock. Body: {"paid": <amount>, "method": <cash|bank|...>}."""
+        """Receive the PO into stock. Body: {"paid": <amount>, "method": <cash|bank|...>, "due_date": <date>}."""
         from django.db import IntegrityError
 
         po = self.get_object()
         try:
             po = receive_purchase_order(
                 po=po, paid=Decimal(request.data.get("paid", 0)),
+                due_date=request.data.get("due_date") or None,
                 payment_method=request.data.get("method", "cash"),
                 created_by=request.user,
             )
@@ -133,6 +147,22 @@ class PurchaseOrderViewSet(TenantScopedViewSet):
                 {"detail": "A barcode in this batch already exists in stock. "
                            "Please use unique barcodes and try again."},
                 status=status.HTTP_400_BAD_REQUEST)
+        return Response(PurchaseOrderSerializer(po).data)
+
+    @action(detail=True, methods=["post", "patch"], url_path="set-due-date")
+    def set_due_date(self, request, pk=None):
+        """Update the promised payment due date for this purchase order."""
+        po = self.get_object()
+        due_date_raw = request.data.get("due_date")
+        if due_date_raw:
+            import dateutil.parser
+            try:
+                po.due_date = dateutil.parser.parse(str(due_date_raw)).date()
+            except Exception:
+                po.due_date = None
+        else:
+            po.due_date = None
+        po.save(update_fields=["due_date"])
         return Response(PurchaseOrderSerializer(po).data)
 
     @action(detail=True, methods=["post"], url_path="pay-due")

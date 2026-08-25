@@ -41,7 +41,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
         model = PurchaseOrder
         fields = [
             "id", "po_number", "supplier", "supplier_name", "branch", "status",
-            "order_date", "received_at", "subtotal", "discount", "total",
+            "order_date", "due_date", "received_at", "subtotal", "discount", "total",
             "paid", "due", "note", "items", "created_at",
         ]
         read_only_fields = ["po_number", "status", "received_at", "subtotal", "total", "paid"]
@@ -50,6 +50,7 @@ class PurchaseOrderSerializer(serializers.ModelSerializer):
 class PurchaseOrderCreateSerializer(serializers.Serializer):
     supplier = serializers.PrimaryKeyRelatedField(queryset=Supplier.objects)
     discount = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
+    due_date = serializers.DateField(required=False, allow_null=True)
     note = serializers.CharField(required=False, allow_blank=True, default="")
     items = PurchaseOrderItemInputSerializer(many=True)
 

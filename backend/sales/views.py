@@ -57,7 +57,8 @@ class SaleViewSet(
         if s := params.get("status"):
             qs = qs.filter(status=s)
         if params.get("with_due") in {"1", "true"}:
-            qs = qs.exclude(status__in=[Sale.Status.PAID, Sale.Status.CANCELLED])
+            from django.db.models import F
+            qs = qs.exclude(status__in=[Sale.Status.PAID, Sale.Status.CANCELLED, Sale.Status.QUOTATION]).filter(total__gt=F("paid"))
         if search := params.get("search"):
             from django.db.models import Q
             qs = qs.filter(
@@ -97,6 +98,22 @@ class SaleViewSet(
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
         return Response(SaleSerializer(sale).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post", "patch"], url_path="set-due-date")
+    def set_due_date(self, request, pk=None):
+        """Update the promised payment due date for this sale."""
+        sale = self.get_object()
+        due_date_raw = request.data.get("due_date")
+        if due_date_raw:
+            import dateutil.parser
+            try:
+                sale.due_date = dateutil.parser.parse(str(due_date_raw)).date()
+            except Exception:
+                sale.due_date = None
+        else:
+            sale.due_date = None
+        sale.save(update_fields=["due_date"])
+        return Response(SaleSerializer(sale).data)
 
     @action(detail=True, methods=["post"])
     def add_payment(self, request, pk=None):

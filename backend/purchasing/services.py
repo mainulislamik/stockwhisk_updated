@@ -198,7 +198,7 @@ def _next_po_number(shop) -> str:
 
 @transaction.atomic
 def create_purchase_order(
-    *, shop, supplier, items, branch=None, discount=ZERO, order_date=None,
+    *, shop, supplier, items, branch=None, discount=ZERO, order_date=None, due_date=None,
     note="", created_by=None,
 ):
     """``items``: dicts with ``product``, optional ``variation``, ``quantity``,
@@ -208,6 +208,7 @@ def create_purchase_order(
         po_number=_next_po_number(shop),
         status=PurchaseOrder.Status.ORDERED,
         order_date=order_date or timezone.now().date(),
+        due_date=due_date,
         discount=Decimal(discount or 0), note=note, created_by=created_by,
     )
     subtotal = ZERO
@@ -227,7 +228,7 @@ def create_purchase_order(
 
 
 @transaction.atomic
-def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None,
+def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, created_by=None,
                            payment_method=PurchasePayment.Method.CASH):
     """
     Receive an ordered PO into stock: write PURCHASE_IN movements for each line,
@@ -284,7 +285,11 @@ def receive_purchase_order(*, po, paid=ZERO, update_cost=True, created_by=None,
     po.paid = paid
     po.status = PurchaseOrder.Status.RECEIVED
     po.received_at = timezone.now()
-    po.save(update_fields=["paid", "status", "received_at"])
+    if due_date:
+        po.due_date = due_date
+        po.save(update_fields=["paid", "status", "received_at", "due_date"])
+    else:
+        po.save(update_fields=["paid", "status", "received_at"])
 
     # Supplier owed the unpaid remainder; record any cash outflow.
     supplier = po.supplier

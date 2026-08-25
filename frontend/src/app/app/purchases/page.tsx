@@ -13,6 +13,7 @@ type PO = {
   supplier_name: string;
   status: string;
   order_date: string;
+  due_date?: string;
   total: string;
   paid: string;
   due: string;
@@ -134,8 +135,15 @@ export default function PurchasesPage() {
                       <td className="text-secondary">{po.supplier_name || "—"}</td>
                       <td className="text-secondary">{fmtDate(po.order_date)}</td>
                       <td className="text-end">{money(po.total)}</td>
-                      <td className="text-end">{money(po.paid)}</td>
-                      <td className={`text-end ${Number(po.due) > 0 ? "text-danger fw-semibold" : ""}`}>{money(po.due)}</td>
+                      <td className="text-end text-success">{money(po.paid)}</td>
+                      <td className={`text-end ${Number(po.due) > 0 ? "text-danger fw-semibold" : ""}`}>
+                        <div>{money(po.due)}</div>
+                        {Number(po.due) > 0 && po.due_date && (
+                          <div style={{ fontSize: "0.7rem" }} className="text-danger opacity-75 fw-normal">
+                            📅 {fmtDate(po.due_date)}
+                          </div>
+                        )}
+                      </td>
                       <td>
                         <span className={`badge ${statusBadge[po.status] || "text-bg-light"}`}>{po.status}</span>
                       </td>
