@@ -617,6 +617,17 @@ export default function POSScreen() {
             </Button>
           </View>
 
+          <View style={{ paddingHorizontal: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'flex-start' }}>
+            <Button 
+              mode="contained-tonal" 
+              icon="plus" 
+              onPress={() => setShowCustomItemModal(true)}
+              style={{ flex: 1 }}
+            >
+              {t('কাস্টম আইটেম যুক্ত করুন', 'Add Custom Item')}
+            </Button>
+          </View>
+
           {loading && page === 1 ? (
             <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
               <ActivityIndicator size="large" />
@@ -675,14 +686,6 @@ export default function POSScreen() {
             {/* 1. Order Summary */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16 }}>{t('অর্ডারের সারাংশ', 'Order Summary')}</Text>
-              <Button
-                mode="contained-tonal"
-                icon="plus"
-                compact
-                onPress={() => setShowCustomItemModal(true)}
-              >
-                {t('+ কাস্টম আইটেম', '+ Custom Item')}
-              </Button>
             </View>
             {cart.map(l => (
               <Surface key={l.product.id} style={{ padding: 12, borderRadius: 8, elevation: 2, marginBottom: 8, backgroundColor: theme.colors.surface }}>
