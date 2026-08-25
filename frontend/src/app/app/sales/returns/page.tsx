@@ -7,12 +7,10 @@ import toast from "react-hot-toast";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
 import Swal from "sweetalert2";
-import { ScannerModal } from "@/components/ScannerModal";
 
 export default function ReturnsPage() {
   const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"return" | "replace">("return");
-  const [showScanner, setShowScanner] = useState<"return" | "old" | "new" | null>(null);
   
   // Return State
   const [barcode, setBarcode] = useState("");
@@ -230,12 +228,7 @@ export default function ReturnsPage() {
             <div className="card-body p-4">
               <form onSubmit={handleReturnScan} className="d-flex gap-2">
                 <div className="flex-grow-1 position-relative">
-                  <i 
-                    className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-brand" 
-                    style={{ cursor: "pointer", zIndex: 10, fontSize: "1.2rem" }}
-                    onClick={() => setShowScanner("return")}
-                    title="Scan with Camera"
-                  ></i>
+                  <i className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
                   <input
                     ref={returnInputRef}
                     type="text"
@@ -367,12 +360,7 @@ export default function ReturnsPage() {
                   {!oldScanResult ? (
                     <form onSubmit={e => handleReplaceScan(e, "old")} className="d-flex gap-2">
                       <div className="flex-grow-1 position-relative">
-                        <i 
-                          className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-brand" 
-                          style={{ cursor: "pointer", zIndex: 10, fontSize: "1.2rem" }}
-                          onClick={() => setShowScanner("old")}
-                          title="Scan with Camera"
-                        ></i>
+                        <i className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
                         <input
                           ref={oldBarcodeRef}
                           type="text"
@@ -412,12 +400,7 @@ export default function ReturnsPage() {
                   {!newScanResult ? (
                     <form onSubmit={e => handleReplaceScan(e, "new")} className="d-flex gap-2">
                       <div className="flex-grow-1 position-relative">
-                        <i 
-                          className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-brand" 
-                          style={{ cursor: "pointer", zIndex: 10, fontSize: "1.2rem" }}
-                          onClick={() => setShowScanner("new")}
-                          title="Scan with Camera"
-                        ></i>
+                        <i className="bi bi-upc-scan position-absolute top-50 start-0 translate-middle-y ms-3 text-secondary"></i>
                         <input
                           ref={newBarcodeRef}
                           type="text"
@@ -479,22 +462,6 @@ export default function ReturnsPage() {
             </div>
           )}
         </>
-      )}
-
-      {showScanner && (
-        <ScannerModal
-          onScan={(scannedVal) => {
-            if (showScanner === "return") {
-              setBarcode(scannedVal);
-            } else if (showScanner === "old") {
-              setOldBarcode(scannedVal);
-            } else if (showScanner === "new") {
-              setNewBarcode(scannedVal);
-            }
-            setShowScanner(null);
-          }}
-          onClose={() => setShowScanner(null)}
-        />
       )}
     </div>
   );

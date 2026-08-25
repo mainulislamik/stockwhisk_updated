@@ -1,5 +1,5 @@
-import { useEffect, useState, useRef } from "react";
-import { Html5Qrcode } from "html5-qrcode";
+import { useEffect, useState } from "react";
+import { Html5QrcodeScanner } from "html5-qrcode";
 
 export function ScannerModal({
   onScan,
@@ -9,54 +9,47 @@ export function ScannerModal({
   onClose: () => void;
 }) {
   const [error, setError] = useState("");
-  const scannerRef = useRef<Html5Qrcode | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    // We add a short timeout to ensure the DOM element is fully mounted
+    // before initializing the scanner.
     const timer = setTimeout(() => {
-      if (!isMounted) return;
       try {
-        const html5QrCode = new Html5Qrcode("reader");
-        scannerRef.current = html5QrCode;
-
-        html5QrCode.start(
-          { facingMode: "environment" },
+        const scanner = new Html5QrcodeScanner(
+          "reader",
           {
             fps: 10,
             qrbox: { width: 250, height: 250 },
             aspectRatio: 1.0,
           },
+          /* verbose= */ false
+        );
+
+        scanner.render(
           (decodedText) => {
-            if (scannerRef.current && scannerRef.current.isScanning) {
-              scannerRef.current.stop().then(() => {
-                onScan(decodedText);
-              }).catch(e => console.error("Error stopping scanner", e));
-            } else {
-              onScan(decodedText);
-            }
+            scanner.clear();
+            onScan(decodedText);
           },
           (errorMessage) => {
-            // Ignore normal scanning errors
+            // Ignore normal scanning errors (e.g., no barcode found yet)
+            // But we can log them if needed.
           }
-        ).catch((err: any) => {
-          if (isMounted) {
-            setError(err?.message || "Failed to start camera. Make sure you are using HTTPS and have granted camera permissions.");
+        );
+
+        // Cleanup on unmount
+        return () => {
+          try {
+            scanner.clear().catch(e => console.error("Failed to clear scanner", e));
+          } catch (e) {
+            console.error("Failed to clear scanner on unmount", e);
           }
-        });
+        };
       } catch (err: any) {
-        if (isMounted) {
-          setError(err?.message || "Camera initialization failed.");
-        }
+        setError(err?.message || "Failed to start camera. Make sure you are using HTTPS and have granted camera permissions.");
       }
     }, 100);
 
-    return () => {
-      isMounted = false;
-      clearTimeout(timer);
-      if (scannerRef.current && scannerRef.current.isScanning) {
-        scannerRef.current.stop().catch(e => console.error("Failed to stop scanner on unmount", e));
-      }
-    };
+    return () => clearTimeout(timer);
   }, [onScan]);
 
   return (
@@ -75,7 +68,7 @@ export function ScannerModal({
                   {error}
                 </div>
               ) : (
-                <div id="reader" style={{ width: "100%", maxWidth: "400px", margin: "0 auto", borderRadius: "8px", overflow: "hidden" }}></div>
+                <div id="reader" style={{ width: "100%", maxWidth: "400px", margin: "0 auto" }}></div>
               )}
             </div>
             <div className="modal-footer bg-light p-2">
