@@ -477,8 +477,9 @@ export default function InventoryScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
           style={{ flex: 1 }}
         >
-          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={() => setShowAdjForm(false)} />
-          <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, position: 'absolute', bottom: 0, alignSelf: 'center', width: '100%', maxWidth: 500, maxHeight: '85%' }}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
+            <TouchableOpacity style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }} activeOpacity={1} onPress={() => setShowAdjForm(false)} />
+            <View style={{ backgroundColor: theme.colors.surface, borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 20, paddingBottom: 40, alignSelf: 'center', width: '100%', maxWidth: 500, maxHeight: '85%' }}>
             <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: '#cbd5e1', alignSelf: 'center', marginBottom: 16 }} />
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 18 }}>{isBN ? 'স্টক অ্যাডজাস্টমেন্ট' : 'Stock Adjustment'}</Text>
@@ -548,7 +549,8 @@ export default function InventoryScreen() {
               </Button>
             </ScrollView>
           </View>
-        </KeyboardAvoidingView>
+        </View>
+      </KeyboardAvoidingView>
       </Modal>
 
       <ProductDetailModal 
