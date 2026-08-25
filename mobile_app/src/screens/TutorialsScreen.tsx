@@ -1,14 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Linking } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Platform, Linking, Dimensions } from 'react-native';
 import { Text, Appbar, useTheme, Card, Button } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
-
-let WebViewComponent: any = null;
-if (Platform.OS !== 'web') {
-  WebViewComponent = require('react-native-webview').WebView;
-}
+import YoutubePlayer from 'react-native-youtube-iframe';
 
 export default function TutorialsScreen() {
   const theme = useTheme();
@@ -42,7 +38,7 @@ export default function TutorialsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface, elevation: 1 }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface, elevation: 1 }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'ভিডিও টিউটোরিয়াল' : 'Video Tutorials'} />
       </Appbar.Header>
@@ -58,21 +54,22 @@ export default function TutorialsScreen() {
               <View style={{ width: '100%', aspectRatio: 16 / 9, backgroundColor: '#000' }}>
                 {Platform.OS === 'web' ? (
                   <iframe
-                    src={activeVideo.embed_url}
+                    src={activeVideo.embed_url || (activeVideo.video_id ? `https://www.youtube.com/embed/${activeVideo.video_id}` : '')}
                     style={{ border: 0, width: '100%', height: '100%' }}
                     allowFullScreen
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   />
                 ) : (
-                  WebViewComponent && (
-                    <WebViewComponent
-                      source={{ uri: activeVideo.embed_url }}
-                      style={{ flex: 1 }}
-                      javaScriptEnabled={true}
-                      domStorageEnabled={true}
-                      allowsFullscreenVideo={true}
-                    />
-                  )
+                  <YoutubePlayer
+                    height={(Dimensions.get('window').width - 32) * (9 / 16)}
+                    videoId={activeVideo.video_id || (activeVideo.youtube_url ? activeVideo.youtube_url.split('v=')[1]?.split('&')[0] : '')}
+                    play={false}
+                    webViewStyle={{ flex: 1 }}
+                    webViewProps={{
+                      androidLayerType: 'software',
+                      allowsFullscreenVideo: true,
+                    }}
+                  />
                 )}
               </View>
               <View style={{ paddingVertical: 12 }}>

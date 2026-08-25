@@ -357,7 +357,7 @@ export default function ProductsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'পণ্য ও স্টক ইনওয়ার্ড' : 'Products & Inward'} titleStyle={{ fontWeight: 'bold' }} />
         <Button mode="contained" compact buttonColor="#2563eb" style={{ marginRight: 8, borderRadius: 8 }} onPress={() => setProductToEdit({})}>
@@ -368,18 +368,18 @@ export default function ProductsScreen() {
       {/* Top Segmented Navigation */}
       <View style={{ flexDirection: 'row', marginHorizontal: 16, marginTop: 12, marginBottom: 8, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 10, padding: 4 }}>
         <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'list' ? '#2563eb' : 'transparent', borderRadius: 8 }}
+          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'list' ? '#2563eb' : 'transparent', borderRadius: 8, overflow: 'hidden' }}
           onPress={() => setActiveTab('list')}
         >
-          <Text style={{ color: activeTab === 'list' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', width: '100%', color: activeTab === 'list' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
             📋 {isBN ? 'প্রোডাক্ট লিস্ট' : 'Product List'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'purchase' ? '#2563eb' : 'transparent', borderRadius: 8 }}
+          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'purchase' ? '#2563eb' : 'transparent', borderRadius: 8, overflow: 'hidden' }}
           onPress={() => setActiveTab('purchase')}
         >
-          <Text style={{ color: activeTab === 'purchase' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', width: '100%', color: activeTab === 'purchase' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
             🛒 {isBN ? 'প্রোডাক্ট ক্রয় / ইনওয়ার্ড' : 'Purchase / Inward'}
           </Text>
         </TouchableOpacity>
@@ -494,28 +494,28 @@ export default function ProductsScreen() {
                           </Text>
                           <Text style={styles.sku}>{product.sku ? `SKU: ${product.sku}` : (product.barcode ? `Barcode: ${product.barcode}` : '')}</Text>
                         </View>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 0 }}>
                           {isOutOfStock ? (
-                            <View style={{ backgroundColor: isDarkMode ? '#450a0a' : '#fee2e2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={{ color: '#dc2626', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                            <View style={{ backgroundColor: isDarkMode ? '#450a0a' : 'transparent', borderWidth: 1, borderColor: '#ef4444', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 22 }}>
+                              <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
                                 {isBN ? 'নিষ্ক্রিয় (স্টক ০)' : 'Deactive (0 Stock)'}
                               </Text>
                             </View>
                           ) : isLowStock ? (
-                            <View style={{ backgroundColor: isDarkMode ? '#451a03' : '#fef3c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={{ color: '#d97706', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                            <View style={{ backgroundColor: isDarkMode ? '#451a03' : 'transparent', borderWidth: 1, borderColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 22 }}>
+                              <Text style={{ color: '#f59e0b', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
                                 {isBN ? '⚠️ লো স্টক' : '⚠️ Low Stock'}
                               </Text>
                             </View>
                           ) : product.is_active === false ? (
-                            <View style={{ backgroundColor: isDarkMode ? '#334155' : '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                            <View style={{ backgroundColor: isDarkMode ? '#334155' : 'transparent', borderWidth: 1, borderColor: '#64748b', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 22 }}>
                               <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
                                 {isBN ? 'বন্ধ' : 'Inactive'}
                               </Text>
                             </View>
                           ) : (
-                            <View style={{ backgroundColor: isDarkMode ? '#064e3b' : '#dcfce7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
-                              <Text style={{ color: isDarkMode ? '#4ade80' : '#16a34a', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
+                            <View style={{ backgroundColor: isDarkMode ? '#064e3b' : 'transparent', borderWidth: 1, borderColor: '#10b981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexShrink: 0, minHeight: 22 }}>
+                              <Text style={{ color: isDarkMode ? '#4ade80' : '#10b981', fontSize: 10, fontWeight: 'bold', textAlign: 'center', includeFontPadding: false }}>
                                 {isBN ? 'চালু' : 'Active'}
                               </Text>
                             </View>
@@ -783,30 +783,6 @@ export default function ProductsScreen() {
             </Card>
 
             <Divider style={{ marginVertical: 12 }} />
-
-            {/* Supplier Selection */}
-            <Text style={{ fontSize: 13, fontWeight: '600', marginBottom: 6 }}>
-              {isBN ? 'সরবরাহকারী (Supplier / Vendor)' : 'Supplier / Vendor'}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setSupplierMenuVisible(true)}
-              style={{
-                borderWidth: 1,
-                borderColor: selectedSupplier ? '#16a34a' : '#cbd5e1',
-                borderRadius: 8,
-                padding: 12,
-                marginBottom: 12,
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                backgroundColor: theme.colors.surface
-              }}
-            >
-              <Text style={{ fontSize: 14, color: selectedSupplier ? '#16a34a' : '#64748b', fontWeight: selectedSupplier ? 'bold' : 'normal' }}>
-                {selectedSupplier ? `✓ ${selectedSupplier.name}` : (isBN ? 'সরবরাহকারী নির্বাচন করুন (ঐচ্ছিক)' : 'Select Supplier (Optional)')}
-              </Text>
-              <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
-            </TouchableOpacity>
 
             {/* Summary & Payment (Web Parity) */}
             <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', padding: 14, borderRadius: 12, marginBottom: 16, borderWidth: 1, borderColor: '#e2e8f0' }}>

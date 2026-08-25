@@ -107,7 +107,7 @@ export default function ReturnsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'পণ্য ফেরত ও পরিবর্তন' : 'Returns & Exchange'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>
@@ -115,18 +115,18 @@ export default function ReturnsScreen() {
       {/* Tabs */}
       <View style={{ flexDirection: 'row', margin: 16, marginBottom: 8, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 8, padding: 4 }}>
         <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'return' ? '#4f46e5' : 'transparent', borderRadius: 6 }}
+          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'return' ? '#4f46e5' : 'transparent', borderRadius: 6, overflow: 'hidden' }}
           onPress={() => setActiveTab('return')}
         >
-          <Text style={{ color: activeTab === 'return' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold' }}>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', fontSize: 13, color: activeTab === 'return' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', width: '100%' }}>
             {isBN ? 'পণ্য ফেরত (Return)' : 'Sales Return'}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, alignItems: 'center', backgroundColor: activeTab === 'replace' ? '#4f46e5' : 'transparent', borderRadius: 6 }}
+          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'replace' ? '#4f46e5' : 'transparent', borderRadius: 6, overflow: 'hidden' }}
           onPress={() => setActiveTab('replace')}
         >
-          <Text style={{ color: activeTab === 'replace' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold' }}>
+          <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', fontSize: 13, color: activeTab === 'replace' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', width: '100%' }}>
             {isBN ? 'পণ্য পরিবর্তন (Replace)' : 'Item Replace'}
           </Text>
         </TouchableOpacity>

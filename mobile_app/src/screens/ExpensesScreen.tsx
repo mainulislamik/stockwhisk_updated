@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
-import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme, Button, Menu, FAB, Modal, Portal } from 'react-native-paper';
+import { View, ScrollView, StyleSheet, TouchableOpacity, Modal, KeyboardAvoidingView, Platform } from 'react-native';
+import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme, Button, Menu, FAB } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -68,7 +68,7 @@ export default function ExpensesScreen() {
         api.get('/accounting/expenses/?page=1&page_size=20')
       ]);
       setTotal(totalRes.data.total || '0.00');
-      setCategories(catRes.data || []);
+      setCategories(catRes.data?.results || catRes.data || []);
       setExpenses(expRes.data.results || []);
       setHasMore(!!expRes.data.next);
       setPage(2);
@@ -137,7 +137,7 @@ export default function ExpensesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBn ? "খরচ ও ব্যয়" : "Expenses"} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon={showForm ? "close" : "plus"} onPress={() => setShowForm(!showForm)} />
@@ -277,55 +277,50 @@ export default function ExpensesScreen() {
       )}
 
       {/* FAB for Adding Expense */}
-      {/* FAB for Adding Expense */}
-      {!showForm && (
-        <FAB
-          icon="plus"
-          color="#fff"
-          style={{ position: 'absolute', margin: 16, right: 0, bottom: 20, backgroundColor: '#4f46e5' }}
-          onPress={() => {
-            setForm(prev => ({ ...prev, spent_on: new Date().toISOString().slice(0, 10) }));
-            setShowForm(true);
-          }}
-        />
-      )}
+      <FAB
+        visible={!showForm}
+        icon="plus"
+        color="#fff"
+        style={{ position: 'absolute', margin: 16, right: 0, bottom: 20, backgroundColor: '#4f46e5' }}
+        onPress={() => {
+          setForm(prev => ({ ...prev, spent_on: new Date().toISOString().slice(0, 10) }));
+          setShowForm(true);
+        }}
+      />
 
       {/* Quick Add Expense Category Modal */}
-      <Portal>
-        <Modal
-          visible={showAddCatModal}
-          onDismiss={() => setShowAddCatModal(false)}
-          contentContainerStyle={{
-            backgroundColor: theme.colors.surface,
-            margin: 20,
-            padding: 20,
-            borderRadius: 12,
-          }}
-        >
-          <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>
-            {isBn ? 'নতুন খরচ ক্যাটাগরি তৈরি' : 'Add Expense Category'}
-          </Text>
-          <TextInput
-            label={isBn ? 'ক্যাটাগরির নাম *' : 'Category Name *'}
-            value={newCatName}
-            onChangeText={setNewCatName}
-            mode="outlined"
-            style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
-          />
-          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onPress={() => setShowAddCatModal(false)}>{isBn ? 'বাতিল' : 'Cancel'}</Button>
-            <Button
-              mode="contained"
-              buttonColor="#4f46e5"
-              onPress={createCategory}
-              loading={creatingCat}
-              disabled={creatingCat || !newCatName.trim()}
-            >
-              {isBn ? 'সংরক্ষণ' : 'Save'}
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
+      <Modal visible={showAddCatModal} transparent animationType="fade" onRequestClose={() => setShowAddCatModal(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
+          <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setShowAddCatModal(false)}>
+            <TouchableOpacity activeOpacity={1} style={{ width: '100%', maxWidth: 400 }}>
+              <View style={{ backgroundColor: theme.colors.surface, padding: 20, borderRadius: 12 }}>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', marginBottom: 12 }}>
+                  {isBn ? 'নতুন খরচ ক্যাটাগরি তৈরি' : 'Add Expense Category'}
+                </Text>
+                <TextInput
+                  label={isBn ? 'ক্যাটাগরির নাম *' : 'Category Name *'}
+                  value={newCatName}
+                  onChangeText={setNewCatName}
+                  mode="outlined"
+                  style={{ marginBottom: 16, backgroundColor: theme.colors.surface }}
+                />
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+                  <Button onPress={() => setShowAddCatModal(false)}>{isBn ? 'বাতিল' : 'Cancel'}</Button>
+                  <Button
+                    mode="contained"
+                    buttonColor="#4f46e5"
+                    onPress={createCategory}
+                    loading={creatingCat}
+                    disabled={creatingCat || !newCatName.trim()}
+                  >
+                    {isBn ? 'সংরক্ষণ' : 'Save'}
+                  </Button>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </KeyboardAvoidingView>
+      </Modal>
     </View>
   );
 }

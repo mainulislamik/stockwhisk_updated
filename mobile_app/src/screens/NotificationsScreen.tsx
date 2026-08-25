@@ -60,7 +60,7 @@ export default function NotificationsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface, elevation: 0 }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface, elevation: 0 }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={language === 'BN' ? 'নোটিফিকেশন' : 'Notifications'} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon="check-all" onPress={markAllAsRead} color={theme.colors.primary} />

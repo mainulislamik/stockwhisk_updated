@@ -335,7 +335,7 @@ export default function SalesScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'বিক্রয় ইতিহাস' : 'Sales History'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>

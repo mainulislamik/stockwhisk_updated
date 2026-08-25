@@ -35,12 +35,23 @@ export default function BarcodesScreen() {
     setGeneratedCodes(codes);
   };
 
-  const handlePrintLabels = async () => {
-    if (generatedCodes.length === 0) return;
+  const handlePrintLabels = async (singleCode?: string) => {
+    const codesToPrint = singleCode ? [singleCode] : generatedCodes;
+    if (codesToPrint.length === 0) return;
     setIsPrinting(true);
 
     try {
-      const labelsHtml = generatedCodes.map(code => `
+      let jsBarcodeScript = '';
+      try {
+        // Fetch JsBarcode script locally so it is synchronously available in the HTML without network issues in the print spooler
+        const scriptRes = await fetch('https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js');
+        jsBarcodeScript = await scriptRes.text();
+      } catch (e) {
+        console.warn('Failed to fetch jsbarcode', e);
+        // Fallback to script tag if fetch fails
+      }
+
+      const labelsHtml = codesToPrint.map(code => `
         <div class="label">
           <div class="shop-name">${user?.shop_name || 'StockWhisk'}</div>
           <div class="code-box">
@@ -55,7 +66,7 @@ export default function BarcodesScreen() {
         <html>
         <head>
           <meta charset="utf-8">
-          <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+          ${jsBarcodeScript ? `<script>${jsBarcodeScript}</script>` : `<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>`}
           <style>
             @page {
               size: 38mm 25mm;
@@ -76,26 +87,27 @@ export default function BarcodesScreen() {
               align-items: center;
               page-break-after: always;
               box-sizing: border-box;
-              padding: 2mm;
+              padding: 1mm;
               text-align: center;
+              overflow: hidden;
             }
             .shop-name {
-              font-size: 8px;
+              font-size: 10px;
               font-weight: bold;
               margin-bottom: 1mm;
               white-space: nowrap;
               overflow: hidden;
               text-overflow: ellipsis;
-              max-width: 34mm;
+              max-width: 36mm;
             }
             .code-text {
-              font-size: 8px;
+              font-size: 10px;
               font-weight: bold;
               letter-spacing: 1px;
               margin-top: 1mm;
             }
             svg {
-              max-width: 34mm;
+              max-width: 36mm;
               height: 12mm;
             }
           </style>
@@ -103,13 +115,46 @@ export default function BarcodesScreen() {
         <body>
           ${labelsHtml}
           <script>
-            JsBarcode(".barcode").init();
+            window.onload = function() {
+              if (typeof JsBarcode !== 'undefined') {
+                JsBarcode(".barcode").init();
+              }
+            };
+            // Fallback just in case onload already fired or we injected the script synchronously
+            if (typeof JsBarcode !== 'undefined') {
+               try { JsBarcode(".barcode").init(); } catch(e) {}
+            }
           </script>
         </body>
         </html>
       `;
 
-      await Print.printAsync({ html });
+      if (Platform.OS === 'web') {
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'absolute';
+        iframe.style.width = '0px';
+        iframe.style.height = '0px';
+        iframe.style.border = 'none';
+        document.body.appendChild(iframe);
+        const doc = iframe.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(html);
+          doc.close();
+          
+          setTimeout(() => {
+            iframe.contentWindow?.focus();
+            iframe.contentWindow?.print();
+            setTimeout(() => {
+              if (document.body.contains(iframe)) {
+                document.body.removeChild(iframe);
+              }
+            }, 1000);
+          }, 1000); // Give JSBarcode time to render
+        }
+      } else {
+        await Print.printAsync({ html });
+      }
     } catch (e: any) {
       console.error(e);
       Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'বারকোড লেবেল প্রিন্ট করতে ব্যর্থ হয়েছে।' : 'Failed to print barcode labels.');
@@ -120,7 +165,7 @@ export default function BarcodesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'বারকোড জেনারেটর ও প্রিন্টার' : 'Barcode Generator'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>
@@ -164,7 +209,7 @@ export default function BarcodesScreen() {
           />
 
           <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
-            {['5', '10', '20', '50'].map(q => {
+            {['1', '5', '10', '20', '50'].map(q => {
               const isSelected = quantity === q;
               return (
                 <TouchableOpacity 
@@ -219,32 +264,39 @@ export default function BarcodesScreen() {
                 compact
                 loading={isPrinting}
                 disabled={isPrinting}
-                onPress={handlePrintLabels}
+                onPress={() => handlePrintLabels()}
               >
-                {isBN ? 'প্রিন্ট লেবেল' : 'Print Labels'}
+                {isBN ? 'সবগুলো প্রিন্ট' : 'Print All'}
               </Button>
             </View>
 
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
               {generatedCodes.map((code, index) => (
-                <Surface
+                <TouchableOpacity
                   key={index}
-                  style={{
-                    width: '48%',
-                    padding: 12,
-                    borderRadius: 8,
-                    backgroundColor: theme.colors.surface,
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
-                    alignItems: 'center',
-                  }}
-                  elevation={1}
+                  style={{ width: '48%' }}
+                  activeOpacity={0.7}
+                  onPress={() => handlePrintLabels(code)}
                 >
-                  <MaterialCommunityIcons name="barcode" size={32} color="#4f46e5" />
-                  <Text style={{ fontWeight: 'bold', fontSize: 12, marginTop: 4 }}>
-                    {code}
-                  </Text>
-                </Surface>
+                  <Surface
+                    style={{
+                      padding: 12,
+                      borderRadius: 8,
+                      backgroundColor: theme.colors.surface,
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
+                      alignItems: 'center',
+                      position: 'relative'
+                    }}
+                    elevation={1}
+                  >
+                    <MaterialCommunityIcons name="printer" size={16} color="#16a34a" style={{ position: 'absolute', top: 6, right: 6 }} />
+                    <MaterialCommunityIcons name="barcode" size={32} color="#4f46e5" />
+                    <Text style={{ fontWeight: 'bold', fontSize: 12, marginTop: 4 }}>
+                      {code}
+                    </Text>
+                  </Surface>
+                </TouchableOpacity>
               ))}
             </View>
           </View>

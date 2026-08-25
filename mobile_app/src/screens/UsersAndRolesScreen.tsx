@@ -156,7 +156,7 @@ export default function UsersAndRolesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
-      <Appbar.Header elevated={false} style={{ backgroundColor: cardColor, borderBottomWidth: 1, borderBottomColor: borderColor }}>
+      <Appbar.Header statusBarHeight={0} elevated={false} style={{ backgroundColor: cardColor, borderBottomWidth: 1, borderBottomColor: borderColor }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} color={textColor} />
         <Appbar.Content title={isBN ? 'ইউজার এবং রোল' : 'Users & Roles'} titleStyle={{ fontWeight: 'bold', color: textColor }} />
         <Appbar.Action icon="refresh" color={textColor} onPress={fetchData} />

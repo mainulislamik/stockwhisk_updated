@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Alert, KeyboardAvoidingView, Platform, TouchableOpacity, Linking, Image } from 'react-native';
-import { Appbar, Text, Card, ActivityIndicator, useTheme, TextInput, Button, Switch } from 'react-native-paper';
+import { Appbar, Text, ActivityIndicator, useTheme, TextInput, Button, Switch } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import * as ImagePicker from 'expo-image-picker';
@@ -19,6 +19,9 @@ export default function SettingsScreen() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [shopSaving, setShopSaving] = useState(false);
   const [backupDownloading, setBackupDownloading] = useState(false);
+
+  // Modernize: Use hooks for permissions
+  const [permissionResponse, requestPermission] = ImagePicker.useMediaLibraryPermissions();
 
   const [profileForm, setProfileForm] = useState({ first_name: '', last_name: '', phone: '' });
   const [shopForm, setShopForm] = useState({ 
@@ -50,13 +53,14 @@ export default function SettingsScreen() {
         phone: res.data.phone || '',
         address: res.data.address || '',
         currency: res.data.currency || 'BDT',
-        vat_enabled: res.data.vat_enabled || false,
+        // Strictly cast to boolean to prevent Android crashes with Switch
+        vat_enabled: !!res.data.vat_enabled,
         vat_percent: (res.data.vat_percent || 0).toString(),
-        emi_enabled: res.data.emi_enabled || false,
+        emi_enabled: !!res.data.emi_enabled,
         delivery_enabled: res.data.delivery_enabled !== false,
         whatsapp_invoice_enabled: res.data.whatsapp_invoice_enabled !== false,
         barcode_prefix: res.data.barcode_prefix || '',
-        offline_sale_mode: res.data.offline_sale_mode || false,
+        offline_sale_mode: !!res.data.offline_sale_mode,
         logo: res.data.logo || ''
       });
     } catch (e) {
@@ -97,14 +101,19 @@ export default function SettingsScreen() {
       input.click();
     } else {
       try {
-        const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (!perm.granted) {
+        let hasPermission = permissionResponse?.granted;
+        if (!hasPermission) {
+          const perm = await requestPermission();
+          hasPermission = perm.granted;
+        }
+
+        if (!hasPermission) {
           Alert.alert(isBN ? 'অনুমতি প্রয়োজন' : 'Permission Required', isBN ? 'গ্যালারি থেকে লোগো সিলেক্ট করতে পারমিশন দিন।' : 'Media library permission is required to choose logo.');
           return;
         }
 
         const result = await ImagePicker.launchImageLibraryAsync({
-          mediaTypes: ['images'],
+          mediaTypes: ImagePicker.MediaTypeOptions.Images, // Modernized API
           allowsEditing: true,
           aspect: [1, 1],
           quality: 0.8,
@@ -214,7 +223,7 @@ export default function SettingsScreen() {
         </View>
         <Text style={{ fontSize: 15, color: textColor, fontWeight: '500' }}>{label}</Text>
       </View>
-      <Switch value={value} onValueChange={onValueChange} color={primaryColor} />
+      <Switch value={!!value} onValueChange={onValueChange} color={primaryColor} />
     </View>
   );
 
@@ -226,7 +235,7 @@ export default function SettingsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: bgColor }}>
-      <Appbar.Header elevated={false} style={{ backgroundColor: cardColor, borderBottomWidth: 1, borderBottomColor: borderColor }}>
+      <Appbar.Header statusBarHeight={0} elevated={false} style={{ backgroundColor: cardColor, borderBottomWidth: 1, borderBottomColor: borderColor }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} color={textColor} />
         <Appbar.Content title="সেটিংস (Settings)" titleStyle={{ fontWeight: 'bold', color: textColor }} />
       </Appbar.Header>
@@ -241,9 +250,9 @@ export default function SettingsScreen() {
             
             <SectionHeader title="আপনার প্রোফাইল (Profile)" />
             <View style={{ backgroundColor: cardColor, borderRadius: 16, padding: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 }}>
-              <TextInput label="First Name" value={profileForm.first_name} onChangeText={(t) => setProfileForm({ ...profileForm, first_name: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
-              <TextInput label="Last Name" value={profileForm.last_name} onChangeText={(t) => setProfileForm({ ...profileForm, last_name: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
-              <TextInput label="Phone Number" value={profileForm.phone} onChangeText={(t) => setProfileForm({ ...profileForm, phone: t })} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 16, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="phone" color={subTextColor} />} />
+              <TextInput label="First Name" value={profileForm.first_name || ''} onChangeText={(t) => setProfileForm({ ...profileForm, first_name: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
+              <TextInput label="Last Name" value={profileForm.last_name || ''} onChangeText={(t) => setProfileForm({ ...profileForm, last_name: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
+              <TextInput label="Phone Number" value={profileForm.phone || ''} onChangeText={(t) => setProfileForm({ ...profileForm, phone: t })} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 16, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="phone" color={subTextColor} />} />
               
               <Button mode="contained" onPress={saveProfile} loading={profileSaving} disabled={profileSaving} style={{ borderRadius: 8, paddingVertical: 4 }} buttonColor={primaryColor}>
                 প্রোফাইল সেভ করুন
@@ -273,12 +282,12 @@ export default function SettingsScreen() {
               </View>
 
               <TextInput label="Shop Code" value={(user as any)?.shop_code || `SW-${1000 + ((user as any)?.shop || 0)}`} mode="outlined" disabled style={{ marginBottom: 12, backgroundColor: isDarkMode ? '#334155' : '#f1f5f9' }} outlineColor={borderColor} />
-              <TextInput label="Shop Name" value={shopForm.name} onChangeText={(t) => setShopForm({ ...shopForm, name: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="store" color={subTextColor} />} />
-              <TextInput label="Shop Phone" value={shopForm.phone} onChangeText={(t) => setShopForm({ ...shopForm, phone: t })} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="phone-classic" color={subTextColor} />} />
-              <TextInput label="Currency" value={shopForm.currency} onChangeText={(t) => setShopForm({ ...shopForm, currency: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="cash" color={subTextColor} />} />
-              <TextInput label="Address" value={shopForm.address} onChangeText={(t) => setShopForm({ ...shopForm, address: t })} mode="outlined" multiline numberOfLines={3} style={{ marginBottom: 16, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="map-marker" color={subTextColor} />} />
+              <TextInput label="Shop Name" value={shopForm.name || ''} onChangeText={(t) => setShopForm({ ...shopForm, name: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="store" color={subTextColor} />} />
+              <TextInput label="Shop Phone" value={shopForm.phone || ''} onChangeText={(t) => setShopForm({ ...shopForm, phone: t })} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="phone-classic" color={subTextColor} />} />
+              <TextInput label="Currency" value={shopForm.currency || ''} onChangeText={(t) => setShopForm({ ...shopForm, currency: t })} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="cash" color={subTextColor} />} />
+              <TextInput label="Address" value={shopForm.address || ''} onChangeText={(t) => setShopForm({ ...shopForm, address: t })} mode="outlined" multiline numberOfLines={3} style={{ marginBottom: 16, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="map-marker" color={subTextColor} />} />
               
-              <TextInput label="Barcode Prefix" value={shopForm.barcode_prefix} onChangeText={(t) => setShopForm({ ...shopForm, barcode_prefix: t })} mode="outlined" style={{ marginBottom: 24, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="barcode" color={subTextColor} />} />
+              <TextInput label="Barcode Prefix" value={shopForm.barcode_prefix || ''} onChangeText={(t) => setShopForm({ ...shopForm, barcode_prefix: t })} mode="outlined" style={{ marginBottom: 24, backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} left={<TextInput.Icon icon="barcode" color={subTextColor} />} />
             </View>
 
             <SectionHeader title="মডিউল এবং ফিচার (Features)" />
@@ -287,7 +296,7 @@ export default function SettingsScreen() {
               
               {shopForm.vat_enabled && (
                 <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: borderColor }}>
-                  <TextInput label="VAT Percentage (%)" value={shopForm.vat_percent} onChangeText={(t) => setShopForm({ ...shopForm, vat_percent: t })} mode="outlined" keyboardType="numeric" style={{ backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
+                  <TextInput label="VAT Percentage (%)" value={shopForm.vat_percent || ''} onChangeText={(t) => setShopForm({ ...shopForm, vat_percent: t })} mode="outlined" keyboardType="numeric" style={{ backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
                 </View>
               )}
 
@@ -397,3 +406,4 @@ export default function SettingsScreen() {
     </View>
   );
 }
+

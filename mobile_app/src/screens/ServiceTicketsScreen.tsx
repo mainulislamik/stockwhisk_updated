@@ -179,7 +179,7 @@ export default function ServiceTicketsScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'সার্ভিস ও মেরামত' : 'Service & Repair'} titleStyle={{ fontWeight: 'bold' }} />
         {activeTab === 'tickets' && <Appbar.Action icon="plus" onPress={() => setShowAddModal(true)} />}

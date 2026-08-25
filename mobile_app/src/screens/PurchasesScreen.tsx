@@ -91,7 +91,7 @@ export default function PurchasesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBn ? "ক্রয় ইতিহাস" : "Purchases"} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>

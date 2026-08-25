@@ -121,9 +121,15 @@ export default function SettlementScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} elevated style={{ backgroundColor: isDarkMode ? theme.colors.surface : '#ffffff', zIndex: 10 }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={isBN ? 'দৈনিক হিসাব ও ক্যাশ ক্লোজিং' : 'Daily Settlement'} titleStyle={{ fontWeight: 'bold' }} />
+        <Appbar.Content 
+          title={
+            <Text style={{ fontWeight: 'bold', fontSize: 18 }} adjustsFontSizeToFit numberOfLines={1}>
+              {isBN ? 'দৈনিক হিসাব ও ক্যাশ ক্লোজিং' : 'Daily Settlement'}
+            </Text>
+          } 
+        />
         <Appbar.Action icon="refresh" onPress={fetchData} />
       </Appbar.Header>
 
@@ -216,18 +222,18 @@ export default function SettlementScreen() {
                     </Text>
                     <View style={{
                       backgroundColor: isDarkMode ? '#334155' : '#64748b',
-                      paddingHorizontal: 8,
-                      paddingVertical: 3,
-                      borderRadius: 10,
+                      paddingHorizontal: 12,
+                      paddingVertical: 4,
+                      borderRadius: 12,
                       alignItems: 'center',
                       justifyContent: 'center',
+                      minHeight: 24,
                     }}>
                       <Text style={{
                         color: '#ffffff',
-                        fontSize: 10,
+                        fontSize: 11,
                         fontWeight: 'bold',
                         textAlign: 'center',
-                        includeFontPadding: false,
                       }}>
                         {isBN ? 'বন্ধ' : 'CLOSED'}
                       </Text>

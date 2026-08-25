@@ -164,7 +164,7 @@ export default function DuesScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'বকেয়া কালেকশন' : 'Due Collection'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>

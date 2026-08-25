@@ -1,212 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity, Linking, Modal, KeyboardAvoidingView, Platform } from 'react-native';
-import { Appbar, TextInput, Card, Text, Button, ActivityIndicator, Divider, useTheme, FAB } from 'react-native-paper';
-import { useNavigation } from '@react-navigation/native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { api } from '../api';
-import { usePreferences } from '../contexts/PreferencesContext';
+import re
 
-interface Customer {
-  id: number;
-  name: string;
-  phone: string;
-  email: string;
-  address: string;
-  due_balance: string;
-  total_purchased: string;
-}
+with open('src/screens/CustomersScreen.tsx', 'r') as f:
+    content = f.read()
 
-export default function CustomersScreen() {
-  const navigation = useNavigation();
-  const theme = useTheme();
-  const { language, isDarkMode } = usePreferences();
-  const isBN = language === 'BN';
-  
-  const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [page, setPage] = useState(1);
-  const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-
-  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-  
-  // Payment state
-  const [amount, setAmount] = useState('');
-  const [method, setMethod] = useState('cash');
-  const [note, setNote] = useState('');
-  const [paying, setPaying] = useState(false);
-
-  // Add Customer state
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [addingCustomer, setAddingCustomer] = useState(false);
-  const [newCust, setNewCust] = useState({ name: '', phone: '', email: '', address: '' });
-
-  useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search), 400);
-    return () => clearTimeout(timer);
-  }, [search]);
-
-  useEffect(() => {
-    fetchCustomers(1, debouncedSearch, true);
-  }, [debouncedSearch]);
-
-  const fetchCustomers = async (pageNum: number, searchQuery: string, reset: boolean = false) => {
-    if (loading || (!hasMore && !reset)) return;
-    setLoading(true);
-    try {
-      const res = await api.get(`/crm/customers/?search=${encodeURIComponent(searchQuery)}&page=${pageNum}&page_size=20`);
-      const newCustomers = res.data.results || [];
-      if (reset) {
-        setCustomers(newCustomers);
-      } else {
-        setCustomers(prev => [...prev, ...newCustomers]);
-      }
-      setHasMore(!!res.data.next);
-      setPage(pageNum);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
-    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 20;
-    if (isCloseToBottom && hasMore && !loading) {
-      fetchCustomers(page + 1, search);
-    }
-  };
-
-  const handlePayment = async () => {
-    if (!selectedCustomer || !amount) return;
-    const payNum = Number(amount);
-    const dueNum = Number(selectedCustomer.due_balance) || 0;
-    if (isNaN(payNum) || payNum <= 0) {
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', isBN ? 'সঠিক টাকার পরিমাণ দিন।' : 'Please enter a valid amount.');
-      return;
-    }
-    if (payNum > dueNum) {
-      Alert.alert(
-        isBN ? 'ত্রুটি' : 'Error',
-        isBN ? `টাকার পরিমাণ বর্তমান বকেয়া (৳${dueNum.toFixed(2)})-এর চেয়ে বেশি হতে পারে না।` : `Amount cannot exceed current due (৳${dueNum.toFixed(2)}).`
-      );
-      return;
-    }
-    setPaying(true);
-    try {
-      await api.post(`/crm/customers/${selectedCustomer.id}/receive-payment/`, {
-        type: 'payment',
-        amount,
-        method,
-        note
-      });
-      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'পেমেন্ট সফলভাবে সম্পন্ন হয়েছে।' : 'Payment received successfully');
-      setPaymentModalVisible(false);
-      setSelectedCustomer(null);
-      setAmount('');
-      setNote('');
-      fetchCustomers(1, search, true);
-    } catch (e: any) {
-      const errMsg = e.response?.data?.detail || e.response?.data?.error || e.message || (isBN ? 'পেমেন্ট প্রসেস করতে সমস্যা হয়েছে।' : 'Failed to process payment');
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', errMsg);
-    } finally {
-      setPaying(false);
-    }
-  };
-
-  const handleAddCustomer = async () => {
-    if (!newCust.name.trim()) {
-      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'গ্রাহকের নাম আবশ্যক।' : 'Customer name is required.');
-      return;
-    }
-    setAddingCustomer(true);
-    try {
-      await api.post('/crm/customers/', newCust);
-      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'নতুন গ্রাহক যুক্ত হয়েছে।' : 'Customer added successfully!');
-      setShowAddModal(false);
-      setNewCust({ name: '', phone: '', email: '', address: '' });
-      fetchCustomers(1, search, true);
-    } catch (e: any) {
-      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || (isBN ? 'গ্রাহক যুক্ত করতে ব্যর্থ হয়েছে।' : 'Failed to add customer.'));
-    } finally {
-      setAddingCustomer(false);
-    }
-  };
-
-  const PAYMENT_METHODS = [
-    { key: 'cash', label: isBN ? 'ক্যাশ' : 'Cash' },
-    { key: 'bkash', label: 'bKash' },
-    { key: 'nagad', label: 'Nagad' },
-    { key: 'card', label: isBN ? 'কার্ড' : 'Card' },
-    { key: 'bank_transfer', label: isBN ? 'ব্যাংক' : 'Bank' },
-  ];
-
-  return (
-    <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
-        <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={isBN ? 'গ্রাহক তালিকা' : 'Customers'} titleStyle={{ fontWeight: 'bold' }} />
-        <Appbar.Action icon="plus" onPress={() => setShowAddModal(true)} />
-      </Appbar.Header>
-      
-      <View style={{ padding: 16, paddingBottom: 0 }}>
-        <TextInput
-          mode="outlined"
-          placeholder={isBN ? 'গ্রাহকের নাম বা মোবাইল খুঁজুন...' : 'Search customers by name or phone...'}
-          value={search}
-          onChangeText={setSearch}
-          left={<TextInput.Icon icon="magnify" />}
-          style={{ marginBottom: 8, backgroundColor: theme.colors.surface }}
-        />
-      </View>
-
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ padding: 16, paddingBottom: 100 }}
-        onScroll={handleScroll}
-        scrollEventThrottle={400}
-      >
-        {customers.map((c) => (
-          <Card key={c.id} style={{ marginBottom: 12, backgroundColor: theme.colors.surface }} onPress={() => setSelectedCustomer(c)}>
-            <Card.Content>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <View style={{ flex: 1 }}>
-                  <Text variant="titleMedium" style={{ fontWeight: 'bold' }}>{c.name}</Text>
-                  <Text variant="bodyMedium" style={{ color: isDarkMode ? '#94a3b8' : theme.colors.onSurfaceVariant, marginTop: 2 }}>{c.phone || (isBN ? 'ফোন নম্বর নেই' : 'No phone')}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text variant="bodyMedium">{isBN ? 'মোট ক্রয়:' : 'Total:'} ৳{c.total_purchased || '0'}</Text>
-                  {Number(c.due_balance) > 0 && (
-                    <Text variant="labelLarge" style={{ color: '#dc2626', fontWeight: 'bold', marginTop: 4 }}>
-                      {isBN ? 'বকেয়া:' : 'Due:'} ৳{c.due_balance}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            </Card.Content>
-          </Card>
-        ))}
-        {loading && <ActivityIndicator style={{ margin: 16 }} color={theme.colors.primary} />}
-        {!loading && customers.length === 0 && (
-          <View style={{ padding: 40, alignItems: 'center' }}>
-            <MaterialCommunityIcons name="account-off-outline" size={48} color={isDarkMode ? '#64748b' : '#94a3b8'} />
-            <Text style={{ marginTop: 12, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'কোনো গ্রাহক পাওয়া যায়নি' : 'No customers found'}</Text>
-          </View>
-        )}
-      </ScrollView>
-
-      {/* FAB for Adding Customer */}
-      <FAB
-        icon="plus"
-        color="#fff"
-        style={{ position: 'absolute', margin: 16, right: 0, bottom: 20, backgroundColor: '#4f46e5' }}
-        onPress={() => setShowAddModal(true)}
-      />
-
-      {/* Customer Detail & Pay Modal */}
+# Find the start of the Modal section
+start_idx = content.find('{/* Customer Detail & Pay Modal */}')
+if start_idx == -1:
+    print("Start not found")
+else:
+    good_content = content[:start_idx]
+    
+    new_modals = """{/* Customer Detail & Pay Modal */}
       <Modal visible={!!selectedCustomer} transparent animationType="fade" onRequestClose={() => { if (!paymentModalVisible) setSelectedCustomer(null); }}>
         <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1 }}>
           <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => { if (!paymentModalVisible) setSelectedCustomer(null); }}>
@@ -312,3 +116,8 @@ export default function CustomersScreen() {
     </View>
   );
 }
+"""
+    with open('src/screens/CustomersScreen.tsx', 'w') as f:
+        f.write(good_content + new_modals)
+    print("Fixed CustomersScreen.tsx")
+

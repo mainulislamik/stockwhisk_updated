@@ -222,7 +222,7 @@ export default function InventoryScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header style={{ backgroundColor: theme.colors.surface }} elevated>
+      <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }} elevated>
         <Appbar.Content title={isBN ? 'ইনভেন্টরি' : 'Inventory'} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon="refresh" onPress={() => { loadSummary(); loadProducts(1, productSearch); }} />
         <Appbar.Action icon="plus-circle" onPress={() => setShowAdjForm(true)} color={theme.colors.primary} />

@@ -585,7 +585,7 @@ export default function POSScreen() {
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <Appbar.Header elevated style={{ backgroundColor: theme.colors.surface }}>
+      <Appbar.Header statusBarHeight={0} elevated style={{ backgroundColor: theme.colors.surface }}>
         {view === 'cart' && <Appbar.BackAction onPress={() => setView('products')} />}
         <Appbar.Content title={view === 'products' ? t('বিক্রয় / POS', 'POS / Sale') : t('কার্ট (' + totalItemsCount + ' items)', 'Cart (' + totalItemsCount + ' items)')} titleStyle={{ fontWeight: 'bold' }} />
         {view === 'products' ? (

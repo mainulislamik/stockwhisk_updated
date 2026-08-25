@@ -33,12 +33,26 @@ def build_invoice_pdf(sale) -> bytes:
     
 
     # ── Header ──
+    # Logo
+    if getattr(shop, "logo", None) and getattr(shop.logo, "path", None):
+        try:
+            import os
+            if os.path.exists(shop.logo.path):
+                # Draw logo. Height 16mm, width auto-scaled (preserveAspectRatio=True)
+                c.drawImage(shop.logo.path, left, y - 6 * mm, width=40 * mm, height=16 * mm, preserveAspectRatio=True, mask='auto', anchor='nw')
+                y -= 10 * mm
+        except Exception:
+            pass
+
     c.setFillColor(BRAND)
     c.setFont("Helvetica-Bold", 20)
     c.drawString(left, y, shop.name or "Invoice")
+    
     c.setFillColor(BLACK)
     c.setFont("Helvetica-Bold", 22)
     c.drawRightString(right, y, "INVOICE")
+    
+    # Contact Info (left side)
     y -= 7 * mm
     c.setFont("Helvetica", 9)
     c.setFillColor(GREY)
@@ -52,7 +66,19 @@ def build_invoice_pdf(sale) -> bytes:
     # Invoice meta (right side)
     c.setFillColor(BLACK)
     c.setFont("Helvetica", 10)
-    meta_y = h - 34 * mm
+    
+    # Base the right side Y off the original top so it stays aligned regardless of logo
+    base_right_y = h - 34 * mm
+    
+    # Invoice Barcode
+    try:
+        from reportlab.graphics.barcode.code128 import Code128
+        bc = Code128(sale.invoice_no, barHeight=8 * mm, barWidth=1.1)
+        bc.drawOn(c, right - bc.width, base_right_y + 2 * mm)
+    except Exception:
+        pass
+
+    meta_y = base_right_y - 10 * mm
     c.drawRightString(right, meta_y, f"Invoice #: {sale.invoice_no}")
     c.drawRightString(right, meta_y - 5 * mm, f"Date: {sale.sale_date.strftime('%d %b %Y, %I:%M %p')}")
     c.drawRightString(right, meta_y - 10 * mm, f"Status: {sale.get_status_display()}")
