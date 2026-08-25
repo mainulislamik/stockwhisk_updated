@@ -5,7 +5,7 @@ import Barcode from "react-barcode";
 import { fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Spinner, ErrorState, money } from "@/components/ui";
+import { Spinner, ErrorState, money, usePagination, Pagination } from "@/components/ui";
 import toast from "react-hot-toast";
 
 type ProductUnit = {
@@ -56,6 +56,9 @@ export default function BarcodesGeneratorPage() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
 
+  // Selection for bulk print
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
   // Label Customization Settings
   const [labelSize, setLabelSize] = useState<"38x25" | "50x30" | "a4">("38x25");
   const [showShopName, setShowShopName] = useState(true);
@@ -69,9 +72,13 @@ export default function BarcodesGeneratorPage() {
   const [singleCopies, setSingleCopies] = useState<number>(1);
   const [singleUnitMode, setSingleUnitMode] = useState<"main" | "units">("main");
 
-  // Bulk Print All Modal
+  // Selected / Bulk Print Modal
   const [bulkModalOpen, setBulkModalOpen] = useState(false);
-  const [bulkMode, setBulkMode] = useState<"1_per_product" | "all_stock_units">("1_per_product");
+  const [bulkTargetMode, setBulkTargetMode] = useState<"selected" | "all">("all");
+  const [bulkCopiesMode, setBulkCopiesMode] = useState<"1_per_product" | "all_stock_units">("1_per_product");
+
+  // Unit details preview modal
+  const [viewUnitsProduct, setViewUnitsProduct] = useState<Product | null>(null);
 
   // Print Queue State
   const [printQueue, setPrintQueue] = useState<PrintLabelItem[]>([]);
@@ -80,7 +87,6 @@ export default function BarcodesGeneratorPage() {
   // Blank Random Generator State
   const [genQuantity, setGenQuantity] = useState<number>(10);
   const [generatedCodes, setGeneratedCodes] = useState<string[]>([]);
-  const [printGenIndex, setPrintGenIndex] = useState<number | null>(null);
 
   // Load Products
   async function loadProducts() {
@@ -100,31 +106,51 @@ export default function BarcodesGeneratorPage() {
     loadProducts();
   }, []);
 
-  // Filter products that have platform-generated / catalog barcodes
-  const platformProducts = useMemo(() => {
+  // Filter ONLY products that ACTUALLY have a barcode or unit barcodes
+  const barcodeProducts = useMemo(() => {
     return products.filter((p) => {
-      // Products with barcode, SKU, or serial units
-      const hasBarcode = Boolean(p.barcode && p.barcode.trim());
-      const hasSku = Boolean(p.sku && p.sku.trim());
-      const hasUnits = Boolean(p.units && p.units.length > 0);
-      return hasBarcode || hasSku || hasUnits;
+      const hasBarcode = Boolean(p.barcode && p.barcode.trim() !== "");
+      const hasUnits = Boolean(p.units && p.units.some((u) => u.barcode && u.barcode.trim() !== ""));
+      return hasBarcode || hasUnits;
     });
   }, [products]);
 
   // Search filtered products
   const filteredProducts = useMemo(() => {
-    if (!search.trim()) return platformProducts;
+    if (!search.trim()) return barcodeProducts;
     const q = search.toLowerCase();
-    return platformProducts.filter(
+    return barcodeProducts.filter(
       (p) =>
         p.name.toLowerCase().includes(q) ||
         (p.sku && p.sku.toLowerCase().includes(q)) ||
         (p.barcode && p.barcode.toLowerCase().includes(q)) ||
         (p.units && p.units.some((u) => u.barcode.toLowerCase().includes(q)))
     );
-  }, [platformProducts, search]);
+  }, [barcodeProducts, search]);
 
-  // Handle Single Product Print Trigger
+  // Pagination for table
+  const { paged, page, setPage, totalPages, total } = usePagination(filteredProducts, [search, barcodeProducts]);
+
+  // Toggle selection
+  function toggleSelect(id: number) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  // Toggle Select All Visible
+  function toggleSelectAll() {
+    if (selectedIds.size === filteredProducts.length && filteredProducts.length > 0) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredProducts.map((p) => p.id)));
+    }
+  }
+
+  // Open Single Product Print
   function openSinglePrint(product: Product) {
     setSelectedProduct(product);
     const stockNum = Math.max(1, Math.floor(Number(product.current_stock) || 1));
@@ -133,15 +159,23 @@ export default function BarcodesGeneratorPage() {
     setSingleModalOpen(true);
   }
 
+  // Helper to get effective primary barcode
+  function getPrimaryBarcode(p: Product): string {
+    if (p.barcode && p.barcode.trim()) return p.barcode.trim();
+    if (p.units && p.units.length > 0 && p.units[0].barcode) return p.units[0].barcode.trim();
+    return p.sku || `PROD-${p.id}`;
+  }
+
   // Execute Single Product Print
   function triggerSinglePrint() {
     if (!selectedProduct) return;
     const queue: PrintLabelItem[] = [];
-    const mainCode = selectedProduct.barcode || selectedProduct.sku || `PROD-${selectedProduct.id}`;
+    const mainCode = getPrimaryBarcode(selectedProduct);
 
     if (singleUnitMode === "units" && selectedProduct.units && selectedProduct.units.length > 0) {
       // Print 1 for each in-stock unit
       selectedProduct.units.forEach((u) => {
+        if (!u.barcode) return;
         queue.push({
           id: `unit-${u.id}`,
           productId: selectedProduct.id,
@@ -172,6 +206,11 @@ export default function BarcodesGeneratorPage() {
       }
     }
 
+    if (queue.length === 0) {
+      toast.error(lang === "bn" ? "প্রিন্ট করার জন্য কোনো বৈধ বারকোড নেই।" : "No valid barcode to print.");
+      return;
+    }
+
     setSingleModalOpen(false);
     setPrintQueue(queue);
     setIsPrinting(true);
@@ -181,15 +220,32 @@ export default function BarcodesGeneratorPage() {
     }, 150);
   }
 
-  // Execute Bulk Print All Products
+  // Open Bulk / Selected Print
+  function openBulkModal(target: "selected" | "all") {
+    setBulkTargetMode(target);
+    setBulkCopiesMode("1_per_product");
+    setBulkModalOpen(true);
+  }
+
+  // Execute Bulk Print
   function triggerBulkPrint() {
+    const targetProducts = bulkTargetMode === "selected"
+      ? barcodeProducts.filter((p) => selectedIds.has(p.id))
+      : barcodeProducts;
+
+    if (targetProducts.length === 0) {
+      toast.error(lang === "bn" ? "কোনো প্রোডাক্ট নির্বাচিত হয়নি।" : "No products selected.");
+      return;
+    }
+
     const queue: PrintLabelItem[] = [];
 
-    if (bulkMode === "all_stock_units") {
-      // 1 sticker for every in-stock unit / quantity
-      platformProducts.forEach((p) => {
+    targetProducts.forEach((p) => {
+      const code = getPrimaryBarcode(p);
+      if (bulkCopiesMode === "all_stock_units") {
         if (p.units && p.units.length > 0) {
           p.units.forEach((u) => {
+            if (!u.barcode) return;
             queue.push({
               id: `bulk-unit-${u.id}`,
               productId: p.id,
@@ -204,7 +260,6 @@ export default function BarcodesGeneratorPage() {
           });
         } else {
           const count = Math.max(1, Math.floor(Number(p.current_stock) || 1));
-          const code = p.barcode || p.sku || `PROD-${p.id}`;
           for (let i = 0; i < count; i++) {
             queue.push({
               id: `bulk-p-${p.id}-${i}`,
@@ -219,11 +274,8 @@ export default function BarcodesGeneratorPage() {
             });
           }
         }
-      });
-    } else {
-      // 1 sticker per product
-      platformProducts.forEach((p) => {
-        const code = p.barcode || p.sku || `PROD-${p.id}`;
+      } else {
+        // 1 per product
         queue.push({
           id: `bulk-1-${p.id}`,
           productId: p.id,
@@ -235,11 +287,11 @@ export default function BarcodesGeneratorPage() {
           shopName,
           isUnit: false,
         });
-      });
-    }
+      }
+    });
 
     if (queue.length === 0) {
-      toast.error(lang === "bn" ? "প্রিন্ট করার মতো কোনো প্রোডাক্ট বারকোড পাওয়া যায়নি।" : "No product barcodes to print.");
+      toast.error(lang === "bn" ? "প্রিন্ট করার মতো কোনো বারকোড পাওয়া যায়নি।" : "No barcodes to print.");
       return;
     }
 
@@ -264,7 +316,6 @@ export default function BarcodesGeneratorPage() {
   }
 
   function printAllGenerated() {
-    setPrintGenIndex(null);
     const queue: PrintLabelItem[] = generatedCodes.map((code, idx) => ({
       id: `gen-${idx}`,
       productId: 0,
@@ -416,7 +467,7 @@ export default function BarcodesGeneratorPage() {
               className={`btn btn-sm rounded-2 ${activeTab === "products" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
               onClick={() => setActiveTab("products")}
             >
-              🏷️ {t("bar_tab_product") || "Print Product Barcodes"} ({platformProducts.length})
+              📋 {lang === "bn" ? "বারকোড প্রোডাক্ট তালিকা" : "Product Barcodes Table"} ({barcodeProducts.length})
             </button>
             <button
               type="button"
@@ -428,15 +479,15 @@ export default function BarcodesGeneratorPage() {
           </div>
         </div>
 
-        {/* ── TAB 1: PRODUCT BARCODES PRINTING HUB ── */}
+        {/* ── TAB 1: PRODUCT BARCODES TABLE ── */}
         {activeTab === "products" && (
           <div className="vstack gap-3">
-            {/* Top Action Toolbar & Label Customizer Card */}
+            {/* Top Toolbar Card with Search & Controls */}
             <div className="card shadow-sm border-0 rounded-3 bg-white">
               <div className="card-body p-3">
                 <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
                   {/* Search Bar */}
-                  <div className="flex-grow-1" style={{ minWidth: "260px", maxWidth: "420px" }}>
+                  <div className="flex-grow-1" style={{ minWidth: "260px", maxWidth: "380px" }}>
                     <div className="input-group input-group-sm">
                       <span className="input-group-text bg-light border-end-0">🔍</span>
                       <input
@@ -449,7 +500,7 @@ export default function BarcodesGeneratorPage() {
                     </div>
                   </div>
 
-                  {/* Label Settings Toggles & Size */}
+                  {/* Label Settings & Print Actions */}
                   <div className="d-flex flex-wrap align-items-center gap-3">
                     {/* Size Selector */}
                     <div className="d-flex align-items-center gap-1">
@@ -476,7 +527,7 @@ export default function BarcodesGeneratorPage() {
                         onChange={(e) => setShowShopName(e.target.checked)}
                       />
                       <label className="form-check-label small" htmlFor="toggleShopName">
-                        {t("bar_lbl_show_shop") || "Shop Name"}
+                        {t("bar_lbl_show_shop") || "Shop"}
                       </label>
                     </div>
 
@@ -506,12 +557,23 @@ export default function BarcodesGeneratorPage() {
                       </label>
                     </div>
 
-                    {/* Bulk Print All Button */}
+                    {/* Print Selected Button */}
+                    {selectedIds.size > 0 && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary btn-sm fw-bold px-3 shadow-sm"
+                        onClick={() => openBulkModal("selected")}
+                      >
+                        🖨️ {lang === "bn" ? `নির্বাচিত প্রিন্ট (${selectedIds.size})` : `Print Selected (${selectedIds.size})`}
+                      </button>
+                    )}
+
+                    {/* Print All Button */}
                     <button
                       type="button"
                       className="btn btn-brand btn-sm fw-bold px-3 shadow-sm"
-                      onClick={() => setBulkModalOpen(true)}
-                      disabled={platformProducts.length === 0}
+                      onClick={() => openBulkModal("all")}
+                      disabled={barcodeProducts.length === 0}
                     >
                       🖨️ {t("bar_btn_print_all_products") || "Print All Products Barcodes"}
                     </button>
@@ -520,106 +582,158 @@ export default function BarcodesGeneratorPage() {
               </div>
             </div>
 
-            {/* Products Grid */}
-            {loading ? (
-              <Spinner label={t("bar_loading") || "Loading platform product barcodes..."} />
-            ) : error ? (
-              <ErrorState error={error} />
-            ) : filteredProducts.length === 0 ? (
-              <div className="card shadow-sm border-0 rounded-3 bg-white p-5 text-center text-secondary">
-                <div style={{ fontSize: "3rem" }}>🏷️</div>
-                <h5 className="mt-3 fw-bold">{t("bar_no_products") || "No products with platform-generated barcodes found."}</h5>
-                <p className="small mb-0 text-muted">
-                  {lang === "bn" ? "নতুন প্রোডাক্ট তৈরি বা পারচেজ করলে এখানে তাদের বারকোড দেখতে পাবেন।" : "Products with platform barcodes will appear here automatically."}
-                </p>
-              </div>
-            ) : (
-              <div className="row g-3">
-                {filteredProducts.map((product) => {
-                  const mainBarcode = product.barcode || product.sku || `PROD-${product.id}`;
-                  const inStockCount = Number(product.current_stock) || 0;
-                  const unitCount = product.units?.length || 0;
+            {/* Products Table Card */}
+            <div className="card shadow-sm border-0 rounded-3 bg-white overflow-hidden">
+              {loading ? (
+                <div className="p-5 text-center">
+                  <Spinner label={t("bar_loading") || "Loading platform product barcodes..."} />
+                </div>
+              ) : error ? (
+                <div className="p-4">
+                  <ErrorState error={error} />
+                </div>
+              ) : filteredProducts.length === 0 ? (
+                <div className="p-5 text-center text-secondary">
+                  <div style={{ fontSize: "3rem" }}>🏷️</div>
+                  <h5 className="mt-3 fw-bold">{t("bar_no_products") || "No products with platform-generated barcodes found."}</h5>
+                  <p className="small mb-0 text-muted">
+                    {lang === "bn"
+                      ? "যেসব প্রোডাক্টে বারকোড বা পারচেজ সিরিয়াল ইউনিট যুক্ত আছে সেগুলো এখানে প্রদর্শিত হবে।"
+                      : "Products with assigned barcodes or purchase unit serials will appear here."}
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive">
+                  <table className="table table-hover align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="small text-secondary text-uppercase">
+                        <th style={{ width: "40px" }} className="text-center">
+                          <input
+                            type="checkbox"
+                            className="form-check-input"
+                            checked={selectedIds.size === filteredProducts.length && filteredProducts.length > 0}
+                            onChange={toggleSelectAll}
+                            title={lang === "bn" ? "সব নির্বাচন করুন" : "Select All"}
+                          />
+                        </th>
+                        <th>{lang === "bn" ? "প্রোডাক্টের নাম ও SKU" : "Product & SKU"}</th>
+                        <th>{lang === "bn" ? "মেইন বারকোড" : "Main Barcode"}</th>
+                        <th className="text-center">{lang === "bn" ? "সিরিয়াল ইউনিট" : "Serial Units"}</th>
+                        <th className="text-end">{lang === "bn" ? "বিক্রয় মূল্য" : "Selling Price"}</th>
+                        <th className="text-center">{lang === "bn" ? "বর্তমান স্টক" : "Stock"}</th>
+                        <th className="text-end pe-3" style={{ width: "160px" }}>{lang === "bn" ? "অ্যাকশন" : "Actions"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paged.map((product) => {
+                        const isSelected = selectedIds.has(product.id);
+                        const mainCode = product.barcode || (product.units && product.units.length > 0 ? product.units[0].barcode : "");
+                        const stockNum = Number(product.current_stock) || 0;
+                        const unitCount = product.units?.length || 0;
 
-                  return (
-                    <div key={product.id} className="col-12 col-md-6 col-lg-4 col-xl-3">
-                      <div className="card h-100 shadow-sm border-0 rounded-3 bg-white overflow-hidden d-flex flex-column justify-content-between">
-                        {/* Card Header & Details */}
-                        <div className="p-3 border-bottom bg-light bg-opacity-50">
-                          <div className="d-flex justify-content-between align-items-start gap-2">
-                            <h6 className="fw-bold text-dark mb-1 text-truncate" title={product.name}>
-                              {product.name}
-                            </h6>
-                            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary-subtle rounded-pill">
-                              {money(product.selling_price)}
-                            </span>
-                          </div>
-                          <div className="d-flex justify-content-between align-items-center small text-secondary mt-1">
-                            <span>SKU: <strong className="text-dark">{product.sku || "—"}</strong></span>
-                            <span>Stock: <strong className={inStockCount > 0 ? "text-success" : "text-danger"}>{inStockCount}</strong></span>
-                          </div>
-                          {product.warranty_months ? (
-                            <div className="small text-info mt-1">
-                              🛡️ {product.warranty_months} {lang === "bn" ? "মাস ওয়ারেন্টি" : "Mo Warranty"}
-                            </div>
-                          ) : null}
-                        </div>
-
-                        {/* Live Barcode Sticker Preview Box */}
-                        <div className="p-3 d-flex flex-column align-items-center justify-content-center bg-white flex-grow-1">
-                          <div
-                            className="border rounded-2 p-2 w-100 d-flex flex-column align-items-center justify-content-center shadow-xs bg-white"
-                            style={{ maxWidth: "220px" }}
-                          >
-                            {showShopName && (
-                              <div style={{ fontSize: "10px", fontWeight: "700", color: "#1e293b", letterSpacing: "0.5px" }} className="text-truncate w-100 text-center">
-                                {shopName}
-                              </div>
-                            )}
-                            <div style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }} className="text-truncate w-100 text-center mb-1">
-                              {product.name}
-                            </div>
-                            <div className="d-flex justify-content-center w-100 overflow-hidden my-1">
-                              <Barcode
-                                value={mainBarcode}
-                                width={1.2}
-                                height={35}
-                                fontSize={10}
-                                margin={0}
-                                displayValue={showCodeText}
-                                background="transparent"
+                        return (
+                          <tr key={product.id} className={isSelected ? "table-primary bg-opacity-25" : ""}>
+                            {/* Checkbox */}
+                            <td className="text-center">
+                              <input
+                                type="checkbox"
+                                className="form-check-input"
+                                checked={isSelected}
+                                onChange={() => toggleSelect(product.id)}
                               />
-                            </div>
-                            <div className="d-flex justify-content-between align-items-center w-100 small mt-1" style={{ fontSize: "10px" }}>
-                              {showPrice && <span className="fw-bold text-dark">Price: {money(product.selling_price)}</span>}
-                              {showWarranty && product.warranty_months ? (
-                                <span className="text-muted">{product.warranty_months}m war.</span>
-                              ) : null}
-                            </div>
-                          </div>
+                            </td>
 
-                          {unitCount > 0 && (
-                            <div className="small text-muted mt-2">
-                              🔢 {unitCount} {lang === "bn" ? "টি আলাদা সিরিয়াল বারকোড রয়েছে" : "individual serial barcodes"}
-                            </div>
-                          )}
-                        </div>
+                            {/* Product Info */}
+                            <td>
+                              <div className="fw-bold text-dark">{product.name}</div>
+                              <div className="small text-secondary d-flex align-items-center gap-2 mt-0.5">
+                                <span>SKU: <strong className="text-muted">{product.sku || "—"}</strong></span>
+                                {product.category?.name && (
+                                  <span className="badge bg-light text-secondary border">{product.category.name}</span>
+                                )}
+                                {product.warranty_months ? (
+                                  <span className="badge bg-info-subtle text-info border border-info-subtle">
+                                    🛡️ {product.warranty_months}m
+                                  </span>
+                                ) : null}
+                              </div>
+                            </td>
 
-                        {/* Card Action Footer */}
-                        <div className="p-3 pt-0">
-                          <button
-                            type="button"
-                            className="btn btn-sm btn-outline-brand w-100 fw-bold d-flex align-items-center justify-content-center gap-1"
-                            onClick={() => openSinglePrint(product)}
-                          >
-                            🖨️ {t("bar_btn_print_single") || "Print Barcode"}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                            {/* Main Barcode Display */}
+                            <td>
+                              {mainCode ? (
+                                <div className="d-inline-flex flex-column align-items-start bg-light p-1 px-2 rounded border">
+                                  <span className="font-monospace fw-bold text-dark small">{mainCode}</span>
+                                  <div style={{ transform: "scale(0.85)", transformOrigin: "left center", height: "24px" }} className="overflow-hidden">
+                                    <Barcode
+                                      value={mainCode}
+                                      width={1}
+                                      height={20}
+                                      fontSize={0}
+                                      margin={0}
+                                      displayValue={false}
+                                      background="transparent"
+                                    />
+                                  </div>
+                                </div>
+                              ) : (
+                                <span className="text-muted small">—</span>
+                              )}
+                            </td>
+
+                            {/* Serial Units Count & Viewer */}
+                            <td className="text-center">
+                              {unitCount > 0 ? (
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-outline-info py-0 px-2 fw-semibold rounded-pill"
+                                  style={{ fontSize: "0.78rem" }}
+                                  onClick={() => setViewUnitsProduct(product)}
+                                  title={lang === "bn" ? "আলাদা সিরিয়াল বারকোডগুলো দেখুন" : "View Serial Barcodes"}
+                                >
+                                  🔢 {unitCount} {lang === "bn" ? "টি ইউনিট" : "units"}
+                                </button>
+                              ) : (
+                                <span className="text-muted small">0</span>
+                              )}
+                            </td>
+
+                            {/* Selling Price */}
+                            <td className="text-end fw-bold text-dark">
+                              {money(product.selling_price)}
+                            </td>
+
+                            {/* Stock */}
+                            <td className="text-center">
+                              <span className={`badge ${stockNum > 0 ? "bg-success-subtle text-success border border-success-subtle" : "bg-danger-subtle text-danger border border-danger-subtle"} rounded-pill`}>
+                                {stockNum}
+                              </span>
+                            </td>
+
+                            {/* Actions */}
+                            <td className="text-end pe-3">
+                              <div className="d-inline-flex gap-1">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm btn-brand py-1 px-2.5 fw-semibold d-flex align-items-center gap-1 shadow-xs"
+                                  style={{ fontSize: "0.8rem" }}
+                                  onClick={() => openSinglePrint(product)}
+                                >
+                                  🖨️ {t("bar_btn_print_single") || "Print"}
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Pagination */}
+              <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
+            </div>
           </div>
         )}
 
@@ -717,7 +831,9 @@ export default function BarcodesGeneratorPage() {
                 <div className="p-3 bg-light rounded-3 border d-flex justify-content-between align-items-center">
                   <div>
                     <h6 className="fw-bold text-dark mb-0">{selectedProduct.name}</h6>
-                    <div className="small text-secondary">SKU: {selectedProduct.sku || "—"} · Price: {money(selectedProduct.selling_price)}</div>
+                    <div className="small text-secondary">
+                      Barcode: <strong className="text-dark font-monospace">{getPrimaryBarcode(selectedProduct)}</strong> · Price: {money(selectedProduct.selling_price)}
+                    </div>
                   </div>
                   <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
                     Stock: {selectedProduct.current_stock}
@@ -743,7 +859,7 @@ export default function BarcodesGeneratorPage() {
                         className={`btn btn-sm flex-fill ${singleUnitMode === "units" ? "btn-brand fw-bold" : "btn-outline-secondary bg-white"}`}
                         onClick={() => setSingleUnitMode("units")}
                       >
-                        🔢 {lang === "bn" ? `আলাদা সিরিয়াল (${selectedProduct.units.length}টি)` : `Serial Units (${selectedProduct.units.length})`}
+                        🔢 {lang === "bn" ? `আলাদা সিরিয়াল (${selectedProduct.units.length}টি)` : `Serial Units (${selectedProduct.units.length})`}
                       </button>
                     </div>
                   </div>
@@ -791,7 +907,7 @@ export default function BarcodesGeneratorPage() {
                       {selectedProduct.name}
                     </div>
                     <Barcode
-                      value={selectedProduct.barcode || selectedProduct.sku || `PROD-${selectedProduct.id}`}
+                      value={getPrimaryBarcode(selectedProduct)}
                       width={1.2}
                       height={32}
                       fontSize={10}
@@ -830,7 +946,7 @@ export default function BarcodesGeneratorPage() {
         </div>
       )}
 
-      {/* ── BULK ALL PRODUCTS PRINT MODAL ── */}
+      {/* ── BULK ALL / SELECTED PRINT MODAL ── */}
       {bulkModalOpen && (
         <div
           className="modal show d-block no-print"
@@ -841,7 +957,9 @@ export default function BarcodesGeneratorPage() {
             <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
               <div className="modal-header bg-light py-3 px-4">
                 <h5 className="modal-title fw-bold text-dark mb-0">
-                  🖨️ {t("bar_all_modal_title") || "Bulk Print All Product Barcodes"}
+                  🖨️ {bulkTargetMode === "selected"
+                    ? (lang === "bn" ? `নির্বাচিত (${selectedIds.size}) প্রোডাক্টের বারকোড প্রিন্ট` : `Print Selected (${selectedIds.size}) Products Barcodes`)
+                    : (t("bar_all_modal_title") || "Bulk Print All Product Barcodes")}
                 </h5>
                 <button
                   type="button"
@@ -853,48 +971,50 @@ export default function BarcodesGeneratorPage() {
               <div className="modal-body p-4 vstack gap-3">
                 <div className="alert alert-primary mb-0 small">
                   {lang === "bn"
-                    ? `আপনার স্টোরের মোট ${platformProducts.length}টি বারকোডযুক্ত প্রোডাক্ট রয়েছে। আপনি নিচের অপশনগুলো থেকে প্রিন্ট মোড বাছাই করতে পারেন:`
-                    : `You have ${platformProducts.length} products with barcodes in your store. Choose your bulk printing mode:`}
+                    ? `মোট ${bulkTargetMode === "selected" ? selectedIds.size : barcodeProducts.length}টি প্রোডাক্টের বারকোড প্রিন্ট করার জন্য প্রস্তুত। নিচের অপশনগুলো থেকে প্রিন্ট মোড বাছাই করুন:`
+                    : `Ready to print barcodes for ${bulkTargetMode === "selected" ? selectedIds.size : barcodeProducts.length} products. Choose your printing mode:`}
                 </div>
 
                 <div className="vstack gap-2">
                   <label
-                    className={`card p-3 border rounded-3 cursor-pointer ${bulkMode === "1_per_product" ? "border-primary bg-primary bg-opacity-10" : "bg-white"}`}
-                    onClick={() => setBulkMode("1_per_product")}
+                    className={`card p-3 border rounded-3 cursor-pointer ${bulkCopiesMode === "1_per_product" ? "border-primary bg-primary bg-opacity-10" : "bg-white"}`}
+                    onClick={() => setBulkCopiesMode("1_per_product")}
                   >
                     <div className="d-flex align-items-center gap-2">
                       <input
                         type="radio"
                         className="form-check-input"
                         name="bulkPrintOption"
-                        checked={bulkMode === "1_per_product"}
-                        onChange={() => setBulkMode("1_per_product")}
+                        checked={bulkCopiesMode === "1_per_product"}
+                        onChange={() => setBulkCopiesMode("1_per_product")}
                       />
                       <div>
                         <div className="fw-bold text-dark">{t("bar_print_mode_1per") || "1 sticker per product"}</div>
                         <div className="small text-secondary">
-                          {lang === "bn" ? `প্রতিটি প্রোডাক্টের মেইন বারকোডের ১টি করে স্টিকার (${platformProducts.length}টি স্টিকার)` : `Prints 1 label per catalog item (${platformProducts.length} total labels)`}
+                          {lang === "bn"
+                            ? `প্রতিটি প্রোডাক্টের মেইন বারকোডের ১টি করে স্টিকার (${bulkTargetMode === "selected" ? selectedIds.size : barcodeProducts.length}টি স্টিকার)`
+                            : `Prints 1 label per item (${bulkTargetMode === "selected" ? selectedIds.size : barcodeProducts.length} total labels)`}
                         </div>
                       </div>
                     </div>
                   </label>
 
                   <label
-                    className={`card p-3 border rounded-3 cursor-pointer ${bulkMode === "all_stock_units" ? "border-primary bg-primary bg-opacity-10" : "bg-white"}`}
-                    onClick={() => setBulkMode("all_stock_units")}
+                    className={`card p-3 border rounded-3 cursor-pointer ${bulkCopiesMode === "all_stock_units" ? "border-primary bg-primary bg-opacity-10" : "bg-white"}`}
+                    onClick={() => setBulkCopiesMode("all_stock_units")}
                   >
                     <div className="d-flex align-items-center gap-2">
                       <input
                         type="radio"
                         className="form-check-input"
                         name="bulkPrintOption"
-                        checked={bulkMode === "all_stock_units"}
-                        onChange={() => setBulkMode("all_stock_units")}
+                        checked={bulkCopiesMode === "all_stock_units"}
+                        onChange={() => setBulkCopiesMode("all_stock_units")}
                       />
                       <div>
                         <div className="fw-bold text-dark">{t("bar_print_mode_stock") || "1 sticker for each in-stock unit"}</div>
                         <div className="small text-secondary">
-                          {lang === "bn" ? "স্টকে থাকা প্রতিটি পিস/সিরিয়াল পণ্যের জন্য আলাদা স্টিকার প্রিন্ট হবে" : "Prints 1 label for every available unit in inventory"}
+                          {lang === "bn" ? "স্টকে থাকা প্রতিটি পিস/সিরিয়াল ইউনিটের জন্য আলাদা স্টিকার প্রিন্ট হবে" : "Prints 1 label for every available unit in inventory"}
                         </div>
                       </div>
                     </div>
@@ -915,7 +1035,100 @@ export default function BarcodesGeneratorPage() {
                   className="btn btn-brand px-4 fw-bold"
                   onClick={triggerBulkPrint}
                 >
-                  🖨️ {lang === "bn" ? "সকল বারকোড প্রিন্ট শুরু করুন" : "Start Bulk Printing"}
+                  🖨️ {lang === "bn" ? "বারকোড প্রিন্ট শুরু করুন" : "Start Printing"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── VIEW SERIAL UNITS MODAL ── */}
+      {viewUnitsProduct && (
+        <div
+          className="modal show d-block no-print"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header bg-light py-3 px-4">
+                <h5 className="modal-title fw-bold text-dark mb-0">
+                  🔢 {viewUnitsProduct.name} — {lang === "bn" ? "সিরিয়াল ইউনিট বারকোডসমূহ" : "Serial Unit Barcodes"}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setViewUnitsProduct(null)}
+                ></button>
+              </div>
+
+              <div className="modal-body p-4 vstack gap-3">
+                <div className="table-responsive" style={{ maxHeight: "360px" }}>
+                  <table className="table table-sm table-striped align-middle mb-0">
+                    <thead className="table-light">
+                      <tr className="small text-secondary">
+                        <th>#</th>
+                        <th>{lang === "bn" ? "সিরিয়াল বারকোড" : "Serial Barcode"}</th>
+                        <th>{lang === "bn" ? "স্ট্যাটাস" : "Status"}</th>
+                        <th>{lang === "bn" ? "মূল্য" : "Price"}</th>
+                        <th className="text-end">{lang === "bn" ? "অ্যাকশন" : "Action"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {viewUnitsProduct.units?.map((u, i) => (
+                        <tr key={u.id}>
+                          <td className="small text-muted">{i + 1}</td>
+                          <td className="font-monospace fw-bold">{u.barcode}</td>
+                          <td>
+                            <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill">
+                              {u.status}
+                            </span>
+                          </td>
+                          <td className="small">{money(u.selling_price || viewUnitsProduct.selling_price)}</td>
+                          <td className="text-end">
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-outline-brand py-0 px-2"
+                              style={{ fontSize: "0.75rem" }}
+                              onClick={() => {
+                                const queue: PrintLabelItem[] = [{
+                                  id: `unit-${u.id}`,
+                                  productId: viewUnitsProduct.id,
+                                  productName: viewUnitsProduct.name,
+                                  barcode: u.barcode,
+                                  sku: viewUnitsProduct.sku,
+                                  price: u.selling_price || viewUnitsProduct.selling_price,
+                                  warrantyMonths: u.warranty_months ?? viewUnitsProduct.warranty_months,
+                                  shopName,
+                                  isUnit: true,
+                                }];
+                                setViewUnitsProduct(null);
+                                setPrintQueue(queue);
+                                setIsPrinting(true);
+                                setTimeout(() => {
+                                  window.print();
+                                  setIsPrinting(false);
+                                }, 150);
+                              }}
+                            >
+                              🖨️ Print
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+
+              <div className="modal-footer bg-light p-3">
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary px-4"
+                  onClick={() => setViewUnitsProduct(null)}
+                >
+                  {lang === "bn" ? "বন্ধ করুন" : "Close"}
                 </button>
               </div>
             </div>
@@ -991,4 +1204,5 @@ export default function BarcodesGeneratorPage() {
     </>
   );
 }
+
 
