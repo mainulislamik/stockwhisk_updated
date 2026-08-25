@@ -23,6 +23,7 @@ TEMPLATES = {
     "service_ticket_update": "stockwhisk_service_ticket_update",
     "warranty_expiry": "stockwhisk_warranty_expiry",
     "invoice_receipt": "stockwhisk_invoice_receipt",
+    "due_payment_reminder": "stockwhisk_due_payment_reminder",
 }
 
 
@@ -76,6 +77,33 @@ def send_template(*, shop, to_phone, template_key, params=None, consent=True):
         return True
     except Exception as exc:  # network/API — log, never break the caller
         logger.warning("WhatsApp send failed: %s", exc)
+        return False
+
+
+def send_direct_message(*, shop, to_phone, text):
+    """
+    Send a direct text message on WhatsApp if credentials exist.
+    """
+    if not to_phone or not text:
+        return False
+    phone_id, token = _resolve_sender(shop)
+    if not (phone_id and token):
+        logger.info("WhatsApp text (stub) to=%s text=%s", to_phone, text)
+        return False
+    try:
+        import requests
+        url = f"{settings.WHATSAPP_API_URL}/{phone_id}/messages"
+        payload = {
+            "messaging_product": "whatsapp",
+            "to": to_phone,
+            "type": "text",
+            "text": {"body": text},
+        }
+        resp = requests.post(url, json=payload, headers={"Authorization": f"Bearer {token}"}, timeout=10)
+        resp.raise_for_status()
+        return True
+    except Exception as exc:
+        logger.warning("WhatsApp send_direct_message failed: %s", exc)
         return False
 
 

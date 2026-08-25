@@ -35,7 +35,7 @@ const PAY_METHODS = [
 
 export default function DuesPage() {
   const { t, lang } = useLanguage();
-  const { isOwner, can } = useAuth();
+  const { isOwner, can, user } = useAuth();
   const canManageCustomers = isOwner || can("manage_customers");
   const canManagePurchases = isOwner || can("manage_purchasing");
 
@@ -531,7 +531,35 @@ export default function DuesPage() {
 
                       {/* Actions */}
                       <td className="text-end pe-3">
-                        <div className="d-inline-flex gap-1">
+                        <div className="d-inline-flex gap-1 align-items-center">
+                          {it.phone && (() => {
+                            const digits = it.phone.replace(/\D/g, "");
+                            const intl = digits.startsWith("880") ? digits
+                              : digits.startsWith("0") ? "880" + digits.slice(1)
+                              : digits.length === 10 ? "880" + digits : digits;
+                            if (digits.length < 10) return null;
+                            const pdfUrl = it.raw?.public_invoice_url
+                              ? (it.raw.public_invoice_url.startsWith("http") ? it.raw.public_invoice_url : (typeof window !== "undefined" ? window.location.origin + it.raw.public_invoice_url : it.raw.public_invoice_url))
+                              : "";
+                            const dateTxt = it.due_date ? fmtDate(it.due_date) : "";
+                            const reminderMsg = lang === "bn"
+                              ? `সম্মানিত ${it.party_name},\n${user?.shop_name || "আমাদের প্রতিষ্ঠান"} থেকে বিনীত অনুস্মারক: আপনার চালান #${it.ref_no}-এর বকেয়া ${money(it.due)} পরিশোধের প্রতিশ্রুত তারিখ ${dateTxt ? `(${dateTxt})` : "আজ"}।\n${pdfUrl ? `ইনভয়েস লিংক: ${pdfUrl}\n` : ""}ধন্যবাদ!`
+                              : `Dear ${it.party_name},\nFriendly reminder from ${user?.shop_name || "our shop"}: Your balance due of ${money(it.due)} for ${it.ref_no} is due ${dateTxt ? `on ${dateTxt}` : "today"}.\n${pdfUrl ? `Invoice: ${pdfUrl}\n` : ""}Thank you!`;
+                            const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(reminderMsg)}`;
+                            return (
+                              <a
+                                href={waUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="btn btn-sm text-white py-0 px-2 fw-semibold"
+                                style={{ background: "#25D366", fontSize: "0.78rem" }}
+                                title={lang === "bn" ? "হোয়াটসঅ্যাপে রিমাইন্ডার পাঠান" : "Send WhatsApp Reminder"}
+                              >
+                                <i className="bi bi-whatsapp"></i> {lang === "bn" ? "রিমাইন্ডার" : "Remind"}
+                              </a>
+                            );
+                          })()}
+
                           {canAct && (
                             <>
                               <button

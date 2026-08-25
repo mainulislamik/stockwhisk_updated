@@ -28,5 +28,11 @@ class SalesConfig(AppConfig):
                 name='Send EMI Reminders Daily',
                 task='sales.tasks.send_emi_reminders',
             )
+
+            PeriodicTask.objects.get_or_create(
+                crontab=schedule,
+                name='Send Due Date Reminders Daily',
+                task='sales.tasks.send_due_date_reminders',
+            )
         except Exception:
             pass

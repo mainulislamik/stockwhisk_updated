@@ -50,6 +50,11 @@ app.conf.beat_schedule = {
         "task": "resellers.tasks.generate_previous_month_commissions",
         "schedule": crontab(hour=2, minute=30, day_of_month=1),
     },
+    # Daily Promised Due Date WhatsApp & in-app reminder to customer & shop owner at 09:00 AM.
+    "send-due-date-reminders-daily": {
+        "task": "sales.tasks.send_due_date_reminders",
+        "schedule": crontab(hour=9, minute=0),
+    },
 }
 
 

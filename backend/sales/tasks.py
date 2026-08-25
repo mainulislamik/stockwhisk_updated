@@ -330,3 +330,109 @@ def send_emi_reminders():
 
     logger.info(f"Sent {count} EMI installment reminders.")
     return count
+
+
+def _format_intl_phone(phone_raw: str) -> str:
+    if not phone_raw:
+        return ""
+    digits = "".join(ch for ch in str(phone_raw) if ch.isdigit())
+    if not digits:
+        return ""
+    if digits.startswith("880"):
+        return digits
+    if digits.startswith("0"):
+        return "880" + digits[1:]
+    if len(digits) == 10:
+        return "880" + digits
+    return digits
+
+
+@shared_task
+def send_due_date_reminders():
+    """Daily task — sends WhatsApp and in-app notifications to shop owners and customers
+    on the promised due date."""
+    from django.db.models import F
+    from .models import Sale
+    from notifications.models import Notification, NotificationType
+    from notifications import whatsapp
+
+    today = timezone.localdate()
+    due_sales = Sale.all_objects.filter(
+        due_date=today,
+        total__gt=F("paid")
+    ).exclude(
+        status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION, Sale.Status.PAID]
+    ).select_related('customer', 'shop', 'created_by')
+
+    sent_count = 0
+    for sale in due_sales:
+        due_amt = sale.total - sale.paid
+        if due_amt <= 0:
+            continue
+
+        shop = sale.shop
+        shop_name = shop.name if shop else "Shop"
+        currency = getattr(shop, "currency", "BDT") or "BDT"
+        invoice_no = sale.invoice_no or f"INV-{sale.id}"
+        date_str = sale.due_date.strftime('%d %b %Y')
+        public_url = getattr(sale, "public_invoice_url", "") or f"/invoice/{sale.id}"
+
+        cust_name = sale.bill_name or sale.customer_name or (sale.customer.name if sale.customer else "") or "Customer"
+        cust_phone_raw = sale.bill_phone or sale.customer_phone or (sale.customer.phone if sale.customer else "") or ""
+        cust_phone = _format_intl_phone(cust_phone_raw)
+
+        # 1. Send WhatsApp Notification to Customer
+        if cust_phone:
+            cust_msg = (
+                f"সম্মানিত {cust_name},\n"
+                f"{shop_name} থেকে বিনীত অনুস্মারক: আপনার চালান #{invoice_no}-এর বকেয়া {currency} {due_amt:,.2f} "
+                f"পরিশোধের প্রতিশ্রুত তারিখ আজ ({date_str})।\n"
+                f"বিস্তারিত ইনভয়েস দেখুন: {public_url}\n"
+                f"ধন্যবাদ!"
+            )
+            # Try template then direct text
+            whatsapp.send_template(
+                shop=shop, to_phone=cust_phone,
+                template_key="due_payment_reminder",
+                params=[cust_name, invoice_no, f"{currency} {due_amt:,.2f}", date_str, shop_name]
+            )
+            whatsapp.send_direct_message(shop=shop, to_phone=cust_phone, text=cust_msg)
+
+        # 2. In-App Notification for Shop Owner & Staff
+        notif_exists = Notification.all_objects.filter(
+            shop_id=sale.shop_id,
+            type=NotificationType.PAYMENT_DUE,
+            created_at__date=today,
+            metadata__sale_id=sale.id
+        ).exists()
+
+        if not notif_exists:
+            Notification.all_objects.create(
+                shop_id=sale.shop_id,
+                type=NotificationType.PAYMENT_DUE,
+                title=f"Due Payment Promised Today: #{invoice_no}",
+                message=f"Customer {cust_name} ({cust_phone_raw or 'No phone'}) has a promised due payment of {currency} {due_amt:,.2f} for Invoice #{invoice_no} today.",
+                metadata={
+                    "sale_id": sale.id,
+                    "invoice_no": invoice_no,
+                    "due": str(due_amt),
+                    "customer": cust_name,
+                    "phone": cust_phone_raw
+                }
+            )
+
+        # 3. WhatsApp Notification to Shop Owner / Phone
+        owner_phone_raw = getattr(shop, "phone", "") or (sale.created_by.phone if sale.created_by else "")
+        owner_phone = _format_intl_phone(owner_phone_raw)
+        if owner_phone:
+            owner_msg = (
+                f"🔔 [StockWhisk] আজকের বকেয়া পেমেন্ট অনুস্মারক:\n"
+                f"কাস্টমার {cust_name} ({cust_phone_raw or 'N/A'})-এর চালান #{invoice_no}-এর বকেয়া "
+                f"{currency} {due_amt:,.2f} পরিশোধের প্রতিশ্রুত তারিখ আজ ({date_str})।"
+            )
+            whatsapp.send_direct_message(shop=shop, to_phone=owner_phone, text=owner_msg)
+
+        sent_count += 1
+
+    logger.info("Processed %d due date reminders for %s", sent_count, today)
+    return sent_count
