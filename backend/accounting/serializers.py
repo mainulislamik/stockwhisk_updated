@@ -28,11 +28,15 @@ class DailySettlementSerializer(serializers.ModelSerializer):
         fields = [
             "id", "opened_at", "closed_at", "opening_cash", "expected_cash",
             "actual_cash", "discrepancy", "total_sales", "total_expenses",
-            "total_refunds", "status", "closed_by", "closed_by_name"
+            "total_refunds", "expected_investment", "actual_investment",
+            "investment_discrepancy", "total_purchases", "total_capital_investment",
+            "status", "closed_by", "closed_by_name"
         ]
         read_only_fields = [
             "opened_at", "closed_at", "expected_cash", "discrepancy",
-            "total_sales", "total_expenses", "total_refunds", "status", "closed_by"
+            "total_sales", "total_expenses", "total_refunds",
+            "expected_investment", "investment_discrepancy", "total_purchases",
+            "total_capital_investment", "status", "closed_by"
         ]
 
 

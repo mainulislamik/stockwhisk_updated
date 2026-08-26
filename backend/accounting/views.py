@@ -158,8 +158,9 @@ from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from purchasing.models import PurchaseOrder
 from sales.models import Sale, SaleReturn
-from .models import DailySettlement, LedgerEntry
+from .models import DailySettlement, LedgerEntry, Investment, Expense
 from .serializers import DailySettlementSerializer
 
 class DailySettlementViewSet(TenantScopedViewSet):
@@ -173,7 +174,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         """Auto-close past unclosed shifts, normalize opened_at, and backfill ALL dates up to yesterday."""
         from datetime import datetime, time, timedelta
         from django.utils import timezone
-
+        
         today = timezone.localdate()
         yesterday = today - timedelta(days=1)
 
@@ -216,6 +217,19 @@ class DailySettlementViewSet(TenantScopedViewSet):
             expenses_sum = Expense.objects.filter(shop=shop, spent_on__range=(day_start.date(), day_end.date())).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
             refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
             
+            # Investment metrics for past date
+            purchases_sum = PurchaseOrder.objects.filter(
+                shop=shop, created_at__range=(day_start, day_end)
+            ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+            
+            capital_sum = Investment.objects.filter(
+                shop=shop, invested_on=p_date
+            ).aggregate(t=Sum("amount"))["t"] or 0
+            
+            expected_inv = float(purchases_sum) + float(capital_sum)
+            actual_inv = float(past.actual_investment or 0) if float(past.actual_investment or 0) > 0 else expected_inv
+            inv_disc = actual_inv - expected_inv
+
             actual = max(0.0, expected_cash) if past.status == DailySettlement.Status.OPEN or float(past.actual_cash) == 0 else max(0.0, float(past.actual_cash))
             disc = actual - expected_cash
 
@@ -230,6 +244,11 @@ class DailySettlementViewSet(TenantScopedViewSet):
                 total_sales=sales_sum,
                 total_expenses=expenses_sum,
                 total_refunds=refunds_sum,
+                expected_investment=expected_inv,
+                actual_investment=actual_inv,
+                investment_discrepancy=inv_disc,
+                total_purchases=purchases_sum,
+                total_capital_investment=capital_sum,
             )
             seen_dates[p_date] = past
 
@@ -280,6 +299,15 @@ class DailySettlementViewSet(TenantScopedViewSet):
                     shop=shop, created_at__range=(day_start, day_end)
                 ).aggregate(t=Sum("total_refund"))["t"] or 0
 
+                purchases_sum = PurchaseOrder.objects.filter(
+                    shop=shop, created_at__range=(day_start, day_end)
+                ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+
+                capital_sum = Investment.objects.filter(
+                    shop=shop, invested_on=curr_date
+                ).aggregate(t=Sum("amount"))["t"] or 0
+
+                expected_inv = float(purchases_sum) + float(capital_sum)
                 actual = max(0.0, net_cash)
                 DailySettlement.objects.create(
                     shop=shop,
@@ -292,6 +320,11 @@ class DailySettlementViewSet(TenantScopedViewSet):
                     total_sales=sales_sum,
                     total_expenses=expenses_sum,
                     total_refunds=refunds_sum,
+                    expected_investment=expected_inv,
+                    actual_investment=expected_inv,
+                    investment_discrepancy=0,
+                    total_purchases=purchases_sum,
+                    total_capital_investment=capital_sum,
                     status=DailySettlement.Status.CLOSED,
                 )
                 existing_dates.add(curr_date)
@@ -338,6 +371,8 @@ class DailySettlementViewSet(TenantScopedViewSet):
             
             start_time = active_obj.opened_at
             end_time = active_obj.closed_at or timezone.now()
+            start_date = start_time.date()
+            end_date = end_time.date()
             
             cash_in = LedgerEntry.objects.filter(
                 shop=request.tenant, 
@@ -355,13 +390,33 @@ class DailySettlementViewSet(TenantScopedViewSet):
             
             ledger_net = float(cash_in) - float(cash_out)
             expected_cash = max(0.0, float(active_obj.opening_cash) + ledger_net)
+            
+            # Investments during shift
+            purchases_sum = PurchaseOrder.objects.filter(
+                shop=request.tenant,
+                created_at__range=(start_time, end_time)
+            ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+            
+            capital_inv_sum = Investment.objects.filter(
+                shop=request.tenant,
+                invested_on__range=(start_date, end_date)
+            ).aggregate(t=Sum("amount"))["t"] or 0
+            
+            expected_investment = float(purchases_sum) + float(capital_inv_sum)
+
             if active_obj.status == DailySettlement.Status.OPEN:
                 active_obj.expected_cash = expected_cash
+                active_obj.expected_investment = expected_investment
+                active_obj.total_purchases = purchases_sum
+                active_obj.total_capital_investment = capital_inv_sum
             
             data = self.get_serializer(active_obj).data
             data["cash_in"] = float(cash_in)
             data["cash_out"] = float(cash_out)
             data["expected_cash"] = str(round(expected_cash, 2))
+            data["purchases_total"] = float(purchases_sum)
+            data["capital_investments_total"] = float(capital_inv_sum)
+            data["expected_investment"] = str(round(expected_investment, 2))
             data["sales_total"] = float(Sale.objects.filter(shop=request.tenant, sale_date__range=(start_time, end_time)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0)
             data["expenses_total"] = float(Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0)
             data["refunds_total"] = float(SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0)
@@ -399,6 +454,8 @@ class DailySettlementViewSet(TenantScopedViewSet):
         actual_cash = max(0.0, float(request.data.get("actual_cash", 0) or 0))
         start_time = settlement.opened_at
         end_time = timezone.now()
+        start_date = start_time.date()
+        end_date = end_time.date()
         
         cash_in = LedgerEntry.objects.filter(
             shop=request.tenant, 
@@ -420,12 +477,37 @@ class DailySettlementViewSet(TenantScopedViewSet):
         expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
         refunds_sum = SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0
         
+        purchases_sum = PurchaseOrder.objects.filter(
+            shop=request.tenant,
+            created_at__range=(start_time, end_time)
+        ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+        
+        capital_inv_sum = Investment.objects.filter(
+            shop=request.tenant,
+            invested_on__range=(start_date, end_date)
+        ).aggregate(t=Sum("amount"))["t"] or 0
+        
+        expected_investment = float(purchases_sum) + float(capital_inv_sum)
+
+        raw_actual_inv = request.data.get("actual_investment")
+        if raw_actual_inv is not None and str(raw_actual_inv).strip() != "":
+            actual_investment = max(0.0, float(raw_actual_inv))
+        else:
+            actual_investment = expected_investment
+            
         settlement.expected_cash = expected_cash
         settlement.actual_cash = actual_cash
         settlement.discrepancy = actual_cash - expected_cash
         settlement.total_sales = sales_sum
         settlement.total_expenses = expenses_sum
         settlement.total_refunds = refunds_sum
+        
+        settlement.expected_investment = expected_investment
+        settlement.actual_investment = actual_investment
+        settlement.investment_discrepancy = actual_investment - expected_investment
+        settlement.total_purchases = purchases_sum
+        settlement.total_capital_investment = capital_inv_sum
+
         settlement.status = DailySettlement.Status.CLOSED
         settlement.closed_at = end_time
         settlement.closed_by = request.user
@@ -451,16 +533,21 @@ class DailySettlementViewSet(TenantScopedViewSet):
 
     @action(detail=True, methods=["post", "patch"])
     def adjust(self, request, pk=None):
-        """Adjust a closed historical settlement's actual counted cash or opening cash."""
+        """Adjust a closed historical settlement's actual counted cash, investment, or opening cash."""
         settlement = self.get_object()
         actual_cash = request.data.get("actual_cash")
         opening_cash = request.data.get("opening_cash")
+        actual_investment = request.data.get("actual_investment")
         
         if opening_cash is not None:
             settlement.opening_cash = max(0.0, float(opening_cash))
             
         if actual_cash is not None:
             settlement.actual_cash = max(0.0, float(actual_cash))
+
+        if actual_investment is not None:
+            settlement.actual_investment = max(0.0, float(actual_investment))
+            settlement.investment_discrepancy = float(settlement.actual_investment) - float(settlement.expected_investment or 0)
             
         settlement.expected_cash = max(0.0, float(settlement.expected_cash))
         settlement.discrepancy = float(settlement.actual_cash) - float(settlement.expected_cash)

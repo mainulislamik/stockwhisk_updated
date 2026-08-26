@@ -107,6 +107,11 @@ class DailySettlement(TenantScopedModel):
     total_sales = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total_expenses = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     total_refunds = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    expected_investment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    actual_investment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    investment_discrepancy = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_purchases = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_capital_investment = models.DecimalField(max_digits=14, decimal_places=2, default=0)
     
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN)
     closed_by = models.ForeignKey(
