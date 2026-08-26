@@ -18,6 +18,7 @@ const API_BASE = "https://stockwhisk.com/api";
 
 export default function App() {
   const [token, setToken] = useState(null);
+  const [refreshToken, setRefreshToken] = useState(null);
   const [shopId, setShopId] = useState(null);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -30,15 +31,80 @@ export default function App() {
   const [isInitializing, setIsInitializing] = useState(true);
   const [shopName, setShopName] = useState('');
 
+  // ── Helper: Authenticated API request with automatic token refresh ────────
+  const requestWithAuth = async (url, options = {}) => {
+    let currentToken = token;
+    let savedRefresh = refreshToken;
+    if (!currentToken) {
+      currentToken = await AsyncStorage.getItem('token');
+    }
+    if (!savedRefresh) {
+      savedRefresh = await AsyncStorage.getItem('refreshToken');
+    }
+
+    const headers = {
+      'Content-Type': 'application/json',
+      ...(options.headers || {}),
+      'Authorization': `Bearer ${currentToken}`,
+    };
+
+    let response;
+    try {
+      response = await fetch(url, { ...options, headers });
+    } catch (netErr) {
+      return { ok: false, status: 0, error: 'Network error: Please check your internet connection.' };
+    }
+
+    // If 401 (Expired token), attempt automatic token refresh
+    if (response.status === 401 && savedRefresh) {
+      try {
+        const refreshResp = await fetch(`${API_BASE}/auth/token/refresh/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ refresh: savedRefresh }),
+        });
+
+        if (refreshResp.ok) {
+          const refreshData = await refreshResp.json();
+          if (refreshData.access) {
+            setToken(refreshData.access);
+            await AsyncStorage.setItem('token', refreshData.access);
+            
+            // Retry the original request with the fresh access token
+            const retryHeaders = {
+              ...headers,
+              'Authorization': `Bearer ${refreshData.access}`,
+            };
+            const retryResp = await fetch(url, { ...options, headers: retryHeaders });
+            const retryData = await retryResp.json().catch(() => ({}));
+            return { ok: retryResp.ok, status: retryResp.status, data: retryData };
+          }
+        }
+      } catch (refErr) {
+        console.error('Token refresh request failed', refErr);
+      }
+
+      // Refresh failed or token permanently revoked
+      await handleLogout();
+      Alert.alert('Session Expired', 'Your login session has expired. Please sign in again.');
+      return { ok: false, status: 401, error: 'Session expired. Please sign in again.' };
+    }
+
+    const resData = await response.json().catch(() => ({}));
+    return { ok: response.ok, status: response.status, data: resData };
+  };
+
   useEffect(() => {
     const loadSession = async () => {
       try {
         const savedToken = await AsyncStorage.getItem('token');
+        const savedRefresh = await AsyncStorage.getItem('refreshToken');
         const savedShopId = await AsyncStorage.getItem('shopId');
         const savedEmail = await AsyncStorage.getItem('email');
         const savedShopName = await AsyncStorage.getItem('shopName');
         if (savedToken && savedShopId) {
           setToken(savedToken);
+          setRefreshToken(savedRefresh);
           setShopId(savedShopId);
           if (savedEmail) setEmail(savedEmail);
           
@@ -73,6 +139,7 @@ export default function App() {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem('token');
+      await AsyncStorage.removeItem('refreshToken');
       await AsyncStorage.removeItem('shopId');
       await AsyncStorage.removeItem('shopName');
       // Intentionally keeping the email stored so it prefills the login screen
@@ -80,6 +147,7 @@ export default function App() {
       console.error('Failed to clear session');
     }
     setToken(null);
+    setRefreshToken(null);
     setShopId(null);
     setShopName('');
     setIsScanning(false);
@@ -95,11 +163,10 @@ export default function App() {
       const response = await fetch(`${API_BASE}/auth/token/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password }),
       });
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       if (response.ok && data.access) {
-        
         let finalShopName = "My Shop";
         try {
           const meResp = await fetch(`${API_BASE}/auth/me/`, {
@@ -115,22 +182,26 @@ export default function App() {
 
         const newShopId = data.shop_id || 1;
         setToken(data.access);
+        setRefreshToken(data.refresh || null);
         setShopId(newShopId); 
         setShopName(finalShopName);
         setIsScanning(false); 
         try {
           await AsyncStorage.setItem('token', data.access);
+          if (data.refresh) {
+            await AsyncStorage.setItem('refreshToken', data.refresh);
+          }
           await AsyncStorage.setItem('shopId', String(newShopId));
-          await AsyncStorage.setItem('email', email);
+          await AsyncStorage.setItem('email', email.trim().toLowerCase());
           await AsyncStorage.setItem('shopName', finalShopName);
         } catch (e) {
           console.error('Failed to save session');
         }
       } else {
-        Alert.alert('Login Failed', data.detail || 'Invalid credentials');
+        Alert.alert('Login Failed', data.detail || data.error || 'Invalid email or password.');
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Connection Error', error.message || 'Unable to connect to server.');
     } finally {
       setLoading(false);
     }
@@ -173,19 +244,17 @@ export default function App() {
     setScanned(true);
 
     try {
-      const response = await fetch(`${API_BASE}/scanner/scan/`, {
+      const result = await requestWithAuth(`${API_BASE}/scanner/scan/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ barcode: data }),
+        body: JSON.stringify({ barcode: String(data).trim() }),
       });
-      if (!response.ok) {
-        Alert.alert('Scan Error', 'Failed to send barcode to server.');
+
+      if (!result.ok) {
+        const errorMsg = result.data?.detail || result.data?.error || result.error || 'Failed to send barcode to server.';
+        Alert.alert('Scan Failed', errorMsg);
       }
     } catch (error) {
-      Alert.alert('Error', error.message);
+      Alert.alert('Error', error.message || 'Failed to communicate with server.');
     } finally {
       setLoading(false);
     }
