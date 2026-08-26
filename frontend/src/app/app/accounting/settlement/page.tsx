@@ -370,22 +370,33 @@ export default function DailySettlementPage() {
                       {/* Cash Breakdown */}
                       <div className="bg-white rounded p-2.5 border mb-3">
                         <div className="d-flex justify-content-between small py-1 border-bottom">
-                          <span className="text-muted">প্রত্যাশিত ক্যাশ ড্রয়ার (Expected Drawer Cash):</span>
+                          <span className="text-muted">
+                            {lang === "bn" ? "প্রত্যাশিত ক্যাশ ড্রয়ার:" : "Expected Drawer Cash:"}
+                          </span>
                           <span className="fw-bold text-primary">{money(current.expected_cash)}</span>
                         </div>
                         <div className="d-flex justify-content-between small py-1 text-muted">
-                          <span>ক্যাশ আগমন: <span className="text-success fw-bold">+{money(current.cash_in || 0)}</span></span>
-                          <span>ক্যাশ খরচ: <span className="text-danger fw-bold">-{money(current.cash_out || 0)}</span></span>
+                          <span>
+                            {lang === "bn" ? "ক্যাশ আগমন:" : "Cash In:"}{" "}
+                            <span className="text-success fw-bold">+{money(current.cash_in || 0)}</span>
+                          </span>
+                          <span>
+                            {lang === "bn" ? "ক্যাশ খরচ:" : "Cash Out:"}{" "}
+                            <span className="text-danger fw-bold">-{money(current.cash_out || 0)}</span>
+                          </span>
                         </div>
                         {current.account_balances && (
                           <div className="d-flex flex-wrap align-items-center gap-2 pt-1.5 mt-1 border-top small text-secondary" style={{ fontSize: "0.75rem" }}>
                             <span>bKash: <strong>{money(current.account_balances.bkash)}</strong></span>
                             <span>· Nagad: <strong>{money(current.account_balances.nagad)}</strong></span>
                             <span>· Bank: <strong>{money(current.account_balances.bank)}</strong></span>
-                            <span className="text-success fw-bold ms-auto">মোট তরল: {money(current.account_balances.total_liquid)}</span>
+                            <span className="text-success fw-bold ms-auto">
+                              {lang === "bn" ? "মোট তরল:" : "Total Liquid:"} {money(current.account_balances.total_liquid)}
+                            </span>
                           </div>
                         )}
                       </div>
+
 
 
                       {/* Denomination Calculator Drawer */}

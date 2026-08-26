@@ -550,13 +550,14 @@ export default function AccountingPage() {
                             <td className="text-end text-success">{money(position?.total_liquid_cash ?? (Number(position?.cash_balance || 0) + Number(position?.bank_balance || 0)))}</td>
                           </tr>
                           <tr>
-                            <td className="text-secondary">📥 {t("acc_receivables")} (বাকি পাওনা)</td>
+                            <td className="text-secondary">📥 {t("acc_receivables")} {lang === "bn" ? "(বাকি পাওনা)" : ""}</td>
                             <td className="text-end">{money(position?.receivables)}</td>
                           </tr>
                           <tr>
-                            <td className="text-secondary">📤 {t("acc_payables")} (সাপ্লায়ার দেনা)</td>
+                            <td className="text-secondary">📤 {t("acc_payables")} {lang === "bn" ? "(সাপ্লায়ার দেনা)" : ""}</td>
                             <td className="text-end text-danger">{money(position?.payables)}</td>
                           </tr>
+
                           <tr className="border-top fw-semibold">
                             <td className="text-primary">💼 {lang === "bn" ? "নেট মূলধন (ইকুইটি)" : "Net Capital Equity"}</td>
                             <td className="text-end text-primary fw-bold">{money(position?.net_capital ?? position?.capital_investment ?? 0)}</td>
