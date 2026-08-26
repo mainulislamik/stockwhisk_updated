@@ -233,11 +233,12 @@ class ServiceDashboardView(APIView):
         request.tenant = getattr(request.user, "shop", None)
         super().initial(request, *args, **kwargs)
 
+    def get(self, request, *args, **kwargs):
         from datetime import timedelta
         from django.db.models import Count, Q
         from django.utils import timezone
 
-        shop = request.user.shop
+        shop = request.tenant or getattr(request.user, "shop", None)
         open_ticket_qs = ServiceTicket.objects.exclude(
             status__in=[ServiceTicket.Status.DELIVERED, ServiceTicket.Status.CANCELLED]
         )
