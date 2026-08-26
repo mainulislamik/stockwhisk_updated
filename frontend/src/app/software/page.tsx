@@ -34,7 +34,18 @@ type SoftwareRelease = {
   version: string;
   release_notes: string;
   file: string;
+  download_url?: string;
   created_at: string;
+};
+
+const DEFAULT_ANDROID_RELEASE: SoftwareRelease = {
+  id: 1,
+  platform: "android",
+  version: "1.0.1",
+  release_notes: "",
+  file: "/downloads/stockwhisk_scanner.apk",
+  download_url: "/downloads/stockwhisk_scanner.apk",
+  created_at: new Date().toISOString(),
 };
 
 export default function SoftwarePage() {
@@ -49,8 +60,18 @@ export default function SoftwarePage() {
   useEffect(() => {
     setMounted(true);
     api<any>("/platform/public/software/")
-      .then((data) => setReleases(unwrap(data)))
-      .catch((e) => console.error("Failed to load software releases", e))
+      .then((data) => {
+        const list = unwrap(data);
+        if (Array.isArray(list) && list.length > 0) {
+          setReleases(list);
+        } else {
+          setReleases([DEFAULT_ANDROID_RELEASE]);
+        }
+      })
+      .catch((e) => {
+        console.error("Failed to load software releases, using default", e);
+        setReleases([DEFAULT_ANDROID_RELEASE]);
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -70,6 +91,19 @@ export default function SoftwarePage() {
       case 'mac': return 'macOS';
       default: return 'Download';
     }
+  };
+
+  const getDownloadHref = (release: SoftwareRelease) => {
+    if (release.download_url) {
+      return release.download_url;
+    }
+    if (release.file) {
+      return release.file;
+    }
+    if (release.platform === 'android') {
+      return '/downloads/stockwhisk_scanner.apk';
+    }
+    return '#';
   };
 
   return (
@@ -147,8 +181,10 @@ export default function SoftwarePage() {
                         </Box>
                         
                         <Button 
+                          component="a"
                           variant="contained" 
-                          href={release.file} 
+                          href={getDownloadHref(release)} 
+                          download={release.platform === 'android' ? `StockWhisk_Scanner_v${release.version}.apk` : undefined}
                           target="_blank"
                           rel="noopener noreferrer"
                           sx={{ 

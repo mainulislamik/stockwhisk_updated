@@ -2154,9 +2154,14 @@ class MailSSORedirectView(View):
 # --- Software Releases -------------------------------------------------------
 
 class SoftwareReleaseSerializer(serializers.ModelSerializer):
+    download_url = serializers.SerializerMethodField()
+
     class Meta:
         model = SoftwareRelease
         fields = '__all__'
+
+    def get_download_url(self, obj):
+        return f"/api/platform/public/software/{obj.id}/download/"
 
 class SoftwareReleaseAdminViewSet(viewsets.ModelViewSet):
     """CRUD for super admins to manage software downloads."""
@@ -2170,7 +2175,108 @@ class PublicSoftwareReleaseViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SoftwareReleaseSerializer
 
     def get_queryset(self):
-        return SoftwareRelease.objects.filter(is_active=True).order_by('-created_at')
+        qs = SoftwareRelease.objects.filter(is_active=True).order_by('-created_at')
+        if not qs.exists():
+            try:
+                SoftwareRelease.objects.get_or_create(
+                    platform='android',
+                    version='1.0.1',
+                    defaults={
+                        'release_notes': 'StockWhisk POS Scanner App for Android. High-speed wireless barcode scanning directly connected to your store POS.',
+                        'is_active': True,
+                        'file': 'software/stockwhisk_scanner.apk'
+                    }
+                )
+                qs = SoftwareRelease.objects.filter(is_active=True).order_by('-created_at')
+            except Exception as e:
+                logger.warning("Could not auto-seed default software release: %s", e)
+        return qs
+
+    @action(detail=True, methods=['get'], url_path='download')
+    def download(self, request, pk=None):
+        from django.http import FileResponse, Http404
+        from django.conf import settings
+        import os
+
+        release = self.get_object()
+        file_path = None
+
+        if release.file:
+            try:
+                if os.path.exists(release.file.path):
+                    file_path = release.file.path
+            except Exception:
+                pass
+
+        if not file_path:
+            possible_paths = [
+                os.path.join(settings.MEDIA_ROOT, "software", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "scanner_app", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "..", "scanner_app", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "..", "frontend", "public", "downloads", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "public", "downloads", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "scanner_app", "scanner_app.apk"),
+                os.path.join(settings.BASE_DIR, "..", "scanner_app", "scanner_app.apk"),
+            ]
+            for p in possible_paths:
+                if os.path.exists(p):
+                    file_path = p
+                    break
+
+        if not file_path or not os.path.exists(file_path):
+            raise Http404("Software file not found.")
+
+        filename = f"StockWhisk_Scanner_v{release.version}.apk" if release.platform == 'android' else os.path.basename(file_path)
+        content_type = 'application/vnd.android.package-archive' if release.platform == 'android' else 'application/octet-stream'
+
+        f = open(file_path, 'rb')
+        response = FileResponse(f, content_type=content_type)
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Length'] = os.path.getsize(file_path)
+        return response
+
+    @action(detail=False, methods=['get'], url_path='android')
+    def android_download(self, request):
+        """Direct download endpoint for latest active Android APK."""
+        from django.http import FileResponse, Http404
+        from django.conf import settings
+        import os
+
+        rel = SoftwareRelease.objects.filter(platform='android', is_active=True).order_by('-created_at').first()
+        version = rel.version if rel else "1.0.1"
+
+        file_path = None
+        if rel and rel.file:
+            try:
+                if os.path.exists(rel.file.path):
+                    file_path = rel.file.path
+            except Exception:
+                pass
+
+        if not file_path:
+            possible_paths = [
+                os.path.join(settings.MEDIA_ROOT, "software", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "scanner_app", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "..", "scanner_app", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "..", "frontend", "public", "downloads", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "public", "downloads", "stockwhisk_scanner.apk"),
+                os.path.join(settings.BASE_DIR, "scanner_app", "scanner_app.apk"),
+                os.path.join(settings.BASE_DIR, "..", "scanner_app", "scanner_app.apk"),
+            ]
+            for p in possible_paths:
+                if os.path.exists(p):
+                    file_path = p
+                    break
+
+        if not file_path or not os.path.exists(file_path):
+            raise Http404("Android APK not found.")
+
+        filename = f"StockWhisk_Scanner_v{version}.apk"
+        f = open(file_path, 'rb')
+        response = FileResponse(f, content_type='application/vnd.android.package-archive')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        response['Content-Length'] = os.path.getsize(file_path)
+        return response
 
 # --- Shop Data Management -------------------------------------------------------
 
