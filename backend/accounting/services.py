@@ -229,7 +229,7 @@ def investment_summary(shop, start=None, end=None):
             purchases = purchases.filter(created_at__gte=start)
         if end is not None:
             purchases = purchases.filter(created_at__lte=end)
-        purchase_investment = _sum(purchases, "total_amount")
+        purchase_investment = _sum(purchases, "total")
         purchases_count = purchases.count()
     except Exception:
         pass

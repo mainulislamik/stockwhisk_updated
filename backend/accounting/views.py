@@ -220,7 +220,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             # Investment metrics for past date
             purchases_sum = PurchaseOrder.objects.filter(
                 shop=shop, created_at__range=(day_start, day_end)
-            ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+            ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
             
             capital_sum = Investment.objects.filter(
                 shop=shop, invested_on=p_date
@@ -301,7 +301,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
 
                 purchases_sum = PurchaseOrder.objects.filter(
                     shop=shop, created_at__range=(day_start, day_end)
-                ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+                ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
 
                 capital_sum = Investment.objects.filter(
                     shop=shop, invested_on=curr_date
@@ -395,7 +395,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             purchases_sum = PurchaseOrder.objects.filter(
                 shop=request.tenant,
                 created_at__range=(start_time, end_time)
-            ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+            ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
             
             capital_inv_sum = Investment.objects.filter(
                 shop=request.tenant,
@@ -480,7 +480,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         purchases_sum = PurchaseOrder.objects.filter(
             shop=request.tenant,
             created_at__range=(start_time, end_time)
-        ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total_amount"))["t"] or 0
+        ).exclude(status=PurchaseOrder.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
         
         capital_inv_sum = Investment.objects.filter(
             shop=request.tenant,
