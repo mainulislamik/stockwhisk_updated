@@ -153,7 +153,7 @@ class Investment(TenantScopedModel):
 
     class Meta:
         ordering = ["-invested_on", "-created_at"]
-        indexes = [models.Index(fields=["shop", "invested_on"])]
+        indexes = [models.Index(fields=["shop", "invested_on"], name="accounting__shop_id_bd7995_idx")]
         constraints = [
             models.CheckConstraint(condition=models.Q(amount__gte=0), name="investment_amount_non_negative"),
         ]

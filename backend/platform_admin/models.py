@@ -228,7 +228,7 @@ class SoftwareRelease(TimeStampedModel):
 
     class Meta:
         ordering = ["-created_at"]
-        indexes = [models.Index(fields=["platform", "is_active", "-created_at"])]
+        indexes = [models.Index(fields=["platform", "is_active", "-created_at"], name="platform_ad_platfor_ab1234_idx")]
 
     def __str__(self):
         return f"{self.get_platform_display()} - {self.version}"
