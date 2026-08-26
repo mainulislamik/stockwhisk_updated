@@ -20,7 +20,7 @@ export default function MarketingFooter() {
             </Typography>
           </Grid>
           <Grid size={{ xs: 6, md: 3 }}>
-            <Typography sx={{ fontWeight: 700, color: "#fff", mb: 1.5, fontSize: ".9rem" }}>Product</Typography>
+            <Typography sx={{ fontWeight: 700, color: "#fff", mb: 1.5, fontSize: ".9rem" }}>{lang === 'bn' ? "প্রোডাক্ট" : "Product"}</Typography>
             <Stack spacing={1}>
               <Link href="/pricing" style={linkSx}>{t("nav_pricing")}</Link>
               <Link href="/tutorials" style={linkSx}>{lang === 'bn' ? "ভিডিও টিউটোরিয়াল" : "Video Tutorials"}</Link>
@@ -29,7 +29,7 @@ export default function MarketingFooter() {
             </Stack>
           </Grid>
           <Grid size={{ xs: 6, md: 4 }}>
-            <Typography sx={{ fontWeight: 700, color: "#fff", mb: 1.5, fontSize: ".9rem" }}>Get started</Typography>
+            <Typography sx={{ fontWeight: 700, color: "#fff", mb: 1.5, fontSize: ".9rem" }}>{lang === 'bn' ? "শুরু করুন" : "Get started"}</Typography>
             <Stack spacing={1}>
               <Link href="/register" style={linkSx}>{t("hero_btn_register")}</Link>
               <Link href="/login" style={linkSx}>{t("nav_login")}</Link>

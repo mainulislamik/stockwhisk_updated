@@ -4,21 +4,24 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { api, clearTokens, getAccess } from "@/lib/api";
-
-const NAV = [
-  { href: "/reseller/dashboard", label: "Dashboard", icon: "bi-speedometer2" },
-  { href: "/reseller/shops", label: "My Shops", icon: "bi-shop" },
-  { href: "/reseller/commissions", label: "Commissions", icon: "bi-cash-coin" },
-  { href: "/reseller/tutorials", label: "Tutorials", icon: "bi-play-btn" },
-  { href: "/reseller/profile", label: "Profile", icon: "bi-person-badge" },
-];
+import { useLanguage } from "@/contexts/LanguageContext";
+import LanguageToggle from "@/components/LanguageToggle";
 
 export default function ResellerShell({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const { t, lang } = useLanguage();
   const [ready, setReady] = useState(false);
   const [name, setName] = useState("");
   const [canFreeShops, setCanFreeShops] = useState(false);
+
+  const NAV = [
+    { href: "/reseller/dashboard", label: t("nav_dashboard") || "Dashboard", icon: "bi-speedometer2" },
+    { href: "/reseller/shops", label: lang === 'bn' ? "আমার শপসমূহ" : "My Shops", icon: "bi-shop" },
+    { href: "/reseller/commissions", label: lang === 'bn' ? "কমিশন বিবরণী" : "Commissions", icon: "bi-cash-coin" },
+    { href: "/reseller/tutorials", label: lang === 'bn' ? "ভিডিও টিউটোরিয়াল" : "Tutorials", icon: "bi-play-btn" },
+    { href: "/reseller/profile", label: lang === 'bn' ? "প্রোফাইল" : "Profile", icon: "bi-person-badge" },
+  ];
 
   useEffect(() => {
     if (!getAccess()) { router.replace("/reseller/login"); return; }
@@ -29,7 +32,7 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
   }, [router]);
 
   const nav = canFreeShops
-    ? [...NAV, { href: "/reseller/free-shops", label: "Free Shops", icon: "bi-gift" }]
+    ? [...NAV, { href: "/reseller/free-shops", label: t("res_free_shops") || "Free Shops", icon: "bi-gift" }]
     : NAV;
 
   function logout() { clearTokens(); router.replace("/reseller/login"); }
@@ -41,8 +44,11 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
   return (
     <div className="d-flex" style={{ minHeight: "100vh", background: "#f6f8fb" }}>
       <aside className="d-flex flex-column p-3 text-white" style={{ width: "15rem", background: "#0f172a" }}>
-        <div className="fw-bold fs-5 mb-1">StockWhisk</div>
-        <div className="small text-secondary mb-4">Partner Portal</div>
+        <div className="d-flex justify-content-between align-items-center mb-1">
+          <div className="fw-bold fs-5">StockWhisk</div>
+          <LanguageToggle />
+        </div>
+        <div className="small text-secondary mb-4">{lang === 'bn' ? "রিসেলার পার্টনার পোর্টাল" : "Partner Portal"}</div>
         <nav className="nav flex-column gap-1 flex-grow-1">
           {nav.map((n) => (
             <Link key={n.href} href={n.href}
@@ -52,7 +58,7 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
           ))}
         </nav>
         <div className="small text-secondary text-truncate mb-2">{name}</div>
-        <button className="btn btn-outline-light btn-sm" onClick={logout}>Log out →</button>
+        <button className="btn btn-outline-light btn-sm" onClick={logout}>{lang === 'bn' ? "লগআউট →" : "Log out →"}</button>
       </aside>
       <main className="flex-grow-1 p-4" style={{ minWidth: 0 }}>{children}</main>
     </div>

@@ -388,15 +388,15 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                     style={{ zIndex: 100001, top: 62, right: 14, width: 264, background: "#0f172a", border: "1px solid rgba(148,163,184,.28)", color: "#fff" }}
                   >
                     <div className="fw-bold mb-1 d-flex align-items-center gap-2">
-                      <i className="bi bi-headset text-primary"></i> Contact us
+                      <i className="bi bi-headset text-primary"></i> {t("nav_contact_us") || "Contact us"}
                     </div>
-                    <div className="small mb-3" style={{ color: "#94a3b8" }}>We're here to help with billing &amp; renewals.</div>
+                    <div className="small mb-3" style={{ color: "#94a3b8" }}>{t("nav_contact") || "We're here to help with billing & renewals."}</div>
                     <a href="https://wa.me/8801613511887" target="_blank" rel="noopener noreferrer"
                        className="d-flex align-items-center gap-2 text-decoration-none mb-2 p-2 rounded-3"
                        style={{ background: "rgba(34,197,94,.15)", color: "#fff" }}>
                       <i className="bi bi-whatsapp text-success fs-5"></i>
                       <div>
-                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>Phone / WhatsApp</div>
+                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{t("sup_lbl_phone") || "Phone / WhatsApp"}</div>
                         <div className="fw-semibold">+8801613511887</div>
                       </div>
                     </a>
@@ -405,7 +405,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                        style={{ background: "rgba(59,130,246,.15)", color: "#fff" }}>
                       <i className="bi bi-envelope-fill text-primary fs-5"></i>
                       <div>
-                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>Email</div>
+                        <div style={{ fontSize: "0.7rem", color: "#94a3b8" }}>{t("sup_lbl_email") || "Email"}</div>
                         <div className="fw-semibold">admin@stockwhisk.com</div>
                       </div>
                     </a>
@@ -473,7 +473,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                               </div>
                               <div>
                                  <div className="fw-bold fs-5 lh-1 text-white mb-1">{billing.plan_name || (paid ? "Pro Plan" : "Free Trial")}</div>
-                                 <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{paid ? "Premium Access" : "Evaluation Phase"}</div>
+                                 <div style={{ fontSize: "0.8rem", color: "#94a3b8" }}>{paid ? (t("plan_title") || "Premium Access") : (t("plan_free_trial") || "Free Trial")}</div>
                               </div>
                            </div>
                            <span className="badge rounded-pill px-2 py-1 mt-1" style={{ background: paid ? "rgba(249,115,22,0.15)" : "rgba(59,130,246,0.15)", color: paid ? "#fbd38d" : "#93c5fd", border: `1px solid ${paid ? "rgba(249,115,22,0.3)" : "rgba(59,130,246,0.3)"}` }}>
@@ -486,17 +486,17 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       <div className="px-4 pb-4 position-relative z-1">
                         <div className="p-3 rounded-4 mb-4" style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.08)" }}>
                            <div className="d-flex justify-content-between align-items-end mb-3">
-                              <span style={{ color: "#94a3b8", fontSize: "0.85rem", fontWeight: 500 }}>Time Remaining</span>
+                              <span style={{ color: "#94a3b8", fontSize: "0.85rem", fontWeight: 500 }}>{t("nav_trial_rem") || "Time Remaining"}</span>
                               <div className="d-flex align-items-baseline gap-1">
                                  <span className="fw-bolder" style={{ fontSize: "2rem", lineHeight: 1, color: barColor, textShadow: `0 0 12px ${barColor}80` }}>{dleft}</span>
-                                 <span style={{ color: "#cbd5e1", fontSize: "0.9rem", fontWeight: 500 }}>day{dleft === 1 ? "" : "s"}</span>
+                                 <span style={{ color: "#cbd5e1", fontSize: "0.9rem", fontWeight: 500 }}>{t("prod_repl_guarantee_days") ? t("prod_repl_guarantee_days").replace(/.*?(দিন|day).*/i, "$1") : "days"}</span>
                               </div>
                            </div>
                            <div className="rounded-pill mb-2 overflow-hidden position-relative" style={{ height: 8, background: "rgba(255,255,255,0.1)" }}>
                              <div className="position-absolute top-0 start-0 h-100 rounded-pill" style={{ width: `${pct}%`, background: barColor, boxShadow: `0 0 10px ${barColor}` }} />
                            </div>
                            <div className="d-flex justify-content-between small mt-2">
-                              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>{pct}% remaining</span>
+                              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>{pct}% {t("nav_trial_rem") || "remaining"}</span>
                               <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 600 }}>Total {total} days</span>
                            </div>
                         </div>
@@ -506,14 +506,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                           <span className="fw-semibold text-white" style={{ fontSize: "0.95rem" }}>{endStr}</span>
                         </div>
                         <div className="d-flex justify-content-between align-items-center mb-4 px-1">
-                          <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}><i className="bi bi-info-circle me-2 opacity-75"></i>Status</span>
+                          <span style={{ color: "#94a3b8", fontSize: "0.9rem" }}><i className="bi bi-info-circle me-2 opacity-75"></i>{t("cust_col_status") || "Status"}</span>
                           <span className="fw-semibold text-white text-capitalize" style={{ fontSize: "0.95rem" }}>{billing.status || (paid ? "active" : "trial")}</span>
                         </div>
 
                         <button className="btn w-100 rounded-pill fw-bold modern-plan-btn d-flex justify-content-center align-items-center gap-2 border-0"
                           style={{ background: paid ? "linear-gradient(135deg, #f97316, #ea580c)" : "linear-gradient(135deg, #3b82f6, #2563eb)", color: "#fff", padding: "12px", fontSize: "1rem" }}
                           onClick={() => { setShowPlan(false); setShowContact(true); }}>
-                          <i className="bi bi-rocket-takeoff"></i> {paid ? "Renew / Upgrade" : "Upgrade to Pro"}
+                          <i className="bi bi-rocket-takeoff"></i> {paid ? (t("plan_title") || "Renew / Upgrade") : "Upgrade to Pro"}
                         </button>
                       </div>
                     </div>

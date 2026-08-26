@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import ResellerShell from "@/components/ResellerShell";
 import { api } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Dash = {
   reseller_code: string; referral_code: string; referral_link: string; commission_rate: string;
@@ -13,6 +14,7 @@ type Dash = {
 const tk = (n: any) => "৳" + Number(n || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function ResellerDashboard() {
+  const { t, lang } = useLanguage();
   const [d, setD] = useState<Dash | null>(null);
   const [copied, setCopied] = useState(false);
 
@@ -22,20 +24,20 @@ export default function ResellerDashboard() {
   function copy() { navigator.clipboard.writeText(fullLink); setCopied(true); setTimeout(() => setCopied(false), 1500); }
 
   const cards = d ? [
-    ["Total shops", d.total_shops, "bg-primary"],
-    ["Active", d.active_shops, "bg-success"],
-    ["Trial", d.trial_shops, "bg-warning"],
-    ["Suspended", d.suspended_shops, "bg-secondary"],
+    [lang === 'bn' ? "মোট শপ" : "Total shops", d.total_shops, "bg-primary"],
+    [lang === 'bn' ? "সক্রিয় শপ" : "Active", d.active_shops, "bg-success"],
+    [lang === 'bn' ? "ট্রায়াল শপ" : "Trial", d.trial_shops, "bg-warning"],
+    [lang === 'bn' ? "স্থগিত" : "Suspended", d.suspended_shops, "bg-secondary"],
   ] : [];
   const money = d ? [
-    ["Total commission", d.total_commission],
-    ["Pending commission", d.pending_commission],
-    ["Paid commission", d.paid_commission],
+    [lang === 'bn' ? "মোট কমিশন" : "Total commission", d.total_commission],
+    [lang === 'bn' ? "বকেয়া কমিশন" : "Pending commission", d.pending_commission],
+    [lang === 'bn' ? "পরিশোধিত কমিশন" : "Paid commission", d.paid_commission],
   ] : [];
 
   return (
     <ResellerShell>
-      <h3 className="fw-bold mb-4">Dashboard</h3>
+      <h3 className="fw-bold mb-4">{t("nav_dashboard") || "Dashboard"}</h3>
       {!d ? <div className="spinner-border" /> : (
         <>
           <div className="row g-3 mb-3">
@@ -60,16 +62,16 @@ export default function ResellerDashboard() {
           </div>
           <div className="card shadow-sm border-0">
             <div className="card-body">
-              <h6 className="fw-bold mb-3">Your referral</h6>
+              <h6 className="fw-bold mb-3">{lang === 'bn' ? "আপনার রেফারেল তথ্য" : "Your referral"}</h6>
               <div className="row g-3">
-                <div className="col-md-4"><div className="text-secondary small">Reseller ID</div><div className="fw-semibold">{d.reseller_code}</div></div>
-                <div className="col-md-4"><div className="text-secondary small">Referral code</div><div className="fw-semibold font-monospace">{d.referral_code}</div></div>
-                <div className="col-md-4"><div className="text-secondary small">Commission rate</div><div className="fw-semibold">{d.commission_rate}%</div></div>
+                <div className="col-md-4"><div className="text-secondary small">{t("res_reseller_id") || "Reseller ID"}</div><div className="fw-semibold">{d.reseller_code}</div></div>
+                <div className="col-md-4"><div className="text-secondary small">{t("res_referral_code") || "Referral code"}</div><div className="fw-semibold font-monospace">{d.referral_code}</div></div>
+                <div className="col-md-4"><div className="text-secondary small">{t("res_comm_rate") || "Commission rate"}</div><div className="fw-semibold">{d.commission_rate}%</div></div>
                 <div className="col-12">
-                  <div className="text-secondary small">Referral link</div>
+                  <div className="text-secondary small">{t("res_referral_link") || "Referral link"}</div>
                   <div className="input-group">
-                    <input className="form-control font-monospace" readOnly value={fullLink} />
-                    <button className="btn btn-outline-primary" onClick={copy}>{copied ? "Copied!" : "Copy"}</button>
+                    <input className="form-control font-monospace bg-light" readOnly value={fullLink} />
+                    <button className="btn btn-brand" onClick={copy}>{copied ? (lang === 'bn' ? "কপি হয়েছে!" : "Copied!") : (lang === 'bn' ? "কপি লিংক" : "Copy link")}</button>
                   </div>
                 </div>
               </div>

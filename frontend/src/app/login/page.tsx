@@ -9,13 +9,14 @@ import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, Ico
 import EmailIcon from '@mui/icons-material/Email';
 import MarketingNav from '@/components/MarketingNav';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
-import LockIcon from '@mui/icons-material/Lock';
 import { useBranding } from '@/lib/branding';
 import { getLandingPath } from '@/lib/landing';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const branding = useBranding();
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -144,10 +145,10 @@ export default function LoginPage() {
         <Box sx={{ width: '100%', maxWidth: '440px' }}>
           <Box sx={{ mb: 5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
-              Welcome back
+              {t("auth_welcome_back") || "Welcome back"}
             </Typography>
             <Typography variant="body1" sx={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '1.05rem' }}>
-              Please enter your details to sign in.
+              {lang === 'bn' ? "লগইন করতে আপনার তথ্য প্রদান করুন।" : "Please enter your details to sign in."}
             </Typography>
           </Box>
           
@@ -160,7 +161,7 @@ export default function LoginPage() {
           <form onSubmit={onSubmit}>
             <Stack spacing={3.5}>
               <TextField
-                label="Email or Username"
+                label={t("sup_lbl_email") ? `${t("sup_lbl_email")} / ইউজারনেম` : "Email or Username"}
                 variant="outlined"
                 fullWidth
                 required
@@ -191,7 +192,7 @@ export default function LoginPage() {
                 }}
               />
               <TextField
-                label="Password"
+                label={lang === 'bn' ? "পাসওয়ার্ড" : "Password"}
                 type="password"
                 variant="outlined"
                 fullWidth
@@ -202,7 +203,7 @@ export default function LoginPage() {
                   input: {
                     startAdornment: (
                       <InputAdornment position="start">
-                        <LockIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
+                        <EmailIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} />
                       </InputAdornment>
                     ),
                   }
@@ -224,7 +225,7 @@ export default function LoginPage() {
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -2 }}>
                 <Link href="/forgot-password" style={{ color: isDark ? '#94a3b8' : '#64748b', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#4f46e5'} onMouseLeave={(e) => e.currentTarget.style.color = isDark ? '#94a3b8' : '#64748b'}>
-                  Forgot Password?
+                  {lang === 'bn' ? "পাসওয়ার্ড ভুলে গেছেন?" : "Forgot Password?"}
                 </Link>
               </Box>
 
@@ -255,16 +256,16 @@ export default function LoginPage() {
                   }
                 }}
               >
-                {busy ? "Signing in..." : "Sign in to Dashboard"}
+                {busy ? (lang === 'bn' ? "লগইন হচ্ছে..." : "Signing in...") : (lang === 'bn' ? "ড্যাশবোর্ডে লগইন করুন" : "Sign in to Dashboard")}
               </Button>
             </Stack>
           </form>
 
           <Box sx={{ mt: 3, textAlign: 'center' }}>
             <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-              Don't have an account?{' '}
+              {lang === 'bn' ? "একাউন্ট নেই? " : "Don't have an account? "}
               <Link href="/register" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>
-                Sign up
+                {t("nav_signup") || "Sign up"}
               </Link>
             </Typography>
           </Box>

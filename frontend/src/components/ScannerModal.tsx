@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Html5QrcodeScanner } from "html5-qrcode";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export function ScannerModal({
   onScan,
@@ -8,6 +9,7 @@ export function ScannerModal({
   onScan: (barcode: string) => void;
   onClose: () => void;
 }) {
+  const { t } = useLanguage();
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export function ScannerModal({
         <div className="modal-dialog modal-dialog-centered">
           <div className="modal-content border-0 shadow-lg">
             <div className="modal-header bg-light">
-              <h5 className="modal-title fs-6 fw-bold">Scan Barcode</h5>
+              <h5 className="modal-title fs-6 fw-bold">{t("scanner_modal_title") || "Scan Barcode"}</h5>
               <button type="button" className="btn-close" onClick={onClose}></button>
             </div>
             <div className="modal-body p-4 text-center">
@@ -73,7 +75,7 @@ export function ScannerModal({
             </div>
             <div className="modal-footer bg-light p-2">
               <button type="button" className="btn btn-secondary btn-sm w-100" onClick={onClose}>
-                Cancel Scanning
+                {t("scanner_modal_cancel") || "Cancel Scanning"}
               </button>
             </div>
           </div>

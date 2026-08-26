@@ -269,10 +269,10 @@ export default function RegisterPage() {
         <Box sx={{ width: '100%', maxWidth: '440px' }}>
           <Box sx={{ mb: 4 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
-              Create an Account
+              {t("auth_create_account") || "Create an Account"}
             </Typography>
             <Typography variant="body1" sx={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '1.05rem' }}>
-              {step === 1 ? "Fill in your details below to get started." : "Verify your email address."}
+              {step === 1 ? (t("reg_step1_desc") || "Fill in your details below to get started.") : (t("reg_step2_desc") || "Verify your email address.")}
             </Typography>
           </Box>
           
@@ -292,7 +292,7 @@ export default function RegisterPage() {
             <form onSubmit={handleRegister}>
               <Stack spacing={2.5}>
                 <TextField
-                  label="Store Name"
+                  label={t("set_shop_name") || "Store Name"}
                   variant="outlined"
                   fullWidth
                   required
@@ -303,7 +303,7 @@ export default function RegisterPage() {
                 />
                 
                 <TextField
-                  label="Your Name"
+                  label={t("cust_name") || "Your Name"}
                   variant="outlined"
                   fullWidth
                   required
@@ -314,7 +314,7 @@ export default function RegisterPage() {
                 />
                 
                 <TextField
-                  label="Email Address"
+                  label={t("sup_lbl_email") || "Email Address"}
                   type="email"
                   variant="outlined"
                   fullWidth
@@ -326,10 +326,11 @@ export default function RegisterPage() {
                 />
 
                 <TextField
-                  label="Mobile Number"
+                  label={t("sup_lbl_phone") || "Mobile Number"}
                   type="tel"
                   variant="outlined"
                   fullWidth
+                  required
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   slotProps={{ input: { startAdornment: <InputAdornment position="start"><PhoneIcon sx={{ color: isDark ? '#64748b' : '#94a3b8' }} /></InputAdornment> } }}
@@ -338,7 +339,7 @@ export default function RegisterPage() {
 
                 <TextField
                   select
-                  label="Shop Category"
+                  label={t("cat_title") || "Business Category"}
                   fullWidth
                   required
                   value={businessType}
@@ -354,7 +355,7 @@ export default function RegisterPage() {
                 </TextField>
 
                 <TextField
-                  label="Address"
+                  label={t("set_shop_addr") || "Address"}
                   variant="outlined"
                   fullWidth
                   multiline
@@ -366,7 +367,7 @@ export default function RegisterPage() {
                 />
 
                 <TextField
-                  label="Reseller / Referral code (optional)"
+                  label={t("res_referral_code") ? `${t("res_referral_code")} (Optional)` : "Referral Code (Optional)"}
                   variant="outlined"
                   fullWidth
                   value={referralCode}
@@ -424,7 +425,7 @@ export default function RegisterPage() {
                     },
                   }}
                 >
-                  {busy ? "Creating Account..." : "Sign Up"}
+                  {busy ? "Creating Account..." : (t("nav_signup") || "Sign Up")}
                 </Button>
               </Stack>
             </form>
@@ -432,7 +433,7 @@ export default function RegisterPage() {
             <form onSubmit={handleVerifyOTP}>
               <Stack spacing={3.5}>
                 <Typography sx={{ color: isDark ? '#cbd5e1' : '#475569' }}>
-                  We sent a 6-digit code to <strong>{email}</strong>. Please enter it below.
+                  {t("reg_step2_desc") ? `${t("reg_step2_desc")}: ` : "We sent a 6-digit code to "}<strong>{email}</strong>
                 </Typography>
                 <TextField
                   label="Verification Code (OTP)"
@@ -479,7 +480,7 @@ export default function RegisterPage() {
                     }
                   }}
                 >
-                  {busy ? "Verifying..." : "Verify & Complete Setup"}
+                  {busy ? "Verifying..." : (t("reg_step4_title") || "Verify & Complete Setup")}
                 </Button>
                 
                 <Box sx={{ textAlign: 'center', mt: 2 }}>
@@ -487,7 +488,7 @@ export default function RegisterPage() {
                     {timeLeft > 0 ? (
                       `Code expires in ${formatTime(timeLeft)}`
                     ) : (
-                      <span style={{ color: '#ef4444' }}>Code expired</span>
+                      <span style={{ color: '#ef4444' }}>{t("auth_code_expired") || "Code expired"}</span>
                     )}
                   </Typography>
                   
@@ -498,14 +499,14 @@ export default function RegisterPage() {
                       disabled={busy}
                       sx={{ textTransform: 'none', borderRadius: 2, borderColor: isDark ? 'rgba(255,255,255,0.2)' : 'rgba(0,0,0,0.2)' }}
                     >
-                      Resend Code
+                      {t("auth_resend_code") || "Resend Code"}
                     </Button>
                   )}
                 </Box>
 
                 <Box sx={{ textAlign: "center" }}>
                   <Button variant="text" onClick={() => setStep(1)} sx={{ textTransform: 'none', color: '#4f46e5', fontWeight: 600 }}>
-                    Change email address
+                    {t("auth_change_email") || "Change email address"}
                   </Button>
                 </Box>
               </Stack>
@@ -515,9 +516,9 @@ export default function RegisterPage() {
           {step === 1 && (
             <Box sx={{ mt: 4, textAlign: 'center' }}>
               <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
-                Already have an account?{' '}
+                {t("footer_terms") ? "ইতিমধ্যে একাউন্ট আছে? " : "Already have an account? "}
                 <Link href="/login" style={{ color: '#4f46e5', textDecoration: 'none', fontWeight: 600 }}>
-                  Sign in
+                  {t("nav_login") || "Sign in"}
                 </Link>
               </Typography>
             </Box>

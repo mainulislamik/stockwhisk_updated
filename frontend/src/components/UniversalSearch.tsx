@@ -2,23 +2,25 @@
 
 import { useEffect, useRef, useState } from "react";
 import { api, unwrap } from "@/lib/api";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Row = { url: string; label: string; sub: string };
 type Results = { sales: Row[]; products: Row[]; customers: Row[]; suppliers: Row[] };
 
-const GROUPS: [keyof Results, string][] = [
-  ["sales", "🧾 Invoices & Sales"],
-  ["products", "📦 Products"],
-  ["customers", "👥 Customers"],
-  ["suppliers", "🚚 Suppliers"],
-];
-
 export default function UniversalSearch({ mobile = false }: { mobile?: boolean }) {
+  const { t } = useLanguage();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Results>({ sales: [], products: [], customers: [], suppliers: [] });
   const boxRef = useRef<HTMLDivElement>(null);
+
+  const GROUPS: [keyof Results, string][] = [
+    ["sales", `🧾 ${t("nav_sales") || "Sales"}`],
+    ["products", `📦 ${t("nav_products") || "Products"}`],
+    ["customers", `👥 ${t("nav_customers") || "Customers"}`],
+    ["suppliers", `🚚 ${t("sup_btn_save") ? t("sup_btn_save").replace(/.*?(সাপ্লায়ার|supplier).*/i, "$1") : "Suppliers"}`],
+  ];
 
   useEffect(() => {
     if (!q.trim()) {
@@ -84,7 +86,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
         <input
           aria-label="Universal search"
           autoComplete="off"
-          placeholder="Search invoices, products, barcode, customers, suppliers..."
+          placeholder={t("search_placeholder") || "Search invoices, products, barcode, customers, suppliers..."}
           className="form-control border shadow-sm"
           style={{
             borderRadius: "30px",
