@@ -1441,8 +1441,6 @@ export const translations: Translations = {
     bar_loading: "Loading barcode data...",
     dash_no_expiring_war: "No expiring warranties found.",
     hero_btn_register: "Get started free",
-    reseller_feat3_title: "Earn recurring monthly commission",
-    sales_status_returned: "RETURNED",
 
     search_placeholder: "Search invoices, products, barcode, customers, suppliers...",
     nav_trial_rem: "Time Remaining",
@@ -1465,8 +1463,6 @@ export const translations: Translations = {
     inv_lock_recv_pmt: "Receive Payment",
     emi_collect_installment: "Collect Installment",
     emi_installment_due: "Due Date",
-    emi_status_pending: "Pending",
-    emi_status_paid: "Paid",
     emi_status_overdue: "Overdue",
     ret_select_items: "Select items to return",
     ret_restock_check: "Restock into inventory",
@@ -1742,6 +1738,7 @@ export const translations: Translations = {
     reseller_feat1_desc: "পার্টনার হিসেবে সাইন আপ করুন। আমাদের টিম আপনার অ্যাকাউন্টটি রিভিউ করে অ্যাপ্রুভ করবে।",
     reseller_feat2_title: "আপনার কোড শেয়ার করুন",
     reseller_feat2_desc: "একটি ইউনিক রেফারেল কোড এবং লিঙ্ক পান। যে দোকানগুলো এই লিঙ্ক দিয়ে সাইন আপ করবে, তারা আপনার রেফারেল হিসেবে যুক্ত হবে।",
+    reseller_feat3_title: "প্রতি মাসে নিয়মিত রিকারিং কমিশন পান",
     reseller_feat3_desc: "প্রতিটি যুক্ত দোকানের মাসিক মোট লাভের একটি নির্দিষ্ট % পান — যা আপনার ড্যাশবোর্ডে ট্র্যাক করা যায়।",
 
     // Shop Panel - Sidebar & TopBar
@@ -2016,6 +2013,7 @@ export const translations: Translations = {
     sales_status_partial: "আংশিক",
     sales_status_due: "বাকি",
     sales_status_cancelled: "বাতিল",
+    sales_status_returned: "রিটার্নড",
 
     // Inventory
     inv_err_load: "ইনভেন্টরি লোড করা যায়নি",
@@ -2974,8 +2972,6 @@ export const translations: Translations = {
     bar_loading: "বারকোড তথ্য লোড হচ্ছে...",
     dash_no_expiring_war: "কোনো মেয়াদোত্তীর্ণের কাছাকাছি ওয়ারেন্টি নেই।",
     hero_btn_register: "বিনামূল্যে শুরু করুন",
-    reseller_feat3_title: "প্রতি মাসে নিয়মিত রিকারিং কমিশন পান",
-    sales_status_returned: "রিটার্নড",
 
     search_placeholder: "ইনভয়েস, প্রোডাক্ট, বারকোড, কাস্টমার, সাপ্লায়ার খুঁজুন...",
     nav_trial_rem: "বাকি সময়",
@@ -2998,8 +2994,6 @@ export const translations: Translations = {
     inv_lock_recv_pmt: "পেমেন্ট গ্রহণ করুন",
     emi_collect_installment: "কিস্তি আদায় করুন",
     emi_installment_due: "পরিশোধের তারিখ",
-    emi_status_pending: "বাকি",
-    emi_status_paid: "পরিশোধিত",
     emi_status_overdue: "মেয়াদোত্তীর্ণ",
     ret_select_items: "রিটার্নের পণ্য নির্বাচন করুন",
     ret_restock_check: "পুনরায় স্টকে যুক্ত করুন",
