@@ -61,7 +61,7 @@ export default function SoftwarePage() {
     setMounted(true);
     api<any>("/platform/public/software/")
       .then((data) => {
-        const list = unwrap(data);
+        const list = unwrap<SoftwareRelease>(data);
         if (Array.isArray(list) && list.length > 0) {
           setReleases(list);
         } else {
