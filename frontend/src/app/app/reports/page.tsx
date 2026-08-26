@@ -88,7 +88,7 @@ type DashboardData = {
 };
 
 export default function ReportsPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   
   const PROFIT_RANGES: { key: string; label: string }[] = [
     { key: "today", label: t("rep_filter_today") },
