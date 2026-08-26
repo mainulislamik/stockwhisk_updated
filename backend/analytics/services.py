@@ -1023,12 +1023,24 @@ def dashboard_summary(shop, days=30, use_cache=True):
         for s in recent_sales_qs
     ]
 
+    pos = financial_position(shop)
+    pos_clean = {
+        "cash_balance": float(pos.get("cash_balance") or 0),
+        "bank_balance": float(pos.get("bank_balance") or 0),
+        "receivables": float(pos.get("receivables") or 0),
+        "payables": float(pos.get("payables") or 0),
+        "total_investment": float(pos.get("total_investment") or 0),
+        "capital_investment": float(pos.get("capital_investment") or 0),
+        "purchase_investment": float(pos.get("purchase_investment") or 0),
+        "investors_count": int(pos.get("investors_count") or 0),
+    }
+
     data = {
         "period_days": days,
         "today": profit_summary(shop, start=today_start, end=now),
         "period": profit_summary(shop, start=start, end=now),
-        "position": financial_position(shop),
-        "stock_value": stock_value(shop),
+        "position": pos_clean,
+        "stock_value": float(stock_value(shop) or 0),
         "low_stock_count": len(low_stock_list(shop)),
         "out_of_stock_count": len(out_of_stock_list(shop)),
         "top_products": top_products(shop, start=start, end=now, limit=5),

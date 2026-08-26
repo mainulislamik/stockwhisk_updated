@@ -199,27 +199,42 @@ def investment_summary(shop, start=None, end=None):
     - Inventory / Purchase Investments: all purchase orders (total_amount) or received purchases.
     - Total Investment: Capital + Purchases.
     """
-    investments = Investment.all_objects.filter(shop_id=shop.id)
-    purchases = PurchaseOrder.all_objects.filter(shop_id=shop.id).exclude(status=PurchaseOrder.Status.CANCELLED)
+    from datetime import datetime, date
 
-    if start is not None:
-        investments = investments.filter(invested_on__gte=start)
-        purchases = purchases.filter(created_at__gte=start)
-    if end is not None:
-        investments = investments.filter(invested_on__lte=end)
-        purchases = purchases.filter(created_at__lte=end)
+    start_date = start.date() if isinstance(start, datetime) else start
+    end_date = end.date() if isinstance(end, datetime) else end
 
-    capital_investment = _sum(investments, "amount")
-    purchase_investment = _sum(purchases, "total_amount")
-    total_investment = capital_investment + purchase_investment
-
-    # Breakdown by investment type
+    capital_investment = ZERO
     by_type = {}
-    for item in investments.values("type").annotate(total=Sum("amount")):
-        by_type[item["type"]] = item["total"]
+    investors_count = 0
+    try:
+        investments = Investment.all_objects.filter(shop_id=shop.id)
+        if start_date is not None:
+            investments = investments.filter(invested_on__gte=start_date)
+        if end_date is not None:
+            investments = investments.filter(invested_on__lte=end_date)
 
-    # Unique investors count
-    investors_count = investments.values("investor_name").distinct().count()
+        capital_investment = _sum(investments, "amount")
+        for item in investments.values("type").annotate(total=Sum("amount")):
+            by_type[item["type"]] = item["total"]
+        investors_count = investments.values("investor_name").distinct().count()
+    except Exception:
+        pass
+
+    purchase_investment = ZERO
+    purchases_count = 0
+    try:
+        purchases = PurchaseOrder.all_objects.filter(shop_id=shop.id).exclude(status=PurchaseOrder.Status.CANCELLED)
+        if start is not None:
+            purchases = purchases.filter(created_at__gte=start)
+        if end is not None:
+            purchases = purchases.filter(created_at__lte=end)
+        purchase_investment = _sum(purchases, "total_amount")
+        purchases_count = purchases.count()
+    except Exception:
+        pass
+
+    total_investment = capital_investment + purchase_investment
 
     return {
         "capital_investment": capital_investment,
@@ -227,7 +242,7 @@ def investment_summary(shop, start=None, end=None):
         "total_investment": total_investment,
         "investors_count": investors_count,
         "by_type": by_type,
-        "purchases_count": purchases.count(),
+        "purchases_count": purchases_count,
     }
 
 
