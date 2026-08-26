@@ -1,15 +1,18 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { api } from "@/lib/api";
 import { money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import Link from "next/link";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/components/AuthProvider";
+import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 import Swal from "sweetalert2";
 
 export default function ReturnsPage() {
   const { t, lang } = useLanguage();
+  const { user } = useAuth();
   const [activeTab, setActiveTab] = useState<"return" | "replace">("return");
   
   // Return State
@@ -82,10 +85,9 @@ export default function ReturnsPage() {
     });
   };
 
-  // Handle standard Return scan
-  const handleReturnScan = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const scannedVal = barcode.trim();
+  // Core Return scan executor (used by form submit & scanner app websocket)
+  const executeReturnScan = useCallback(async (codeVal: string) => {
+    const scannedVal = codeVal.trim();
     if (!scannedVal) return;
     
     setLoading(true);
@@ -105,6 +107,12 @@ export default function ReturnsPage() {
       setBarcode("");
       returnInputRef.current?.focus();
     }
+  }, [t, lang]);
+
+  // Handle standard Return scan from UI form
+  const handleReturnScan = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await executeReturnScan(barcode);
   };
 
   const processReturn = async () => {
@@ -129,10 +137,9 @@ export default function ReturnsPage() {
     }
   };
 
-  // Handle Replace scan
-  const handleReplaceScan = async (e: React.FormEvent, type: "old" | "new") => {
-    e.preventDefault();
-    const val = type === "old" ? oldBarcode.trim() : newBarcode.trim();
+  // Core Replace scan executor (used by form submit & scanner app websocket)
+  const executeReplaceScan = useCallback(async (codeVal: string, type: "old" | "new") => {
+    const val = codeVal.trim();
     if (!val) return;
     
     setLoading(true);
@@ -167,7 +174,33 @@ export default function ReturnsPage() {
     } finally {
       setLoading(false);
     }
+  }, [t, lang]);
+
+  // Handle Replace scan from UI form
+  const handleReplaceScan = async (e: React.FormEvent, type: "old" | "new") => {
+    e.preventDefault();
+    const val = type === "old" ? oldBarcode : newBarcode;
+    await executeReplaceScan(val, type);
   };
+
+  // Connect Mobile StockWhisk Barcode Scanner via WebSocket
+  const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop, (scannedCode) => {
+    if (!scannedCode || !scannedCode.trim()) return;
+    const cleanCode = scannedCode.trim();
+
+    if (activeTab === "return") {
+      setBarcode(cleanCode);
+      executeReturnScan(cleanCode);
+    } else {
+      if (!oldScanResult) {
+        setOldBarcode(cleanCode);
+        executeReplaceScan(cleanCode, "old");
+      } else {
+        setNewBarcode(cleanCode);
+        executeReplaceScan(cleanCode, "new");
+      }
+    }
+  });
 
   const processReplace = async () => {
     if (!oldScanResult || !newScanResult) return;
@@ -201,6 +234,14 @@ export default function ReturnsPage() {
     <div className="vstack gap-4" style={{ maxWidth: "800px", margin: "0 auto" }}>
       <div className="d-flex align-items-center justify-content-between mb-2">
         <h4 className="fw-bold m-0">{t("ret_title")}</h4>
+        <div className="d-flex align-items-center gap-2 small fw-medium">
+          <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
+          <span className={scannerConnected ? 'text-success' : 'text-secondary'}>
+            {scannerConnected 
+              ? (lang === "bn" ? "স্ক্যানার অ্যাপ কানেক্টেড" : "Scanner App Connected")
+              : (lang === "bn" ? "স্ক্যানার অ্যাপ ডিসকানেক্টেড" : "Scanner App Disconnected")}
+          </span>
+        </div>
       </div>
 
       <ul className="nav nav-pills gap-2 mb-2">
