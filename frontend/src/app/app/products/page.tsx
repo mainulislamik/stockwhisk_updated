@@ -22,12 +22,14 @@ type Product = {
   current_stock: string;
   is_low_stock: boolean;
   is_active: boolean;
+  track_inventory?: boolean;
 };
 type Named = { id: number; name: string };
 
 export default function ProductsPage() {
   const { can, isOwner } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+
   const canManage = isOwner || can("manage_products");
   const [categories, setCategories] = useState<Named[]>([]);
   const [brands, setBrands] = useState<Named[]>([]);
