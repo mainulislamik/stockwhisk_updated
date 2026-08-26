@@ -102,9 +102,10 @@ class BarcodeLookupView(_POSBase):
 
 class CheckoutView(_POSBase):
     def post(self, request):
-        ser = SaleCreateSerializer(data=request.data)
+        ser = SaleCreateSerializer(data=request.data, context={"request": request})
         ser.is_valid(raise_exception=True)
         data = ser.validated_data
+
         customer = data.get("customer")
         
         if not customer:

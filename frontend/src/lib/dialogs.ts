@@ -73,3 +73,47 @@ export async function confirmAction(title: string, text?: string, confirmText: s
   });
   return result.isConfirmed;
 }
+
+
+/**
+ * Recursively parse and format nested API validation error responses from DRF into clean, readable text.
+ */
+export function formatApiErrorMessage(error: any): string {
+  if (!error) return "";
+  if (typeof error === "string") return error;
+  if (error.data) {
+    if (typeof error.data === "string") return error.data;
+    if (error.data.detail) return String(error.data.detail);
+    const formatted = formatObjectErrors(error.data);
+    if (formatted) return formatted;
+  }
+  if (error.message) return String(error.message);
+  if (typeof error === "object") return formatObjectErrors(error);
+  return String(error);
+}
+
+function formatObjectErrors(obj: any): string {
+  if (!obj) return "";
+  if (typeof obj === "string") return obj;
+  if (Array.isArray(obj)) {
+    return obj
+      .map((item) => formatObjectErrors(item))
+      .filter(Boolean)
+      .join(", ");
+  }
+  if (typeof obj === "object" && obj !== null) {
+    return Object.entries(obj)
+      .map(([key, val]) => {
+        const valStr = formatObjectErrors(val);
+        if (!valStr) return "";
+        if (key === "non_field_errors" || key === "detail" || !isNaN(Number(key))) {
+          return valStr;
+        }
+        return `${key}: ${valStr}`;
+      })
+      .filter(Boolean)
+      .join(" | ");
+  }
+  return String(obj);
+}
+

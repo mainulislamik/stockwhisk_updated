@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
-import { showError } from "@/lib/dialogs";
+import { showError, formatApiErrorMessage } from "@/lib/dialogs";
 import { useRouter } from "next/navigation";
 import { api, fetchAll } from "@/lib/api";
 import { Spinner, money } from "@/components/ui";
@@ -178,16 +178,12 @@ export default function PosCustomerPage() {
         : "";
       setSaleResult({ id: sale.id, invoice_no: sale.invoice_no, phone: custPhone, name: custName, total, pdfUrl });
     } catch (e: any) {
-      let msg = e?.data?.detail || e?.message || t("pos_err_checkout_failed");
-      if (e?.data && !e.data.detail && typeof e.data === 'object') {
-        msg = Object.entries(e.data)
-          .map(([k, v]) => `${k}: ${Array.isArray(v) ? v.join(", ") : v}`)
-          .join(" | ");
-      }
+      const msg = formatApiErrorMessage(e) || t("pos_err_checkout_failed");
       await showError("Transaction Failed", msg);
     } finally {
       setBusy(false);
     }
+
   }
 
   if (cart.length === 0 && !sessionStorage.getItem("pos_cart")) return <Spinner label="Loading…" />;
