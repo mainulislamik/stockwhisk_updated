@@ -157,8 +157,82 @@ def cash_flow(shop, start, end):
     }
 
 
+from purchasing.models import Supplier, PurchaseOrder, PurchasePayment
+from sales.models import Sale, SaleItem, SaleReturn, SaleReturnItem, Payment
+
+from .models import Expense, ExpenseCategory, LedgerEntry, Investment
+
+
+def record_investment(*, shop, investor_name, amount, type="capital", invested_on=None, payment_method="cash", reference="", note="", created_by=None):
+    """Create an Investment and post inflow into LedgerEntry."""
+    from django.utils import timezone
+    amount = Decimal(amount)
+    invested_on = invested_on or timezone.localdate()
+    inv = Investment.all_objects.create(
+        shop_id=shop.id,
+        investor_name=investor_name,
+        type=type,
+        amount=amount,
+        invested_on=invested_on,
+        payment_method=payment_method,
+        reference=reference,
+        note=note,
+        created_by=created_by,
+    )
+    pm = (payment_method or "").upper()
+    acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
+    LedgerEntry.all_objects.create(
+        shop_id=shop.id,
+        account=acct,
+        amount=amount,  # positive inflow
+        source_type="Investment",
+        source_id=str(inv.id),
+        description=note or f"Investment by {investor_name} ({type})",
+    )
+    return inv
+
+
+def investment_summary(shop, start=None, end=None):
+    """
+    Comprehensive Investment calculations:
+    - Capital / Partner Investments: recorded directly in Investment model.
+    - Inventory / Purchase Investments: all purchase orders (total_amount) or received purchases.
+    - Total Investment: Capital + Purchases.
+    """
+    investments = Investment.all_objects.filter(shop_id=shop.id)
+    purchases = PurchaseOrder.all_objects.filter(shop_id=shop.id).exclude(status=PurchaseOrder.Status.CANCELLED)
+
+    if start is not None:
+        investments = investments.filter(invested_on__gte=start)
+        purchases = purchases.filter(created_at__gte=start)
+    if end is not None:
+        investments = investments.filter(invested_on__lte=end)
+        purchases = purchases.filter(created_at__lte=end)
+
+    capital_investment = _sum(investments, "amount")
+    purchase_investment = _sum(purchases, "total_amount")
+    total_investment = capital_investment + purchase_investment
+
+    # Breakdown by investment type
+    by_type = {}
+    for item in investments.values("type").annotate(total=Sum("amount")):
+        by_type[item["type"]] = item["total"]
+
+    # Unique investors count
+    investors_count = investments.values("investor_name").distinct().count()
+
+    return {
+        "capital_investment": capital_investment,
+        "purchase_investment": purchase_investment,
+        "total_investment": total_investment,
+        "investors_count": investors_count,
+        "by_type": by_type,
+        "purchases_count": purchases.count(),
+    }
+
+
 def financial_position(shop):
-    """Cash balance, receivables (customer dues), payables (supplier dues)."""
+    """Cash balance, receivables (customer dues), payables (supplier dues), and total investments."""
     cash = _sum(
         LedgerEntry.all_objects.filter(shop_id=shop.id, account=LedgerEntry.Account.CASH),
         "amount",
@@ -169,9 +243,16 @@ def financial_position(shop):
     )
     receivables = _sum(Customer.all_objects.filter(shop_id=shop.id), "due_balance")
     payables = _sum(Supplier.all_objects.filter(shop_id=shop.id), "due_balance")
+
+    inv = investment_summary(shop)
+
     return {
         "cash_balance": cash,
         "bank_balance": bank,
         "receivables": receivables,
         "payables": payables,
+        "total_investment": inv["total_investment"],
+        "capital_investment": inv["capital_investment"],
+        "purchase_investment": inv["purchase_investment"],
+        "investors_count": inv["investors_count"],
     }

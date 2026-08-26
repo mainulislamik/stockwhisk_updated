@@ -7,9 +7,64 @@ from core.api import TenantScopedViewSet
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
 
-from .models import Expense, ExpenseCategory
-from .serializers import ExpenseCategorySerializer, ExpenseSerializer
-from .services import cash_flow, financial_position, profit_summary, record_expense
+from .models import Expense, ExpenseCategory, Investment
+from .serializers import ExpenseCategorySerializer, ExpenseSerializer, InvestmentSerializer
+from .services import cash_flow, financial_position, profit_summary, record_expense, investment_summary, record_investment
+
+
+class InvestmentViewSet(TenantScopedViewSet):
+    serializer_class = InvestmentSerializer
+    required_perm = "manage_expenses"
+
+    def get_queryset(self):
+        qs = Investment.objects.select_related("created_by")
+        if search := self.request.query_params.get("search"):
+            from django.db.models import Q
+            qs = qs.filter(Q(investor_name__icontains=search) | Q(reference__icontains=search) | Q(note__icontains=search))
+        if inv_type := self.request.query_params.get("type"):
+            qs = qs.filter(type=inv_type)
+        return qs
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        """Combined summary of capital investments and purchasing investments."""
+        start = parse_datetime(request.query_params.get("start", "") or "")
+        end = parse_datetime(request.query_params.get("end", "") or "")
+        return Response(investment_summary(request.user.shop, start=start, end=end))
+
+    def perform_create(self, serializer):
+        v = serializer.validated_data
+        inv = record_investment(
+            shop=self.request.user.shop,
+            investor_name=v["investor_name"],
+            amount=v["amount"],
+            type=v.get("type", "capital"),
+            invested_on=v.get("invested_on"),
+            payment_method=v.get("payment_method", "cash"),
+            reference=v.get("reference", ""),
+            note=v.get("note", ""),
+            created_by=self.request.user,
+        )
+        serializer.instance = inv
+
+    def perform_update(self, serializer):
+        from decimal import Decimal
+        from .models import LedgerEntry
+        instance = serializer.save()
+        pm = (instance.payment_method or "").upper()
+        acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
+        LedgerEntry.all_objects.filter(
+            shop_id=instance.shop_id, source_type="Investment", source_id=str(instance.id)
+        ).update(
+            account=acct,
+            amount=Decimal(str(instance.amount or 0)),
+            description=instance.note or f"Investment by {instance.investor_name} ({instance.type})",
+        )
+
+    def perform_destroy(self, instance):
+        from .models import LedgerEntry
+        LedgerEntry.all_objects.filter(shop_id=instance.shop_id, source_type="Investment", source_id=str(instance.id)).delete()
+        instance.delete()
 
 
 class ExpenseCategoryViewSet(TenantScopedViewSet):

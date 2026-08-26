@@ -479,12 +479,22 @@ def profit_overview(shop, range_key="30d", custom_start=None, custom_end=None):
     ret_amount = float(cur.get("returns") or 0)
     ret_count = int(cur.get("returns_count") or 0)
 
+    from accounting.services import investment_summary
+    inv_cur = investment_summary(shop, start=start, end=end)
+    inv_all = investment_summary(shop)
+
     return {
         "summary": {
             "gross_profit": round(gp, 2), "total_cost": round(cost, 2),
             "profit_margin": round(margin, 2), "average_profit_per_order": round(avg, 2),
             "revenue": round(revenue, 2), "completed_orders": cur_orders,
             "return_count": ret_count, "return_amount": round(ret_amount, 2),
+            "total_investment": float(inv_cur["total_investment"] or 0),
+            "capital_investment": float(inv_cur["capital_investment"] or 0),
+            "purchase_investment": float(inv_cur["purchase_investment"] or 0),
+            "lifetime_investment": float(inv_all["total_investment"] or 0),
+            "lifetime_purchase_investment": float(inv_all["purchase_investment"] or 0),
+            "lifetime_capital_investment": float(inv_all["capital_investment"] or 0),
         },
         "comparison": {
             "gross_profit_change": _pct_change(gp, p_gp),

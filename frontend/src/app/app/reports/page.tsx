@@ -26,7 +26,18 @@ type SalesOverview = {
 };
 type ProfitPoint = { date: string; revenue: number; cost: number; profit: number; orders: number; margin: number; avg_profit: number };
 type ProfitOverview = {
-  summary: { gross_profit: number; total_cost: number; profit_margin: number; average_profit_per_order: number; revenue: number; completed_orders: number };
+  summary: {
+    gross_profit: number;
+    total_cost: number;
+    profit_margin: number;
+    average_profit_per_order: number;
+    revenue: number;
+    completed_orders: number;
+    total_investment?: number;
+    purchase_investment?: number;
+    capital_investment?: number;
+    lifetime_investment?: number;
+  };
   comparison: { gross_profit_change: number | null; total_cost_change: number | null; profit_margin_change: number | null; average_profit_per_order_change: number | null; has_previous: boolean };
   trend: ProfitPoint[];
   range: { key: string; start: string; end: string; bucket: string };
@@ -675,12 +686,13 @@ export default function ReportsPage() {
             {/* KPI cards */}
             <div className="row g-3">
               {[
-                { icon: "bi-graph-up-arrow", label: "Gross Profit", value: money(String(profit.summary.gross_profit)), accent: "success", badge: changeBadge(profit.comparison.gross_profit_change) },
-                { icon: "bi-cart-dash", label: "Total Cost", value: money(String(profit.summary.total_cost)), accent: "danger", badge: changeBadge(profit.comparison.total_cost_change, { goodWhenUp: false }) },
+                { icon: "bi-graph-up-arrow", label: t("acc_gross_profit") || "Gross Profit", value: money(String(profit.summary.gross_profit)), accent: "success", badge: changeBadge(profit.comparison.gross_profit_change) },
+                { icon: "bi-cart-dash", label: t("acc_cogs") || "Total Cost (COGS)", value: money(String(profit.summary.total_cost)), accent: "danger", badge: changeBadge(profit.comparison.total_cost_change, { goodWhenUp: false }) },
                 { icon: "bi-percent", label: "Profit Margin", value: pct(profit.summary.profit_margin), accent: "primary", badge: changeBadge(profit.comparison.profit_margin_change, { pts: true }) },
-                { icon: "bi-receipt-cutoff", label: "Avg. Profit / Order", value: money(String(profit.summary.average_profit_per_order)), accent: "info", badge: changeBadge(profit.comparison.average_profit_per_order_change) },
+                { icon: "bi-wallet2", label: t("rep_investment") || "Total Investment", value: money(String(profit.summary.total_investment ?? 0)), accent: "info", badge: <span className="small text-muted">{lang === "bn" ? "ক্রয়:" : "Purchases:"} {money(String(profit.summary.purchase_investment ?? 0))}</span> },
+                { icon: "bi-receipt-cutoff", label: "Avg. Profit / Order", value: money(String(profit.summary.average_profit_per_order)), accent: "secondary", badge: changeBadge(profit.comparison.average_profit_per_order_change) },
               ].map((c) => (
-                <div key={c.label} className="col-12 col-sm-6 col-xl-3">
+                <div key={c.label} className="col-12 col-sm-6 col-lg">
                   <div className="card shadow-sm h-100 border-0">
                     <div className="card-body">
                       <div className="d-flex align-items-center gap-2 mb-2">

@@ -8,11 +8,13 @@ from .views import (
     FinancialPositionView,
     ProfitReportView,
     DailySettlementViewSet,
+    InvestmentViewSet,
 )
 
 router = DefaultRouter()
 router.register("expense-categories", ExpenseCategoryViewSet, basename="expense-category")
 router.register("expenses", ExpenseViewSet, basename="expense")
+router.register("investments", InvestmentViewSet, basename="investment")
 router.register("daily-settlements", DailySettlementViewSet, basename="daily-settlement")
 
 urlpatterns = [

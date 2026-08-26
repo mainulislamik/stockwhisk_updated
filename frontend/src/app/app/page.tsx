@@ -13,7 +13,16 @@ type Summary = {
   period_days: number;
   today: { revenue: number; net_profit: number; sales_count: number; returns?: number; returns_count?: number };
   period: { revenue: number; net_profit: number; sales_count: number; returns?: number; returns_count?: number };
-  position: { cash_balance: number; receivables: number; payables: number; bank_balance: number };
+  position: {
+    cash_balance: number;
+    receivables: number;
+    payables: number;
+    bank_balance: number;
+    total_investment?: number;
+    capital_investment?: number;
+    purchase_investment?: number;
+    investors_count?: number;
+  };
   stock_value: number;
   low_stock_count: number;
   out_of_stock_count: number;
@@ -269,6 +278,26 @@ export default function DashboardPage() {
             <div className="small text-secondary">{t("dash_receivables")} (Total Due)</div>
             <div className="fs-4 fw-bold text-warning">
               {money(data.position.receivables)}
+            </div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="d-flex justify-content-between align-items-center">
+              <div className="small text-secondary">{t("dash_investment") || "Total Investment"}</div>
+              <a href="/app/accounting" className="small text-primary text-decoration-none fw-semibold" style={{ fontSize: "0.72rem" }}>
+                {t("inv_tbl_actions") || "Details"} →
+              </a>
+            </div>
+            <div className="fs-4 fw-bold text-primary">
+              {topData && topData.summary?.total_investment !== undefined
+                ? money(topData.summary.total_investment)
+                : data.position?.total_investment !== undefined
+                ? money(data.position.total_investment)
+                : "..."}
+            </div>
+            <div className="small text-muted text-truncate mt-0.5" style={{ fontSize: "0.72rem" }}>
+              Purchases: {money(topData?.summary?.purchase_investment ?? data.position?.purchase_investment ?? 0)}
             </div>
           </Card>
         </div>

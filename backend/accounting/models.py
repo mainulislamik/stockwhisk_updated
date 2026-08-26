@@ -119,3 +119,39 @@ class DailySettlement(TenantScopedModel):
 
     def __str__(self):
         return f"Settlement {self.id} ({self.status})"
+
+
+from django.core.validators import MinValueValidator
+
+
+class Investment(TenantScopedModel):
+    """
+    Capital and financial investments into the business.
+    Tracks investor/partner capital contributions, equity/capital additions, or loans.
+    """
+    class Type(models.TextChoices):
+        CAPITAL = "capital", "Owner / Partner Capital"
+        LOAN = "loan", "Loan / Borrowing"
+        EQUITY = "equity", "Equity / Share"
+        OTHER = "other", "Other Investment"
+
+    investor_name = models.CharField(max_length=150, help_text="Name of the investor, owner, or partner")
+    type = models.CharField(max_length=30, choices=Type.choices, default=Type.CAPITAL)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
+    invested_on = models.DateField(default=timezone.localdate)
+    payment_method = models.CharField(max_length=40, blank=True, default="cash")
+    reference = models.CharField(max_length=120, blank=True)
+    note = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="investments"
+    )
+
+    class Meta:
+        ordering = ["-invested_on", "-created_at"]
+        indexes = [models.Index(fields=["shop", "invested_on"])]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(amount__gte=0), name="investment_amount_non_negative"),
+        ]
+
+    def __str__(self):
+        return f"{self.investor_name} - {self.amount} ({self.type})"

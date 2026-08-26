@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Expense, ExpenseCategory, DailySettlement
+from .models import Expense, ExpenseCategory, DailySettlement, Investment
 
 
 class ExpenseCategorySerializer(serializers.ModelSerializer):
@@ -34,3 +34,17 @@ class DailySettlementSerializer(serializers.ModelSerializer):
             "opened_at", "closed_at", "expected_cash", "discrepancy",
             "total_sales", "total_expenses", "total_refunds", "status", "closed_by"
         ]
+
+
+class InvestmentSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
+    type_display = serializers.CharField(source="get_type_display", read_only=True)
+
+    class Meta:
+        model = Investment
+        fields = [
+            "id", "investor_name", "type", "type_display", "amount",
+            "invested_on", "payment_method", "reference", "note",
+            "created_by", "created_by_name", "created_at"
+        ]
+        read_only_fields = ["created_by", "created_at"]
