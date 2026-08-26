@@ -251,12 +251,12 @@ export default function AccountingPage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
           <h4 className="fw-bold mb-1 text-dark">
-            {activeTab === "overview" ? `📊 ${t("nav_accounting")}` : `💼 ${t("inv_title") || "Investment Management"}`}
+            {activeTab === "overview" ? `📊 ${t("nav_accounting")}` : `💼 ${t("invest_title") || "Investment Management"}`}
           </h4>
           <div className="text-secondary small">
             {activeTab === "overview"
               ? (t("acc_desc") || "Profit & loss, financial position, cash ledger and settlement")
-              : (t("inv_desc") || "Track capital additions, partner equity, and purchasing investments.")}
+              : (t("invest_desc") || "Track capital additions, partner equity, and purchasing investments.")}
           </div>
         </div>
 
@@ -267,14 +267,14 @@ export default function AccountingPage() {
             className={`btn btn-sm rounded-2 ${activeTab === "overview" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
             onClick={() => setActiveTab("overview")}
           >
-            📊 {t("inv_tab_overview") || "P&L & Position"}
+            📊 {t("invest_tab_overview") || "P&L & Position"}
           </button>
           <button
             type="button"
             className={`btn btn-sm rounded-2 ${activeTab === "investment" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
             onClick={() => setActiveTab("investment")}
           >
-            💼 {t("inv_tab_investment") || "Investment Management"}
+            💼 {t("invest_tab_investment") || "Investment Management"}
           </button>
         </div>
       </div>
@@ -346,7 +346,7 @@ export default function AccountingPage() {
                   <div className="d-flex align-items-center gap-3">
                     <div className="fs-3">💼</div>
                     <div>
-                      <div className="fw-bold text-dark">{t("inv_total") || "Total Business Investment"}</div>
+                      <div className="fw-bold text-dark">{t("invest_total") || "Total Business Investment"}</div>
                       <div className="small text-secondary">
                         {lang === "bn"
                           ? `পণ্য ক্রয় বিনিয়োগ: ${money(position?.purchase_investment || 0)} · মূলধন বিনিয়োগ: ${money(position?.capital_investment || 0)}`
@@ -358,7 +358,7 @@ export default function AccountingPage() {
                     <div className="text-end">
                       <div className="fs-4 fw-bold text-primary">{money(position?.total_investment || 0)}</div>
                       <span className="badge bg-primary rounded-pill small">
-                        {position?.investors_count || 0} {t("inv_investors") || "Investors"}
+                        {position?.investors_count || 0} {t("invest_investors") || "Investors"}
                       </span>
                     </div>
                     <button
@@ -433,7 +433,7 @@ export default function AccountingPage() {
                             <td className="text-end">{money(position?.payables)}</td>
                           </tr>
                           <tr className="border-top fw-semibold">
-                            <td className="text-primary">{t("inv_total") || "Total Investment"}</td>
+                            <td className="text-primary">{t("invest_total") || "Total Investment"}</td>
                             <td className="text-end text-primary fw-bold">{money(position?.total_investment || 0)}</td>
                           </tr>
                         </tbody>
@@ -474,7 +474,7 @@ export default function AccountingPage() {
           <div className="row g-3">
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-primary">
-                <div className="small text-secondary fw-semibold">💼 {t("inv_total") || "Total Investment"}</div>
+                <div className="small text-secondary fw-semibold">💼 {t("invest_total") || "Total Investment"}</div>
                 <div className="fs-4 fw-bold text-primary mt-1">
                   {money(invSummary?.total_investment ?? position?.total_investment ?? 0)}
                 </div>
@@ -486,7 +486,7 @@ export default function AccountingPage() {
 
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-info">
-                <div className="small text-secondary fw-semibold">📦 {t("inv_purchase") || "Purchase Investment"}</div>
+                <div className="small text-secondary fw-semibold">📦 {t("invest_purchase") || "Purchase Investment"}</div>
                 <div className="fs-4 fw-bold text-info mt-1">
                   {money(invSummary?.purchase_investment ?? position?.purchase_investment ?? 0)}
                 </div>
@@ -498,7 +498,7 @@ export default function AccountingPage() {
 
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-success">
-                <div className="small text-secondary fw-semibold">🤝 {t("inv_capital") || "Capital Investment"}</div>
+                <div className="small text-secondary fw-semibold">🤝 {t("invest_capital") || "Capital Investment"}</div>
                 <div className="fs-4 fw-bold text-success mt-1">
                   {money(invSummary?.capital_investment ?? position?.capital_investment ?? 0)}
                 </div>
@@ -510,7 +510,7 @@ export default function AccountingPage() {
 
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-warning">
-                <div className="small text-secondary fw-semibold">👥 {t("inv_investors") || "Active Investors"}</div>
+                <div className="small text-secondary fw-semibold">👥 {t("invest_investors") || "Active Investors"}</div>
                 <div className="fs-4 fw-bold text-warning mt-1">
                   {invSummary?.investors_count ?? position?.investors_count ?? 0}
                 </div>
@@ -548,10 +548,10 @@ export default function AccountingPage() {
                     onChange={(e) => setInvTypeFilter(e.target.value)}
                   >
                     <option value="all">{lang === "bn" ? "সকল ধরন (All Types)" : "All Types"}</option>
-                    <option value="capital">{t("inv_type_capital") || "Capital"}</option>
-                    <option value="loan">{t("inv_type_loan") || "Loan"}</option>
-                    <option value="equity">{t("inv_type_equity") || "Equity"}</option>
-                    <option value="other">{t("inv_type_other") || "Other"}</option>
+                    <option value="capital">{t("invest_type_capital") || "Capital"}</option>
+                    <option value="loan">{t("invest_type_loan") || "Loan"}</option>
+                    <option value="equity">{t("invest_type_equity") || "Equity"}</option>
+                    <option value="other">{t("invest_type_other") || "Other"}</option>
                   </select>
 
                   <button
@@ -559,7 +559,7 @@ export default function AccountingPage() {
                     className="btn btn-brand btn-sm fw-bold px-3 shadow-sm d-flex align-items-center gap-1"
                     onClick={openAddModal}
                   >
-                    ➕ {t("inv_btn_add") || "Add Investment"}
+                    ➕ {t("invest_btn_add") || "Add Investment"}
                   </button>
                 </div>
               </div>
@@ -586,7 +586,7 @@ export default function AccountingPage() {
                   {lang === "bn" ? "নতুন পার্টনার মূলধন যুক্ত করতে উপরের বাটনে ক্লিক করুন।" : "Click 'Add Investment' to record owner/partner capital contributions."}
                 </p>
                 <button type="button" className="btn btn-sm btn-brand fw-semibold" onClick={openAddModal}>
-                  ➕ {t("inv_btn_add") || "Add Investment"}
+                  ➕ {t("invest_btn_add") || "Add Investment"}
                 </button>
               </div>
             ) : (
@@ -595,14 +595,14 @@ export default function AccountingPage() {
                   <thead className="table-light">
                     <tr className="small text-secondary">
                       <th>#</th>
-                      <th>{t("inv_tbl_date") || "Date"}</th>
-                      <th>{t("inv_tbl_investor") || "Investor / Partner"}</th>
-                      <th>{t("inv_tbl_type") || "Type"}</th>
-                      <th className="text-end">{t("inv_tbl_amount") || "Amount"}</th>
-                      <th>{t("inv_tbl_method") || "Account"}</th>
-                      <th>{t("inv_tbl_ref") || "Ref / Voucher"}</th>
-                      <th>{t("inv_tbl_note") || "Note"}</th>
-                      <th className="text-end pe-3">{t("inv_tbl_actions") || "Actions"}</th>
+                      <th>{t("invest_tbl_date") || "Date"}</th>
+                      <th>{t("invest_tbl_investor") || "Investor / Partner"}</th>
+                      <th>{t("invest_tbl_type") || "Type"}</th>
+                      <th className="text-end">{t("invest_tbl_amount") || "Amount"}</th>
+                      <th>{t("invest_tbl_method") || "Account"}</th>
+                      <th>{t("invest_tbl_ref") || "Ref / Voucher"}</th>
+                      <th>{t("invest_tbl_note") || "Note"}</th>
+                      <th className="text-end pe-3">{t("invest_tbl_actions") || "Actions"}</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -668,10 +668,10 @@ export default function AccountingPage() {
             <div className="card-header bg-light py-2.5 px-3 border-0 d-flex justify-content-between align-items-center">
               <div>
                 <span className="fw-bold text-dark small">
-                  📦 {t("inv_purchases_title") || "Product Purchases Included in Investment"} ({purchases.length})
+                  📦 {t("invest_purchases_title") || "Product Purchases Included in Investment"} ({purchases.length})
                 </span>
                 <div className="text-muted small" style={{ fontSize: "0.75rem" }}>
-                  {t("inv_purchases_desc") || "All inventory purchases are automatically linked to your investment phase"}
+                  {t("invest_purchases_desc") || "All inventory purchases are automatically linked to your investment phase"}
                 </div>
               </div>
               <span className="badge bg-info-subtle text-info border border-info-subtle fw-bold">
@@ -728,7 +728,7 @@ export default function AccountingPage() {
             <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
               <div className="modal-header bg-light py-3 px-4">
                 <h5 className="modal-title fw-bold text-dark mb-0">
-                  💼 {editingInv ? (t("inv_modal_edit_title") || "Edit Investment") : (t("inv_modal_add_title") || "Record New Investment")}
+                  💼 {editingInv ? (t("invest_modal_edit_title") || "Edit Investment") : (t("invest_modal_add_title") || "Record New Investment")}
                 </h5>
                 <button
                   type="button"
@@ -741,7 +741,7 @@ export default function AccountingPage() {
                 <div className="modal-body p-4 vstack gap-3">
                   <div>
                     <label className="form-label small fw-bold text-dark mb-1">
-                      {t("inv_tbl_investor") || "Investor / Partner Name"} <span className="text-danger">*</span>
+                      {t("invest_tbl_investor") || "Investor / Partner Name"} <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
@@ -756,23 +756,23 @@ export default function AccountingPage() {
                   <div className="row g-2">
                     <div className="col-md-6">
                       <label className="form-label small fw-bold text-dark mb-1">
-                        {t("inv_tbl_type") || "Investment Type"}
+                        {t("invest_tbl_type") || "Investment Type"}
                       </label>
                       <select
                         className="form-select"
                         value={form.type}
                         onChange={(e) => setForm({ ...form, type: e.target.value as any })}
                       >
-                        <option value="capital">{t("inv_type_capital") || "Owner / Partner Capital"}</option>
-                        <option value="loan">{t("inv_type_loan") || "Loan / Borrowing"}</option>
-                        <option value="equity">{t("inv_type_equity") || "Equity / Share"}</option>
-                        <option value="other">{t("inv_type_other") || "Other Investment"}</option>
+                        <option value="capital">{t("invest_type_capital") || "Owner / Partner Capital"}</option>
+                        <option value="loan">{t("invest_type_loan") || "Loan / Borrowing"}</option>
+                        <option value="equity">{t("invest_type_equity") || "Equity / Share"}</option>
+                        <option value="other">{t("invest_type_other") || "Other Investment"}</option>
                       </select>
                     </div>
 
                     <div className="col-md-6">
                       <label className="form-label small fw-bold text-dark mb-1">
-                        {t("inv_tbl_amount") || "Amount (৳)"} <span className="text-danger">*</span>
+                        {t("invest_tbl_amount") || "Amount (৳)"} <span className="text-danger">*</span>
                       </label>
                       <input
                         type="number"
@@ -790,7 +790,7 @@ export default function AccountingPage() {
                   <div className="row g-2">
                     <div className="col-md-6">
                       <label className="form-label small fw-bold text-dark mb-1">
-                        {t("inv_tbl_date") || "Investment Date"}
+                        {t("invest_tbl_date") || "Investment Date"}
                       </label>
                       <input
                         type="date"
@@ -802,7 +802,7 @@ export default function AccountingPage() {
 
                     <div className="col-md-6">
                       <label className="form-label small fw-bold text-dark mb-1">
-                        {t("inv_tbl_method") || "Payment Account"}
+                        {t("invest_tbl_method") || "Payment Account"}
                       </label>
                       <select
                         className="form-select"
@@ -819,7 +819,7 @@ export default function AccountingPage() {
 
                   <div>
                     <label className="form-label small fw-bold text-dark mb-1">
-                      {t("inv_tbl_ref") || "Reference / Voucher Number"}
+                      {t("invest_tbl_ref") || "Reference / Voucher Number"}
                     </label>
                     <input
                       type="text"
@@ -832,7 +832,7 @@ export default function AccountingPage() {
 
                   <div>
                     <label className="form-label small fw-bold text-dark mb-1">
-                      {t("inv_tbl_note") || "Note / Description"}
+                      {t("invest_tbl_note") || "Note / Description"}
                     </label>
                     <textarea
                       rows={2}
@@ -858,7 +858,7 @@ export default function AccountingPage() {
                     className="btn btn-brand px-4 fw-bold"
                     disabled={submitting}
                   >
-                    {submitting ? "Saving..." : (editingInv ? (t("inv_btn_edit") || "Save Changes") : (t("inv_btn_add") || "Record Investment"))}
+                    {submitting ? "Saving..." : (editingInv ? (t("invest_btn_edit") || "Save Changes") : (t("invest_btn_add") || "Record Investment"))}
                   </button>
                 </div>
               </form>

@@ -286,7 +286,7 @@ export default function DashboardPage() {
             <div className="d-flex justify-content-between align-items-center">
               <div className="small text-secondary">{t("dash_investment") || "Total Investment"}</div>
               <a href="/app/accounting" className="small text-primary text-decoration-none fw-semibold" style={{ fontSize: "0.72rem" }}>
-                {t("inv_tbl_actions") || "Details"} →
+                {t("invest_tbl_actions") || "Details"} →
               </a>
             </div>
             <div className="fs-4 fw-bold text-primary">
