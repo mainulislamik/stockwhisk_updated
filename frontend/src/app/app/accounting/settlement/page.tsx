@@ -29,9 +29,18 @@ type Settlement = {
   refunds_total?: number;
   purchases_total?: number;
   capital_investments_total?: number;
+  account_balances?: {
+    cash: number;
+    bkash: number;
+    nagad: number;
+    bank: number;
+    card: number;
+    total_liquid: number;
+  };
   status: "open" | "closed";
   closed_by_name: string | null;
 };
+
 
 export default function DailySettlementPage() {
   const { t, lang } = useLanguage();
@@ -368,7 +377,16 @@ export default function DailySettlementPage() {
                           <span>ক্যাশ আগমন: <span className="text-success fw-bold">+{money(current.cash_in || 0)}</span></span>
                           <span>ক্যাশ খরচ: <span className="text-danger fw-bold">-{money(current.cash_out || 0)}</span></span>
                         </div>
+                        {current.account_balances && (
+                          <div className="d-flex flex-wrap align-items-center gap-2 pt-1.5 mt-1 border-top small text-secondary" style={{ fontSize: "0.75rem" }}>
+                            <span>bKash: <strong>{money(current.account_balances.bkash)}</strong></span>
+                            <span>· Nagad: <strong>{money(current.account_balances.nagad)}</strong></span>
+                            <span>· Bank: <strong>{money(current.account_balances.bank)}</strong></span>
+                            <span className="text-success fw-bold ms-auto">মোট তরল: {money(current.account_balances.total_liquid)}</span>
+                          </div>
+                        )}
                       </div>
+
 
                       {/* Denomination Calculator Drawer */}
                       {showCalculator && (

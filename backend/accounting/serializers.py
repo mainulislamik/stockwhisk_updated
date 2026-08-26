@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from .models import Expense, ExpenseCategory, DailySettlement, Investment
+from .models import Expense, ExpenseCategory, DailySettlement, Investment, AccountTransfer
 
 
 class ExpenseCategorySerializer(serializers.ModelSerializer):
@@ -52,3 +52,19 @@ class InvestmentSerializer(serializers.ModelSerializer):
             "created_by", "created_by_name", "created_at"
         ]
         read_only_fields = ["created_by", "created_at"]
+
+
+class AccountTransferSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
+    from_account_display = serializers.CharField(source="get_from_account_display", read_only=True)
+    to_account_display = serializers.CharField(source="get_to_account_display", read_only=True)
+
+    class Meta:
+        model = AccountTransfer
+        fields = [
+            "id", "from_account", "from_account_display", "to_account",
+            "to_account_display", "amount", "transferred_on", "reference",
+            "note", "created_by", "created_by_name", "created_at"
+        ]
+        read_only_fields = ["created_by", "created_at"]
+

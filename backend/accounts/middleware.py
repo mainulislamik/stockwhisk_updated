@@ -23,7 +23,7 @@ BUMP_EVERY_SECONDS = 60
 class LastSeenMiddleware(MiddlewareMixin):
     def process_response(self, request, response):
         user = getattr(request, "user", None)
-        if user is None or not getattr(user, "is_authenticated", False):
+        if user is None or not getattr(user, "is_authenticated", False) or not hasattr(user, "pk"):
             return response
 
         cache_key = f"last_seen_bump:{user.pk}"

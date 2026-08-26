@@ -7,9 +7,12 @@ from core.api import TenantScopedViewSet
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
 
-from .models import Expense, ExpenseCategory, Investment
-from .serializers import ExpenseCategorySerializer, ExpenseSerializer, InvestmentSerializer
-from .services import cash_flow, financial_position, profit_summary, record_expense, investment_summary, record_investment
+from .models import Expense, ExpenseCategory, Investment, AccountTransfer
+from .serializers import ExpenseCategorySerializer, ExpenseSerializer, InvestmentSerializer, AccountTransferSerializer
+from .services import (
+    cash_flow, financial_position, profit_summary, record_expense,
+    investment_summary, record_investment, record_transfer, resolve_ledger_account
+)
 
 
 class InvestmentViewSet(TenantScopedViewSet):
@@ -51,19 +54,61 @@ class InvestmentViewSet(TenantScopedViewSet):
         from decimal import Decimal
         from .models import LedgerEntry
         instance = serializer.save()
-        pm = (instance.payment_method or "").upper()
-        acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
+        acct = resolve_ledger_account(instance.payment_method)
+        raw_amt = Decimal(str(instance.amount or 0))
+        amt = -raw_amt if instance.type == Investment.Type.DRAWING else raw_amt
+        src_type = "Drawing" if instance.type == Investment.Type.DRAWING else "Investment"
         LedgerEntry.all_objects.filter(
-            shop_id=instance.shop_id, source_type="Investment", source_id=str(instance.id)
+            shop_id=instance.shop_id, source_type__in=["Investment", "Drawing"], source_id=str(instance.id)
         ).update(
             account=acct,
-            amount=Decimal(str(instance.amount or 0)),
-            description=instance.note or f"Investment by {instance.investor_name} ({instance.type})",
+            amount=amt,
+            source_type=src_type,
+            description=instance.note or (f"Owner Drawing by {instance.investor_name}" if instance.type == Investment.Type.DRAWING else f"Investment by {instance.investor_name} ({instance.type})"),
         )
 
     def perform_destroy(self, instance):
         from .models import LedgerEntry
-        LedgerEntry.all_objects.filter(shop_id=instance.shop_id, source_type="Investment", source_id=str(instance.id)).delete()
+        LedgerEntry.all_objects.filter(
+            shop_id=instance.shop_id, source_type__in=["Investment", "Drawing"], source_id=str(instance.id)
+        ).delete()
+        instance.delete()
+
+
+class AccountTransferViewSet(TenantScopedViewSet):
+    serializer_class = AccountTransferSerializer
+    required_perm = "manage_expenses"
+
+    def get_queryset(self):
+        qs = AccountTransfer.objects.select_related("created_by")
+        if search := self.request.query_params.get("search"):
+            from django.db.models import Q
+            qs = qs.filter(Q(reference__icontains=search) | Q(note__icontains=search))
+        if from_acct := self.request.query_params.get("from_account"):
+            qs = qs.filter(from_account=from_acct)
+        if to_acct := self.request.query_params.get("to_account"):
+            qs = qs.filter(to_account=to_acct)
+        return qs
+
+    def perform_create(self, serializer):
+        v = serializer.validated_data
+        transfer = record_transfer(
+            shop=self.request.user.shop,
+            from_account=v["from_account"],
+            to_account=v["to_account"],
+            amount=v["amount"],
+            transferred_on=v.get("transferred_on"),
+            reference=v.get("reference", ""),
+            note=v.get("note", ""),
+            created_by=self.request.user,
+        )
+        serializer.instance = transfer
+
+    def perform_destroy(self, instance):
+        from .models import LedgerEntry
+        LedgerEntry.all_objects.filter(
+            shop_id=instance.shop_id, source_type="AccountTransfer", source_id=str(instance.id)
+        ).delete()
         instance.delete()
 
 
@@ -108,8 +153,7 @@ class ExpenseViewSet(TenantScopedViewSet):
         from .models import LedgerEntry
         instance = serializer.save()
         # Synchronize associated LedgerEntry
-        pm = (instance.payment_method or "").upper()
-        acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
+        acct = resolve_ledger_account(instance.payment_method)
         LedgerEntry.all_objects.filter(
             shop_id=instance.shop_id, source_type="Expense", source_id=str(instance.id)
         ).update(
@@ -120,6 +164,7 @@ class ExpenseViewSet(TenantScopedViewSet):
 
     def perform_destroy(self, instance):
         # Clean up associated ledger entry to keep cash balance in sync
+        from .models import LedgerEntry
         LedgerEntry.all_objects.filter(shop_id=instance.shop_id, source_type="Expense", source_id=str(instance.id)).delete()
         instance.delete()
 
@@ -146,14 +191,17 @@ class FinancialPositionView(_ReportBase):
         return Response(financial_position(request.user.shop))
 
 
-class CashFlowView(_ReportBase):
+class CashFlowReportView(_ReportBase):
     def get(self, request):
         start = parse_datetime(request.query_params.get("start", "") or "")
         end = parse_datetime(request.query_params.get("end", "") or "")
-        return Response(cash_flow(request.user.shop, start=start, end=end))
+        account = request.query_params.get("account", None)
+        return Response(cash_flow(request.user.shop, start=start, end=end, account=account))
 
 
-from datetime import datetime, time
+CashFlowView = CashFlowReportView
+
+from datetime import datetime, time, timedelta
 from django.db.models import Sum
 from django.utils import timezone
 from rest_framework.decorators import action
@@ -163,6 +211,7 @@ from sales.models import Sale, SaleReturn
 from .models import DailySettlement, LedgerEntry, Investment, Expense
 from .serializers import DailySettlementSerializer
 
+
 class DailySettlementViewSet(TenantScopedViewSet):
     serializer_class = DailySettlementSerializer
     required_perm = "view_profit"
@@ -171,16 +220,15 @@ class DailySettlementViewSet(TenantScopedViewSet):
         return DailySettlement.objects.all().order_by("-opened_at", "-id")
 
     def _auto_close_past_settlements(self, shop):
-        """Auto-close past unclosed shifts, normalize opened_at, and backfill ALL dates up to yesterday."""
-        from datetime import datetime, time, timedelta
-        from django.utils import timezone
-        
+        """Auto-close past unclosed shifts, normalize opened_at, and backfill continuous cash chain up to yesterday."""
         today = timezone.localdate()
         yesterday = today - timedelta(days=1)
 
-        # 1. Normalize and close any past settlements
-        past_settlements = list(DailySettlement.objects.filter(shop=shop).order_by("id"))
+        # 1. Normalize and close any past settlements in chronological order
+        past_settlements = list(DailySettlement.objects.filter(shop=shop).order_by("opened_at", "id"))
         seen_dates = {}
+        running_cash = 0.0
+
         for past in past_settlements:
             ref_dt = past.closed_at or past.opened_at
             p_date = timezone.localdate(ref_dt)
@@ -211,8 +259,11 @@ class DailySettlementViewSet(TenantScopedViewSet):
             ).aggregate(t=Sum("amount"))["t"] or 0)
             
             net_cash = float(cash_in) - float(cash_out)
-            opening = max(0.0, float(past.opening_cash or 0))
-            expected_cash = max(0.0, opening + net_cash)
+            opening = float(past.opening_cash or 0)
+            if opening == 0.0 and running_cash > 0.0:
+                opening = running_cash
+
+            expected_cash = opening + net_cash
             sales_sum = Sale.objects.filter(shop=shop, sale_date__range=(day_start, day_end)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
             expenses_sum = Expense.objects.filter(shop=shop, spent_on__range=(day_start.date(), day_end.date())).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
             refunds_sum = SaleReturn.objects.filter(shop=shop, created_at__range=(day_start, day_end)).aggregate(t=Sum("total_refund"))["t"] or 0
@@ -224,14 +275,17 @@ class DailySettlementViewSet(TenantScopedViewSet):
             
             capital_sum = Investment.objects.filter(
                 shop=shop, invested_on=p_date
-            ).aggregate(t=Sum("amount"))["t"] or 0
+            ).exclude(type=Investment.Type.DRAWING).aggregate(t=Sum("amount"))["t"] or 0
             
             expected_inv = float(purchases_sum) + float(capital_sum)
             actual_inv = float(past.actual_investment or 0) if float(past.actual_investment or 0) > 0 else expected_inv
             inv_disc = actual_inv - expected_inv
 
-            actual = max(0.0, expected_cash) if past.status == DailySettlement.Status.OPEN or float(past.actual_cash) == 0 else max(0.0, float(past.actual_cash))
+            actual = float(past.actual_cash or 0)
+            if past.status == DailySettlement.Status.OPEN or actual == 0.0:
+                actual = expected_cash
             disc = actual - expected_cash
+            running_cash = actual
 
             DailySettlement.objects.filter(id=past.id).update(
                 opened_at=day_start,
@@ -252,7 +306,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             )
             seen_dates[p_date] = past
 
-        # 2. Find earliest date (earliest activity or Aug 1, 2026) and fill every missing date
+        # 2. Backfill any missing dates continuously
         earliest_settle = DailySettlement.objects.filter(shop=shop).order_by("opened_at").first()
         earliest_ledger = LedgerEntry.objects.filter(shop=shop).order_by("created_at").first()
         earliest_sale = Sale.objects.filter(shop=shop).order_by("sale_date").first()
@@ -287,6 +341,11 @@ class DailySettlementViewSet(TenantScopedViewSet):
                 ).aggregate(t=Sum("amount"))["t"] or 0)
 
                 net_cash = float(cash_in) - float(cash_out)
+                opening = running_cash
+                expected_cash = opening + net_cash
+                actual = expected_cash
+                running_cash = actual
+
                 sales_sum = Sale.objects.filter(
                     shop=shop, sale_date__range=(day_start, day_end)
                 ).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
@@ -305,16 +364,15 @@ class DailySettlementViewSet(TenantScopedViewSet):
 
                 capital_sum = Investment.objects.filter(
                     shop=shop, invested_on=curr_date
-                ).aggregate(t=Sum("amount"))["t"] or 0
+                ).exclude(type=Investment.Type.DRAWING).aggregate(t=Sum("amount"))["t"] or 0
 
                 expected_inv = float(purchases_sum) + float(capital_sum)
-                actual = max(0.0, net_cash)
                 DailySettlement.objects.create(
                     shop=shop,
                     opened_at=day_start,
                     closed_at=day_end,
-                    opening_cash=0,
-                    expected_cash=actual,
+                    opening_cash=opening,
+                    expected_cash=expected_cash,
                     actual_cash=actual,
                     discrepancy=0,
                     total_sales=sales_sum,
@@ -356,11 +414,18 @@ class DailySettlementViewSet(TenantScopedViewSet):
             settlement = self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.OPEN).first()
             
             if not settlement and not today_closed:
+                # Find previous day's closing cash to carry over as opening_cash
+                last_closed = self.get_queryset().filter(
+                    opened_at__date__lt=today, status=DailySettlement.Status.CLOSED
+                ).order_by("-opened_at", "-id").first()
+                
+                prev_opening = float(last_closed.actual_cash or last_closed.expected_cash or 0) if last_closed else 0.0
+
                 start_of_day = timezone.make_aware(datetime.combine(today, time.min))
                 settlement = DailySettlement.objects.create(
                     shop=request.tenant,
-                    opening_cash=0,
-                    expected_cash=0,
+                    opening_cash=prev_opening,
+                    expected_cash=prev_opening,
                 )
                 settlement.opened_at = start_of_day
                 settlement.save(update_fields=['opened_at'])
@@ -389,7 +454,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             ).aggregate(t=Sum("amount"))["t"] or 0)
             
             ledger_net = float(cash_in) - float(cash_out)
-            expected_cash = max(0.0, float(active_obj.opening_cash) + ledger_net)
+            expected_cash = float(active_obj.opening_cash) + ledger_net
             
             # Investments during shift
             purchases_sum = PurchaseOrder.objects.filter(
@@ -400,7 +465,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             capital_inv_sum = Investment.objects.filter(
                 shop=request.tenant,
                 invested_on__range=(start_date, end_date)
-            ).aggregate(t=Sum("amount"))["t"] or 0
+            ).exclude(type=Investment.Type.DRAWING).aggregate(t=Sum("amount"))["t"] or 0
             
             expected_investment = float(purchases_sum) + float(capital_inv_sum)
 
@@ -410,6 +475,9 @@ class DailySettlementViewSet(TenantScopedViewSet):
                 active_obj.total_purchases = purchases_sum
                 active_obj.total_capital_investment = capital_inv_sum
             
+            # Balances across other accounts
+            pos = financial_position(request.tenant)
+
             data = self.get_serializer(active_obj).data
             data["cash_in"] = float(cash_in)
             data["cash_out"] = float(cash_out)
@@ -420,6 +488,14 @@ class DailySettlementViewSet(TenantScopedViewSet):
             data["sales_total"] = float(Sale.objects.filter(shop=request.tenant, sale_date__range=(start_time, end_time)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0)
             data["expenses_total"] = float(Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0)
             data["refunds_total"] = float(SaleReturn.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).aggregate(t=Sum("total_refund"))["t"] or 0)
+            data["account_balances"] = {
+                "cash": float(pos["cash_balance"]),
+                "bkash": float(pos["bkash_balance"]),
+                "nagad": float(pos["nagad_balance"]),
+                "bank": float(pos["bank_balance"]),
+                "card": float(pos["card_balance"]),
+                "total_liquid": float(pos["total_liquid_cash"]),
+            }
             return Response(data)
         except Exception as e:
             return Response({"error": str(e), "traceback": traceback.format_exc()}, status=500)
@@ -430,7 +506,15 @@ class DailySettlementViewSet(TenantScopedViewSet):
         if self.get_queryset().filter(opened_at__date=today, status=DailySettlement.Status.OPEN).exists():
             raise ValidationError("A settlement for today is already open.")
         
-        opening_cash = max(0.0, float(request.data.get("opening_cash", 0) or 0))
+        raw_opening = request.data.get("opening_cash")
+        if raw_opening is not None and str(raw_opening).strip() != "":
+            opening_cash = float(raw_opening)
+        else:
+            last_closed = self.get_queryset().filter(
+                opened_at__date__lt=today, status=DailySettlement.Status.CLOSED
+            ).order_by("-opened_at", "-id").first()
+            opening_cash = float(last_closed.actual_cash or last_closed.expected_cash or 0) if last_closed else 0.0
+
         start_of_day = timezone.make_aware(datetime.combine(today, time.min))
         settlement = DailySettlement.objects.create(
             shop=request.tenant,
@@ -451,7 +535,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         if not settlement:
             raise ValidationError("No open settlement found.")
         
-        actual_cash = max(0.0, float(request.data.get("actual_cash", 0) or 0))
+        actual_cash = float(request.data.get("actual_cash", 0) or 0)
         start_time = settlement.opened_at
         end_time = timezone.now()
         start_date = start_time.date()
@@ -471,7 +555,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             amount__lt=0
         ).aggregate(t=Sum("amount"))["t"] or 0)
         
-        expected_cash = max(0.0, float(settlement.opening_cash) + float(cash_in) - float(cash_out))
+        expected_cash = float(settlement.opening_cash) + float(cash_in) - float(cash_out)
         
         sales_sum = Sale.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(status=Sale.Status.CANCELLED).aggregate(t=Sum("total"))["t"] or 0
         expenses_sum = Expense.objects.filter(shop=request.tenant, created_at__range=(start_time, end_time)).exclude(category__name="Product Purchase").aggregate(t=Sum("amount"))["t"] or 0
@@ -485,13 +569,13 @@ class DailySettlementViewSet(TenantScopedViewSet):
         capital_inv_sum = Investment.objects.filter(
             shop=request.tenant,
             invested_on__range=(start_date, end_date)
-        ).aggregate(t=Sum("amount"))["t"] or 0
+        ).exclude(type=Investment.Type.DRAWING).aggregate(t=Sum("amount"))["t"] or 0
         
         expected_investment = float(purchases_sum) + float(capital_inv_sum)
 
         raw_actual_inv = request.data.get("actual_investment")
         if raw_actual_inv is not None and str(raw_actual_inv).strip() != "":
-            actual_investment = max(0.0, float(raw_actual_inv))
+            actual_investment = float(raw_actual_inv)
         else:
             actual_investment = expected_investment
             
@@ -539,18 +623,33 @@ class DailySettlementViewSet(TenantScopedViewSet):
         opening_cash = request.data.get("opening_cash")
         actual_investment = request.data.get("actual_investment")
         
+        start_time = settlement.opened_at
+        end_time = settlement.closed_at or timezone.now()
+        
+        cash_in = LedgerEntry.objects.filter(
+            shop=request.tenant, account=LedgerEntry.Account.CASH,
+            created_at__range=(start_time, end_time), amount__gt=0
+        ).aggregate(t=Sum("amount"))["t"] or 0
+        
+        cash_out = abs(LedgerEntry.objects.filter(
+            shop=request.tenant, account=LedgerEntry.Account.CASH,
+            created_at__range=(start_time, end_time), amount__lt=0
+        ).aggregate(t=Sum("amount"))["t"] or 0)
+
         if opening_cash is not None:
-            settlement.opening_cash = max(0.0, float(opening_cash))
+            settlement.opening_cash = float(opening_cash)
             
+        settlement.expected_cash = float(settlement.opening_cash) + float(cash_in) - float(cash_out)
+
         if actual_cash is not None:
-            settlement.actual_cash = max(0.0, float(actual_cash))
+            settlement.actual_cash = float(actual_cash)
 
         if actual_investment is not None:
-            settlement.actual_investment = max(0.0, float(actual_investment))
+            settlement.actual_investment = float(actual_investment)
             settlement.investment_discrepancy = float(settlement.actual_investment) - float(settlement.expected_investment or 0)
             
-        settlement.expected_cash = max(0.0, float(settlement.expected_cash))
         settlement.discrepancy = float(settlement.actual_cash) - float(settlement.expected_cash)
         settlement.closed_by = request.user
         settlement.save()
         return Response(self.get_serializer(settlement).data)
+

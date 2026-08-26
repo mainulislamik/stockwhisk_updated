@@ -5,7 +5,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from accounting.models import ExpenseCategory, LedgerEntry
-from accounting.services import record_expense
+from accounting.services import record_expense, resolve_ledger_account
 from inventory.models import MovementType
 from inventory.services import apply_movement
 
@@ -29,14 +29,13 @@ def post_purchase_payment_to_accounting(*, shop, po, amount, when=None, created_
     """
     Post a product-purchase payment to the accounting ledger as an Inventory Investment (not an operating expense).
 
-    * amount > 0  → cash/bank paid to supplier ⇒ Outflow in LedgerEntry (source_type="PurchasePayment")
+    * amount > 0  → cash/bank/mobile-money paid to supplier ⇒ Outflow in LedgerEntry (source_type="PurchasePayment")
     * amount < 0  → refund from supplier ⇒ Inflow in LedgerEntry (source_type="PurchaseRefund")
     """
     amount = Decimal(amount)
     if amount == 0:
         return None
-    pm = (method or "").upper()
-    acct = LedgerEntry.Account.BANK if pm in ["BANK", "BKASH", "NAGAD", "CARD"] else LedgerEntry.Account.CASH
+    acct = resolve_ledger_account(method)
     if amount > 0:
         return LedgerEntry.all_objects.create(
             shop_id=shop.id, account=acct, amount=-amount,
@@ -107,13 +106,13 @@ def pay_supplier(*, supplier, amount, method=SupplierPayment.Method.CASH,
     supplier.save(update_fields=["due_balance"])
     
     if method != SupplierPayment.Method.SETTLEMENT:
-        pm_str = str(method).lower()
-        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+        acct = resolve_ledger_account(method)
         LedgerEntry.objects.create(
             shop_id=supplier.shop_id, account=acct, amount=-amount,
             source_type="SupplierPayment", source_id=str(payment.id),
             description=f"Payment ({method}) to {supplier.name}",
         )
+
 
     # Allocate payment across open PurchaseOrders in FIFO order
     try:

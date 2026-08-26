@@ -65,15 +65,20 @@ class RecurringExpense(TenantScopedModel):
 
 class LedgerEntry(TenantScopedModel):
     """
-    Append-only cash/bank ledger for auditability. Positive = money in,
-    negative = money out. Sources: sale payments, expenses, supplier payments.
+    Append-only cash/bank/mobile-money ledger for auditability. Positive = money in,
+    negative = money out. Sources: sale payments, customer due payments, expenses,
+    supplier payments, investments, drawings, internal transfers.
     """
 
     class Account(models.TextChoices):
         CASH = "cash", "Cash"
+        BKASH = "bkash", "bKash"
+        NAGAD = "nagad", "Nagad"
         BANK = "bank", "Bank"
+        CARD = "card", "Card"
+        OTHER = "other", "Other"
 
-    account = models.CharField(max_length=10, choices=Account.choices, default=Account.CASH)
+    account = models.CharField(max_length=20, choices=Account.choices, default=Account.CASH)
     amount = models.DecimalField(max_digits=14, decimal_places=2)  # signed
     source_type = models.CharField(max_length=40, blank=True)
     source_id = models.CharField(max_length=64, blank=True)
@@ -131,11 +136,12 @@ from django.core.validators import MinValueValidator
 
 class Investment(TenantScopedModel):
     """
-    Capital and financial investments into the business.
-    Tracks investor/partner capital contributions, equity/capital additions, or loans.
+    Capital, financial investments, and owner drawings into/out of the business.
+    Tracks investor/partner capital contributions, equity/capital additions, loans, or drawings.
     """
     class Type(models.TextChoices):
         CAPITAL = "capital", "Owner / Partner Capital"
+        DRAWING = "drawing", "Owner Withdrawal / Drawings"
         LOAN = "loan", "Loan / Borrowing"
         EQUITY = "equity", "Equity / Share"
         OTHER = "other", "Other Investment"
@@ -160,3 +166,30 @@ class Investment(TenantScopedModel):
 
     def __str__(self):
         return f"{self.investor_name} - {self.amount} ({self.type})"
+
+
+class AccountTransfer(TenantScopedModel):
+    """
+    Internal liquid account transfers (e.g. Cash drawer to bKash / Bank / Nagad).
+    Does NOT affect sales, expenses, profit, customer dues, or supplier dues.
+    """
+    from_account = models.CharField(max_length=20, choices=LedgerEntry.Account.choices, default=LedgerEntry.Account.CASH)
+    to_account = models.CharField(max_length=20, choices=LedgerEntry.Account.choices, default=LedgerEntry.Account.BKASH)
+    amount = models.DecimalField(max_digits=14, decimal_places=2, validators=[MinValueValidator(0)])
+    transferred_on = models.DateField(default=timezone.localdate)
+    reference = models.CharField(max_length=120, blank=True)
+    note = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="transfers"
+    )
+
+    class Meta:
+        ordering = ["-transferred_on", "-created_at"]
+        indexes = [models.Index(fields=["shop", "transferred_on"])]
+        constraints = [
+            models.CheckConstraint(condition=models.Q(amount__gt=0), name="transfer_amount_positive"),
+        ]
+
+    def __str__(self):
+        return f"{self.from_account} -> {self.to_account}: {self.amount}"
+

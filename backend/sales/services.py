@@ -11,6 +11,7 @@ from django.db import IntegrityError, transaction
 from django.utils import timezone
 
 from accounting.models import LedgerEntry
+from accounting.services import resolve_ledger_account
 from audit.models import AuditLog
 from audit.services import record
 from inventory.models import MovementType
@@ -183,7 +184,7 @@ def create_sale(
             paid += amount
             pm_str = str(method).lower()
             if pm_str != "store_credit":
-                acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+                acct = resolve_ledger_account(method)
                 LedgerEntry.objects.create(
                     shop=shop, account=acct, amount=amount,
                     source_type="Sale", source_id=str(sale.id),
@@ -359,7 +360,7 @@ def add_payment(*, sale, amount, method=Payment.Method.CASH, created_by=None):
     Payment.objects.create(shop_id=sale.shop_id, sale=sale, amount=amount, method=method)
     pm_str = str(method).lower()
     if pm_str != "store_credit":
-        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+        acct = resolve_ledger_account(method)
         LedgerEntry.objects.create(
             shop_id=sale.shop_id, account=acct, amount=amount,
             source_type="Sale", source_id=str(sale.id),

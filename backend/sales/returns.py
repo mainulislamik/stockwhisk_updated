@@ -90,13 +90,14 @@ def create_return(
     # 1. Write refund to cash/bank ledger if money was returned directly to customer
     if total_refund > 0 and refund_method not in (SaleReturn.RefundMethod.STORE_CREDIT, SaleReturn.RefundMethod.EXCHANGE):
         from accounting.models import LedgerEntry
-        pm_str = str(refund_method).lower()
-        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+        from accounting.services import resolve_ledger_account
+        acct = resolve_ledger_account(refund_method)
         LedgerEntry.objects.create(
             shop_id=shop.id, account=acct, amount=-total_refund,
             source_type="SaleReturn", source_id=str(sret.id),
             description=f"Return refund ({refund_method}) for {sale.invoice_no}",
         )
+
 
     # 2. Reduce customer due if the refund is store credit or offset against unpaid invoice due
     if sale.customer_id and total_refund > 0:

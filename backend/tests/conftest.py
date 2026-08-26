@@ -26,6 +26,7 @@ class ScopedWidget(TenantScopedModel):
 
     class Meta:
         app_label = "audit"  # borrow an installed app label
+        managed = False
 
 
 @pytest.fixture(scope="session")

@@ -18,12 +18,18 @@ type Profit = {
 };
 
 type Position = {
-  cash_balance: string;
-  bank_balance: string;
-  receivables: string;
-  payables: string;
+  cash_balance: string | number;
+  bkash_balance?: string | number;
+  nagad_balance?: string | number;
+  bank_balance: string | number;
+  card_balance?: string | number;
+  total_liquid_cash?: string | number;
+  receivables: string | number;
+  payables: string | number;
   total_investment?: string | number;
   capital_investment?: string | number;
+  owner_drawings?: string | number;
+  net_capital?: string | number;
   purchase_investment?: string | number;
   investors_count?: number;
 };
@@ -31,7 +37,7 @@ type Position = {
 type Investment = {
   id: number;
   investor_name: string;
-  type: "capital" | "loan" | "equity" | "other";
+  type: "capital" | "drawing" | "loan" | "equity" | "other";
   type_display?: string;
   amount: string;
   invested_on: string;
@@ -42,8 +48,24 @@ type Investment = {
   created_at?: string;
 };
 
+type AccountTransfer = {
+  id: number;
+  from_account: string;
+  from_account_display?: string;
+  to_account: string;
+  to_account_display?: string;
+  amount: string;
+  transferred_on: string;
+  reference: string;
+  note: string;
+  created_by_name?: string;
+  created_at?: string;
+};
+
 type InvestmentSummary = {
   capital_investment: string | number;
+  owner_drawings?: string | number;
+  net_capital?: string | number;
   purchase_investment: string | number;
   total_investment: string | number;
   investors_count: number;
@@ -63,7 +85,7 @@ type PurchaseOrder = {
 
 export default function AccountingPage() {
   const { t, lang } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"overview" | "investment">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "investment" | "transfers">("overview");
 
   // Overview states
   const [profit, setProfit] = useState<Profit | null>(null);
@@ -84,13 +106,26 @@ export default function AccountingPage() {
   const [invTypeFilter, setInvTypeFilter] = useState("all");
   const [invLoading, setInvLoading] = useState(false);
 
+  // Transfers states
+  const [transfers, setTransfers] = useState<AccountTransfer[]>([]);
+  const [transferModalOpen, setTransferModalOpen] = useState(false);
+  const [transferSubmitting, setTransferSubmitting] = useState(false);
+  const [transferForm, setTransferForm] = useState({
+    from_account: "cash",
+    to_account: "bkash",
+    amount: "",
+    transferred_on: today,
+    reference: "",
+    note: "",
+  });
+
   // Investment Modal State
   const [modalOpen, setModalOpen] = useState(false);
   const [editingInv, setEditingInv] = useState<Investment | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     investor_name: "",
-    type: "capital",
+    type: "capital" as "capital" | "drawing" | "loan" | "equity" | "other",
     amount: "",
     invested_on: today,
     payment_method: "cash",
@@ -136,12 +171,23 @@ export default function AccountingPage() {
     }
   }
 
+  // Load Transfers Data
+  async function loadTransfers() {
+    try {
+      const tList = await fetchAll<AccountTransfer>("/accounting/transfers/");
+      setTransfers(tList || []);
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to load transfers");
+    }
+  }
+
   useEffect(() => {
     loadOverview();
   }, [startDate, endDate]);
 
   useEffect(() => {
     loadInvestments();
+    loadTransfers();
   }, []);
 
   // Filter Investments
@@ -163,7 +209,7 @@ export default function AccountingPage() {
     investments,
   ]);
 
-  // Open Modal to Add
+  // Open Modal to Add Investment
   function openAddModal() {
     setEditingInv(null);
     setForm({
@@ -178,7 +224,7 @@ export default function AccountingPage() {
     setModalOpen(true);
   }
 
-  // Open Modal to Edit
+  // Open Modal to Edit Investment
   function openEditModal(inv: Investment) {
     setEditingInv(inv);
     setForm({
@@ -218,7 +264,7 @@ export default function AccountingPage() {
           method: "POST",
           body: form,
         });
-        toast.success(lang === "bn" ? "নতুন বিনিয়োগ সফলভাবে যুক্ত হয়েছে" : "Investment recorded successfully");
+        toast.success(lang === "bn" ? "নতুন এন্ট্রি সফলভাবে যুক্ত হয়েছে" : "Recorded successfully");
       }
       setModalOpen(false);
       loadInvestments();
@@ -232,16 +278,68 @@ export default function AccountingPage() {
 
   // Delete Investment
   async function handleDelete(id: number) {
-    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত এই বিনিয়োগ রেকর্ডটি মুছে ফেলতে চান?" : "Are you sure you want to delete this investment?")) {
+    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত এই রেকর্ডটি মুছে ফেলতে চান?" : "Are you sure you want to delete this record?")) {
       return;
     }
     try {
       await api(`/accounting/investments/${id}/`, { method: "DELETE" });
-      toast.success(lang === "bn" ? "বিনিয়োগ মুছে ফেলা হয়েছে" : "Investment deleted");
+      toast.success(lang === "bn" ? "রেকর্ড মুছে ফেলা হয়েছে" : "Record deleted");
       loadInvestments();
       loadOverview();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to delete investment");
+      toast.error(err?.message || "Failed to delete");
+    }
+  }
+
+  // Save Transfer
+  async function handleTransferSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!transferForm.amount || Number(transferForm.amount) <= 0) {
+      toast.error(lang === "bn" ? "সঠিক পরিমাণ লিখুন" : "Please enter valid amount");
+      return;
+    }
+    if (transferForm.from_account === transferForm.to_account) {
+      toast.error(lang === "bn" ? "উৎস ও গন্তব্য অ্যাকাউন্ট ভিন্ন হতে হবে" : "From and To accounts must be different");
+      return;
+    }
+
+    setTransferSubmitting(true);
+    try {
+      await api("/accounting/transfers/", {
+        method: "POST",
+        body: transferForm,
+      });
+      toast.success(lang === "bn" ? "অ্যাকাউন্ট ট্রান্সফার সফল হয়েছে" : "Transfer recorded successfully");
+      setTransferModalOpen(false);
+      setTransferForm({
+        from_account: "cash",
+        to_account: "bkash",
+        amount: "",
+        transferred_on: today,
+        reference: "",
+        note: "",
+      });
+      loadTransfers();
+      loadOverview();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to save transfer");
+    } finally {
+      setTransferSubmitting(false);
+    }
+  }
+
+  // Delete Transfer
+  async function handleTransferDelete(id: number) {
+    if (!confirm(lang === "bn" ? "আপনি কি নিশ্চিত এই ট্রান্সফার রেকর্ডটি মুছে ফেলতে চান?" : "Are you sure you want to delete this transfer?")) {
+      return;
+    }
+    try {
+      await api(`/accounting/transfers/${id}/`, { method: "DELETE" });
+      toast.success(lang === "bn" ? "ট্রান্সফার রেকর্ড মুছে ফেলা হয়েছে" : "Transfer deleted");
+      loadTransfers();
+      loadOverview();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete transfer");
     }
   }
 
@@ -251,12 +349,14 @@ export default function AccountingPage() {
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
           <h4 className="fw-bold mb-1 text-dark">
-            {activeTab === "overview" ? `📊 ${t("nav_accounting")}` : `💼 ${t("invest_title") || "Investment Management"}`}
+            {activeTab === "overview" ? `📊 ${t("nav_accounting")}` : activeTab === "investment" ? `💼 ${t("invest_title") || "Investment & Drawings"}` : `🔄 ${lang === "bn" ? "অ্যাকাউন্ট ট্রান্সফার" : "Account Transfers"}`}
           </h4>
           <div className="text-secondary small">
             {activeTab === "overview"
-              ? (t("acc_desc") || "Profit & loss, financial position, cash ledger and settlement")
-              : (t("invest_desc") || "Track capital additions, partner equity, and purchasing investments.")}
+              ? (t("acc_desc") || "Profit & loss, actual liquid account balances, and capital overview")
+              : activeTab === "investment"
+              ? (t("invest_desc") || "Track capital additions, partner equity, and owner drawings.")
+              : (lang === "bn" ? "ক্যাশ ড্রয়ার, বিকাশ, ব্যাংক ও নগদ অ্যাকাউন্টের মধ্যকার অভ্যন্তরীণ ফান্ড ট্রান্সফার।" : "Transfer liquid funds between cash drawer, bKash, bank, and Nagad.")}
           </div>
         </div>
 
@@ -274,7 +374,14 @@ export default function AccountingPage() {
             className={`btn btn-sm rounded-2 ${activeTab === "investment" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
             onClick={() => setActiveTab("investment")}
           >
-            💼 {t("invest_tab_investment") || "Investment Management"}
+            💼 {t("invest_tab_investment") || "Capital & Drawings"}
+          </button>
+          <button
+            type="button"
+            className={`btn btn-sm rounded-2 ${activeTab === "transfers" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
+            onClick={() => setActiveTab("transfers")}
+          >
+            🔄 {lang === "bn" ? "অ্যাকাউন্ট ট্রান্সফার" : "Fund Transfers"}
           </button>
         </div>
       </div>
@@ -340,34 +447,36 @@ export default function AccountingPage() {
                 </div>
               </div>
 
-              {/* Investment Quick Highlight Banner */}
-              <div className="card shadow-sm border-0 rounded-3 bg-primary bg-opacity-10 border-primary-subtle">
-                <div className="card-body p-3 d-flex flex-wrap align-items-center justify-content-between gap-3">
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="fs-3">💼</div>
-                    <div>
-                      <div className="fw-bold text-dark">{t("invest_total") || "Total Business Investment"}</div>
-                      <div className="small text-secondary">
-                        {lang === "bn"
-                          ? `পণ্য ক্রয় বিনিয়োগ: ${money(position?.purchase_investment || 0)} · মূলধন বিনিয়োগ: ${money(position?.capital_investment || 0)}`
-                          : `Purchasing Inv: ${money(position?.purchase_investment || 0)} · Capital Inv: ${money(position?.capital_investment || 0)}`}
-                      </div>
+              {/* Liquid Cash & Capital Highlight Cards */}
+              <div className="row g-3">
+                <div className="col-md-6">
+                  <div className="card shadow-sm border-0 rounded-3 bg-success bg-opacity-10 border-success-subtle p-3 h-100">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="fw-bold text-success-emphasis">💵 {lang === "bn" ? "মোট তরল ক্যাশ ও ফান্ড" : "Total Liquid Money"}</span>
+                      <span className="fs-4 fw-bold text-success">{money(position?.total_liquid_cash ?? (Number(position?.cash_balance || 0) + Number(position?.bank_balance || 0)))}</span>
+                    </div>
+                    <div className="small text-secondary d-flex flex-wrap gap-2 pt-1 border-top border-success-subtle">
+                      <span>Cash: <strong>{money(position?.cash_balance || 0)}</strong></span>
+                      {position?.bkash_balance !== undefined && <span>· bKash: <strong>{money(position?.bkash_balance || 0)}</strong></span>}
+                      {position?.nagad_balance !== undefined && <span>· Nagad: <strong>{money(position?.nagad_balance || 0)}</strong></span>}
+                      <span>· Bank: <strong>{money(position?.bank_balance || 0)}</strong></span>
                     </div>
                   </div>
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="text-end">
-                      <div className="fs-4 fw-bold text-primary">{money(position?.total_investment || 0)}</div>
-                      <span className="badge bg-primary rounded-pill small">
-                        {position?.investors_count || 0} {t("invest_investors") || "Investors"}
-                      </span>
+                </div>
+
+                <div className="col-md-6">
+                  <div className="card shadow-sm border-0 rounded-3 bg-primary bg-opacity-10 border-primary-subtle p-3 h-100">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <span className="fw-bold text-primary-emphasis">💼 {lang === "bn" ? "নেট মূলধন (ইকুইটি)" : "Net Capital (Equity)"}</span>
+                      <span className="fs-4 fw-bold text-primary">{money(position?.net_capital ?? position?.capital_investment ?? 0)}</span>
                     </div>
-                    <button
-                      type="button"
-                      className="btn btn-sm btn-primary fw-semibold px-3"
-                      onClick={() => setActiveTab("investment")}
-                    >
-                      {lang === "bn" ? "বিস্তারিত দেখুন →" : "View Details →"}
-                    </button>
+                    <div className="small text-secondary d-flex flex-wrap gap-2 pt-1 border-top border-primary-subtle">
+                      <span>{lang === "bn" ? "বিনিয়োগ" : "Additions"}: <strong>{money(position?.capital_investment || 0)}</strong></span>
+                      {position?.owner_drawings !== undefined && Number(position.owner_drawings) > 0 && (
+                        <span>· {lang === "bn" ? "উত্তোলন" : "Drawings"}: <strong className="text-danger">-{money(position?.owner_drawings || 0)}</strong></span>
+                      )}
+                      <span>· {position?.investors_count || 0} {t("invest_investors") || "Investors"}</span>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -417,24 +526,40 @@ export default function AccountingPage() {
                       <table className="table table-sm mb-0">
                         <tbody>
                           <tr>
-                            <td className="text-secondary">{t("acc_cash_bal")}</td>
-                            <td className="text-end">{money(position?.cash_balance)}</td>
+                            <td className="text-secondary">💵 {t("acc_cash_bal")}</td>
+                            <td className="text-end fw-semibold">{money(position?.cash_balance)}</td>
+                          </tr>
+                          {position?.bkash_balance !== undefined && Number(position.bkash_balance) !== 0 && (
+                            <tr>
+                              <td className="text-secondary">📱 bKash Balance</td>
+                              <td className="text-end fw-semibold">{money(position?.bkash_balance)}</td>
+                            </tr>
+                          )}
+                          {position?.nagad_balance !== undefined && Number(position.nagad_balance) !== 0 && (
+                            <tr>
+                              <td className="text-secondary">📱 Nagad Balance</td>
+                              <td className="text-end fw-semibold">{money(position?.nagad_balance)}</td>
+                            </tr>
+                          )}
+                          <tr>
+                            <td className="text-secondary">🏦 {t("acc_bank_bal")}</td>
+                            <td className="text-end fw-semibold">{money(position?.bank_balance)}</td>
+                          </tr>
+                          <tr className="table-success bg-opacity-25 fw-bold">
+                            <td>💰 {lang === "bn" ? "মোট তরল টাকা" : "Total Liquid Cash"}</td>
+                            <td className="text-end text-success">{money(position?.total_liquid_cash ?? (Number(position?.cash_balance || 0) + Number(position?.bank_balance || 0)))}</td>
                           </tr>
                           <tr>
-                            <td className="text-secondary">{t("acc_bank_bal")}</td>
-                            <td className="text-end">{money(position?.bank_balance)}</td>
-                          </tr>
-                          <tr>
-                            <td className="text-secondary">{t("acc_receivables")}</td>
+                            <td className="text-secondary">📥 {t("acc_receivables")} (বাকি পাওনা)</td>
                             <td className="text-end">{money(position?.receivables)}</td>
                           </tr>
                           <tr>
-                            <td className="text-secondary">{t("acc_payables")}</td>
-                            <td className="text-end">{money(position?.payables)}</td>
+                            <td className="text-secondary">📤 {t("acc_payables")} (সাপ্লায়ার দেনা)</td>
+                            <td className="text-end text-danger">{money(position?.payables)}</td>
                           </tr>
                           <tr className="border-top fw-semibold">
-                            <td className="text-primary">{t("invest_total") || "Total Investment"}</td>
-                            <td className="text-end text-primary fw-bold">{money(position?.total_investment || 0)}</td>
+                            <td className="text-primary">💼 {lang === "bn" ? "নেট মূলধন (ইকুইটি)" : "Net Capital Equity"}</td>
+                            <td className="text-end text-primary fw-bold">{money(position?.net_capital ?? position?.capital_investment ?? 0)}</td>
                           </tr>
                         </tbody>
                       </table>
@@ -450,13 +575,13 @@ export default function AccountingPage() {
                             {Object.entries(profit.payment_methods).map(([method, amount]) => (
                               <tr key={method}>
                                 <td className="text-secondary text-capitalize">{method}</td>
-                                <td className="text-end fw-medium">{money(amount as string)}</td>
+                                <td className="text-end">{money(amount)}</td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       ) : (
-                        <div className="text-muted small">{t("acc_no_payments")}</div>
+                        <div className="text-secondary small">{t("acc_no_payments")}</div>
                       )}
                     </div>
                   </div>
@@ -467,43 +592,43 @@ export default function AccountingPage() {
         </div>
       )}
 
-      {/* ── TAB 2: INVESTMENT MANAGEMENT ── */}
+      {/* ── TAB 2: CAPITAL & INVESTMENTS ── */}
       {activeTab === "investment" && (
         <div className="vstack gap-3">
-          {/* Top 4 Summary Cards */}
+          {/* Summary Stat Cards */}
           <div className="row g-3">
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-primary">
-                <div className="small text-secondary fw-semibold">💼 {t("invest_total") || "Total Investment"}</div>
+                <div className="small text-secondary fw-semibold">💼 {t("invest_total") || "Total Business Investment"}</div>
                 <div className="fs-4 fw-bold text-primary mt-1">
                   {money(invSummary?.total_investment ?? position?.total_investment ?? 0)}
                 </div>
                 <div className="small text-muted mt-1" style={{ fontSize: "0.75rem" }}>
-                  {lang === "bn" ? "ক্রয় ও মূলধন বিনিয়োগের যোগফল" : "Sum of Capital & Purchases"}
+                  {lang === "bn" ? "পণ্য ক্রয় + মূলধন" : "Purchases + Net Capital"}
                 </div>
               </div>
             </div>
 
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-info">
-                <div className="small text-secondary fw-semibold">📦 {t("invest_purchase") || "Purchase Investment"}</div>
+                <div className="small text-secondary fw-semibold">📦 {t("invest_purchases") || "Purchasing Investment"}</div>
                 <div className="fs-4 fw-bold text-info mt-1">
                   {money(invSummary?.purchase_investment ?? position?.purchase_investment ?? 0)}
                 </div>
                 <div className="small text-muted mt-1" style={{ fontSize: "0.75rem" }}>
-                  {invSummary?.purchases_count || purchases.length} {lang === "bn" ? "টি ক্রয় অর্ডার" : "purchase orders"}
+                  {invSummary?.purchases_count ?? purchases.length} {lang === "bn" ? "টি ক্রয় অর্ডার" : "purchase orders"}
                 </div>
               </div>
             </div>
 
             <div className="col-6 col-lg-3">
               <div className="card shadow-sm border-0 rounded-3 bg-white p-3 h-100 border-start border-4 border-success">
-                <div className="small text-secondary fw-semibold">🤝 {t("invest_capital") || "Capital Investment"}</div>
+                <div className="small text-secondary fw-semibold">🤝 {t("invest_capital") || "Net Capital"}</div>
                 <div className="fs-4 fw-bold text-success mt-1">
-                  {money(invSummary?.capital_investment ?? position?.capital_investment ?? 0)}
+                  {money(invSummary?.net_capital ?? position?.net_capital ?? invSummary?.capital_investment ?? position?.capital_investment ?? 0)}
                 </div>
                 <div className="small text-muted mt-1" style={{ fontSize: "0.75rem" }}>
-                  {investments.length} {lang === "bn" ? "টি মূলধন এন্ট্রি" : "capital entries"}
+                  {investments.length} {lang === "bn" ? "টি এন্ট্রি" : "entries"}
                 </div>
               </div>
             </div>
@@ -543,12 +668,13 @@ export default function AccountingPage() {
                 <div className="d-flex flex-wrap align-items-center gap-2">
                   <select
                     className="form-select form-select-sm"
-                    style={{ width: "160px" }}
+                    style={{ width: "180px" }}
                     value={invTypeFilter}
                     onChange={(e) => setInvTypeFilter(e.target.value)}
                   >
                     <option value="all">{lang === "bn" ? "সকল ধরন (All Types)" : "All Types"}</option>
-                    <option value="capital">{t("invest_type_capital") || "Capital"}</option>
+                    <option value="capital">{t("invest_type_capital") || "Capital Addition"}</option>
+                    <option value="drawing">{lang === "bn" ? "উত্তোলন (Drawings)" : "Owner Withdrawal"}</option>
                     <option value="loan">{t("invest_type_loan") || "Loan"}</option>
                     <option value="equity">{t("invest_type_equity") || "Equity"}</option>
                     <option value="other">{t("invest_type_other") || "Other"}</option>
@@ -559,7 +685,7 @@ export default function AccountingPage() {
                     className="btn btn-brand btn-sm fw-bold px-3 shadow-sm d-flex align-items-center gap-1"
                     onClick={openAddModal}
                   >
-                    ➕ {t("invest_btn_add") || "Add Investment"}
+                    ➕ {t("invest_btn_add") || "Record Capital / Drawing"}
                   </button>
                 </div>
               </div>
@@ -570,23 +696,23 @@ export default function AccountingPage() {
           <div className="card shadow-sm border-0 rounded-3 bg-white overflow-hidden">
             <div className="card-header bg-light py-2.5 px-3 border-0 d-flex justify-content-between align-items-center">
               <span className="fw-bold text-dark small">
-                🤝 {lang === "bn" ? "মূলধন ও পার্টনার বিনিয়োগ তালিকা" : "Capital & Partner Investment Records"} ({filteredInvestments.length})
+                🤝 {lang === "bn" ? "মূলধন ও উত্তোলন এন্ট্রি তালিকা" : "Capital & Drawings Ledger"} ({filteredInvestments.length})
               </span>
             </div>
 
             {invLoading ? (
               <div className="p-4 text-center">
-                <Spinner label={lang === "bn" ? "বিনিয়োগ লোড হচ্ছে..." : "Loading investments..."} />
+                <Spinner label={lang === "bn" ? "লোড হচ্ছে..." : "Loading records..."} />
               </div>
             ) : filteredInvestments.length === 0 ? (
               <div className="p-5 text-center text-secondary">
                 <div style={{ fontSize: "2.5rem" }}>💼</div>
-                <h6 className="mt-2 fw-bold">{lang === "bn" ? "কোনো মূলধন বিনিয়োগ এন্ট্রি পাওয়া যায়নি" : "No capital investment records found"}</h6>
+                <h6 className="mt-2 fw-bold">{lang === "bn" ? "কোনো মূলধন এন্ট্রি পাওয়া যায়নি" : "No capital investment records found"}</h6>
                 <p className="small mb-3 text-muted">
-                  {lang === "bn" ? "নতুন পার্টনার মূলধন যুক্ত করতে উপরের বাটনে ক্লিক করুন।" : "Click 'Add Investment' to record owner/partner capital contributions."}
+                  {lang === "bn" ? "নতুন পার্টনার মূলধন বা উত্তোলন যুক্ত করতে উপরের বাটনে ক্লিক করুন।" : "Click 'Record Capital / Drawing' to log equity contributions or withdrawals."}
                 </p>
                 <button type="button" className="btn btn-sm btn-brand fw-semibold" onClick={openAddModal}>
-                  ➕ {t("invest_btn_add") || "Add Investment"}
+                  ➕ {t("invest_btn_add") || "Record Entry"}
                 </button>
               </div>
             ) : (
@@ -619,14 +745,17 @@ export default function AccountingPage() {
                         <td>
                           <span className={`badge ${
                             inv.type === "capital" ? "bg-success-subtle text-success border border-success-subtle" :
+                            inv.type === "drawing" ? "bg-danger-subtle text-danger border border-danger-subtle" :
                             inv.type === "loan" ? "bg-warning-subtle text-warning border border-warning-subtle" :
                             inv.type === "equity" ? "bg-info-subtle text-info border border-info-subtle" :
                             "bg-secondary-subtle text-secondary"
                           } rounded-pill`}>
-                            {inv.type_display || inv.type}
+                            {inv.type === "drawing" ? (lang === "bn" ? "উত্তোলন (Drawing)" : "Drawing") : (inv.type_display || inv.type)}
                           </span>
                         </td>
-                        <td className="text-end fw-bold text-dark">{money(inv.amount)}</td>
+                        <td className={`text-end fw-bold ${inv.type === "drawing" ? "text-danger" : "text-dark"}`}>
+                          {inv.type === "drawing" ? `-${money(inv.amount)}` : money(inv.amount)}
+                        </td>
                         <td>
                           <span className="badge bg-light text-secondary border text-uppercase">
                             {inv.payment_method || "CASH"}
@@ -717,6 +846,100 @@ export default function AccountingPage() {
         </div>
       )}
 
+      {/* ── TAB 3: ACCOUNT TRANSFERS ── */}
+      {activeTab === "transfers" && (
+        <div className="vstack gap-3">
+          <div className="card shadow-sm border-0 rounded-3 bg-white p-3">
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+              <div>
+                <h6 className="fw-bold mb-1 text-dark">🔄 {lang === "bn" ? "অভ্যন্তরীণ অ্যাকাউন্ট ট্রান্সফার" : "Internal Liquid Fund Transfers"}</h6>
+                <div className="small text-muted">
+                  {lang === "bn"
+                    ? "ক্যাশ ড্রয়ার থেকে বিকাশ/ব্যাংক বা বিকাশ থেকে ব্যাংকে টাকা স্থানান্তর করুন। এটি লাভ-ক্ষতি বা বিক্রয় প্রভাবিত করে না।"
+                    : "Transfer money between your cash drawer, bKash, Nagad, and bank accounts without affecting profit or sales."}
+                </div>
+              </div>
+              <button
+                type="button"
+                className="btn btn-brand btn-sm fw-bold px-3 shadow-sm d-flex align-items-center gap-1"
+                onClick={() => setTransferModalOpen(true)}
+              >
+                ➕ {lang === "bn" ? "নতুন ট্রান্সফার করুন" : "Record Fund Transfer"}
+              </button>
+            </div>
+          </div>
+
+          <div className="card shadow-sm border-0 rounded-3 bg-white overflow-hidden">
+            <div className="card-header bg-light py-2.5 px-3 border-0 d-flex justify-content-between align-items-center">
+              <span className="fw-bold text-dark small">
+                📋 {lang === "bn" ? "ট্রান্সফার হিস্টোরি" : "Transfer History"} ({transfers.length})
+              </span>
+            </div>
+
+            {transfers.length === 0 ? (
+              <div className="p-5 text-center text-secondary">
+                <div style={{ fontSize: "2.5rem" }}>🔄</div>
+                <h6 className="mt-2 fw-bold">{lang === "bn" ? "কোনো ট্রান্সফার রেকর্ড নেই" : "No transfer records found"}</h6>
+                <p className="small mb-3 text-muted">
+                  {lang === "bn" ? "ক্যাশ বা মোবাইল ব্যাংকিং অ্যাকাউন্টে টাকা সরাতে উপরের বাটনে ক্লিক করুন।" : "Record internal funds transfers between liquid accounts."}
+                </p>
+                <button type="button" className="btn btn-sm btn-brand fw-semibold" onClick={() => setTransferModalOpen(true)}>
+                  ➕ {lang === "bn" ? "ট্রান্সফার করুন" : "Record Transfer"}
+                </button>
+              </div>
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0">
+                  <thead className="table-light">
+                    <tr className="small text-secondary">
+                      <th>#</th>
+                      <th>{lang === "bn" ? "তারিখ" : "Date"}</th>
+                      <th>{lang === "bn" ? "উৎস অ্যাকাউন্ট (From)" : "From Account"}</th>
+                      <th>{lang === "bn" ? "গন্তব্য (To)" : "To Account"}</th>
+                      <th className="text-end">{lang === "bn" ? "পরিমাণ" : "Amount"}</th>
+                      <th>{lang === "bn" ? "রেফারেন্স" : "Reference"}</th>
+                      <th>{lang === "bn" ? "নোট" : "Note"}</th>
+                      <th className="text-end pe-3">{lang === "bn" ? "একশন" : "Actions"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {transfers.map((tr, idx) => (
+                      <tr key={tr.id}>
+                        <td className="small text-muted">{idx + 1}</td>
+                        <td className="small text-nowrap">{tr.transferred_on}</td>
+                        <td>
+                          <span className="badge bg-danger-subtle text-danger border border-danger-subtle text-uppercase">
+                            {tr.from_account_display || tr.from_account}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="badge bg-success-subtle text-success border border-success-subtle text-uppercase">
+                            {tr.to_account_display || tr.to_account}
+                          </span>
+                        </td>
+                        <td className="text-end fw-bold text-dark">{money(tr.amount)}</td>
+                        <td className="small text-muted">{tr.reference || "—"}</td>
+                        <td className="small text-secondary text-truncate" style={{ maxWidth: "220px" }}>{tr.note || "—"}</td>
+                        <td className="text-end pe-3">
+                          <button
+                            type="button"
+                            className="btn btn-light btn-sm text-danger py-0 px-2"
+                            title="Delete"
+                            onClick={() => handleTransferDelete(tr.id)}
+                          >
+                            🗑️
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* ── ADD / EDIT INVESTMENT MODAL ── */}
       {modalOpen && (
         <div
@@ -728,7 +951,7 @@ export default function AccountingPage() {
             <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
               <div className="modal-header bg-light py-3 px-4">
                 <h5 className="modal-title fw-bold text-dark mb-0">
-                  💼 {editingInv ? (t("invest_modal_edit_title") || "Edit Investment") : (t("invest_modal_add_title") || "Record New Investment")}
+                  💼 {editingInv ? (t("invest_modal_edit_title") || "Edit Record") : (t("invest_modal_add_title") || "Record Capital / Drawing")}
                 </h5>
                 <button
                   type="button"
@@ -741,7 +964,7 @@ export default function AccountingPage() {
                 <div className="modal-body p-4 vstack gap-3">
                   <div>
                     <label className="form-label small fw-bold text-dark mb-1">
-                      {t("invest_tbl_investor") || "Investor / Partner Name"} <span className="text-danger">*</span>
+                      {t("invest_tbl_investor") || "Investor / Owner / Partner Name"} <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
@@ -756,16 +979,17 @@ export default function AccountingPage() {
                   <div className="row g-2">
                     <div className="col-md-6">
                       <label className="form-label small fw-bold text-dark mb-1">
-                        {t("invest_tbl_type") || "Investment Type"}
+                        {t("invest_tbl_type") || "Transaction Type"}
                       </label>
                       <select
                         className="form-select"
                         value={form.type}
                         onChange={(e) => setForm({ ...form, type: e.target.value as any })}
                       >
-                        <option value="capital">{t("invest_type_capital") || "Owner / Partner Capital"}</option>
-                        <option value="loan">{t("invest_type_loan") || "Loan / Borrowing"}</option>
-                        <option value="equity">{t("invest_type_equity") || "Equity / Share"}</option>
+                        <option value="capital">{t("invest_type_capital") || "Owner / Partner Capital (+Inflow)"}</option>
+                        <option value="drawing">{lang === "bn" ? "মালিকের ব্যক্তিগত উত্তোলন (-Outflow)" : "Owner Withdrawal / Drawings (-Outflow)"}</option>
+                        <option value="loan">{t("invest_type_loan") || "Loan / Borrowing (+Inflow)"}</option>
+                        <option value="equity">{t("invest_type_equity") || "Equity / Share (+Inflow)"}</option>
                         <option value="other">{t("invest_type_other") || "Other Investment"}</option>
                       </select>
                     </div>
@@ -790,7 +1014,7 @@ export default function AccountingPage() {
                   <div className="row g-2">
                     <div className="col-md-6">
                       <label className="form-label small fw-bold text-dark mb-1">
-                        {t("invest_tbl_date") || "Investment Date"}
+                        {t("invest_tbl_date") || "Date"}
                       </label>
                       <input
                         type="date"
@@ -837,7 +1061,7 @@ export default function AccountingPage() {
                     <textarea
                       rows={2}
                       className="form-control"
-                      placeholder={lang === "bn" ? "বিনিয়োগ সংক্রান্ত অতিরিক্ত বিবরণ..." : "Optional description or purpose..."}
+                      placeholder={lang === "bn" ? "অতিরিক্ত বিবরণ..." : "Optional description or purpose..."}
                       value={form.note}
                       onChange={(e) => setForm({ ...form, note: e.target.value })}
                     />
@@ -858,7 +1082,143 @@ export default function AccountingPage() {
                     className="btn btn-brand px-4 fw-bold"
                     disabled={submitting}
                   >
-                    {submitting ? "Saving..." : (editingInv ? (t("invest_btn_edit") || "Save Changes") : (t("invest_btn_add") || "Record Investment"))}
+                    {submitting ? "Saving..." : (editingInv ? (t("invest_btn_edit") || "Save Changes") : (t("invest_btn_add") || "Record Entry"))}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── RECORD ACCOUNT TRANSFER MODAL ── */}
+      {transferModalOpen && (
+        <div
+          className="modal show d-block"
+          style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1060 }}
+          tabIndex={-1}
+        >
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header bg-light py-3 px-4">
+                <h5 className="modal-title fw-bold text-dark mb-0">
+                  🔄 {lang === "bn" ? "অভ্যন্তরীণ অ্যাকাউন্ট ট্রান্সফার" : "Record Internal Account Transfer"}
+                </h5>
+                <button
+                  type="button"
+                  className="btn-close"
+                  onClick={() => setTransferModalOpen(false)}
+                ></button>
+              </div>
+
+              <form onSubmit={handleTransferSubmit}>
+                <div className="modal-body p-4 vstack gap-3">
+                  <div className="row g-2">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-bold text-dark mb-1">
+                        {lang === "bn" ? "উৎস অ্যাকাউন্ট (From)" : "From Account"} <span className="text-danger">*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={transferForm.from_account}
+                        onChange={(e) => setTransferForm({ ...transferForm, from_account: e.target.value })}
+                      >
+                        <option value="cash">Cash (ক্যাশ ড্রয়ার)</option>
+                        <option value="bkash">bKash (বিকাশ)</option>
+                        <option value="nagad">Nagad (নগদ)</option>
+                        <option value="bank">Bank (ব্যাংক)</option>
+                      </select>
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label small fw-bold text-dark mb-1">
+                        {lang === "bn" ? "গন্তব্য অ্যাকাউন্ট (To)" : "To Account"} <span className="text-danger">*</span>
+                      </label>
+                      <select
+                        className="form-select"
+                        value={transferForm.to_account}
+                        onChange={(e) => setTransferForm({ ...transferForm, to_account: e.target.value })}
+                      >
+                        <option value="bkash">bKash (বিকাশ)</option>
+                        <option value="nagad">Nagad (নগদ)</option>
+                        <option value="bank">Bank (ব্যাংক)</option>
+                        <option value="cash">Cash (ক্যাশ ড্রয়ার)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="row g-2">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-bold text-dark mb-1">
+                        {lang === "bn" ? "পরিমাণ (৳)" : "Amount (৳)"} <span className="text-danger">*</span>
+                      </label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="1"
+                        className="form-control fw-bold text-primary"
+                        placeholder="0.00"
+                        value={transferForm.amount}
+                        onChange={(e) => setTransferForm({ ...transferForm, amount: e.target.value })}
+                        required
+                      />
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label small fw-bold text-dark mb-1">
+                        {lang === "bn" ? "ট্রান্সফারের তারিখ" : "Transfer Date"}
+                      </label>
+                      <input
+                        type="date"
+                        className="form-control"
+                        value={transferForm.transferred_on}
+                        onChange={(e) => setTransferForm({ ...transferForm, transferred_on: e.target.value })}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="form-label small fw-bold text-dark mb-1">
+                      {lang === "bn" ? "রেফারেন্স / ট্রানজেকশন আইডি" : "Reference / Transaction ID"}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="e.g. TrxID-982341, Deposit Slip #44"
+                      value={transferForm.reference}
+                      onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="form-label small fw-bold text-dark mb-1">
+                      {lang === "bn" ? "নোট / বিবরণ" : "Note / Description"}
+                    </label>
+                    <textarea
+                      rows={2}
+                      className="form-control"
+                      placeholder={lang === "bn" ? "ট্রান্সফারের উদ্দেশ্য বা বিবরণ..." : "Optional transfer note..."}
+                      value={transferForm.note}
+                      onChange={(e) => setTransferForm({ ...transferForm, note: e.target.value })}
+                    />
+                  </div>
+                </div>
+
+                <div className="modal-footer bg-light p-3 d-flex justify-content-between">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary px-4"
+                    onClick={() => setTransferModalOpen(false)}
+                    disabled={transferSubmitting}
+                  >
+                    {lang === "bn" ? "বাতিল" : "Cancel"}
+                  </button>
+                  <button
+                    type="submit"
+                    className="btn btn-brand px-4 fw-bold"
+                    disabled={transferSubmitting}
+                  >
+                    {transferSubmitting ? "Processing..." : (lang === "bn" ? "ট্রান্সফার সম্পন্ন করুন" : "Complete Transfer")}
                   </button>
                 </div>
               </form>
@@ -869,4 +1229,3 @@ export default function AccountingPage() {
     </div>
   );
 }
-

@@ -1,6 +1,7 @@
 from decimal import Decimal
 from django.db import transaction
 from accounting.models import LedgerEntry
+from accounting.services import resolve_ledger_account
 from .models import CustomerPayment
 
 ZERO = Decimal("0")
@@ -33,13 +34,13 @@ def pay_customer_due(*, customer, amount, method=CustomerPayment.Method.CASH,
     customer.save(update_fields=["due_balance"])
     
     if method != CustomerPayment.Method.SETTLEMENT:
-        pm_str = str(method).lower()
-        acct = LedgerEntry.Account.BANK if pm_str in ["bank", "bkash", "nagad", "card"] else LedgerEntry.Account.CASH
+        acct = resolve_ledger_account(method)
         LedgerEntry.objects.create(
             shop_id=customer.shop_id, account=acct, amount=amount,
             source_type="CustomerPayment", source_id=str(payment.id),
             description=f"Due collection ({method}) from {customer.name}",
         )
+
 
     rem = amount
 

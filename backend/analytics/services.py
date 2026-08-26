@@ -1026,14 +1026,21 @@ def dashboard_summary(shop, days=30, use_cache=True):
     pos = financial_position(shop)
     pos_clean = {
         "cash_balance": float(pos.get("cash_balance") or 0),
+        "bkash_balance": float(pos.get("bkash_balance") or 0),
+        "nagad_balance": float(pos.get("nagad_balance") or 0),
         "bank_balance": float(pos.get("bank_balance") or 0),
+        "card_balance": float(pos.get("card_balance") or 0),
+        "total_liquid_cash": float(pos.get("total_liquid_cash") or 0),
         "receivables": float(pos.get("receivables") or 0),
         "payables": float(pos.get("payables") or 0),
         "total_investment": float(pos.get("total_investment") or 0),
         "capital_investment": float(pos.get("capital_investment") or 0),
+        "owner_drawings": float(pos.get("owner_drawings") or 0),
+        "net_capital": float(pos.get("net_capital") or 0),
         "purchase_investment": float(pos.get("purchase_investment") or 0),
         "investors_count": int(pos.get("investors_count") or 0),
     }
+
 
     data = {
         "period_days": days,

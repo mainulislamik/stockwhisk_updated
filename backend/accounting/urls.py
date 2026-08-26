@@ -9,12 +9,14 @@ from .views import (
     ProfitReportView,
     DailySettlementViewSet,
     InvestmentViewSet,
+    AccountTransferViewSet,
 )
 
 router = DefaultRouter()
 router.register("expense-categories", ExpenseCategoryViewSet, basename="expense-category")
 router.register("expenses", ExpenseViewSet, basename="expense")
 router.register("investments", InvestmentViewSet, basename="investment")
+router.register("transfers", AccountTransferViewSet, basename="account-transfer")
 router.register("daily-settlements", DailySettlementViewSet, basename="daily-settlement")
 
 urlpatterns = [
@@ -22,3 +24,4 @@ urlpatterns = [
     path("reports/position/", FinancialPositionView.as_view(), name="financial-position"),
     path("reports/cash-flow/", CashFlowView.as_view(), name="cash-flow"),
 ] + router.urls
+
