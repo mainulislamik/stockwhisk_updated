@@ -58,6 +58,22 @@ export default function BarcodesGeneratorPage() {
 
   // Selection for bulk print
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedCopies, setSelectedCopies] = useState<{ [productId: number]: number }>({});
+
+  function updateCopyCount(productId: number, delta: number) {
+    setSelectedCopies((prev) => {
+      const current = prev[productId] || 1;
+      const next = Math.max(1, Math.min(500, current + delta));
+      return { ...prev, [productId]: next };
+    });
+  }
+
+  function setExactCopyCount(productId: number, count: number) {
+    setSelectedCopies((prev) => ({
+      ...prev,
+      [productId]: Math.max(1, Math.min(500, count || 1)),
+    }));
+  }
 
   // Label Customization Settings
   const [labelSize, setLabelSize] = useState<"38x25" | "50x30" | "a4">("38x25");
@@ -164,6 +180,46 @@ export default function BarcodesGeneratorPage() {
     if (p.barcode && p.barcode.trim()) return p.barcode.trim();
     if (p.units && p.units.length > 0 && p.units[0].barcode) return p.units[0].barcode.trim();
     return p.sku || `PROD-${p.id}`;
+  }
+
+  // Execute Direct Selected Barcodes Print
+  function printSelectedBarcodes() {
+    const selectedProductsList = barcodeProducts.filter((p) => selectedIds.has(p.id));
+    if (selectedProductsList.length === 0) {
+      toast.error(lang === "bn" ? "কোনো প্রোডাক্ট নির্বাচিত হয়নি।" : "No products selected.");
+      return;
+    }
+
+    const queue: PrintLabelItem[] = [];
+    selectedProductsList.forEach((p) => {
+      const mainCode = getPrimaryBarcode(p);
+      const copies = Math.max(1, selectedCopies[p.id] || 1);
+      for (let i = 0; i < copies; i++) {
+        queue.push({
+          id: `sel-${p.id}-${i}`,
+          productId: p.id,
+          productName: p.name,
+          barcode: mainCode,
+          sku: p.sku,
+          price: p.selling_price,
+          warrantyMonths: p.warranty_months,
+          shopName,
+          isUnit: false,
+        });
+      }
+    });
+
+    if (queue.length === 0) {
+      toast.error(lang === "bn" ? "প্রিন্ট করার জন্য কোনো বৈধ বারকোড নেই।" : "No valid barcode to print.");
+      return;
+    }
+
+    setPrintQueue(queue);
+    setIsPrinting(true);
+    setTimeout(() => {
+      window.print();
+      setIsPrinting(false);
+    }, 150);
   }
 
   // Execute Single Product Print
@@ -662,19 +718,9 @@ export default function BarcodesGeneratorPage() {
                             {/* Main Barcode Display */}
                             <td>
                               {mainCode ? (
-                                <div className="d-inline-flex flex-column align-items-start bg-light p-1 px-2 rounded border">
+                                <div className="d-inline-flex align-items-center gap-1.5 bg-light p-1 px-2.5 rounded-2 border shadow-2xs">
+                                  <span className="text-secondary small">🏷️</span>
                                   <span className="font-monospace fw-bold text-dark small">{mainCode}</span>
-                                  <div style={{ transform: "scale(0.85)", transformOrigin: "left center", height: "24px" }} className="overflow-hidden">
-                                    <Barcode
-                                      value={mainCode}
-                                      width={1}
-                                      height={20}
-                                      fontSize={0}
-                                      margin={0}
-                                      displayValue={false}
-                                      background="transparent"
-                                    />
-                                  </div>
                                 </div>
                               ) : (
                                 <span className="text-muted small">—</span>
@@ -734,6 +780,145 @@ export default function BarcodesGeneratorPage() {
               {/* Pagination */}
               <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
             </div>
+
+            {/* ── SELECTED PRODUCTS BARCODE PRINT LIST & PREVIEW (Shown when products are selected) ── */}
+            {selectedIds.size > 0 && (
+              <div className="card shadow-sm border-2 border-primary rounded-4 bg-white overflow-hidden mt-3 animate-fade-in">
+                <div className="card-header bg-primary bg-opacity-10 py-3 px-4 d-flex flex-wrap align-items-center justify-content-between gap-3 border-0">
+                  <div className="d-flex align-items-center gap-2">
+                    <span className="fs-5">🖨️</span>
+                    <div>
+                      <h6 className="fw-bold text-dark mb-0">
+                        {lang === "bn"
+                          ? `প্রিন্টের জন্য প্রস্তুত বারকোড তালিকা (${selectedIds.size}টি প্রোডাক্ট)`
+                          : `Selected Barcode Print Queue (${selectedIds.size} products)`}
+                      </h6>
+                      <span className="small text-secondary">
+                        {lang === "bn"
+                          ? "নিচে প্রতিটি প্রোডাক্টের লাইভ বারকোড স্টিকার প্রিভিউ দেখতে পাচ্ছেন। কপি সংখ্যা নির্ধারণ করে সরাসরি প্রিন্ট করুন।"
+                          : "Live barcode sticker preview for selected products. Adjust copy counts and print instantly."}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-outline-secondary btn-sm"
+                      onClick={() => setSelectedIds(new Set())}
+                    >
+                      ✕ {lang === "bn" ? "নির্বাচন মুছুন" : "Clear"}
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-brand btn-sm fw-bold px-4 shadow-sm"
+                      onClick={printSelectedBarcodes}
+                    >
+                      🖨️ {lang === "bn"
+                        ? `প্রিন্ট করুন (${Array.from(selectedIds).reduce((sum, id) => sum + (selectedCopies[id] || 1), 0)}টি স্টিকার)`
+                        : `Print Labels (${Array.from(selectedIds).reduce((sum, id) => sum + (selectedCopies[id] || 1), 0)})`}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="card-body p-4">
+                  <div className="row g-3">
+                    {barcodeProducts
+                      .filter((p) => selectedIds.has(p.id))
+                      .map((p) => {
+                        const mainCode = getPrimaryBarcode(p);
+                        const copies = selectedCopies[p.id] || 1;
+
+                        return (
+                          <div key={p.id} className="col-12 col-md-6 col-lg-4 col-xl-3">
+                            <div className="card h-100 border shadow-xs rounded-3 overflow-hidden bg-light">
+                              {/* Card Header with Name & Remove */}
+                              <div className="p-2.5 px-3 bg-white border-bottom d-flex justify-content-between align-items-center">
+                                <div className="text-truncate fw-bold small text-dark" title={p.name}>
+                                  {p.name}
+                                </div>
+                                <button
+                                  type="button"
+                                  className="btn btn-link text-danger p-0 ms-2 text-decoration-none"
+                                  onClick={() => toggleSelect(p.id)}
+                                  title={lang === "bn" ? "তালিকা থেকে সরান" : "Remove"}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+
+                              {/* Live Barcode Sticker Preview */}
+                              <div className="p-3 d-flex flex-column align-items-center justify-content-center">
+                                <div
+                                  className="border rounded-2 p-2 bg-white d-flex flex-column align-items-center shadow-xs w-100"
+                                  style={{ maxWidth: "220px" }}
+                                >
+                                  {showShopName && (
+                                    <div style={{ fontSize: "10px", fontWeight: "700", color: "#1e293b" }} className="text-truncate w-100 text-center">
+                                      {shopName}
+                                    </div>
+                                  )}
+                                  <div style={{ fontSize: "10px", fontWeight: "600", color: "#475569" }} className="text-truncate w-100 text-center mb-1">
+                                    {p.name}
+                                  </div>
+                                  <Barcode
+                                    value={mainCode}
+                                    width={1.2}
+                                    height={30}
+                                    fontSize={10}
+                                    margin={0}
+                                    displayValue={showCodeText}
+                                    background="transparent"
+                                  />
+                                  <div className="d-flex justify-content-between align-items-center w-100 small mt-1" style={{ fontSize: "9.5px" }}>
+                                    {showPrice && <span className="fw-bold text-dark">{money(p.selling_price)}</span>}
+                                    {showWarranty && p.warranty_months ? (
+                                      <span className="text-muted">{p.warranty_months}m war.</span>
+                                    ) : null}
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Copies Controls */}
+                              <div className="p-2.5 px-3 bg-white border-top d-flex align-items-center justify-content-between">
+                                <span className="small text-secondary fw-semibold">
+                                  {lang === "bn" ? "কপি সংখ্যা:" : "Copies:"}
+                                </span>
+                                <div className="d-flex align-items-center gap-1">
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold"
+                                    onClick={() => updateCopyCount(p.id, -1)}
+                                    disabled={copies <= 1}
+                                  >
+                                    -
+                                  </button>
+                                  <input
+                                    type="number"
+                                    min={1}
+                                    max={500}
+                                    className="form-control form-control-sm text-center fw-bold text-primary p-0"
+                                    style={{ width: "48px" }}
+                                    value={copies}
+                                    onChange={(e) => setExactCopyCount(p.id, Number(e.target.value))}
+                                  />
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary py-0 px-2 fw-bold"
+                                    onClick={() => updateCopyCount(p.id, 1)}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
