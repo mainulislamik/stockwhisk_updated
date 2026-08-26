@@ -10,8 +10,9 @@ import { useLanguage } from "@/contexts/LanguageContext";
 type Named = { id: number; name: string };
 
 export default function ProductEditPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { id } = useParams<{ id: string }>();
+
   const router = useRouter();
   const [form, setForm] = useState<any>(null);
   const [categories, setCategories] = useState<Named[]>([]);
@@ -57,9 +58,11 @@ export default function ProductEditPage() {
           warranty_months: form.warranty_months,
           description: form.description,
           is_active: form.is_active,
+          track_inventory: form.track_inventory !== false,
         },
       });
       router.push(`/app/products/${id}`);
+
     } catch (e: any) {
       toast.error(e?.message || t("pe_err_save"));
       setSaving(false);
@@ -125,14 +128,21 @@ export default function ProductEditPage() {
               <input type="number" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} />
             </div>
 
-            <div className="col-md-6 d-flex align-items-end">
+            <div className="col-md-6 d-flex align-items-end gap-4">
               <div className="form-check">
                 <input className="form-check-input" type="checkbox" id="isActive" checked={!!form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
                 <label className="form-check-label" htmlFor="isActive">
                   {t("pe_lbl_active")}
                 </label>
               </div>
+              <div className="form-check">
+                <input className="form-check-input" type="checkbox" id="trackInventory" checked={form.track_inventory !== false} onChange={(e) => setForm({ ...form, track_inventory: e.target.checked })} />
+                <label className="form-check-label" htmlFor="trackInventory">
+                  {lang === "bn" ? "ইনভেন্টরি স্টক ট্র্যাক করুন" : "Track Stock Inventory"}
+                </label>
+              </div>
             </div>
+
             <div className="col-12">
               <label className="small">{t("pe_lbl_desc")}</label>
               <textarea className="form-control form-control-sm" rows={3} value={form.description || ""} onChange={set("description")} />
