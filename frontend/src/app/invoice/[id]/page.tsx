@@ -357,7 +357,7 @@ export default function InvoicePage() {
         .inv-meta-block { text-align: right; flex-shrink: 0; }
         .inv-status-badge {
           display: inline-block;
-          font-size: 7.5pt;
+          font-size: 8pt;
           font-weight: 700;
           letter-spacing: .05em;
           padding: 3px 10px;
@@ -371,17 +371,17 @@ export default function InvoicePage() {
           letter-spacing: .05em;
         }
         .inv-meta-table { margin-left: auto; }
-        .inv-meta-label { font-size: 7.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; padding-right: 12px; white-space: nowrap; }
-        .inv-meta-val { font-size: 9pt; font-weight: 600; text-align: right; white-space: nowrap; }
+        .inv-meta-label { font-size: 8.5pt; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .05em; padding-right: 14px; white-space: nowrap; }
+        .inv-meta-val { font-size: 9.5pt; font-weight: 700; color: #0f172a; text-align: right; white-space: nowrap; }
 
         /* ── Divider ── */
-        .inv-divider { border: none; border-top: 1.5px solid #e2e8f0; margin: 16px 0; }
+        .inv-divider { border: none; border-top: 1.5px solid #cbd5e1; margin: 16px 0; }
 
         /* ── Bill To ── */
         .inv-bill-to { margin-bottom: 16px; }
-        .inv-section-label { font-size: 7.5pt; color: #94a3b8; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
-        .inv-customer-name { font-size: 12pt; font-weight: 700; color: #0f172a; }
-        .inv-customer-detail { font-size: 8.5pt; color: #475569; margin-top: 2px; }
+        .inv-section-label { font-size: 8.5pt; color: #334155; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
+        .inv-customer-name { font-size: 12.5pt; font-weight: 700; color: #0f172a; }
+        .inv-customer-detail { font-size: 9pt; color: #334155; font-weight: 500; margin-top: 2px; }
 
         /* ── Items Table ── */
         .inv-table {

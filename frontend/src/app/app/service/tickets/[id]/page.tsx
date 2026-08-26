@@ -887,17 +887,17 @@ export default function TicketDetailPage() {
         .inv-status-badge { font-size: 8pt; font-weight: 700; padding: 3px 8px; border-radius: 4px; border: 1px solid; text-transform: uppercase; }
         .inv-title-text { font-size: 18pt; font-weight: 800; color: #2563eb; letter-spacing: .05em; }
         .inv-meta-table { margin-left: auto; margin-top: 4px; }
-        .inv-meta-label { font-size: 7.5pt; color: #94a3b8; text-transform: uppercase; letter-spacing: .05em; padding-right: 10px; white-space: nowrap; }
-        .inv-meta-val { font-size: 8.5pt; font-weight: 600; text-align: right; white-space: nowrap; }
+        .inv-meta-label { font-size: 8.5pt; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: .05em; padding-right: 12px; white-space: nowrap; }
+        .inv-meta-val { font-size: 9pt; font-weight: 700; color: #0f172a; text-align: right; white-space: nowrap; }
 
         /* ── Divider ── */
-        .inv-divider { border: none; border-top: 1.5px solid #e2e8f0; margin: 12px 0 16px 0; }
+        .inv-divider { border: none; border-top: 1.5px solid #cbd5e1; margin: 12px 0 16px 0; }
 
         /* ── Customer & Device Box ── */
         .inv-section-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px; padding: 10px 14px; }
-        .inv-section-label { font-size: 7.5pt; color: #94a3b8; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; margin-bottom: 4px; }
+        .inv-section-label { font-size: 8.5pt; color: #334155; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-bottom: 4px; }
         .inv-customer-name { font-size: 11pt; font-weight: 700; color: #0f172a; }
-        .inv-customer-detail { font-size: 8.5pt; color: #475569; margin-top: 2px; }
+        .inv-customer-detail { font-size: 8.5pt; color: #334155; margin-top: 2px; }
         .inv-device-desc { font-size: 10.5pt; font-weight: 600; color: #0f172a; }
         .inv-complaint-text { font-size: 8.5pt; color: #475569; margin-top: 3px; }
 
