@@ -381,8 +381,9 @@ export default function PosPage() {
           ) : (
             <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
               {shown.map((p) => {
-                const out = p.track_inventory !== false && Number(p.current_stock) <= 0;
+                const out = Number(p.current_stock) <= 0;
                 const inCart = cart.some((l) => l.product.id === p.id);
+
                 const exactMatch = query.trim() !== "" && p.barcode === query.trim();
                 const busy = unitLoadingId === p.id;
                 return (
