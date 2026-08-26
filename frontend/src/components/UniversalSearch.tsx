@@ -1,19 +1,47 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/components/AuthProvider";
+import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
+import toast from "react-hot-toast";
 
 type Row = { url: string; label: string; sub: string };
 type Results = { sales: Row[]; products: Row[]; customers: Row[]; suppliers: Row[] };
 
 export default function UniversalSearch({ mobile = false }: { mobile?: boolean }) {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const { user } = useAuth();
+  const pathname = usePathname();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [data, setData] = useState<Results>({ sales: [], products: [], customers: [], suppliers: [] });
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // If user is on a dedicated scanner page (e.g. POS, Returns, Purchase, Lookup),
+  // that page's specialized handler takes priority and handles the scan.
+  const dedicatedScannerPages = ["/app/pos", "/app/sales/returns", "/app/products/purchase", "/app/products/lookup"];
+  const isDedicatedScannerPage = dedicatedScannerPages.some((path) => pathname?.startsWith(path));
+
+  // Connect Mobile StockWhisk Barcode Scanner via WebSocket
+  const { isConnected: scannerConnected } = useScannerWebSocket(
+    isDedicatedScannerPage ? null : user?.shop,
+    (scannedCode) => {
+      if (!scannedCode || !scannedCode.trim()) return;
+      const cleanCode = scannedCode.trim();
+      setQ(cleanCode);
+      setOpen(true);
+      inputRef.current?.focus();
+      toast.success(
+        lang === "bn" ? `স্ক্যান করা হয়েছে: ${cleanCode}` : `Scanned: ${cleanCode}`,
+        { id: "global-scan-toast" }
+      );
+    }
+  );
 
   const GROUPS: [keyof Results, string][] = [
     ["sales", `🧾 ${t("nav_sales") || "Sales"}`],
@@ -84,6 +112,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
     >
       <div className="position-relative">
         <input
+          ref={inputRef}
           aria-label="Universal search"
           autoComplete="off"
           placeholder={t("search_placeholder") || "Search invoices, products, barcode, customers, suppliers..."}
@@ -91,6 +120,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
           style={{
             borderRadius: "30px",
             paddingLeft: "2.8rem",
+            paddingRight: q ? "4.5rem" : "2.5rem",
             height: "40px",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
             backgroundColor: "var(--bs-body-bg)",
@@ -120,6 +150,44 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
           }}
         >
           🔍
+        </div>
+
+        {/* Right action icons: Clear and Scanner connection indicator */}
+        <div
+          className="position-absolute d-flex align-items-center gap-1.5"
+          style={{
+            right: "0.85rem",
+            top: "50%",
+            transform: "translateY(-50%)",
+          }}
+        >
+          {q && (
+            <button
+              type="button"
+              className="btn btn-link text-secondary p-0 text-decoration-none"
+              style={{ fontSize: "0.9rem", lineHeight: 1 }}
+              onClick={() => {
+                setQ("");
+                setOpen(false);
+                inputRef.current?.focus();
+              }}
+              title="Clear"
+            >
+              ✕
+            </button>
+          )}
+
+          {!isDedicatedScannerPage && (
+            <span
+              className={`d-inline-block rounded-circle ${scannerConnected ? "bg-success" : "bg-secondary bg-opacity-50"}`}
+              style={{ width: "7px", height: "7px", cursor: "help" }}
+              title={
+                scannerConnected
+                  ? (lang === "bn" ? "স্ক্যানার অ্যাপ কানেক্টেড" : "Scanner App Connected")
+                  : (lang === "bn" ? "স্ক্যানার অ্যাপ ডিসকানেক্টেড" : "Scanner App Disconnected")
+              }
+            />
+          )}
         </div>
       </div>
       {open && (
