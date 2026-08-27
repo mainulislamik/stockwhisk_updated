@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { View, ScrollView, TouchableOpacity, Alert, Platform, FlatList, ActivityIndicator } from 'react-native';
-import { Appbar, Text, Card, TextInput, Button, useTheme, Surface, SegmentedButtons, Searchbar } from 'react-native-paper';
+import { View, ScrollView, TouchableOpacity, Alert, Platform, FlatList, ActivityIndicator, Modal } from 'react-native';
+import { Appbar, Text, Card, TextInput, Button, useTheme, Surface, SegmentedButtons, Searchbar, IconButton } from 'react-native-paper';
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -9,6 +9,14 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { api } from '../api';
 
+type ProductUnit = {
+  id: number;
+  barcode: string;
+  status: string;
+  selling_price?: string;
+  warranty_months?: number;
+};
+
 type Product = {
   id: number;
   name: string;
@@ -16,6 +24,7 @@ type Product = {
   barcode: string;
   selling_price: string;
   current_stock: string | number;
+  units?: ProductUnit[];
 };
 
 export default function BarcodesScreen() {
@@ -41,11 +50,15 @@ export default function BarcodesScreen() {
   
   const [isPrinting, setIsPrinting] = useState(false);
 
-  // Load products dynamically
+  // View Units Modal State
+  const [viewUnitsProduct, setViewUnitsProduct] = useState<Product | null>(null);
+
+  // Load products dynamically (light=0 to fetch units)
   const fetchProducts = async (query = '') => {
     setLoadingProducts(true);
     try {
-      const res = await api.get('/catalog/products/', { params: { search: query, page_size: 50, light: 1 } });
+      // Not using light=1 so we get the units array
+      const res = await api.get('/catalog/products/', { params: { search: query, page_size: 50 } });
       setProducts(res.data.results || res.data || []);
     } catch (e) {
       console.error(e);
@@ -79,13 +92,12 @@ export default function BarcodesScreen() {
     setGeneratedCodes(codes);
   };
 
-  // Utility to fetch ALL products (paginated loop) for "Print All"
   const fetchAllProducts = async (): Promise<Product[]> => {
     let all: Product[] = [];
     let page = 1;
     let hasMore = true;
     while(hasMore) {
-      const res = await api.get('/catalog/products/', { params: { search: searchQuery, page, page_size: 100, light: 1 } });
+      const res = await api.get('/catalog/products/', { params: { search: searchQuery, page, page_size: 100 } });
       const data = res.data.results || res.data;
       if (data && data.length > 0) {
         all = [...all, ...data];
@@ -182,7 +194,6 @@ export default function BarcodesScreen() {
     </html>
   `;
 
-  // Print generated blank codes
   const handlePrintGeneratedLabels = async (singleCode?: string) => {
     const codesToPrint = singleCode ? [singleCode] : generatedCodes;
     if (codesToPrint.length === 0) return;
@@ -201,15 +212,12 @@ export default function BarcodesScreen() {
     await executePrint(getHtmlTemplate(labelsHtml, jsScript));
   };
 
-  // Print existing product barcodes
   const handlePrintProductLabels = async (product?: Product) => {
     setIsPrinting(true);
-    
     let productsToPrint: Product[] = [];
     if (product) {
       productsToPrint = [product];
     } else {
-      // Fetch all to print all
       productsToPrint = await fetchAllProducts();
     }
     
@@ -237,6 +245,22 @@ export default function BarcodesScreen() {
       Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'পণ্যের বারকোড বা SKU নেই।' : 'Products do not have Barcode/SKU.');
       return;
     }
+    
+    await executePrint(getHtmlTemplate(labelsHtml, jsScript));
+  };
+
+  const handlePrintUnitLabel = async (unit: ProductUnit, parentProduct: Product) => {
+    setIsPrinting(true);
+    const jsScript = await getJsBarcodeScript();
+    
+    const labelsHtml = `
+      <div class="label">
+        <div class="shop-name">${shopName}</div>
+        <div class="product-name">${parentProduct.name}</div>
+        <div class="code-box"><svg class="barcode" jsbarcode-format="CODE128" jsbarcode-value="${unit.barcode}" jsbarcode-textmargin="0" jsbarcode-fontoptions="bold"></svg></div>
+        <div class="price-text">Price: Tk ${Number(unit.selling_price || parentProduct.selling_price).toLocaleString()}</div>
+      </div>
+    `;
     
     await executePrint(getHtmlTemplate(labelsHtml, jsScript));
   };
@@ -297,25 +321,41 @@ export default function BarcodesScreen() {
               contentContainerStyle={{ padding: 12 }}
               renderItem={({ item }) => (
                 <Card style={{ marginBottom: 8, backgroundColor: theme.colors.surface }}>
-                  <Card.Content style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <View style={{ flex: 1, paddingRight: 8 }}>
-                      <Text style={{ fontWeight: 'bold', fontSize: 15 }} numberOfLines={1}>{item.name}</Text>
-                      <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
-                        {isBN ? 'বারকোড/SKU:' : 'Code:'} {item.barcode || item.sku || 'N/A'}
-                      </Text>
+                  <Card.Content>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text style={{ fontWeight: 'bold', fontSize: 15 }} numberOfLines={1}>{item.name}</Text>
+                        <Text style={{ color: theme.colors.onSurfaceVariant, fontSize: 12, marginTop: 2 }}>
+                          {isBN ? 'বারকোড/SKU:' : 'Code:'} {item.barcode || item.sku || 'N/A'}
+                        </Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                         <Text style={{ fontWeight: 'bold', color: theme.colors.primary, marginBottom: 4 }}>৳{Number(item.selling_price).toLocaleString()}</Text>
+                         <Button 
+                           mode="outlined" 
+                           compact 
+                           onPress={() => handlePrintProductLabels(item)}
+                           disabled={isPrinting || (!item.barcode && !item.sku)}
+                           style={{ borderColor: theme.colors.primary }}
+                         >
+                           {isBN ? 'প্রিন্ট' : 'Print'}
+                         </Button>
+                      </View>
                     </View>
-                    <View style={{ alignItems: 'flex-end' }}>
-                       <Text style={{ fontWeight: 'bold', color: theme.colors.primary, marginBottom: 4 }}>৳{Number(item.selling_price).toLocaleString()}</Text>
-                       <Button 
-                         mode="outlined" 
-                         compact 
-                         onPress={() => handlePrintProductLabels(item)}
-                         disabled={isPrinting || (!item.barcode && !item.sku)}
-                         style={{ borderColor: theme.colors.primary }}
-                       >
-                         {isBN ? 'প্রিন্ট' : 'Print'}
-                       </Button>
-                    </View>
+                    
+                    {/* View Units button for serialized items */}
+                    {item.units && item.units.length > 0 && (
+                      <View style={{ marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.colors.surfaceVariant }}>
+                        <Button 
+                          mode="contained-tonal" 
+                          icon="format-list-numbered"
+                          compact
+                          onPress={() => setViewUnitsProduct(item)}
+                        >
+                          {isBN ? `${item.units.length}টি সিরিয়াল ইউনিট দেখুন` : `View ${item.units.length} Serial Units`}
+                        </Button>
+                      </View>
+                    )}
                   </Card.Content>
                 </Card>
               )}
@@ -435,6 +475,80 @@ export default function BarcodesScreen() {
           )}
         </ScrollView>
       )}
+
+      {/* View Units Modal */}
+      <Modal
+        visible={!!viewUnitsProduct}
+        animationType="slide"
+        onRequestClose={() => setViewUnitsProduct(null)}
+        presentationStyle="pageSheet"
+      >
+        <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+          <Appbar.Header style={{ backgroundColor: theme.colors.surface, elevation: 2 }}>
+            <Appbar.BackAction onPress={() => setViewUnitsProduct(null)} />
+            <Appbar.Content 
+              title={viewUnitsProduct?.name || ''} 
+              subtitle={isBN ? 'সিরিয়াল ইউনিটসমূহ' : 'Serial Units'} 
+            />
+          </Appbar.Header>
+
+          <FlatList
+            data={viewUnitsProduct?.units || []}
+            keyExtractor={u => u.id.toString()}
+            contentContainerStyle={{ padding: 16 }}
+            renderItem={({ item, index }) => (
+              <Card style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}>
+                <Card.Content style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                    <View style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: theme.colors.surfaceVariant, alignItems: 'center', justifyContent: 'center', marginRight: 12 }}>
+                      <Text style={{ fontSize: 12, fontWeight: 'bold' }}>{index + 1}</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 15, fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace' }}>
+                        {item.barcode}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
+                        <Text style={{ color: theme.colors.primary, fontWeight: 'bold', marginRight: 12 }}>
+                          ৳{Number(item.selling_price || viewUnitsProduct?.selling_price).toLocaleString()}
+                        </Text>
+                        <Text style={{ 
+                          fontSize: 11, 
+                          color: item.status === 'in_stock' ? '#16a34a' : (isDarkMode ? '#cbd5e1' : '#64748b'),
+                          fontWeight: item.status === 'in_stock' ? 'bold' : 'normal'
+                        }}>
+                          {item.status.replace('_', ' ').toUpperCase()}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                  
+                  <IconButton 
+                    icon="printer" 
+                    mode="contained"
+                    containerColor={theme.colors.primaryContainer}
+                    iconColor={theme.colors.onPrimaryContainer}
+                    size={20}
+                    disabled={isPrinting}
+                    onPress={() => {
+                      if (viewUnitsProduct) {
+                        handlePrintUnitLabel(item, viewUnitsProduct);
+                      }
+                    }}
+                  />
+                </Card.Content>
+              </Card>
+            )}
+            ListEmptyComponent={
+              <View style={{ alignItems: 'center', marginTop: 40 }}>
+                <Text style={{ color: theme.colors.onSurfaceVariant }}>
+                  {isBN ? 'কোনো সিরিয়াল ইউনিট নেই।' : 'No serial units found.'}
+                </Text>
+              </View>
+            }
+          />
+        </View>
+      </Modal>
+
     </View>
   );
 }
