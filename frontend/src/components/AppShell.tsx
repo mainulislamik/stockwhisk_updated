@@ -10,7 +10,9 @@ import UniversalSearch from "@/components/UniversalSearch";
 import { impersonatingShop, isImpersonating, returnToAdmin } from "@/lib/impersonation";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
+import PageGuideButton from "@/components/PageGuideButton";
 import { api } from "@/lib/api";
+
 import { useBranding } from "@/lib/branding";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -287,7 +289,9 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           </div>
           <UniversalSearch />
           <div className="d-flex align-items-center gap-3">
+            <PageGuideButton />
             {billing?.state === "paid" ? (
+
               <button
                 type="button"
                 onClick={() => setShowPlan((v) => !v)}
