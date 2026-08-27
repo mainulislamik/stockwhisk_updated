@@ -939,16 +939,25 @@ export default function POSScreen() {
                   {t('বাকি টাকা পরিশোধের জন্য কাস্টমারের প্রতিশ্রুত তারিখ নির্ধারণ করুন', 'Set the expected date promised by the customer')}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <TouchableOpacity 
-                    onPress={() => setShowDatePicker(true)}
-                    style={{ flex: 1, padding: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#ccc', borderRadius: 4 }}
-                  >
-                    <Text style={{ color: dueDate ? theme.colors.onSurface : (isDarkMode ? '#64748b' : '#a1a1aa') }}>
-                      {dueDate || "YYYY-MM-DD"}
-                    </Text>
-                  </TouchableOpacity>
+                  {Platform.OS === 'web' ? (
+                    React.createElement('input', {
+                      type: 'date',
+                      value: dueDate,
+                      onChange: (e: any) => setDueDate(e.target.value),
+                      style: { flex: 1, padding: '14px', border: `1px solid ${isDarkMode ? '#334155' : '#ccc'}`, borderRadius: 4, backgroundColor: theme.colors.surface, color: theme.colors.onSurface }
+                    })
+                  ) : (
+                    <TouchableOpacity 
+                      onPress={() => setShowDatePicker(true)}
+                      style={{ flex: 1, padding: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#ccc', borderRadius: 4 }}
+                    >
+                      <Text style={{ color: dueDate ? theme.colors.onSurface : (isDarkMode ? '#64748b' : '#a1a1aa') }}>
+                        {dueDate || "YYYY-MM-DD"}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
 
-                  {showDatePicker && (
+                  {Platform.OS !== 'web' && showDatePicker && (
                     <DateTimePicker
                       value={dueDate ? new Date(dueDate) : new Date()}
                       mode="date"
