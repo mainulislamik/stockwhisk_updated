@@ -68,6 +68,7 @@ export default function POSScreen() {
   const [walkAddress, setWalkAddress] = useState('');
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [paidAmount, setPaidAmount] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bkash' | 'card' | 'nagad' | 'bank_transfer'>('cash');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
@@ -546,6 +547,7 @@ export default function POSScreen() {
         down_payment: (isEmi && !asQuotation) ? paidNum : 0,
         emi_interest_percent: (isEmi && !asQuotation) ? emiInterestNum : 0,
         is_quotation: asQuotation,
+        due_date: (!asQuotation && !isEmi && paidAmount !== "" && paidNum < total && dueDate) ? dueDate : undefined,
       };
       const res = await api.post('/pos/checkout/', payload);
       
@@ -924,6 +926,39 @@ export default function POSScreen() {
                 </TouchableOpacity>
               ))}
             </View>
+
+            {/* Promised Due Date */}
+            {(!isEmi && paidAmount !== '' && paidNum < total) && (
+              <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 24, backgroundColor: theme.colors.surface }}>
+                <Text style={{ fontWeight: 'bold', marginBottom: 4, fontSize: 14, color: isDarkMode ? '#ef4444' : '#dc2626' }}>
+                  {t('পরিশোধের প্রতিশ্রুত তারিখ', 'Promised Payment Date')}
+                </Text>
+                <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 12 }}>
+                  {t('বাকি টাকা পরিশোধের জন্য কাস্টমারের প্রতিশ্রুত তারিখ নির্ধারণ করুন', 'Set the expected date promised by the customer')}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="YYYY-MM-DD"
+                    value={dueDate}
+                    onChangeText={setDueDate}
+                    style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                    keyboardType="default"
+                  />
+                  <Button 
+                    mode="contained-tonal" 
+                    style={{ marginLeft: 8 }}
+                    onPress={() => {
+                        const now = new Date();
+                        const localIso = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+                        setDueDate(localIso);
+                    }}
+                  >
+                    {t('আজ', 'Today')}
+                  </Button>
+                </View>
+              </Surface>
+            )}
 
             {/* EMI Options */}
             {!!(user as any)?.shop_emi_enabled && (
