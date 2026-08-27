@@ -19,7 +19,11 @@ type ProfitData = {
 
 type PositionData = {
   cash_balance: string;
+  bkash_balance?: string;
+  nagad_balance?: string;
   bank_balance: string;
+  card_balance?: string;
+  total_liquid_cash?: string;
   receivables: string;
   payables: string;
 };
@@ -104,7 +108,13 @@ export default function AccountingScreen() {
   const netProfitNum = Number(profit?.net_profit || (grossProfitNum - expensesNum));
 
   const cashBal = Number(position?.cash_balance || 0);
+  const bkashBal = Number(position?.bkash_balance || 0);
+  const nagadBal = Number(position?.nagad_balance || 0);
   const bankBal = Number(position?.bank_balance || 0);
+  const cardBal = Number(position?.card_balance || 0);
+  const totalLiquid = position?.total_liquid_cash !== undefined 
+    ? Number(position.total_liquid_cash) 
+    : (cashBal + bkashBal + nagadBal + bankBal + cardBal);
   const receivables = Number(position?.receivables || 0);
   const payables = Number(position?.payables || 0);
 
@@ -186,29 +196,22 @@ export default function AccountingScreen() {
               💼 {isBN ? 'বর্তমান আর্থিক অবস্থান (Financial Position)' : 'Financial Position'}
             </Text>
 
-            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
-              {/* Cash in Hand */}
-              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4', borderWidth: 1, borderColor: isDarkMode ? '#059669' : '#86efac' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#16a34a', fontWeight: '600' }}>{isBN ? 'নগদ ক্যাশ' : 'Cash in Hand'}</Text>
-                  <MaterialCommunityIcons name="cash" size={18} color={isDarkMode ? '#34d399' : '#16a34a'} />
-                </View>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#4ade80' : '#15803d' }}>
-                  ৳{cashBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Text>
-              </Card>
-
-              {/* Bank & MFS */}
-              <Card style={{ flex: 1, padding: 12, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', borderWidth: 1, borderColor: isDarkMode ? '#3b82f6' : '#93c5fd' }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-                  <Text style={{ fontSize: 11, color: isDarkMode ? '#bfdbfe' : '#2563eb', fontWeight: '600' }}>{isBN ? 'ব্যাংক / ওয়ালেট' : 'Bank / MFS'}</Text>
-                  <MaterialCommunityIcons name="bank" size={18} color={isDarkMode ? '#60a5fa' : '#2563eb'} />
-                </View>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: isDarkMode ? '#93c5fd' : '#1d4ed8' }}>
-                  ৳{bankBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Text>
-              </Card>
-            </View>
+            <Card style={{ padding: 12, marginBottom: 10, backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4', borderWidth: 1, borderColor: isDarkMode ? '#059669' : '#86efac' }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <Text style={{ fontSize: 13, color: isDarkMode ? '#a7f3d0' : '#16a34a', fontWeight: 'bold' }}>💵 {isBN ? 'মোট তরল ক্যাশ ও ফান্ড' : 'Total Liquid Money'}</Text>
+              </View>
+              <Text style={{ fontSize: 22, fontWeight: 'bold', color: isDarkMode ? '#4ade80' : '#15803d', marginBottom: 8 }}>
+                ৳{totalLiquid.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+              </Text>
+              
+              <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#065f46' : '#bbf7d0', paddingTop: 8, flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#166534' }}>Cash: <Text style={{fontWeight: 'bold'}}>৳{cashBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text></Text>
+                {bkashBal !== 0 && <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#166534' }}>• bKash: <Text style={{fontWeight: 'bold'}}>৳{bkashBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text></Text>}
+                {nagadBal !== 0 && <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#166534' }}>• Nagad: <Text style={{fontWeight: 'bold'}}>৳{nagadBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text></Text>}
+                {bankBal !== 0 && <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#166534' }}>• Bank: <Text style={{fontWeight: 'bold'}}>৳{bankBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text></Text>}
+                {cardBal !== 0 && <Text style={{ fontSize: 11, color: isDarkMode ? '#a7f3d0' : '#166534' }}>• Card: <Text style={{fontWeight: 'bold'}}>৳{cardBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</Text></Text>}
+              </View>
+            </Card>
 
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 18 }}>
               {/* Customer Receivables */}
