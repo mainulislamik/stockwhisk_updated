@@ -47,6 +47,7 @@ function MoreMenuScreen() {
         { name: 'SettlementScreen', icon: 'cash-register', color: '#16a34a', bg: '#f0fdf4', labelEn: 'Daily Settlement', labelBn: 'দৈনিক ক্যাশ ক্লোজিং' },
         { name: 'ExpensesScreen', icon: 'cash-remove', color: '#be185d', bg: '#fdf2f8', labelEn: 'Expenses', labelBn: 'দোকানের খরচ' },
         { name: 'ServiceTickets', icon: 'tools', color: '#9333ea', bg: '#faf5ff', labelEn: 'Service & Repair', labelBn: 'সার্ভিস ও মেরামত' },
+        { name: 'WarrantiesScreen', icon: 'shield-check', color: '#0ea5e9', bg: '#e0f2fe', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' },
       ],
     },
     {

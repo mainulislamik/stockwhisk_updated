@@ -20,6 +20,7 @@ import SettingsScreen from './src/screens/SettingsScreen';
 import UsersAndRolesScreen from './src/screens/UsersAndRolesScreen';
 import TutorialsScreen from './src/screens/TutorialsScreen';
 import ServiceTicketsScreen from './src/screens/ServiceTicketsScreen';
+import WarrantiesScreen from './src/screens/WarrantiesScreen';
 import EMIScreen from './src/screens/EMIScreen';
 import ReturnsScreen from './src/screens/ReturnsScreen';
 import SettlementScreen from './src/screens/SettlementScreen';
@@ -90,6 +91,7 @@ function RootNavigator() {
             <Stack.Screen name="PurchasesScreen" component={PurchasesScreen} />
             <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
             <Stack.Screen name="ServiceTickets" component={ServiceTicketsScreen} />
+            <Stack.Screen name="WarrantiesScreen" component={WarrantiesScreen} />
             <Stack.Screen name="EMIScreen" component={EMIScreen} />
             <Stack.Screen name="ReturnsScreen" component={ReturnsScreen} />
             <Stack.Screen name="SettlementScreen" component={SettlementScreen} />
