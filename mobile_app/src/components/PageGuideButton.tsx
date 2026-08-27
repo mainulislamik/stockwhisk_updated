@@ -30,7 +30,7 @@ export default function PageGuideButton({ pageKey }: Props) {
       />
       
       <Portal>
-        <Dialog visible={visible} onDismiss={hideModal} style={{ maxHeight: '80%', backgroundColor: theme.colors.surface }}>
+        <Dialog visible={visible} onDismiss={hideModal} style={{ maxHeight: '80%', width: '90%', maxWidth: 450, alignSelf: 'center', backgroundColor: theme.colors.surface }}>
           <Dialog.Title style={{ flexDirection: 'row', alignItems: 'center' }}>
             <Text style={{ fontSize: 22, marginRight: 8 }}>{doc.icon}</Text>
             <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.colors.onSurface, flex: 1 }}>
