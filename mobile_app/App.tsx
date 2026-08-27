@@ -11,6 +11,7 @@ import NotificationsScreen from './src/screens/NotificationsScreen';
 import TabNavigator from './src/navigation/TabNavigator';
 import SalesScreen from './src/screens/SalesScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
+import LookupScreen from './src/screens/LookupScreen';
 import CustomersScreen from './src/screens/CustomersScreen';
 import DuesScreen from './src/screens/DuesScreen';
 import SuppliersScreen from './src/screens/SuppliersScreen';
@@ -85,6 +86,7 @@ function RootNavigator() {
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="SalesScreen" component={SalesScreen} />
             <Stack.Screen name="ProductsScreen" component={ProductsScreen} />
+            <Stack.Screen name="LookupScreen" component={LookupScreen} />
             <Stack.Screen name="CustomersScreen" component={CustomersScreen} />
             <Stack.Screen name="DuesScreen" component={DuesScreen} />
             <Stack.Screen name="SuppliersScreen" component={SuppliersScreen} />
