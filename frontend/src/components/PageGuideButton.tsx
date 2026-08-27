@@ -604,14 +604,15 @@ export default function PageGuideButton() {
           width: "36px",
           height: "36px",
           borderRadius: "50%",
-          background: open ? "var(--brand-500, #2563eb)" : "var(--glass-bg, #ffffff)",
-          color: open ? "#ffffff" : "var(--brand-500, #2563eb)",
-          borderColor: open ? "var(--brand-500, #2563eb)" : "var(--line, #e2e8f0)",
+          background: open ? "var(--brand-500, #6366f1)" : "var(--sidebar-hover, rgba(255,255,255,0.06))",
+          color: open ? "#ffffff" : "var(--text-main, #f8fafc)",
+          borderColor: open ? "var(--brand-500, #6366f1)" : "var(--line, rgba(255,255,255,0.12))",
           fontSize: "1.1rem",
           fontWeight: "bold",
-          boxShadow: open ? "0 0 0 3px rgba(37,99,235,0.25)" : "0 1px 3px rgba(0,0,0,0.08)",
+          boxShadow: open ? "0 0 0 3px rgba(99,102,241,0.3)" : "0 1px 3px rgba(0,0,0,0.1)",
           cursor: "pointer",
         }}
+
       >
         <span style={{ fontSize: "1.15rem", lineHeight: 1 }}>ⓘ</span>
       </button>
@@ -620,36 +621,34 @@ export default function PageGuideButton() {
       {open && (
         <div
           ref={popoverRef}
-          className="position-absolute end-0 shadow-lg rounded-4 border p-0 animate-fadeIn"
+          className="position-absolute end-0 shadow-lg rounded-4 border p-0 animate-fadeIn bg-body text-body"
           style={{
-            width: "360px",
+            width: "375px",
             maxWidth: "92vw",
             zIndex: 1080,
-            background: "var(--glass-bg, #ffffff)",
-            borderColor: "var(--line, #e2e8f0)",
-            color: "var(--text-main, #1e293b)",
-            backdropFilter: "blur(16px)",
-            top: "calc(100% + 8px)",
+            borderColor: "var(--line, rgba(255,255,255,0.15))",
+            boxShadow: "0 20px 45px rgba(0, 0, 0, 0.5)",
+            top: "calc(100% + 10px)",
+            opacity: 1,
           }}
         >
           {/* Header */}
           <div
-            className="p-3 border-bottom d-flex align-items-center justify-content-between rounded-top-4"
+            className="p-3 border-bottom d-flex align-items-center justify-content-between rounded-top-4 bg-body-tertiary"
             style={{
-              background: "linear-gradient(135deg, rgba(37,99,235,0.08) 0%, rgba(59,130,246,0.02) 100%)",
-              borderColor: "var(--line, #e2e8f0)",
+              borderColor: "var(--line, rgba(255,255,255,0.12))",
             }}
           >
-            <div className="d-flex align-items-center gap-2 min-vw-0">
-              <span className="fs-4">{currentDoc.icon}</span>
+            <div className="d-flex align-items-center gap-2.5 min-vw-0">
+              <span className="fs-3 lh-1">{currentDoc.icon}</span>
               <div>
-                <div className="fw-bold fs-6 text-truncate lh-sm" style={{ color: "var(--text-main)" }}>
+                <div className="fw-bold fs-6 text-truncate lh-sm text-body">
                   {isBn ? currentDoc.title.bn : currentDoc.title.en}
                 </div>
                 {currentDoc.badge && (
                   <span
-                    className="badge bg-primary bg-opacity-15 text-primary border border-primary border-opacity-25 mt-0.5"
-                    style={{ fontSize: "0.68rem" }}
+                    className="badge rounded-pill bg-primary text-white fw-bold mt-1 px-2.5 py-1"
+                    style={{ fontSize: "0.68rem", letterSpacing: "0.3px" }}
                   >
                     {isBn ? currentDoc.badge.bn : currentDoc.badge.en}
                   </span>
@@ -658,10 +657,10 @@ export default function PageGuideButton() {
             </div>
             <button
               type="button"
-              className="btn btn-sm btn-link text-secondary p-1 text-decoration-none"
+              className="btn btn-sm btn-outline-secondary rounded-circle d-flex align-items-center justify-content-center p-0"
               onClick={() => setOpen(false)}
               aria-label="Close"
-              style={{ fontSize: "1.1rem", lineHeight: 1 }}
+              style={{ width: "28px", height: "28px", fontSize: "0.9rem" }}
             >
               ✕
             </button>
@@ -671,12 +670,11 @@ export default function PageGuideButton() {
           <div className="p-3" style={{ maxHeight: "65vh", overflowY: "auto" }}>
             {/* Summary */}
             <div
-              className="p-2.5 rounded-3 mb-3 small"
+              className="p-3 rounded-3 mb-3 small bg-body-secondary text-body"
               style={{
-                background: "var(--sidebar-hover, #f8fafc)",
-                border: "1px solid var(--line, #e2e8f0)",
-                color: "var(--text-main)",
-                lineHeight: "1.5",
+                border: "1px solid var(--line, rgba(255,255,255,0.1))",
+                lineHeight: "1.55",
+                fontSize: "0.85rem",
               }}
             >
               {isBn ? currentDoc.summary.bn : currentDoc.summary.en}
@@ -684,19 +682,21 @@ export default function PageGuideButton() {
 
             {/* Steps & Key Actions */}
             <div className="mb-3">
-              <div className="fw-semibold small text-uppercase mb-2 text-secondary" style={{ fontSize: "0.72rem", letterSpacing: "0.5px" }}>
+              <div className="fw-bold small text-uppercase mb-2 text-primary" style={{ fontSize: "0.72rem", letterSpacing: "0.5px" }}>
                 ⚡ {isBn ? "কীভাবে ব্যবহার করবেন / প্রধান কাজসমূহ" : "Key Actions & Instructions"}
               </div>
-              <ul className="list-unstyled mb-0 vstack gap-2 small">
+              <ul className="list-unstyled mb-0 vstack gap-2.5 small">
                 {(isBn ? currentDoc.steps.bn : currentDoc.steps.en).map((step, idx) => (
-                  <li key={idx} className="d-flex align-items-start gap-2">
+                  <li key={idx} className="d-flex align-items-start gap-2.5">
                     <span
-                      className="badge rounded-circle bg-primary bg-opacity-15 text-primary d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5"
-                      style={{ width: "18px", height: "18px", fontSize: "0.65rem" }}
+                      className="badge rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0 mt-0.5 fw-bold shadow-sm"
+                      style={{ width: "20px", height: "20px", fontSize: "0.7rem" }}
                     >
                       {idx + 1}
                     </span>
-                    <span style={{ color: "var(--text-main)", lineHeight: "1.4" }}>{step}</span>
+                    <span className="text-body" style={{ lineHeight: "1.45", fontSize: "0.83rem" }}>
+                      {step}
+                    </span>
                   </li>
                 ))}
               </ul>
@@ -705,13 +705,12 @@ export default function PageGuideButton() {
             {/* Pro Tip */}
             {currentDoc.tips && (
               <div
-                className="p-2.5 rounded-3 bg-warning bg-opacity-10 border border-warning border-opacity-25 small mb-2"
-                style={{ color: "var(--text-main)" }}
+                className="p-3 rounded-3 mb-1 small bg-warning bg-opacity-10 border border-warning border-opacity-50 text-body"
               >
-                <div className="fw-bold text-warning-emphasis mb-0.5 d-flex align-items-center gap-1" style={{ fontSize: "0.75rem" }}>
-                  💡 {isBn ? "গুরুত্বপূর্ণ পরামর্শ" : "Pro Tip & Rules"}
+                <div className="fw-bold text-warning mb-1 d-flex align-items-center gap-1.5" style={{ fontSize: "0.78rem" }}>
+                  💡 {isBn ? "গুরুত্বপূর্ণ পরামর্শ ও নিয়মাবলী" : "Pro Tip & Rules"}
                 </div>
-                <div style={{ fontSize: "0.8rem", lineHeight: "1.4" }}>
+                <div className="text-body" style={{ fontSize: "0.82rem", lineHeight: "1.45" }}>
                   {isBn ? currentDoc.tips.bn : currentDoc.tips.en}
                 </div>
               </div>
@@ -720,24 +719,23 @@ export default function PageGuideButton() {
 
           {/* Footer */}
           <div
-            className="p-2.5 border-top d-flex align-items-center justify-content-between rounded-bottom-4 small"
+            className="p-3 border-top d-flex align-items-center justify-content-between rounded-bottom-4 small bg-body-tertiary"
             style={{
-              background: "var(--sidebar-hover, #f8fafc)",
-              borderColor: "var(--line, #e2e8f0)",
+              borderColor: "var(--line, rgba(255,255,255,0.12))",
             }}
           >
             <Link
               href="/app/tutorials"
-              className="text-primary text-decoration-none fw-medium d-flex align-items-center gap-1"
-              style={{ fontSize: "0.75rem" }}
+              className="text-primary text-decoration-none fw-bold d-flex align-items-center gap-1.5"
+              style={{ fontSize: "0.78rem" }}
               onClick={() => setOpen(false)}
             >
-              🎥 {isBn ? "ভিডিও টিউটোরিয়াল দেখুন" : "Watch Tutorials"}
+              🎥 {isBn ? "ভিডিও টিউটোরিয়াল" : "Watch Tutorials"}
             </Link>
             <button
               type="button"
-              className="btn btn-outline-secondary btn-sm py-0.5 px-2.5"
-              style={{ fontSize: "0.75rem" }}
+              className="btn btn-brand btn-sm py-1 px-3 fw-bold"
+              style={{ fontSize: "0.78rem" }}
               onClick={() => setOpen(false)}
             >
               {isBn ? "বুঝেছি" : "Got it"}
@@ -745,6 +743,7 @@ export default function PageGuideButton() {
           </div>
         </div>
       )}
+
     </div>
   );
 }
