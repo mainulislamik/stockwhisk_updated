@@ -168,8 +168,8 @@ export default function BarcodesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/barcodes" />
         <Appbar.Content title={isBN ? 'বারকোড জেনারেটর ও প্রিন্টার' : 'Barcode Generator'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/barcodes" />
       </Appbar.Header>
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>

@@ -149,8 +149,8 @@ export default function CustomersScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/customers" />
         <Appbar.Content title={isBN ? 'গ্রাহক তালিকা' : 'Customers'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/customers" />
         <Appbar.Action icon="plus" onPress={() => setShowAddModal(true)} />
       </Appbar.Header>
       

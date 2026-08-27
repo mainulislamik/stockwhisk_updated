@@ -112,8 +112,8 @@ export default function EMIScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/emi" />
         <Appbar.Content title={isBN ? 'ইএমআই ও কিস্তি ব্যবস্থাপনা' : 'EMI Management'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/emi" />
         <Appbar.Action icon="refresh" onPress={fetchSchedules} />
       </Appbar.Header>
 

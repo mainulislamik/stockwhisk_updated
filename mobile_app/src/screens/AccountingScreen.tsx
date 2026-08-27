@@ -123,8 +123,8 @@ export default function AccountingScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/accounting" />
         <Appbar.Content title={isBN ? 'একাউন্টিং ও নিট প্রফিট' : 'Accounting & P&L'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/accounting" />
         <Appbar.Action icon="refresh" onPress={onRefresh} />
       </Appbar.Header>
 

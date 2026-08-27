@@ -140,8 +140,8 @@ export default function ExpensesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/expenses" />
         <Appbar.Content title={isBn ? "খরচ ও ব্যয়" : "Expenses"} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/expenses" />
         <Appbar.Action icon={showForm ? "close" : "plus"} onPress={() => setShowForm(!showForm)} />
       </Appbar.Header>
       

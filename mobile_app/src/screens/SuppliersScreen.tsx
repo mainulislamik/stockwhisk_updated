@@ -134,8 +134,8 @@ export default function SuppliersScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/suppliers" />
         <Appbar.Content title={isBN ? 'সরবরাহকারী' : 'Suppliers'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/suppliers" />
         <Appbar.Action icon="plus" onPress={() => setShowAddModal(true)} />
       </Appbar.Header>
       

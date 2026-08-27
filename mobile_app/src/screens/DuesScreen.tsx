@@ -167,8 +167,8 @@ export default function DuesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/dues" />
         <Appbar.Content title={isBN ? 'বকেয়া কালেকশন' : 'Due Collection'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/dues" />
       </Appbar.Header>
 
       <Card style={{ margin: 16, backgroundColor: isDarkMode ? '#450a0a' : '#fef2f2', borderColor: '#fecaca', borderWidth: 1 }}>

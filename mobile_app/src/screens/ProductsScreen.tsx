@@ -360,8 +360,8 @@ export default function ProductsScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/products" />
         <Appbar.Content title={isBN ? 'পণ্য ও স্টক ইনওয়ার্ড' : 'Products & Inward'} titleStyle={{ fontWeight: 'bold' }} />
+        <PageGuideButton pageKey="/app/products" />
         <Button mode="contained" compact buttonColor="#2563eb" style={{ marginRight: 8, borderRadius: 8 }} onPress={() => setProductToEdit({})}>
           {isBN ? '+ নতুন প্রোডাক্ট' : '+ New Product'}
         </Button>

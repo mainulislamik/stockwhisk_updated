@@ -238,8 +238,8 @@ export default function SettingsScreen() {
     <View style={{ flex: 1, backgroundColor: bgColor }}>
       <Appbar.Header statusBarHeight={0} elevated={false} style={{ backgroundColor: cardColor, borderBottomWidth: 1, borderBottomColor: borderColor }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} color={textColor} />
-        <PageGuideButton pageKey="/app/settings" />
         <Appbar.Content title="সেটিংস (Settings)" titleStyle={{ fontWeight: 'bold', color: textColor }} />
+        <PageGuideButton pageKey="/app/settings" />
       </Appbar.Header>
       
       {loading ? (

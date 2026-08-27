@@ -171,8 +171,8 @@ export default function ReportsScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <PageGuideButton pageKey="/app/reports" />
         <Appbar.Content title={isBN ? 'রিপোর্ট ও অ্যানালিটিক্স' : 'Reports & Analytics'} titleStyle={{ fontWeight: 'bold', fontSize: 18 }} />
+        <PageGuideButton pageKey="/app/reports" />
       </Appbar.Header>
 
       <ScrollView
