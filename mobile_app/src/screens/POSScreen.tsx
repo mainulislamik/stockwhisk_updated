@@ -10,6 +10,7 @@ import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
@@ -69,6 +70,7 @@ export default function POSScreen() {
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [paidAmount, setPaidAmount] = useState('');
   const [dueDate, setDueDate] = useState('');
+  const [showDatePicker, setShowDatePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bkash' | 'card' | 'nagad' | 'bank_transfer'>('cash');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
@@ -937,14 +939,29 @@ export default function POSScreen() {
                   {t('বাকি টাকা পরিশোধের জন্য কাস্টমারের প্রতিশ্রুত তারিখ নির্ধারণ করুন', 'Set the expected date promised by the customer')}
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="YYYY-MM-DD"
-                    value={dueDate}
-                    onChangeText={setDueDate}
-                    style={{ flex: 1, backgroundColor: theme.colors.surface }}
-                    keyboardType="default"
-                  />
+                  <TouchableOpacity 
+                    onPress={() => setShowDatePicker(true)}
+                    style={{ flex: 1, padding: 14, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#ccc', borderRadius: 4 }}
+                  >
+                    <Text style={{ color: dueDate ? theme.colors.onSurface : (isDarkMode ? '#64748b' : '#a1a1aa') }}>
+                      {dueDate || "YYYY-MM-DD"}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={dueDate ? new Date(dueDate) : new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={(event, selectedDate) => {
+                        setShowDatePicker(false);
+                        if (selectedDate) {
+                          const localIso = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+                          setDueDate(localIso);
+                        }
+                      }}
+                    />
+                  )}
                   <Button 
                     mode="contained-tonal" 
                     style={{ marginLeft: 8 }}
