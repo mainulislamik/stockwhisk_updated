@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, RefreshControl, TouchableOpacity, Dimensions } from 'react-native';
 import { Appbar, Text, Card, useTheme, Divider, Chip, ActivityIndicator, Surface } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -122,6 +123,7 @@ export default function AccountingScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/accounting" />
         <Appbar.Content title={isBN ? 'একাউন্টিং ও নিট প্রফিট' : 'Accounting & P&L'} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon="refresh" onPress={onRefresh} />
       </Appbar.Header>

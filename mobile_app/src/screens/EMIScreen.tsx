@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, Button, Modal, Portal, Divider, useTheme } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -111,6 +112,7 @@ export default function EMIScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/emi" />
         <Appbar.Content title={isBN ? 'ইএমআই ও কিস্তি ব্যবস্থাপনা' : 'EMI Management'} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon="refresh" onPress={fetchSchedules} />
       </Appbar.Header>

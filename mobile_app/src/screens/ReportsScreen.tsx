@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, Dimensions, TouchableOpacity } from 'react-native';
 import { Text, Card, ActivityIndicator, useTheme, Appbar, Surface, Chip, ProgressBar, Divider } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -170,6 +171,7 @@ export default function ReportsScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/reports" />
         <Appbar.Content title={isBN ? 'রিপোর্ট ও অ্যানালিটিক্স' : 'Reports & Analytics'} titleStyle={{ fontWeight: 'bold', fontSize: 18 }} />
       </Appbar.Header>
 

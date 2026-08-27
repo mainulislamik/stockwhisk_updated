@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
 import { Appbar, Text, Card, TextInput, ActivityIndicator, useTheme, Button } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -93,6 +94,7 @@ export default function PurchasesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/products/purchase" />
         <Appbar.Content title={isBn ? "ক্রয় ইতিহাস" : "Purchases"} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>
       

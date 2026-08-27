@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, useTheme, FAB, Button, Divider, Menu } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -359,6 +360,7 @@ export default function ProductsScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/products" />
         <Appbar.Content title={isBN ? 'পণ্য ও স্টক ইনওয়ার্ড' : 'Products & Inward'} titleStyle={{ fontWeight: 'bold' }} />
         <Button mode="contained" compact buttonColor="#2563eb" style={{ marginRight: 8, borderRadius: 8 }} onPress={() => setProductToEdit({})}>
           {isBN ? '+ নতুন প্রোডাক্ট' : '+ New Product'}

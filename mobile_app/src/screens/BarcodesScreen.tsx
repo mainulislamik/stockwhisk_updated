@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Platform } from 'react-native';
 import { Appbar, Text, Card, TextInput, Button, useTheme, Chip, Surface } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
@@ -167,6 +168,7 @@ export default function BarcodesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/barcodes" />
         <Appbar.Content title={isBN ? 'বারকোড জেনারেটর ও প্রিন্টার' : 'Barcode Generator'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>
 

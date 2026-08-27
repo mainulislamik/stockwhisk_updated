@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, Button, Divider, useTheme, Modal, Portal } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';

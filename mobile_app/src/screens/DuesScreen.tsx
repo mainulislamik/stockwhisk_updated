@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Alert, NativeSyntheticEvent, NativeScrollEvent, TouchableOpacity, Linking } from 'react-native';
 import { Appbar, Card, Text, Button, Modal, Portal, ActivityIndicator, TextInput, useTheme } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -166,6 +167,7 @@ export default function DuesScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/dues" />
         <Appbar.Content title={isBN ? 'বকেয়া কালেকশন' : 'Due Collection'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>
 

@@ -3,6 +3,7 @@ import {
   View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList, Platform, KeyboardAvoidingView
 } from 'react-native';
 import { Text, useTheme, Surface, TextInput, Button, Chip, Divider, Appbar } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
@@ -223,6 +224,7 @@ export default function InventoryScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }} elevated>
+        <PageGuideButton pageKey="/app/inventory" />
         <Appbar.Content title={isBN ? 'ইনভেন্টরি' : 'Inventory'} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon="refresh" onPress={() => { loadSummary(); loadProducts(1, productSearch); }} />
         <Appbar.Action icon="plus-circle" onPress={() => setShowAdjForm(true)} color={theme.colors.primary} />

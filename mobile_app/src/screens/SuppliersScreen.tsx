@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Alert, TouchableOpacity, Linking, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { Appbar, TextInput, Card, Text, Button, ActivityIndicator, Divider, useTheme, FAB } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
@@ -133,6 +134,7 @@ export default function SuppliersScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/suppliers" />
         <Appbar.Content title={isBN ? 'সরবরাহকারী' : 'Suppliers'} titleStyle={{ fontWeight: 'bold' }} />
         <Appbar.Action icon="plus" onPress={() => setShowAddModal(true)} />
       </Appbar.Header>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Linking, Platform, Alert } from 'react-native';
 import { Appbar, Text, Card, Divider, Chip, TextInput, ActivityIndicator, useTheme, Modal, Portal, Button, Surface } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Print from 'expo-print';
@@ -337,6 +338,7 @@ export default function SalesScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
+        <PageGuideButton pageKey="/app/sales" />
         <Appbar.Content title={isBN ? 'বিক্রয় ইতিহাস' : 'Sales History'} titleStyle={{ fontWeight: 'bold' }} />
       </Appbar.Header>
       

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert, Modal, Dimensions, Linking, Platform, BackHandler, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { Text, Appbar, useTheme, Surface, IconButton, TextInput, Button, Divider, ActivityIndicator, Badge, Chip, Checkbox } from 'react-native-paper';
+import PageGuideButton from '../components/PageGuideButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
@@ -591,6 +592,7 @@ export default function POSScreen() {
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} elevated style={{ backgroundColor: theme.colors.surface }}>
         {view === 'cart' && <Appbar.BackAction onPress={() => setView('products')} />}
+        <PageGuideButton pageKey="/app/pos" />
         <Appbar.Content title={view === 'products' ? t('বিক্রয় / POS', 'POS / Sale') : t('কার্ট (' + totalItemsCount + ' items)', 'Cart (' + totalItemsCount + ' items)')} titleStyle={{ fontWeight: 'bold' }} />
         {view === 'products' ? (
           <TouchableOpacity onPress={() => setView('cart')} style={{ marginRight: 16 }}>
