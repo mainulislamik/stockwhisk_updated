@@ -658,14 +658,22 @@ def convert_md_to_html(md_path: Path, meta: dict) -> str:
   <style>
 {CSS_STYLES}
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="file:///Users/m3air/Desktop/Files/Stock%20Whisk/stockwhisk_updated/docs/assets/mermaid.min.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function() {{
-      mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose' }});
+      mermaid.initialize({{
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        er: {{
+          useMaxWidth: true,
+          diagramPadding: 20,
+          fontSize: 12
+        }}
+      }});
     }});
   </script>
 </head>
-
 
 <body>
   {header_html}
@@ -684,6 +692,8 @@ def convert_html_to_pdf(html_path: Path, pdf_path: Path):
         "--headless=new",
         "--disable-gpu",
         "--no-sandbox",
+        "--virtual-time-budget=8000",
+        "--run-all-compositor-stages-before-draw",
         "--allow-file-access-from-files",
         f"--print-to-pdf={pdf_path}",
         str(html_path)
@@ -693,6 +703,7 @@ def convert_html_to_pdf(html_path: Path, pdf_path: Path):
         print(f"Error generating PDF for {html_path.name}: {res.stderr}")
     else:
         print(f"  ✓ Successfully created: {pdf_path.name} ({pdf_path.stat().st_size // 1024} KB)")
+
 
 def generate_master_book(md_files: list):
     """Compiles all 15 markdown files into a single unified master documentation book."""
@@ -820,13 +831,23 @@ def generate_master_book(md_files: list):
   <style>
 {CSS_STYLES}
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <script src="file:///Users/m3air/Desktop/Files/Stock%20Whisk/stockwhisk_updated/docs/assets/mermaid.min.js"></script>
   <script>
     document.addEventListener("DOMContentLoaded", function() {{
-      mermaid.initialize({{ startOnLoad: true, theme: 'default', securityLevel: 'loose' }});
+      mermaid.initialize({{
+        startOnLoad: true,
+        theme: 'default',
+        securityLevel: 'loose',
+        er: {{
+          useMaxWidth: true,
+          diagramPadding: 20,
+          fontSize: 12
+        }}
+      }});
     }});
   </script>
 </head>
+
 
 
 <body>
