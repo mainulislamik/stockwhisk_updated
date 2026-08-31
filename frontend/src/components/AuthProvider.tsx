@@ -23,6 +23,9 @@ export type User = {
   shop_offline_sale_mode?: boolean;
   shop_pos_print_mode?: "ask" | "pos" | "regular";
   shop_pos_receipt_enabled?: boolean;
+  shop_service_enabled?: boolean;
+  shop_reports_enabled?: boolean;
+  shop_finance_enabled?: boolean;
   branch: number | null;
   is_staff: boolean;
   is_reseller?: boolean;

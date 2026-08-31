@@ -30,6 +30,7 @@ export default function SettingsScreen() {
     vat_enabled: false, vat_percent: '0',
     emi_enabled: false, delivery_enabled: true,
     whatsapp_invoice_enabled: true, barcode_prefix: '', offline_sale_mode: false,
+    service_enabled: true, reports_enabled: true, finance_enabled: true,
     logo: ''
   });
 
@@ -62,6 +63,9 @@ export default function SettingsScreen() {
         whatsapp_invoice_enabled: res.data.whatsapp_invoice_enabled !== false,
         barcode_prefix: res.data.barcode_prefix || '',
         offline_sale_mode: !!res.data.offline_sale_mode,
+        service_enabled: res.data.service_enabled !== false,
+        reports_enabled: res.data.reports_enabled !== false,
+        finance_enabled: res.data.finance_enabled !== false,
         logo: res.data.logo || ''
       });
     } catch (e) {
@@ -301,6 +305,10 @@ export default function SettingsScreen() {
                   <TextInput label="VAT Percentage (%)" value={shopForm.vat_percent || ''} onChangeText={(t) => setShopForm({ ...shopForm, vat_percent: t })} mode="outlined" keyboardType="numeric" style={{ backgroundColor: cardColor }} outlineColor={borderColor} activeOutlineColor={primaryColor} />
                 </View>
               )}
+
+              <CustomSwitch label="Service Section (সার্ভিস ও মেরামত)" icon="tools" value={shopForm.service_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, service_enabled: val })} />
+              <CustomSwitch label="Reports Section (রিপোর্ট ও পরিসংখ্যান)" icon="chart-line" value={shopForm.reports_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, reports_enabled: val })} />
+              <CustomSwitch label="Finance Section (ফাইন্যান্স ও হিসাব)" icon="calculator-variant" value={shopForm.finance_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, finance_enabled: val })} />
 
               <CustomSwitch label="EMI Enabled" icon="credit-card-outline" value={shopForm.emi_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, emi_enabled: val })} />
               <CustomSwitch label="Delivery Enabled" icon="truck-delivery-outline" value={shopForm.delivery_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, delivery_enabled: val })} />

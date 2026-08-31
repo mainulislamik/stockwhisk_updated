@@ -6,6 +6,7 @@ import { View, TouchableOpacity, ScrollView, Platform, StyleSheet } from 'react-
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreferences } from '../contexts/PreferencesContext';
+import { useAuth } from '../contexts/AuthContext';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import POSScreen from '../screens/POSScreen';
@@ -16,7 +17,26 @@ function MoreMenuScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
   const { language, isDarkMode } = usePreferences();
+  const { user } = useAuth();
   const isBn = language === 'BN';
+
+  const isServiceEnabled = user?.shop_service_enabled !== false;
+  const isFinanceEnabled = user?.shop_finance_enabled !== false;
+
+  const accountsItems: any[] = [];
+  if (isFinanceEnabled) {
+    accountsItems.push(
+      { name: 'AccountingScreen', icon: 'calculator-variant', color: '#1e3a8a', bg: '#eff6ff', labelEn: 'Accounting & P&L', labelBn: 'একাউন্টিং ও লাভ' },
+      { name: 'SettlementScreen', icon: 'cash-register', color: '#16a34a', bg: '#f0fdf4', labelEn: 'Daily Settlement', labelBn: 'দৈনিক ক্যাশ ক্লোজিং' },
+      { name: 'ExpensesScreen', icon: 'cash-remove', color: '#be185d', bg: '#fdf2f8', labelEn: 'Expenses', labelBn: 'দোকানের খরচ' }
+    );
+  }
+  if (isServiceEnabled) {
+    accountsItems.push(
+      { name: 'ServiceTickets', icon: 'tools', color: '#9333ea', bg: '#faf5ff', labelEn: 'Service & Repair', labelBn: 'সার্ভিস ও মেরামত' },
+      { name: 'WarrantiesScreen', icon: 'shield-check', color: '#0ea5e9', bg: '#e0f2fe', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' }
+    );
+  }
 
   const sections = [
     {
@@ -40,17 +60,11 @@ function MoreMenuScreen() {
         { name: 'BarcodesScreen', icon: 'barcode-scan', color: '#0284c7', bg: '#f0f9ff', labelEn: 'Barcode Generator', labelBn: 'বারকোড জেনারেটর' },
       ],
     },
-    {
+    ...(accountsItems.length > 0 ? [{
       titleEn: 'Accounts & Shop Operations',
       titleBn: 'হিসাব ও দোকান পরিচালনা',
-      items: [
-        { name: 'AccountingScreen', icon: 'calculator-variant', color: '#1e3a8a', bg: '#eff6ff', labelEn: 'Accounting & P&L', labelBn: 'একাউন্টিং ও লাভ' },
-        { name: 'SettlementScreen', icon: 'cash-register', color: '#16a34a', bg: '#f0fdf4', labelEn: 'Daily Settlement', labelBn: 'দৈনিক ক্যাশ ক্লোজিং' },
-        { name: 'ExpensesScreen', icon: 'cash-remove', color: '#be185d', bg: '#fdf2f8', labelEn: 'Expenses', labelBn: 'দোকানের খরচ' },
-        { name: 'ServiceTickets', icon: 'tools', color: '#9333ea', bg: '#faf5ff', labelEn: 'Service & Repair', labelBn: 'সার্ভিস ও মেরামত' },
-        { name: 'WarrantiesScreen', icon: 'shield-check', color: '#0ea5e9', bg: '#e0f2fe', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' },
-      ],
-    },
+      items: accountsItems,
+    }] : []),
     {
       titleEn: 'Directory & Preferences',
       titleBn: 'ডিরেক্টরি ও সেটিংস',

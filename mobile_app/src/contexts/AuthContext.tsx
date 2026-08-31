@@ -13,6 +13,9 @@ type User = {
   role?: string;
   shop?: number;
   shop_code?: string;
+  shop_service_enabled?: boolean;
+  shop_reports_enabled?: boolean;
+  shop_finance_enabled?: boolean;
 };
 
 export type BillingStatus = {

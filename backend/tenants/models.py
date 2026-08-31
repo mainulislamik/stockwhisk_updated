@@ -140,6 +140,11 @@ class Shop(TimeStampedModel):
     pos_print_mode = models.CharField(max_length=20, default="ask")
     pos_receipt_enabled = models.BooleanField(default=True)
 
+    # Section module switches (shop owner can toggle on/off)
+    service_enabled = models.BooleanField(default=True, help_text="Enable/disable Service section (Tickets, Warranties)")
+    reports_enabled = models.BooleanField(default=True, help_text="Enable/disable Reports section")
+    finance_enabled = models.BooleanField(default=True, help_text="Enable/disable Finance section (Expenses, Accounting)")
+
     # Short 2–5 char code prefixed to generated barcodes so labels are unique
     # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name
     # on first save; owner can override it in Settings.

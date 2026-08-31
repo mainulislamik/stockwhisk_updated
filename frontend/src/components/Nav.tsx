@@ -62,10 +62,10 @@ export default function Nav({
   );
 
   const showPurchasing = isOwner || can("manage_purchasing");
-  const showReports = isOwner || can("view_reports");
+  const showReports = (isOwner || can("view_reports")) && user?.shop_reports_enabled !== false;
   const showSalesRead = isOwner || can("view_sales");
-  const showService = isOwner || can("manage_service") || can("view_service");
-  const showFinance = isOwner || can("manage_expenses") || can("view_profit") || can("view_reports");
+  const showService = (isOwner || can("manage_service") || can("view_service")) && user?.shop_service_enabled !== false;
+  const showFinance = (isOwner || can("manage_expenses") || can("view_profit") || can("view_reports")) && user?.shop_finance_enabled !== false;
   // POS is sale creation; product browse/lookup is separate (view_products).
   const showPOS = isOwner || can("create_sale");
   const showProductsRead = isOwner || can("view_products");   // list / lookup / barcodes

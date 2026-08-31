@@ -16,7 +16,13 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, whatsapp_invoice_enabled: true, barcode_prefix: "", offline_sale_mode: false, pos_print_mode: "ask", pos_receipt_enabled: true });
+  const [shopForm, setShopForm] = useState({ 
+    name: "", phone: "", address: "", currency: "BDT", 
+    vat_enabled: false, vat_percent: 0, emi_enabled: false, 
+    delivery_enabled: true, whatsapp_invoice_enabled: true, 
+    barcode_prefix: "", offline_sale_mode: false, pos_print_mode: "ask", pos_receipt_enabled: true,
+    service_enabled: true, reports_enabled: true, finance_enabled: true
+  });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -47,6 +53,9 @@ export default function SettingsPage() {
           offline_sale_mode: data.offline_sale_mode || false,
           pos_print_mode: data.pos_print_mode || "ask",
           pos_receipt_enabled: data.pos_receipt_enabled !== false,
+          service_enabled: data.service_enabled !== false,
+          reports_enabled: data.reports_enabled !== false,
+          finance_enabled: data.finance_enabled !== false,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -90,6 +99,9 @@ export default function SettingsPage() {
       formData.append("offline_sale_mode", shopForm.offline_sale_mode.toString());
       formData.append("pos_print_mode", shopForm.pos_print_mode);
       formData.append("pos_receipt_enabled", shopForm.pos_receipt_enabled.toString());
+      formData.append("service_enabled", shopForm.service_enabled.toString());
+      formData.append("reports_enabled", shopForm.reports_enabled.toString());
+      formData.append("finance_enabled", shopForm.finance_enabled.toString());
 
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -263,6 +275,68 @@ export default function SettingsPage() {
 
                 <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">{t("settings_flags_title")}</div>
                 <div className="col-md-12">
+                  {/* Modular Sections Toggle Card */}
+                  <div className="p-3 bg-body-tertiary rounded-3 mb-3 border">
+                    <div className="fw-bold small text-brand mb-3 d-flex align-items-center gap-2">
+                      <i className="bi bi-toggles2 text-primary fs-6"></i>
+                      <span>{t("settings_flags_title")}</span>
+                    </div>
+
+                    {/* 1. Service Section Switch */}
+                    <div className="form-check form-switch mb-3">
+                      <input 
+                        className="form-check-input" 
+                        type="checkbox" 
+                        role="switch" 
+                        id="serviceSwitch" 
+                        checked={shopForm.service_enabled} 
+                        onChange={e => setShopForm({...shopForm, service_enabled: e.target.checked})} 
+                      />
+                      <label className="form-check-label small fw-semibold" htmlFor="serviceSwitch">
+                        🔧 {t("settings_service_en")}
+                      </label>
+                      <div className="form-text" style={{ fontSize: "0.75rem" }}>
+                        {t("settings_service_help")}
+                      </div>
+                    </div>
+
+                    {/* 2. Reports Section Switch */}
+                    <div className="form-check form-switch mb-3">
+                      <input 
+                        className="form-check-input" 
+                        type="checkbox" 
+                        role="switch" 
+                        id="reportsSwitch" 
+                        checked={shopForm.reports_enabled} 
+                        onChange={e => setShopForm({...shopForm, reports_enabled: e.target.checked})} 
+                      />
+                      <label className="form-check-label small fw-semibold" htmlFor="reportsSwitch">
+                        📊 {t("settings_reports_en")}
+                      </label>
+                      <div className="form-text" style={{ fontSize: "0.75rem" }}>
+                        {t("settings_reports_help")}
+                      </div>
+                    </div>
+
+                    {/* 3. Finance Section Switch */}
+                    <div className="form-check form-switch">
+                      <input 
+                        className="form-check-input" 
+                        type="checkbox" 
+                        role="switch" 
+                        id="financeSwitch" 
+                        checked={shopForm.finance_enabled} 
+                        onChange={e => setShopForm({...shopForm, finance_enabled: e.target.checked})} 
+                      />
+                      <label className="form-check-label small fw-semibold" htmlFor="financeSwitch">
+                        💰 {t("settings_finance_en")}
+                      </label>
+                      <div className="form-text" style={{ fontSize: "0.75rem" }}>
+                        {t("settings_finance_help")}
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="form-check form-switch">
                     <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={shopForm.emi_enabled} onChange={e => setShopForm({...shopForm, emi_enabled: e.target.checked})} />
                     <label className="form-check-label small" htmlFor="emiSwitch">{t("settings_emi_en")}</label>
