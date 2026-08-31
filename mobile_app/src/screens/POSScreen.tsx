@@ -964,7 +964,7 @@ export default function POSScreen() {
                       value={dueDate ? new Date(dueDate) : new Date()}
                       mode="date"
                       display="default"
-                      onChange={(event, selectedDate) => {
+                      onChange={(event: any, selectedDate?: Date) => {
                         setShowDatePicker(false);
                         if (selectedDate) {
                           const localIso = new Date(selectedDate.getTime() - selectedDate.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
