@@ -21,21 +21,44 @@ from django.utils import timezone
 logger = logging.getLogger(__name__)
 
 def _db_env():
+    db_conf = settings.DATABASES.get("default", {})
     env = os.environ.copy()
-    env["PGPASSWORD"] = os.environ.get("DB_PASSWORD", "stockwhisk_password")
+    password = db_conf.get("PASSWORD") or os.environ.get("DB_PASSWORD", "stockwhisk_password")
+    env["PGPASSWORD"] = str(password)
     return env, {
-        "host": os.environ.get("DB_HOST", "db"),
-        "port": os.environ.get("DB_PORT", "5432"),
-        "user": os.environ.get("DB_USER", "stockwhisk"),
-        "name": os.environ.get("DB_NAME", "stockwhisk"),
+        "engine": db_conf.get("ENGINE", ""),
+        "host": str(db_conf.get("HOST") or os.environ.get("DB_HOST", "db")),
+        "port": str(db_conf.get("PORT") or os.environ.get("DB_PORT", "5432")),
+        "user": str(db_conf.get("USER") or os.environ.get("DB_USER", "stockwhisk")),
+        "name": str(db_conf.get("NAME") or os.environ.get("DB_NAME", "stockwhisk")),
     }
+
+def _record_backup_status(config, success, msg):
+    try:
+        config.last_drive_backup_at = timezone.now()
+        config.last_drive_backup_status = "success" if success else "failed"
+        config.last_drive_backup_error = "" if success else str(msg)[:1000]
+        config.save(update_fields=["last_drive_backup_at", "last_drive_backup_status", "last_drive_backup_error"])
+    except Exception as e:
+        logger.error(f"Failed to record backup status on PlatformConfig: {e}")
 
 @shared_task
 def perform_drive_backup():
+    import re
+    from google.auth.transport.requests import Request
+
     config = PlatformConfig.get_solo()
-    if not config.drive_refresh_token or not config.drive_folder_id or not config.drive_client_id or not config.drive_client_secret:
-        msg = "Google Drive backup skipped: Missing OAuth config or folder ID."
+    
+    # Extract folder ID cleanly even if full Google Drive URL was pasted
+    folder_id = (config.drive_folder_id or "").strip()
+    folder_match = re.search(r'folders/([a-zA-Z0-9_-]+)', folder_id)
+    if folder_match:
+        folder_id = folder_match.group(1)
+
+    if not config.drive_refresh_token or not folder_id or not config.drive_client_id or not config.drive_client_secret:
+        msg = "Google Drive backup skipped: Missing OAuth credentials (Client ID/Secret/Refresh Token) or Folder ID. Please save settings and connect Google Drive."
         logger.warning(msg)
+        _record_backup_status(config, False, msg)
         return False, msg
         
     try:
@@ -44,12 +67,26 @@ def perform_drive_backup():
             refresh_token=config.drive_refresh_token,
             token_uri="https://oauth2.googleapis.com/token",
             client_id=config.drive_client_id,
-            client_secret=config.drive_client_secret
+            client_secret=config.drive_client_secret,
+            scopes=['https://www.googleapis.com/auth/drive.file', 'https://www.googleapis.com/auth/drive']
         )
+        if not credentials.valid:
+            credentials.refresh(Request())
         drive_service = build('drive', 'v3', credentials=credentials, cache_discovery=False)
     except Exception as e:
-        msg = f"Google Drive authentication failed: {e}"
+        msg = f"Google Drive authentication failed (token expired or revoked). Please click 'Reconnect Google': {e}"
         logger.error(msg)
+        _record_backup_status(config, False, msg)
+        return False, msg
+
+    # Validate target folder access
+    try:
+        folder_info = drive_service.files().get(fileId=folder_id, fields="id, name, mimeType").execute()
+        logger.info(f"Target Google Drive backup folder verified: {folder_info.get('name')} ({folder_id})")
+    except Exception as e:
+        msg = f"Target Google Drive Folder ID '{folder_id}' is not accessible by your account. Please check the Folder ID or Google permissions: {e}"
+        logger.error(msg)
+        _record_backup_status(config, False, msg)
         return False, msg
 
     env, db = _db_env()
@@ -60,7 +97,7 @@ def perform_drive_backup():
     os.close(fd)
     
     try:
-        # 2. Run pg_dump to dump to the temp file
+        # 2. Run pg_dump to dump database to the temp file
         with open(tmp_path, "wb") as f_out:
             try:
                 proc = subprocess.Popen(
@@ -72,24 +109,26 @@ def perform_drive_backup():
             except FileNotFoundError:
                 msg = "pg_dump command not found on server."
                 logger.error(msg)
+                _record_backup_status(config, False, msg)
                 return False, msg
 
             proc.wait()
             if proc.returncode != 0:
                 err = proc.stderr.read().decode(errors="replace")
-                msg = f"pg_dump failed: {err}"
+                msg = f"Database pg_dump failed: {err}"
                 logger.error(msg)
+                _record_backup_status(config, False, msg)
                 return False, msg
 
-        # 3. Upload DB to Google Drive
+        # 3. Upload DB Dump to Google Drive
         file_metadata = {
             'name': filename,
-            'parents': [config.drive_folder_id]
+            'parents': [folder_id]
         }
         media = MediaFileUpload(tmp_path, mimetype='application/sql', resumable=True)
-        uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id').execute()
+        uploaded_file = drive_service.files().create(body=file_metadata, media_body=media, fields='id, name').execute()
 
-        # 3.5 Backup Media Directory
+        # 3.5 Backup Media Directory (.zip)
         media_filename = f"stockwhisk_media_{time.strftime('%Y%m%d-%H%M%S')}.zip"
         media_tmp_dir = tempfile.mkdtemp()
         media_tmp_path = os.path.join(media_tmp_dir, "media")
@@ -104,44 +143,44 @@ def perform_drive_backup():
         try:
             media_file_metadata = {
                 'name': media_filename,
-                'parents': [config.drive_folder_id]
+                'parents': [folder_id]
             }
             media_upload = MediaFileUpload(media_zip_path, mimetype='application/zip', resumable=True)
-            uploaded_media_file = drive_service.files().create(body=media_file_metadata, media_body=media_upload, fields='id').execute()
+            uploaded_media_file = drive_service.files().create(body=media_file_metadata, media_body=media_upload, fields='id, name').execute()
         finally:
             # Clean up local zip
             if os.path.exists(media_zip_path):
                 os.remove(media_zip_path)
             shutil.rmtree(media_tmp_dir, ignore_errors=True)
         
-        # 4. Delete old backups in the folder to save space
+        # 4. Safe Retention: keep recent 5 backups to protect history without exhausting storage
         try:
-            # Delete old SQL backups
-            query = f"'{config.drive_folder_id}' in parents and name contains 'stockwhisk_backup_' and trashed=false"
-            results = drive_service.files().list(q=query, fields="files(id, name)").execute()
+            # Delete old SQL backups beyond last 5
+            query = f"'{folder_id}' in parents and name contains 'stockwhisk_backup_' and trashed=false"
+            results = drive_service.files().list(q=query, fields="files(id, name, createdTime)", orderBy="createdTime desc").execute()
             items = results.get('files', [])
-            for item in items:
-                if item['id'] != uploaded_file.get('id'):
-                    drive_service.files().delete(fileId=item['id']).execute()
-                    logger.info(f"Deleted old backup from Drive: {item['name']}")
-                    
-            # Delete old Media backups
-            media_query = f"'{config.drive_folder_id}' in parents and name contains 'stockwhisk_media_' and trashed=false"
-            media_results = drive_service.files().list(q=media_query, fields="files(id, name)").execute()
+            for item in items[5:]:
+                drive_service.files().delete(fileId=item['id']).execute()
+                logger.info(f"Deleted old backup from Drive: {item['name']}")
+                
+            # Delete old Media backups beyond last 5
+            media_query = f"'{folder_id}' in parents and name contains 'stockwhisk_media_' and trashed=false"
+            media_results = drive_service.files().list(q=media_query, fields="files(id, name, createdTime)", orderBy="createdTime desc").execute()
             media_items = media_results.get('files', [])
-            for item in media_items:
-                if item['id'] != uploaded_media_file.get('id'):
-                    drive_service.files().delete(fileId=item['id']).execute()
-                    logger.info(f"Deleted old media backup from Drive: {item['name']}")
+            for item in media_items[5:]:
+                drive_service.files().delete(fileId=item['id']).execute()
+                logger.info(f"Deleted old media backup from Drive: {item['name']}")
         except Exception as e:
-            logger.warning(f"Failed to delete old backups from Drive: {e}")
+            logger.warning(f"Failed to cleanup old backups from Drive: {e}")
 
-        msg = f"Google Drive backup successful: {filename}"
+        msg = f"Google Drive backup successful: Uploaded {filename} and {media_filename}."
         logger.info(msg)
+        _record_backup_status(config, True, msg)
         return True, msg
     except Exception as e:
         msg = f"Google Drive backup failed: {e}"
         logger.error(msg)
+        _record_backup_status(config, False, msg)
         return False, msg
     finally:
         # Remove the temporary SQL file from storage immediately

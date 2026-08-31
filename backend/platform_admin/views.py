@@ -1577,43 +1577,63 @@ class PlatformConfigView(APIView):
             "has_refresh_token": bool(config.drive_refresh_token),
             "drive_backup_enabled": config.drive_backup_enabled,
             "drive_backup_interval_minutes": config.drive_backup_interval_minutes,
+            "last_drive_backup_at": config.last_drive_backup_at,
+            "last_drive_backup_status": config.last_drive_backup_status,
+            "last_drive_backup_error": config.last_drive_backup_error,
         })
 
     def put(self, request):
+        import re
         config = PlatformConfig.get_solo()
-        config.drive_client_id = request.data.get("drive_client_id", config.drive_client_id)
-        config.drive_client_secret = request.data.get("drive_client_secret", config.drive_client_secret)
-        config.drive_folder_id = request.data.get("drive_folder_id", config.drive_folder_id)
+        
+        client_id = request.data.get("drive_client_id", config.drive_client_id)
+        client_secret = request.data.get("drive_client_secret", config.drive_client_secret)
+        folder_id = request.data.get("drive_folder_id", config.drive_folder_id)
+        
+        # Clean folder ID if full url was provided
+        if folder_id:
+            folder_id = str(folder_id).strip()
+            folder_match = re.search(r'folders/([a-zA-Z0-9_-]+)', folder_id)
+            if folder_match:
+                folder_id = folder_match.group(1)
+
+        config.drive_client_id = (client_id or "").strip()
+        config.drive_client_secret = (client_secret or "").strip()
+        config.drive_folder_id = folder_id
         
         if "drive_backup_enabled" in request.data:
-            config.drive_backup_enabled = str(request.data.get("drive_backup_enabled")).lower() == "true"
+            val = request.data.get("drive_backup_enabled")
+            config.drive_backup_enabled = val is True or str(val).lower() == "true"
         if "drive_backup_interval_minutes" in request.data:
             try:
-                config.drive_backup_interval_minutes = int(request.data.get("drive_backup_interval_minutes"))
-            except ValueError:
+                config.drive_backup_interval_minutes = max(1, int(request.data.get("drive_backup_interval_minutes")))
+            except (ValueError, TypeError):
                 pass
         config.save()
         
         # Update Celery Beat Schedule
-        from django_celery_beat.models import PeriodicTask, IntervalSchedule
-        task_name = "automated-drive-backup-dynamic"
-        task_path = "platform_admin.tasks.perform_drive_backup"
-        
-        if not config.drive_backup_enabled:
-            PeriodicTask.objects.filter(name=task_name).update(enabled=False)
-        else:
-            schedule, _ = IntervalSchedule.objects.get_or_create(
-                every=config.drive_backup_interval_minutes,
-                period=IntervalSchedule.MINUTES
-            )
-            task, created = PeriodicTask.objects.get_or_create(
-                name=task_name,
-                defaults={'task': task_path, 'interval': schedule, 'enabled': True}
-            )
-            if not created:
-                task.interval = schedule
-                task.enabled = True
-                task.save()
+        try:
+            from django_celery_beat.models import PeriodicTask, IntervalSchedule
+            task_name = "automated-drive-backup-dynamic"
+            task_path = "platform_admin.tasks.perform_drive_backup"
+            
+            if not config.drive_backup_enabled:
+                PeriodicTask.objects.filter(name=task_name).update(enabled=False)
+            else:
+                schedule, _ = IntervalSchedule.objects.get_or_create(
+                    every=config.drive_backup_interval_minutes,
+                    period=IntervalSchedule.MINUTES
+                )
+                task, created = PeriodicTask.objects.get_or_create(
+                    name=task_name,
+                    defaults={'task': task_path, 'interval': schedule, 'enabled': True}
+                )
+                if not created:
+                    task.interval = schedule
+                    task.enabled = True
+                    task.save()
+        except Exception as e:
+            logger.error(f"Failed to sync Celery periodic task for Google Drive backup: {e}")
 
         return Response({"status": "updated"})
 
@@ -1625,17 +1645,26 @@ class DriveAuthStartView(APIView):
 
     def post(self, request):
         config = PlatformConfig.get_solo()
-        if not config.drive_client_id or not config.drive_client_secret:
-            return Response({"detail": "Client ID and Secret are required."}, status=400)
+        client_id = (request.data.get("drive_client_id") or config.drive_client_id or "").strip()
+        client_secret = (request.data.get("drive_client_secret") or config.drive_client_secret or "").strip()
+        
+        if not client_id or not client_secret:
+            return Response({"detail": "Client ID and Secret are required to start Google authentication."}, status=400)
             
         redirect_uri = request.data.get("redirect_uri")
         if not redirect_uri:
             return Response({"detail": "redirect_uri is required."}, status=400)
 
+        # Save credentials first
+        if client_id != config.drive_client_id or client_secret != config.drive_client_secret:
+            config.drive_client_id = client_id
+            config.drive_client_secret = client_secret
+            config.save()
+
         client_config = {
             "web": {
-                "client_id": config.drive_client_id,
-                "client_secret": config.drive_client_secret,
+                "client_id": client_id,
+                "client_secret": client_secret,
                 "auth_uri": "https://accounts.google.com/o/oauth2/auth",
                 "token_uri": "https://oauth2.googleapis.com/token",
                 "redirect_uris": [redirect_uri],
@@ -1643,10 +1672,13 @@ class DriveAuthStartView(APIView):
         }
         flow = Flow.from_client_config(
             client_config,
-            scopes=['https://www.googleapis.com/auth/drive.file']
+            scopes=[
+                'https://www.googleapis.com/auth/drive.file',
+                'https://www.googleapis.com/auth/drive',
+            ]
         )
         flow.redirect_uri = redirect_uri
-        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline')
+        auth_url, _ = flow.authorization_url(prompt='consent', access_type='offline', include_granted_scopes='true')
         return Response({"auth_url": auth_url})
 
 class DriveAuthCallbackView(APIView):
@@ -1659,6 +1691,9 @@ class DriveAuthCallbackView(APIView):
             return Response({"detail": "code and redirect_uri are required."}, status=400)
 
         config = PlatformConfig.get_solo()
+        if not config.drive_client_id or not config.drive_client_secret:
+            return Response({"detail": "OAuth Client ID and Secret are missing on server."}, status=400)
+
         client_config = {
             "web": {
                 "client_id": config.drive_client_id,
@@ -1672,20 +1707,25 @@ class DriveAuthCallbackView(APIView):
         try:
             flow = Flow.from_client_config(
                 client_config,
-                scopes=['https://www.googleapis.com/auth/drive.file']
+                scopes=[
+                    'https://www.googleapis.com/auth/drive.file',
+                    'https://www.googleapis.com/auth/drive',
+                ]
             )
             flow.redirect_uri = redirect_uri
             flow.fetch_token(code=code)
             creds = flow.credentials
             
             if not creds.refresh_token:
-                return Response({"detail": "No refresh token returned. Revoke access in your Google account and try again."}, status=400)
+                if config.drive_refresh_token:
+                    return Response({"status": "success", "detail": "Re-authenticated successfully using existing refresh token."})
+                return Response({"detail": "Google did not return a refresh token. Please revoke application access at myaccount.google.com/permissions and reconnect."}, status=400)
                 
             config.drive_refresh_token = creds.refresh_token
             config.save()
-            return Response({"status": "success"})
+            return Response({"status": "success", "detail": "Google Drive connected successfully!"})
         except Exception as e:
-            return Response({"detail": f"Failed to authenticate: {str(e)}"}, status=400)
+            return Response({"detail": f"Failed to authenticate with Google: {str(e)}"}, status=400)
 
 
 class TriggerDriveBackupView(APIView):

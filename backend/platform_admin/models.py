@@ -100,6 +100,9 @@ class PlatformConfig(TimeStampedModel):
     # Automated Google Drive Backup Settings
     drive_backup_enabled = models.BooleanField(default=False)
     drive_backup_interval_minutes = models.PositiveIntegerField(default=1440)  # Default: 24 hours
+    last_drive_backup_at = models.DateTimeField(null=True, blank=True)
+    last_drive_backup_status = models.CharField(max_length=255, blank=True, default="")
+    last_drive_backup_error = models.TextField(blank=True, default="")
 
     # SMTP Settings
     smtp_host = models.CharField(max_length=255, blank=True, default="")

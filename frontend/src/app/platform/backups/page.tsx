@@ -1,7 +1,6 @@
 "use client";
 
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
-
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, PageHeader } from "@/components/ui";
@@ -22,8 +21,29 @@ export default function BackupsPage() {
   const [restoringMedia, setRestoringMedia] = useState(false);
   const [isConnected, setIsConnected] = useState(false);
   
+  const [lastBackupAt, setLastBackupAt] = useState<string | null>(null);
+  const [lastBackupStatus, setLastBackupStatus] = useState<string>("");
+  const [lastBackupError, setLastBackupError] = useState<string>("");
+
   const fileRef = useRef<HTMLInputElement>(null);
   const mediaFileRef = useRef<HTMLInputElement>(null);
+
+  const loadDriveConfig = async () => {
+    try {
+      const data = await api<any>("/platform/backups/drive-config/");
+      setDriveClientId(data.drive_client_id || "");
+      setDriveClientSecret(data.drive_client_secret || "");
+      setDriveFolderId(data.drive_folder_id || "");
+      setBackupEnabled(data.drive_backup_enabled || false);
+      setBackupInterval(data.drive_backup_interval_minutes || 1440);
+      setIsConnected(!!data.has_refresh_token);
+      setLastBackupAt(data.last_drive_backup_at || null);
+      setLastBackupStatus(data.last_drive_backup_status || "");
+      setLastBackupError(data.last_drive_backup_error || "");
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     // Check for OAuth callback code
@@ -37,21 +57,14 @@ export default function BackupsPage() {
       }).then(res => {
         setMsg({ ok: true, text: "Google Drive connected successfully!" });
         setIsConnected(true);
-        // Remove code from URL cleanly
         window.history.replaceState({}, document.title, window.location.pathname);
+        loadDriveConfig();
       }).catch(e => {
-        setMsg({ ok: false, text: e?.data?.detail || "Failed to connect Google Drive." });
+        setMsg({ ok: false, text: e?.data?.detail || e?.message || "Failed to connect Google Drive." });
       });
     }
 
-    api<any>("/platform/backups/drive-config/").then((data) => {
-      setDriveClientId(data.drive_client_id || "");
-      setDriveClientSecret(data.drive_client_secret || "");
-      setDriveFolderId(data.drive_folder_id || "");
-      setBackupEnabled(data.drive_backup_enabled || false);
-      setBackupInterval(data.drive_backup_interval_minutes || 1440);
-      setIsConnected(!!data.has_refresh_token);
-    }).catch(console.error);
+    loadDriveConfig();
   }, []);
 
   async function saveDriveConfig(e: React.FormEvent) {
@@ -64,15 +77,15 @@ export default function BackupsPage() {
     const folderMatch = parsedFolderId.match(/folders\/([a-zA-Z0-9_-]+)/);
     if (folderMatch) {
       parsedFolderId = folderMatch[1];
-      setDriveFolderId(parsedFolderId); // update UI
+      setDriveFolderId(parsedFolderId);
     }
 
     try {
       await api("/platform/backups/drive-config/", {
         method: "PUT",
         body: {
-          drive_client_id: driveClientId,
-          drive_client_secret: driveClientSecret,
+          drive_client_id: driveClientId.trim(),
+          drive_client_secret: driveClientSecret.trim(),
           drive_folder_id: parsedFolderId,
           drive_backup_enabled: backupEnabled,
           drive_backup_interval_minutes: backupInterval
@@ -83,30 +96,40 @@ export default function BackupsPage() {
         // After saving, generate auth URL and redirect
         const authRes = await api<{auth_url: string}>("/platform/backups/drive-auth-url/", {
           method: "POST",
-          body: { redirect_uri: window.location.origin + window.location.pathname }
+          body: {
+            drive_client_id: driveClientId.trim(),
+            drive_client_secret: driveClientSecret.trim(),
+            redirect_uri: window.location.origin + window.location.pathname
+          }
         });
         window.location.href = authRes.auth_url;
       } else {
         setMsg({ ok: true, text: "Settings saved successfully." });
         setSavingConfig(false);
+        loadDriveConfig();
       }
       
     } catch (e: any) {
-      setMsg({ ok: false, text: e?.data?.detail || "Failed to save Drive config or start auth." });
+      setMsg({ ok: false, text: e?.data?.detail || e?.message || "Failed to save Drive config or start auth." });
       setSavingConfig(false);
     }
   }
 
   async function reconnectGoogleDrive() {
     setSavingConfig(true);
+    setMsg(null);
     try {
       const authRes = await api<{auth_url: string}>("/platform/backups/drive-auth-url/", {
         method: "POST",
-        body: { redirect_uri: window.location.origin + window.location.pathname }
+        body: {
+          drive_client_id: driveClientId.trim(),
+          drive_client_secret: driveClientSecret.trim(),
+          redirect_uri: window.location.origin + window.location.pathname
+        }
       });
       window.location.href = authRes.auth_url;
     } catch (e: any) {
-      setMsg({ ok: false, text: e?.data?.detail || "Failed to start auth." });
+      setMsg({ ok: false, text: e?.data?.detail || e?.message || "Failed to start Google authentication." });
       setSavingConfig(false);
     }
   }
@@ -117,8 +140,11 @@ export default function BackupsPage() {
     try {
       const res = await api<{detail: string}>("/platform/backups/drive-trigger/", { method: "POST" });
       setMsg({ ok: true, text: res.detail || "Google Drive backup completed successfully." });
+      await loadDriveConfig();
     } catch (e: any) {
-      setMsg({ ok: false, text: e?.data?.detail || e?.message || "Failed to trigger Google Drive backup." });
+      const errorMsg = e?.data?.detail || e?.message || "Failed to trigger Google Drive backup.";
+      setMsg({ ok: false, text: errorMsg });
+      await loadDriveConfig();
     } finally {
       setTriggeringDrive(false);
     }
@@ -213,19 +239,61 @@ export default function BackupsPage() {
       {msg && (
         <div className={`p-4 rounded-lg font-medium text-sm flex items-center gap-2 ${msg.ok ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
           <i className={`bi ${msg.ok ? "bi-check-circle-fill" : "bi-exclamation-triangle-fill"}`}></i>
-          {msg.text}
+          <span>{msg.text}</span>
         </div>
       )}
 
       {/* Google Drive Automated Backups Card */}
       <Card className="border-t-4 border-t-blue-500 bg-slate-900/40">
         <div className="p-6">
-          <h2 className="text-xl font-semibold mb-2 flex items-center gap-2 text-blue-400">
-            <i className="bi bi-google"></i> Automated Google Drive Backups
-          </h2>
-          <p className="text-slate-400 text-sm mb-6">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
+            <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-400 mb-0">
+              <i className="bi bi-google"></i> Automated Google Drive Backups
+            </h2>
+            {isConnected ? (
+              <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill small">
+                <i className="bi bi-check-circle-fill me-1"></i> Connected to Google Drive
+              </span>
+            ) : (
+              <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill small">
+                <i className="bi bi-exclamation-circle me-1"></i> Not Connected
+              </span>
+            )}
+          </div>
+          
+          <p className="text-slate-400 text-sm mb-4">
             Configure automatic daily backups directly to Google Drive. This securely backs up both your Database (.sql) and all Media Images (.zip) without using local server storage.
           </p>
+
+          {/* Last Backup Status Panel */}
+          {lastBackupAt && (
+            <div className="mb-4 p-3 rounded-3 border bg-slate-800/40 border-slate-700/60">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="text-slate-400 small">Last Backup:</span>
+                  <span className="text-slate-200 small font-monospace fw-semibold">
+                    {new Date(lastBackupAt).toLocaleString()}
+                  </span>
+                </div>
+                <div>
+                  {lastBackupStatus === "success" ? (
+                    <span className="badge bg-success text-white small px-2 py-1">
+                      <i className="bi bi-check2 me-1"></i> Success
+                    </span>
+                  ) : (
+                    <span className="badge bg-danger text-white small px-2 py-1">
+                      <i className="bi bi-x-circle me-1"></i> Failed
+                    </span>
+                  )}
+                </div>
+              </div>
+              {lastBackupError && (
+                <div className="mt-2 text-danger small border-top border-danger border-opacity-25 pt-2">
+                  <i className="bi bi-info-circle me-1"></i> {lastBackupError}
+                </div>
+              )}
+            </div>
+          )}
 
           <form onSubmit={saveDriveConfig} className="space-y-4">
             <div className="form-check form-switch mb-4">
@@ -237,7 +305,7 @@ export default function BackupsPage() {
                 checked={backupEnabled}
                 onChange={e => setBackupEnabled(e.target.checked)}
               />
-              <label className="form-check-label text-slate-300" htmlFor="enableBackupSwitch">
+              <label className="form-check-label text-slate-300 fw-semibold" htmlFor="enableBackupSwitch">
                 Enable Automated Google Drive Backups
               </label>
             </div>
@@ -253,7 +321,7 @@ export default function BackupsPage() {
                   onChange={e => setBackupInterval(parseInt(e.target.value) || 1)}
                   required
                 />
-                <label>Backup Interval (minutes)</label>
+                <label>Backup Interval (minutes) — e.g. 1440 = 24h, 60 = 1h</label>
               </div>
             )}
 
@@ -266,7 +334,7 @@ export default function BackupsPage() {
                 onChange={e => setDriveFolderId(e.target.value)}
                 required
               />
-              <label>Google Drive Folder ID</label>
+              <label>Google Drive Folder ID (e.g. 1Rqw9jHMYaiwVzKuTYJFHlbwnZib2Xh4k or full Folder URL)</label>
             </div>
             
             <div className="form-floating">
@@ -293,35 +361,39 @@ export default function BackupsPage() {
               <label>OAuth Client Secret</label>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-700/50">
-              {isConnected && (
-                <span className="text-green-500 text-sm font-medium mr-auto flex items-center gap-2">
-                  <i className="bi bi-check-circle-fill"></i> Connected to Google Drive
-                </span>
-              )}
-              
-              <button 
-                type="button" 
-                onClick={triggerDriveBackup}
-                disabled={triggeringDrive || !isConnected}
-                className="btn btn-outline-primary rounded-pill px-4"
-              >
-                {triggeringDrive ? <><span className="spinner-border spinner-border-sm me-2"></span>Triggering...</> : <><i className="bi bi-cloud-arrow-up me-2"></i>Trigger Backup Now</>}
-              </button>
-
-              {isConnected && (
+            <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-4 border-t border-slate-700/50">
+              <div className="d-flex gap-2">
                 <button 
                   type="button" 
-                  onClick={reconnectGoogleDrive}
-                  disabled={savingConfig}
-                  className="btn btn-outline-secondary rounded-pill px-4"
+                  onClick={triggerDriveBackup}
+                  disabled={triggeringDrive || !isConnected}
+                  className="btn btn-outline-primary rounded-pill px-4"
                 >
-                  Reconnect Google
+                  {triggeringDrive ? (
+                    <><span className="spinner-border spinner-border-sm me-2"></span>Backing up now...</>
+                  ) : (
+                    <><i className="bi bi-cloud-arrow-up me-2"></i>Trigger Backup Now</>
+                  )}
                 </button>
-              )}
+
+                {isConnected && (
+                  <button 
+                    type="button" 
+                    onClick={reconnectGoogleDrive}
+                    disabled={savingConfig}
+                    className="btn btn-outline-secondary rounded-pill px-4"
+                  >
+                    <i className="bi bi-arrow-repeat me-1"></i> Reconnect Google
+                  </button>
+                )}
+              </div>
 
               <button type="submit" disabled={savingConfig} className="btn btn-primary rounded-pill px-4 shadow-sm">
-                {savingConfig ? "Saving..." : (isConnected ? "Save Settings" : "Save & Connect Google Drive")}
+                {savingConfig ? (
+                  <><span className="spinner-border spinner-border-sm me-2"></span>Saving...</>
+                ) : (
+                  isConnected ? "Save Settings" : "Save & Connect Google Drive"
+                )}
               </button>
             </div>
           </form>
