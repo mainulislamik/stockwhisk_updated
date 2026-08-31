@@ -16,7 +16,7 @@ export default function SettingsPage() {
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileSuccess, setProfileSuccess] = useState(false);
 
-  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, whatsapp_invoice_enabled: true, barcode_prefix: "", offline_sale_mode: false });
+  const [shopForm, setShopForm] = useState({ name: "", phone: "", address: "", currency: "BDT", vat_enabled: false, vat_percent: 0, emi_enabled: false, delivery_enabled: true, whatsapp_invoice_enabled: true, barcode_prefix: "", offline_sale_mode: false, pos_print_mode: "ask", pos_receipt_enabled: true });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -45,6 +45,8 @@ export default function SettingsPage() {
           whatsapp_invoice_enabled: data.whatsapp_invoice_enabled !== false,
           barcode_prefix: data.barcode_prefix || "",
           offline_sale_mode: data.offline_sale_mode || false,
+          pos_print_mode: data.pos_print_mode || "ask",
+          pos_receipt_enabled: data.pos_receipt_enabled !== false,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -86,6 +88,8 @@ export default function SettingsPage() {
       formData.append("whatsapp_invoice_enabled", shopForm.whatsapp_invoice_enabled.toString());
       formData.append("barcode_prefix", shopForm.barcode_prefix);
       formData.append("offline_sale_mode", shopForm.offline_sale_mode.toString());
+      formData.append("pos_print_mode", shopForm.pos_print_mode);
+      formData.append("pos_receipt_enabled", shopForm.pos_receipt_enabled.toString());
 
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -288,6 +292,43 @@ export default function SettingsPage() {
                     </div>
                   </div>
                 </div>
+
+                {/* ── Invoice & Print Settings ── */}
+                <div className="col-12 mt-3 mb-1 fw-medium text-secondary border-bottom pb-2">
+                  {t("settings_print_section_title")}
+                </div>
+                <div className="col-md-12">
+                  <div className="form-check form-switch">
+                    <input
+                      className="form-check-input"
+                      type="checkbox"
+                      role="switch"
+                      id="posReceiptSwitch"
+                      checked={shopForm.pos_receipt_enabled}
+                      onChange={e => setShopForm({...shopForm, pos_receipt_enabled: e.target.checked})}
+                    />
+                    <label className="form-check-label small fw-semibold" htmlFor="posReceiptSwitch">
+                      {t("settings_pos_receipt_enable")}
+                    </label>
+                    <div className="form-text" style={{ fontSize: "0.75rem" }}>
+                      {t("settings_pos_receipt_enable_desc")}
+                    </div>
+                  </div>
+                </div>
+                {shopForm.pos_receipt_enabled && (
+                  <div className="col-md-12 mt-2">
+                    <label className="form-label small fw-medium">{t("settings_print_mode_label")}</label>
+                    <select
+                      className="form-select form-select-sm"
+                      value={shopForm.pos_print_mode}
+                      onChange={e => setShopForm({...shopForm, pos_print_mode: e.target.value})}
+                    >
+                      <option value="ask">🔀 {t("settings_print_mode_ask")}</option>
+                      <option value="pos">🧾 {t("settings_print_mode_pos")}</option>
+                      <option value="regular">📄 {t("settings_print_mode_regular")}</option>
+                    </select>
+                  </div>
+                )}
               </div>
               <div className="d-flex align-items-center gap-3 mt-3">
                 <button type="submit" className="btn btn-primary btn-sm px-4" disabled={shopBusy}>

@@ -8,6 +8,7 @@ import { api, fetchAll } from "@/lib/api";
 import { Spinner, money } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
+import PrintFormatModal from "@/components/PrintFormatModal";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
@@ -35,6 +36,7 @@ export default function PosCustomerPage() {
   const [walkAddress, setWalkAddress] = useState("");
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [existingEmail, setExistingEmail] = useState("");
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   // Sync existing email when customer changes
   useEffect(() => {
@@ -521,7 +523,19 @@ export default function PosCustomerPage() {
                     {waEnabled ? t("pos_checkout_share_q") : t("pos_checkout_print_q")}
                   </p>
                   <div className="d-grid gap-2">
-                    <button className="btn btn-primary btn-lg rounded-3 fw-semibold" onClick={() => router.push(`/invoice/${saleResult.id}`)}>
+                    <button
+                      className="btn btn-primary btn-lg rounded-3 fw-semibold"
+                      onClick={() => {
+                        const mode = user?.shop_pos_print_mode || "ask";
+                        if (mode === "pos") {
+                          router.push(`/invoice/${saleResult.id}?format=pos`);
+                        } else if (mode === "regular") {
+                          router.push(`/invoice/${saleResult.id}?format=regular`);
+                        } else {
+                          setShowPrintModal(true);
+                        }
+                      }}
+                    >
                       <i className="bi bi-printer me-2"></i> {t("pos_checkout_print_btn")}
                     </button>
                     {waEnabled && hasPhone && (
@@ -546,6 +560,14 @@ export default function PosCustomerPage() {
           </div>
         );
       })()}
+
+      {saleResult && (
+        <PrintFormatModal
+          isOpen={showPrintModal}
+          onClose={() => setShowPrintModal(false)}
+          invoiceId={saleResult.id}
+        />
+      )}
     </div>
   );
 }

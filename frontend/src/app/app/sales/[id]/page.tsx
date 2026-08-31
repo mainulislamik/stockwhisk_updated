@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
 import InvoiceLockModal from "@/components/InvoiceLockModal";
 import ConvertQuotationModal from "@/components/ConvertQuotationModal";
+import PrintFormatModal from "@/components/PrintFormatModal";
 import toast from "react-hot-toast";
 
 type SaleItem = { id: number; product?: any; product_id?: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
@@ -50,6 +51,7 @@ export default function SaleDetailPage() {
   const [showLockModal, setShowLockModal] = useState(false);
   const [lockReason, setLockReason] = useState("");
   const [showConvertModal, setShowConvertModal] = useState(false);
+  const [showPrintModal, setShowPrintModal] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -203,7 +205,19 @@ export default function SaleDetailPage() {
               </a>
             );
           })()}
-          <button className="btn btn-outline-brand btn-sm" onClick={() => window.open(`/invoice/${sale.id}`, "_blank")}>
+          <button
+            className="btn btn-outline-brand btn-sm"
+            onClick={() => {
+              const mode = user?.shop_pos_print_mode || "ask";
+              if (mode === "pos") {
+                window.open(`/invoice/${sale.id}?format=pos`, "_blank");
+              } else if (mode === "regular") {
+                window.open(`/invoice/${sale.id}?format=regular`, "_blank");
+              } else {
+                setShowPrintModal(true);
+              }
+            }}
+          >
             {t("inv_btn_print")}
           </button>
           <button
@@ -372,6 +386,14 @@ export default function SaleDetailPage() {
         onSuccess={(updatedSale) => {
           setSale(updatedSale);
         }}
+      />
+
+      {/* Print Format Selection Modal */}
+      <PrintFormatModal
+        isOpen={showPrintModal}
+        onClose={() => setShowPrintModal(false)}
+        invoiceId={sale.id}
+        targetBlank
       />
     </div>
   );

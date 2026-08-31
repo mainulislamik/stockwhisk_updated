@@ -136,6 +136,9 @@ class Shop(TimeStampedModel):
     # and relaxes stock-level validation so the owner can log sales made during
     # a network/PC outage after the fact.
     offline_sale_mode = models.BooleanField(default=False)
+    # Print preferences: "ask" (prompt every time for Normal vs POS), "pos" (always POS thermal receipt), "regular" (always standard A4)
+    pos_print_mode = models.CharField(max_length=20, default="ask")
+    pos_receipt_enabled = models.BooleanField(default=True)
 
     # Short 2–5 char code prefixed to generated barcodes so labels are unique
     # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name

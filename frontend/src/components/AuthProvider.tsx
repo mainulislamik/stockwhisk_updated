@@ -21,6 +21,8 @@ export type User = {
   shop_is_demo?: boolean;
   shop_barcode_prefix?: string;
   shop_offline_sale_mode?: boolean;
+  shop_pos_print_mode?: "ask" | "pos" | "regular";
+  shop_pos_receipt_enabled?: boolean;
   branch: number | null;
   is_staff: boolean;
   is_reseller?: boolean;
