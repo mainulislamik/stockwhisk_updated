@@ -12,6 +12,7 @@ class Supplier(TenantScopedModel):
     address = models.TextField(blank=True)
     # Cached payable. Positive => shop owes the supplier.
     due_balance = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
+    due_date = models.DateField(null=True, blank=True, help_text="Promised payment date for supplier due")
     is_active = models.BooleanField(default=True)
 
     class Meta:

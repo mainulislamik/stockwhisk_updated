@@ -8,7 +8,7 @@ from .models import PurchaseOrder, PurchaseOrderItem, Supplier
 class SupplierSerializer(serializers.ModelSerializer):
     class Meta:
         model = Supplier
-        fields = ["id", "name", "phone", "email", "address", "due_balance", "is_active"]
+        fields = ["id", "name", "phone", "email", "address", "due_balance", "due_date", "is_active"]
         read_only_fields = ["due_balance"]
 
 

@@ -14,6 +14,7 @@ interface Supplier {
   email: string;
   address: string;
   due_balance: string;
+  due_date?: string | null;
 }
 
 export default function SuppliersScreen() {
@@ -170,6 +171,11 @@ export default function SuppliersScreen() {
                       <Text variant="titleMedium" style={{ color: '#dc2626', fontWeight: 'bold' }}>
                         ৳{s.due_balance}
                       </Text>
+                      {!!s.due_date && (
+                        <Text variant="bodySmall" style={{ color: '#d97706', fontSize: 11, marginTop: 2 }}>
+                          📅 {s.due_date}
+                        </Text>
+                      )}
                     </>
                   ) : (
                     <Text variant="bodyMedium" style={{ color: '#16a34a', fontWeight: '500' }}>{isBN ? 'কোনো বকেয়া নেই' : 'No Due'}</Text>

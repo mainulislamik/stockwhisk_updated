@@ -252,6 +252,12 @@ export default function DuesPage() {
               method: "POST",
               body: { due_date: promisedDate || null },
             });
+            if (selectedItem.party_id) {
+              await api(`/purchasing/suppliers/${selectedItem.party_id}/set-due-date/`, {
+                method: "POST",
+                body: { due_date: promisedDate || null },
+              }).catch(() => {});
+            }
           }
         }
 
@@ -272,6 +278,12 @@ export default function DuesPage() {
             method: "POST",
             body: { due_date: promisedDate || null },
           });
+          if (selectedItem.party_id) {
+            await api(`/purchasing/suppliers/${selectedItem.party_id}/set-due-date/`, {
+              method: "POST",
+              body: { due_date: promisedDate || null },
+            }).catch(() => {});
+          }
         }
 
         toast.success(

@@ -33,7 +33,7 @@ const PAY_METHODS: Record<string, string> = {
 };
 
 export default function PurchaseProductPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const router = useRouter();
 
   // Product search
@@ -73,6 +73,20 @@ export default function PurchaseProductPage() {
   const [branch, setBranch] = useState("");
   const [payAmount, setPayAmount] = useState("");
   const [payMethod, setPayMethod] = useState("cash");
+  const [promisedDate, setPromisedDate] = useState("");
+
+  // Helper date functions for promised due date
+  function addDays(days: number) {
+    const d = new Date();
+    d.setDate(d.getDate() + days);
+    return d.toISOString().split("T")[0];
+  }
+
+  function getNextMonthFirstDay() {
+    const d = new Date();
+    d.setMonth(d.getMonth() + 1, 1);
+    return d.toISOString().split("T")[0];
+  }
 
   // New vendor quick-add
   const [showNewVendor, setShowNewVendor] = useState(false);
@@ -436,7 +450,11 @@ export default function PurchaseProductPage() {
       });
       await api(`/purchasing/purchase-orders/${po.id}/receive/`, {
         method: "POST",
-        body: { paid },
+        body: { 
+          paid, 
+          method: payMethod,
+          due_date: supplierDue > 0 ? (promisedDate || null) : null,
+        },
       });
 
       toast.success(t("pp_success_receive") || "Products received successfully");
@@ -1021,6 +1039,26 @@ export default function PurchaseProductPage() {
                 <span className="text-secondary">{t("pp_due_after")}</span>
                 <span className={`fw-semibold ${supplierDue > 0 ? "text-danger" : "text-success"}`}>{money(supplierDue)}</span>
               </div>
+
+              {supplierDue > 0 && (
+                <div className="mt-2 p-2 bg-danger-subtle rounded border border-danger-subtle">
+                  <label className="form-label small fw-semibold text-danger mb-1 d-flex align-items-center gap-1">
+                    📅 {lang === "bn" ? "পরিশোধের প্রতিশ্রুত তারিখ (Promised Due Date)" : "Promised Payment Date"}
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm font-monospace"
+                    value={promisedDate}
+                    onChange={(e) => setPromisedDate(e.target.value)}
+                  />
+                  <div className="d-flex flex-wrap gap-1 mt-1">
+                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(7))}>+7d</button>
+                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(15))}>+15d</button>
+                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(30))}>+30d</button>
+                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(getNextMonthFirstDay())}>1st Next Mth</button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Purchase Summary */}

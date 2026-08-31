@@ -292,8 +292,13 @@ def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, cr
 
     # Supplier owed the unpaid remainder; record any cash outflow.
     supplier = po.supplier
-    supplier.due_balance = (supplier.due_balance or ZERO) + (po.total - paid)
-    supplier.save(update_fields=["due_balance"])
+    if supplier:
+        supplier.due_balance = (supplier.due_balance or ZERO) + (po.total - paid)
+        if due_date and (po.total - paid) > 0:
+            supplier.due_date = due_date
+            supplier.save(update_fields=["due_balance", "due_date"])
+        else:
+            supplier.save(update_fields=["due_balance"])
 
     if paid > 0:
         # An initial payment at receive is a product-purchase payment too:

@@ -70,6 +70,38 @@ class SupplierViewSet(TenantScopedViewSet):
             return Response({"detail": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
         supplier.refresh_from_db()
+        # If due_date is passed in the payment request, update it
+        if "due_date" in request.data:
+            due_date_raw = request.data.get("due_date")
+            if due_date_raw and supplier.due_balance > 0:
+                import dateutil.parser
+                try:
+                    supplier.due_date = dateutil.parser.parse(str(due_date_raw)).date()
+                except Exception:
+                    supplier.due_date = None
+            else:
+                supplier.due_date = None
+            supplier.save(update_fields=["due_date"])
+        elif supplier.due_balance <= 0:
+            supplier.due_date = None
+            supplier.save(update_fields=["due_date"])
+
+        return Response(self.get_serializer(supplier).data)
+
+    @action(detail=True, methods=["post", "patch"], url_path="set-due-date")
+    def set_due_date(self, request, pk=None):
+        """Update the promised payment due date for this supplier."""
+        supplier = self.get_object()
+        due_date_raw = request.data.get("due_date")
+        if due_date_raw:
+            import dateutil.parser
+            try:
+                supplier.due_date = dateutil.parser.parse(str(due_date_raw)).date()
+            except Exception:
+                supplier.due_date = None
+        else:
+            supplier.due_date = None
+        supplier.save(update_fields=["due_date"])
         return Response(self.get_serializer(supplier).data)
 
     @action(detail=True, methods=["get"], url_path="statement")
