@@ -146,6 +146,7 @@ const Tab = createBottomTabNavigator();
 export default function TabNavigator() {
   const theme = useTheme();
   const { language, isDarkMode } = usePreferences();
+  const { user } = useAuth();
   const isBn = language === 'BN';
   const insets = useSafeAreaInsets();
 
@@ -218,18 +219,20 @@ export default function TabNavigator() {
           ),
         }}
       />
-      <Tab.Screen
-        name="Reports"
-        component={ReportsScreen}
-        options={{
-          tabBarLabel: isBn ? 'রিপোর্ট' : 'Reports',
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
-              <MaterialCommunityIcons name={focused ? 'chart-box' : 'chart-box-outline'} color={color} size={22} />
-            </View>
-          ),
-        }}
-      />
+      {user?.shop_reports_enabled !== false && (
+        <Tab.Screen
+          name="Reports"
+          component={ReportsScreen}
+          options={{
+            tabBarLabel: isBn ? 'রিপোর্ট' : 'Reports',
+            tabBarIcon: ({ color, focused }) => (
+              <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
+                <MaterialCommunityIcons name={focused ? 'chart-box' : 'chart-box-outline'} color={color} size={22} />
+              </View>
+            ),
+          }}
+        />
+      )}
       <Tab.Screen
         name="More"
         component={MoreMenuScreen}

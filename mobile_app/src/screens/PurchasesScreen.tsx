@@ -157,6 +157,11 @@ export default function PurchasesScreen() {
                     <Text style={{ fontWeight: 'bold', fontSize: 14, color: Number(po.due || 0) > 0 ? '#dc2626' : theme.colors.onSurface }}>
                       ৳ {Number(po.due || 0).toFixed(2)}
                     </Text>
+                    {Number(po.due || 0) > 0 && !!po.due_date && (
+                      <Text style={{ fontSize: 10, color: '#d97706', marginTop: 2 }}>
+                        📅 {po.due_date}
+                      </Text>
+                    )}
                   </View>
                 </View>
               </Card.Content>
