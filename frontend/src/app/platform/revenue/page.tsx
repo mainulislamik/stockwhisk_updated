@@ -43,6 +43,7 @@ export default function RevenuePage() {
   const [month, setMonth] = useState<string>("");
   const [includeTest, setIncludeTest] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -58,6 +59,21 @@ export default function RevenuePage() {
   }, [month, includeTest]);
 
   useEffect(() => { load(); }, [load]);
+
+  
+  const deleteEntry = useCallback(async (e: Entry) => {
+    if (!confirm(`Are you sure you want to delete invoice ${e.invoice_number || e.id}? This will REMOVE the added days from the shop's subscription.`)) return;
+    setDeletingId(e.id);
+    try {
+      await api(`/platform/revenue/?id=${e.id}`, { method: "DELETE" });
+      toast.success("Entry removed and days reverted.");
+      await load();
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to delete.");
+    } finally {
+      setDeletingId(null);
+    }
+  }, [load]);
 
   const toggleTest = useCallback(async (e: Entry) => {
     if (!e.shop_id) return;
@@ -162,6 +178,15 @@ export default function RevenuePage() {
                         {busyId === e.shop_id
                           ? <span className="spinner-border spinner-border-sm" />
                           : <><i className="bi bi-pencil-square me-1"></i>{e.is_test ? "Set live" : "Set test"}</>}
+                      </button>
+
+                      <button
+                        className="btn btn-sm btn-outline-danger ms-2"
+                        onClick={() => deleteEntry(e)}
+                        disabled={deletingId === e.id}
+                        title="Delete this payment entirely & revert the subscription extension"
+                      >
+                        {deletingId === e.id ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-trash"></i>}
                       </button>
                     )}
                   </td>

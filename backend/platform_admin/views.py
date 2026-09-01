@@ -100,6 +100,26 @@ class PlatformRevenueView(APIView):
     """Monthly subscription revenue + invoice list (test shops excluded by default)."""
     permission_classes = [IsPlatformStaff]
 
+
+    def delete(self, request):
+        from .models import PlatformRevenue
+        from tenants.models import Subscription
+        from datetime import timedelta
+        try:
+            r_id = request.data.get("id") or request.query_params.get("id")
+            rev = PlatformRevenue.objects.get(id=r_id)
+            if rev.shop_id:
+                sub = Subscription.objects.filter(shop_id=rev.shop_id, is_current=True).first()
+                if sub and sub.current_period_end:
+                    days_to_sub = 365 if rev.cycle == "yearly" else 30
+                    sub.current_period_end = sub.current_period_end - timedelta(days=days_to_sub)
+                    sub.save(update_fields=["current_period_end"])
+            rev.delete()
+            from rest_framework.response import Response
+            return Response({"status": "deleted", "message": "Revenue record removed and days reverted."})
+        except Exception as e:
+            from rest_framework.response import Response
+            return Response({"detail": str(e)}, status=400)
     def get(self, request):
         from datetime import date
         from .models import PlatformRevenue
