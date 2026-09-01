@@ -75,10 +75,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
-            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "branch", "is_staff",
+            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "branch", "is_staff",
             "is_reseller",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "branch", "is_staff", "is_reseller"]
+        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "branch", "is_staff", "is_reseller"]
 
     def get_is_reseller(self, obj):
         profile = getattr(obj, "reseller_profile", None)
