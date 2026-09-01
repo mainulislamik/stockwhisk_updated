@@ -53,6 +53,7 @@ const TYPE_LABELS: Record<string, string> = {
   computer: "Computer",
   mobile: "Mobile & Accessories",
   general: "General Retail",
+  camical: "Chemical & Lab Supplies",
 };
 
 export default function ShopDetailsPage() {

@@ -14,6 +14,35 @@ from .models import Branch, Shop, Subscription, SubscriptionPlan
 TRIAL_DAYS = 14
 
 
+CAMICAL_DEFAULT_UNITS = [
+    ("Piece", "pcs", "count", False),
+    ("Kilogram", "kg", "weight", True),
+    ("Gram", "g", "weight", True),
+    ("Liter", "L", "volume", True),
+    ("Milliliter", "ml", "volume", True),
+    ("Drum", "drum", "volume", False),
+    ("Bottle", "bottle", "count", False),
+]
+
+
+def seed_measurement_units(shop, business_type):
+    """Seed default units for CAMICAL shops so kg/L/decimal quantities work out of the box."""
+    from catalog.models import Unit
+
+    if str(business_type) != "camical":
+        return
+    for name, short_code, measure_type, allow_decimal in CAMICAL_DEFAULT_UNITS:
+        Unit.all_objects.get_or_create(
+            shop=shop,
+            name=name,
+            defaults={
+                "short_code": short_code,
+                "measure_type": measure_type,
+                "allow_decimal": allow_decimal,
+            },
+        )
+
+
 @transaction.atomic
 def register_shop(
     *, name, owner_email, owner_password, owner_name="",
@@ -55,6 +84,7 @@ def register_shop(
 
     Branch.objects.create(shop=shop, name="Main", is_main=True)
     seed_default_roles(shop)
+    seed_measurement_units(shop, business_type)
 
     from accounting.services import seed_expense_categories
     seed_expense_categories(shop)

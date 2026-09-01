@@ -40,10 +40,22 @@ class Brand(TenantScopedModel):
 
 
 class Unit(TenantScopedModel):
-    """Unit of measure, e.g. Piece, Box, Kg."""
+    """Unit of measure, e.g. Piece, Box, Kg, Liter."""
+
+    class MeasureType(models.TextChoices):
+        COUNT = "count", "Piece / Count"
+        WEIGHT = "weight", "Weight (kg, g)"
+        VOLUME = "volume", "Volume (L, ml)"
 
     name = models.CharField(max_length=40)
     short_code = models.CharField(max_length=10, blank=True)
+    measure_type = models.CharField(
+        max_length=10, choices=MeasureType.choices, default=MeasureType.COUNT
+    )
+    allow_decimal = models.BooleanField(
+        default=False,
+        help_text="Allow decimal quantities in POS, e.g. 2.5 kg",
+    )
 
     class Meta:
         constraints = [

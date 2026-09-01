@@ -17,6 +17,7 @@ type Product = {
   warranty_months?: number;
   units?: ProductUnit[];
   scanned_unit?: ProductUnit;
+  unit_detail?: { id: number; name: string; short_code: string; measure_type: string; allow_decimal: boolean } | null;
 };
 type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
 type ScanMsg = { text: string; ok: boolean } | null;
@@ -147,7 +148,13 @@ export default function PosPage() {
     });
   }
   function setQty(id: number, qty: number) {
-    setCart((c) => c.map((l) => l.product.id === id ? { ...l, qty: Math.max(1, qty) } : l));
+    setCart((c) => c.map((l) => {
+      if (l.product.id !== id) return l;
+      const allowDec = !!l.product.unit_detail?.allow_decimal;
+      const min = allowDec ? 0.01 : 1;
+      const v = Number.isFinite(qty) ? qty : min;
+      return { ...l, qty: Math.max(min, Math.round(v * 100) / 100) };
+    }));
   }
   function removeLine(id: number) { setCart((c) => c.filter((l) => l.product.id !== id)); }
   function clearCart() { setCart([]); sessionStorage.removeItem("pos_cart"); }
@@ -502,7 +509,9 @@ export default function PosPage() {
                             </div>
                           ) : (
                             <input
-                              type="number" min={1}
+                              type="number"
+                              min={l.product.unit_detail?.allow_decimal ? 0.01 : 1}
+                              step={l.product.unit_detail?.allow_decimal ? 0.01 : 1}
                               className="form-control form-control-sm"
                               value={l.qty}
                               onChange={(e) => setQty(l.product.id, Number(e.target.value))}

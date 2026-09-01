@@ -305,6 +305,7 @@ export default function LoginScreen() {
   };
 
   const BUSINESS_TYPES = [
+    { key: 'camical', label: isBN ? 'কেমিক্যাল ও ল্যাব সাপ্লাই' : 'Chemical & Lab Supplies' },
     { key: 'general', label: isBN ? 'সাধারণ রিটেইল শপ' : 'General Retail' },
     { key: 'electronics', label: isBN ? 'ইলেকট্রনিক্স ও মোবাইল' : 'Electronics & Mobile' },
     { key: 'grocery', label: isBN ? 'মুদি ও ডিপার্টমেন্টাল' : 'Grocery & Superstore' },
