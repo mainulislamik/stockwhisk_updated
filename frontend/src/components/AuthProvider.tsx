@@ -19,6 +19,7 @@ export type User = {
   shop_delivery_enabled?: boolean;
   shop_whatsapp_enabled?: boolean;
   shop_is_demo?: boolean;
+  shop_business_type?: string;
   shop_barcode_prefix?: string;
   shop_offline_sale_mode?: boolean;
   shop_pos_print_mode?: "ask" | "pos" | "regular";

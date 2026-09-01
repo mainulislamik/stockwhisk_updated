@@ -54,6 +54,7 @@ class UserSerializer(serializers.ModelSerializer):
     shop_delivery_enabled = serializers.BooleanField(source="shop.delivery_enabled", read_only=True, default=True)
     shop_whatsapp_enabled = serializers.BooleanField(source="shop.whatsapp_invoice_enabled", read_only=True, default=True)
     shop_is_demo = serializers.BooleanField(source="shop.is_demo", read_only=True, default=False)
+    shop_business_type = serializers.CharField(source="shop.business_type", read_only=True, default="")
     shop_barcode_prefix = serializers.CharField(source="shop.effective_barcode_prefix", read_only=True, default="")
     shop_offline_sale_mode = serializers.BooleanField(source="shop.offline_sale_mode", read_only=True, default=False)
     shop_pos_print_mode = serializers.CharField(source="shop.pos_print_mode", read_only=True, default="ask")
