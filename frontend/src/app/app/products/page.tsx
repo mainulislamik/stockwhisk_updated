@@ -203,22 +203,23 @@ export default function ProductsPage() {
                   {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                 </select>
               </div>
-              )}
+
               {isSpecialShop && (
-              <div className="col-md-2">
-                <label className="small">Purchase Unit</label>
-                <select className="form-select form-select-sm mb-1" value={form.purchase_unit} onChange={(e) => setForm({ ...form, purchase_unit: e.target.value })}>
-                  <option value="">(e.g., Drum/Box)</option>
-                  {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
-                </select>
-              </div>
+                <>
+                  <div className="col-md-2">
+                    <label className="small">Purchase Unit</label>
+                    <select className="form-select form-select-sm mb-1" value={form.purchase_unit} onChange={(e) => setForm({ ...form, purchase_unit: e.target.value })}>
+                      <option value="">(e.g., Drum/Box)</option>
+                      {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
+                  <div className="col-md-2">
+                    <label className="small">Liters/Kg per Drum</label>
+                    <input type="number" step="0.01" min="1" className="form-control form-control-sm mb-1" value={form.purchase_multiplier} onChange={(e) => setForm({ ...form, purchase_multiplier: e.target.value })} title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
+                  </div>
+                </>
               )}
-              {isSpecialShop && (
-              <div className="col-md-2">
-                <label className="small">Liters/Kg per Drum</label>
-                <input type="number" step="0.01" min="1" className="form-control form-control-sm mb-1" value={form.purchase_multiplier} onChange={(e) => setForm({ ...form, purchase_multiplier: e.target.value })} title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
-              </div>
-              )}
+
               <div className="col-md-3">
                 <label className="small">{t("prod_list_cost")}</label>
                 <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} />
