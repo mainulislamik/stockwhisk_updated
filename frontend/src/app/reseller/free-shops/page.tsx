@@ -20,8 +20,8 @@ const SHOP_CATEGORIES = [
   { value: "computer", label: "Computer & IT" },
   { value: "mobile", label: "Mobile & Accessories" },
   { value: "general", label: "General Retail" },
-  { value: "camical",
-    "supershop", label: "Chemical & Lab Supplies" },
+  { value: "camical", label: "Chemical & Lab Supplies" },
+  { value: "supershop", label: "Super Shop & Grocery" },
   { value: "other", label: "Other" },
 ];
 
