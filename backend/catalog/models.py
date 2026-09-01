@@ -86,6 +86,12 @@ class Product(TenantScopedModel):
     unit = models.ForeignKey(
         Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name="products"
     )
+    
+    # Modern UOM handling for bulk purchases (e.g. Drums / Boxes)
+    purchase_unit = models.ForeignKey(
+        Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name="purchase_products"
+    )
+    purchase_multiplier = models.DecimalField(max_digits=10, decimal_places=3, default=1.0)
     # Default supplier this product is bought from (item 18: product↔supplier link).
     supplier = models.ForeignKey(
         "purchasing.Supplier", on_delete=models.SET_NULL, null=True, blank=True,

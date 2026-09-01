@@ -33,6 +33,7 @@ export default function ProductsPage() {
   const canManage = isOwner || can("manage_products");
   const [categories, setCategories] = useState<Named[]>([]);
   const [brands, setBrands] = useState<Named[]>([]);
+  const [units, setUnits] = useState<Named[]>([]);
   const [filter, setFilter] = useState("");
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [page, setPage] = useState(1);
@@ -56,7 +57,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
   const [saving, setSaving] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
@@ -65,6 +66,7 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchAll<Named>("/catalog/categories/").then(setCategories).catch(() => {});
     fetchAll<Named>("/catalog/brands/").then(setBrands).catch(() => {});
+    fetchAll<Named>("/catalog/units/").then(setUnits).catch(() => {});
   }, []);
 
   async function saveProduct(e: React.FormEvent) {
@@ -79,6 +81,9 @@ export default function ProductsPage() {
           barcode: form.barcode || "",
           category: form.category || null,
           brand: form.brand || null,
+          unit: form.unit || null,
+          purchase_unit: form.purchase_unit || null,
+          purchase_multiplier: form.purchase_multiplier !== "" ? Number(form.purchase_multiplier) : 1.0,
           cost_price: form.cost_price || 0,
           selling_price: form.selling_price || 0,
           reorder_level: form.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
@@ -86,7 +91,7 @@ export default function ProductsPage() {
           replacement_guarantee_days: form.replacement_guarantee_days || 0,
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
       setShowAdd(false);
       mutate();
     } catch (e: any) {
@@ -179,7 +184,7 @@ export default function ProductsPage() {
                   <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("category")}>{t("prod_list_add")}</button>
                 </div>
               </div>
-              <div className="col-md-4">
+              <div className="col-md-2">
                 <label className="small">{t("prod_list_brand")}</label>
                 <select className="form-select form-select-sm mb-1" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })}>
                   <option value="">{t("prod_list_none")}</option>
@@ -189,6 +194,24 @@ export default function ProductsPage() {
                   <input className="form-control" placeholder={t("prod_list_new_brand")} value={newBrand} onChange={(e) => setNewBrand(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("brand"))} />
                   <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("brand")}>{t("prod_list_add")}</button>
                 </div>
+              </div>
+              <div className="col-md-2">
+                <label className="small">Sale Unit (Base)</label>
+                <select className="form-select form-select-sm mb-1" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+                  <option value="">(e.g., Liter/Kg/Pcs)</option>
+                  {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div className="col-md-2">
+                <label className="small">Purchase Unit</label>
+                <select className="form-select form-select-sm mb-1" value={form.purchase_unit} onChange={(e) => setForm({ ...form, purchase_unit: e.target.value })}>
+                  <option value="">(e.g., Drum/Box)</option>
+                  {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                </select>
+              </div>
+              <div className="col-md-2">
+                <label className="small">Liters/Kg per Drum</label>
+                <input type="number" step="0.01" min="1" className="form-control form-control-sm mb-1" value={form.purchase_multiplier} onChange={(e) => setForm({ ...form, purchase_multiplier: e.target.value })} title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
               </div>
               <div className="col-md-3">
                 <label className="small">{t("prod_list_cost")}</label>

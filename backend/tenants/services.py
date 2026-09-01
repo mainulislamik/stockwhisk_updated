@@ -25,6 +25,16 @@ CAMICAL_DEFAULT_UNITS = [
 ]
 
 
+SUPERSHOP_DEFAULT_UNITS = [
+    {"name": "Piece", "short_code": "pcs", "measure_type": "count", "allow_decimal": False},
+    {"name": "Kilogram", "short_code": "kg", "measure_type": "weight", "allow_decimal": True},
+    {"name": "Gram", "short_code": "g", "measure_type": "weight", "allow_decimal": True},
+    {"name": "Liter", "short_code": "L", "measure_type": "volume", "allow_decimal": True},
+    {"name": "Milliliter", "short_code": "ml", "measure_type": "volume", "allow_decimal": True},
+    {"name": "Dozen", "short_code": "dz", "measure_type": "count", "allow_decimal": True},
+    {"name": "Pack / Box", "short_code": "pkt", "measure_type": "count", "allow_decimal": False},
+]
+
 def seed_measurement_units(shop, business_type):
     """Seed default units for CAMICAL shops so kg/L/decimal quantities work out of the box."""
     from catalog.models import Unit

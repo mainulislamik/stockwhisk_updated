@@ -7,7 +7,8 @@ import { ErrorState, PageHeader } from "@/components/ui";
 
 const BUSINESS_TYPES = [
   { value: "general", label: "General Retail" },
-  { value: "camical", label: "Chemical & Lab Supplies" },
+  { value: "camical",
+    "supershop", label: "Chemical & Lab Supplies" },
   { value: "electronics", label: "Electronics" },
   { value: "computer", label: "Computer" },
   { value: "mobile", label: "Mobile & Accessories" },

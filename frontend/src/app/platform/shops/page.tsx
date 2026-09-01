@@ -35,6 +35,7 @@ const TYPE_LABELS: Record<string, string> = {
   mobile: "Mobile & Accessories",
   general: "General Retail",
   camical: "Chemical & Lab Supplies",
+    supershop: "Super Shop & Grocery",
 };
 
 const COOLOFF_DAYS = 15;

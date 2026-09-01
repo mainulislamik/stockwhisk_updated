@@ -263,17 +263,28 @@ def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, cr
             + ". Please remove or change them and try again."
         )
 
+    from decimal import Decimal
     for item in po.items.select_related("product", "variation").all():
+        product = item.product
+        # Handle UOM Conversion for Bulk Purchases (e.g., Drums/Boxes to Liters/Pcs)
+        multiplier = getattr(product, "purchase_multiplier", Decimal("1.0")) or Decimal("1.0")
+        effective_qty = (item.quantity or Decimal("0")) * multiplier
+        
+        # Calculate cost per BASE unit (Liter) instead of BULK unit (Drum)
+        if multiplier > 0 and item.unit_cost is not None:
+            effective_unit_cost = item.unit_cost / multiplier
+        else:
+            effective_unit_cost = item.unit_cost or Decimal("0")
+            
         apply_movement(
-            shop=po.shop, product=item.product, variation=item.variation,
-            movement_type=MovementType.PURCHASE_IN, quantity=item.quantity,
-            unit_cost=item.unit_cost, branch=po.branch,
+            shop=po.shop, product=product, variation=item.variation,
+            movement_type=MovementType.PURCHASE_IN, quantity=effective_qty,
+            unit_cost=effective_unit_cost, branch=po.branch,
             reference_type="PurchaseOrder", reference_id=po.id, created_by=created_by,
         )
         if update_cost:
-            # Latest purchase cost becomes the product's standard cost.
-            product = item.product
-            product.cost_price = item.unit_cost
+            # Latest purchase cost (per base unit) becomes the product's standard cost.
+            product.cost_price = effective_unit_cost
             product.save(update_fields=["cost_price"])
         # Bulk purchase → per-unit warranty tracking: one ProductUnit + Warranty
         # per received piece, so the batch is bought together but returned one
