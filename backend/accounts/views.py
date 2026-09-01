@@ -60,35 +60,15 @@ class InitiateRegistrationView(APIView):
             }
         )
         
-        # Try to get dynamic SMTP settings from PlatformConfig
-        from django.core.mail import get_connection
-        from platform_admin.models import PlatformConfig
-        
-        config = PlatformConfig.get_solo()
-        
-        connection = None
-        from_email = settings.DEFAULT_FROM_EMAIL
-        
-        if config.smtp_host and config.smtp_user:
-            connection = get_connection(
-                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
-                host=config.smtp_host,
-                port=config.smtp_port,
-                username=config.smtp_user,
-                password=config.smtp_password,
-                use_tls=config.smtp_use_tls,
-            )
-            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
-
-        # Send OTP email
+        # Send OTP email using robust fallback helper
+        from .otp_email import send_otp_email
         try:
-            send_mail(
+            send_otp_email(
+                email=email,
+                otp=otp,
                 subject="Your StockWhisk Verification Code",
-                message=f"Welcome to StockWhisk!\n\nYour verification code is: {otp}\n\nThis code expires in 10 minutes.",
-                from_email=from_email,
-                recipient_list=[email],
-                fail_silently=False,
-                connection=connection,
+                intro="Welcome to StockWhisk!",
+                expires_mins=10
             )
         except Exception as e:
             import logging
@@ -202,31 +182,14 @@ class RequestPasswordResetOTPView(APIView):
         )
         
         from django.core.mail import get_connection
-        from platform_admin.models import PlatformConfig
-        config = PlatformConfig.get_solo()
-        
-        connection = None
-        from_email = settings.DEFAULT_FROM_EMAIL
-        
-        if config.smtp_host and config.smtp_user:
-            connection = get_connection(
-                backend='platform_admin.email_backend.UnverifiedSTARTTLSBackend',
-                host=config.smtp_host,
-                port=config.smtp_port,
-                username=config.smtp_user,
-                password=config.smtp_password,
-                use_tls=config.smtp_use_tls,
-            )
-            from_email = config.smtp_default_from or settings.DEFAULT_FROM_EMAIL
-
+        from .otp_email import send_otp_email
         try:
-            send_mail(
+            send_otp_email(
+                email=email,
+                otp=otp,
                 subject="StockWhisk Password Reset Code",
-                message=f"Your password reset verification code is: {otp}\n\nThis code expires in 3 minutes.\nIf you did not request a password reset, please ignore this email.",
-                from_email=from_email,
-                recipient_list=[email],
-                fail_silently=False,
-                connection=connection,
+                intro="Here is your password reset verification code.",
+                expires_mins=3
             )
         except Exception as e:
             import logging
