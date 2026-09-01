@@ -169,6 +169,7 @@ export default function RevenuePage() {
                     {e.shop_deleted || !e.shop_id ? (
                       <span className="text-secondary small">—</span>
                     ) : (
+                      <>
                       <button
                         className={`btn btn-sm ${e.is_test ? "btn-outline-secondary" : "btn-outline-info"}`}
                         onClick={() => toggleTest(e)}
@@ -188,6 +189,7 @@ export default function RevenuePage() {
                       >
                         {deletingId === e.id ? <span className="spinner-border spinner-border-sm" /> : <i className="bi bi-trash"></i>}
                       </button>
+                      </>
                     )}
                   </td>
                 </tr>
