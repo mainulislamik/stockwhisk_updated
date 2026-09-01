@@ -54,7 +54,7 @@ class UserSerializer(serializers.ModelSerializer):
     shop_delivery_enabled = serializers.BooleanField(source="shop.delivery_enabled", read_only=True, default=True)
     shop_whatsapp_enabled = serializers.BooleanField(source="shop.whatsapp_invoice_enabled", read_only=True, default=True)
     shop_is_demo = serializers.BooleanField(source="shop.is_demo", read_only=True, default=False)
-    shop_business_type = serializers.CharField(source="shop.business_type", read_only=True, default="")
+    shop_business_type = serializers.SerializerMethodField()
     shop_barcode_prefix = serializers.CharField(source="shop.effective_barcode_prefix", read_only=True, default="")
     shop_offline_sale_mode = serializers.BooleanField(source="shop.offline_sale_mode", read_only=True, default=False)
     shop_pos_print_mode = serializers.CharField(source="shop.pos_print_mode", read_only=True, default="ask")
@@ -65,6 +65,10 @@ class UserSerializer(serializers.ModelSerializer):
     # True when this user is an approved (active) reseller — lets the normal login
     # panel route them to the reseller portal instead of the (shop-less) app.
     is_reseller = serializers.SerializerMethodField()
+
+
+    def get_shop_business_type(self, obj):
+        return obj.shop.business_type if obj.shop else ""
 
     class Meta:
         model = User
@@ -92,6 +96,10 @@ class UserSerializer(serializers.ModelSerializer):
 class ShopSettingsSerializer(serializers.ModelSerializer):
     shop_code = serializers.CharField(read_only=True, default=None)
 
+
+    def get_shop_business_type(self, obj):
+        return obj.shop.business_type if obj.shop else ""
+
     class Meta:
         model = Shop
         fields = [
@@ -111,6 +119,10 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
 
 class ShopUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=8)
+
+
+    def get_shop_business_type(self, obj):
+        return obj.shop.business_type if obj.shop else ""
 
     class Meta:
         model = User
