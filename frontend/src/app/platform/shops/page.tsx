@@ -15,6 +15,7 @@ type Shop = {
   plan_tier: string | null;
   is_active: boolean;
   is_free?: boolean;
+  manufacturing_enabled?: boolean;
   user_count: number;
   owner_email: string | null;
   can_delete: boolean;
@@ -166,6 +167,7 @@ export default function ShopsPage() {
                           <span className="fw-semibold text-capitalize text-body">
                             {s.subscription_info.plan_tier || "—"}
                           </span>
+                          {s.manufacturing_enabled && (<span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 me-1" style={{ fontSize: "0.65rem" }}>🏭 Mfg</span>)}
                           {s.subscription_info.state === "free" && (
                             <span className="badge bg-success" style={{ fontSize: '0.7rem' }}>🎁 Free</span>
                           )}

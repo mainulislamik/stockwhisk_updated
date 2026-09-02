@@ -67,7 +67,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
             "plan", "plan_tier", "is_active", "is_test", "is_free", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
-            "created_at", "owner_name", "owner_password", "subscription_info"
+            "created_at", "owner_name", "owner_password", "subscription_info", "manufacturing_enabled"
         ]
         read_only_fields = ["id", "slug", "created_at", "suspended_at", "is_free"]
 

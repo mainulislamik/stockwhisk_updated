@@ -20,6 +20,7 @@ type Shop = {
   is_active: boolean;
   is_test?: boolean;
   is_free?: boolean;
+  manufacturing_enabled?: boolean;
   user_count: number;
   owner_email: string | null;
   owner_full_name: string | null;
@@ -140,6 +141,24 @@ export default function ShopDetailsPage() {
       setBusy(false);
     }
   }, [shop, load]);
+
+  const toggleManufacturing = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const nextVal = !shop.manufacturing_enabled;
+      await api(`/platform/shops/${shop.id}/`, {
+        method: "PATCH",
+        body: { manufacturing_enabled: nextVal },
+      });
+      setShop((prev) => prev ? { ...prev, manufacturing_enabled: nextVal } : null);
+      toast.success(nextVal ? "🏭 Manufacturing & Production module ENABLED for this shop!" : "Manufacturing module disabled.");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update manufacturing feature.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop]);
 
   const toggleFree = useCallback(async () => {
     if (!shop) return;
@@ -281,7 +300,31 @@ export default function ShopDetailsPage() {
                 </div>
               </div>
 
-              <hr className="border-secondary my-4 opacity-25" />
+                            <hr className="border-secondary my-4 opacity-25" />
+
+              <h5 className="fw-bold text-white mb-3"><i className="bi bi-toggles me-2 text-primary"></i>Module Controls & Features</h5>
+              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3" style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                <div className="d-flex align-items-center gap-3">
+                  <div className="p-2 rounded-circle bg-primary bg-opacity-25 text-primary fs-4">
+                    <i className="bi bi-gear-wide-connected"></i>
+                  </div>
+                  <div>
+                    <h6 className="text-white fw-bold mb-0">Manufacturing & Batch Production</h6>
+                    <p className="text-secondary small mb-0">Enable 2-step dynamic yield production batches, raw material deductions, and automatic unit cost calculation.</p>
+                  </div>
+                </div>
+                <div className="form-check form-switch fs-4 mb-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    checked={!!shop.manufacturing_enabled}
+                    disabled={busy}
+                    onChange={toggleManufacturing}
+                    style={{ cursor: "pointer" }}
+                  />
+                </div>
+              </div>
 
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-person-badge me-2 text-info"></i>Owner Details</h5>
               <div className="row g-4">

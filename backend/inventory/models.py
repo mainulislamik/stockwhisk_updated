@@ -21,6 +21,8 @@ class MovementType(models.TextChoices):
     DAMAGE_OUT = "damage_out", "Damaged / lost / expired"
     TRANSFER_IN = "transfer_in", "Branch transfer in"
     TRANSFER_OUT = "transfer_out", "Branch transfer out"
+    PRODUCTION_IN = "production_in", "Production yield (in)"
+    PRODUCTION_OUT = "production_out", "Production raw material (out)"
 
 
 # Movement types that subtract from stock. Everything else adds.
@@ -30,6 +32,7 @@ OUTGOING_TYPES = {
     MovementType.ADJUST_OUT,
     MovementType.DAMAGE_OUT,
     MovementType.TRANSFER_OUT,
+    MovementType.PRODUCTION_OUT,
 }
 
 

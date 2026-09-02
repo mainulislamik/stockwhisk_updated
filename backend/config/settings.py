@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     "reports",
     # Phase 3 apps
     "service",
+    "manufacturing",
     "public_api",
     "resellers",
     "scanner",

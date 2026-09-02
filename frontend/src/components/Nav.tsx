@@ -65,6 +65,7 @@ export default function Nav({
   const showReports = (isOwner || can("view_reports")) && user?.shop_reports_enabled !== false;
   const showSalesRead = isOwner || can("view_sales");
   const showService = (isOwner || can("manage_service") || can("view_service")) && user?.shop_service_enabled !== false;
+  const showManufacturing = (isOwner || can("manage_inventory") || can("view_inventory")) && user?.shop_manufacturing_enabled === true;
   const showFinance = (isOwner || can("manage_expenses") || can("view_profit") || can("view_reports")) && user?.shop_finance_enabled !== false;
   // POS is sale creation; product browse/lookup is separate (view_products).
   const showPOS = isOwner || can("create_sale");
@@ -112,6 +113,13 @@ export default function Nav({
         <NavGroup id="customers" icon="bi-people" label={t("nav_customers")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
           <Item href="/app/customers" icon="bi-person-lines-fill" label={t("nav_customer_list")} />
           <Item href="/app/dues" icon="bi-cash-coin" label={t("nav_dues")} />
+        </NavGroup>
+      )}
+
+      {showManufacturing && (
+        <NavGroup id="manufacturing" icon="bi-gear-wide-connected" label="Manufacturing" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          <Item href="/app/manufacturing" icon="bi-kanban" label="Production Hub" />
+          <Item href="/app/manufacturing/new" icon="bi-plus-circle" label="Start Batch" />
         </NavGroup>
       )}
 
