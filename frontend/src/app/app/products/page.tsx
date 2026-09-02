@@ -59,7 +59,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
   const [saving, setSaving] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
@@ -93,7 +93,7 @@ export default function ProductsPage() {
           replacement_guarantee_days: form.replacement_guarantee_days || 0,
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
       setShowAdd(false);
       mutate();
     } catch (e: any) {
@@ -223,9 +223,11 @@ export default function ProductsPage() {
                         const multiplierVal = Number(newMult) || 1;
                         const packCost = Number(form.full_pack_cost) || 0;
                         const perUnitCost = (packCost / multiplierVal).toFixed(2);
+                        const packSell = Number(form.full_pack_sell) || 0;
+                        const perUnitSell = (packSell / multiplierVal).toFixed(2);
                         
                         if (isSpecialShop && packCost > 0) {
-                          setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost });
+                          setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost, selling_price: perUnitSell });
                         } else {
                           setForm({ ...form, purchase_multiplier: newMult });
                         }
@@ -267,11 +269,30 @@ export default function ProductsPage() {
                   />
                 </div>
               </div>
+              
+              {/* Added Auto Selling Price UI */}
+              {(isSpecialShop && Number(form.purchase_multiplier) > 1) && (
+                <div className="col-md-2">
+                  <label className="small text-primary fw-medium">Full Drum/Box Sell</label>
+                  <div className="input-group input-group-sm mb-1">
+                    <span className="input-group-text">৳</span>
+                    <input type="number" step="0.01" min="0" className="form-control" 
+                      value={form.full_pack_sell} 
+                      onChange={(e) => {
+                        const packSell = Number(e.target.value) || 0;
+                        const multiplier = Number(form.purchase_multiplier) || 1;
+                        const perUnitSell = (packSell / multiplier).toFixed(2);
+                        setForm({ ...form, full_pack_sell: e.target.value, selling_price: perUnitSell });
+                      }} 
+                    />
+                  </div>
+                </div>
+              )}
               <div className="col-md-3">
                 <label className="small text-primary fw-medium">{(isSpecialShop && Number(form.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
                 <div className="input-group input-group-sm mb-1">
                   <span className="input-group-text">৳</span>
-                  <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
+                  <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} readOnly={(isSpecialShop && Number(form.purchase_multiplier) > 1)} />
                 </div>
                 {(isSpecialShop && Number(form.purchase_multiplier) > 1) && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
                   <div className="text-success fw-bold" style={{ fontSize: "0.75rem", marginTop: "-2px" }}>
