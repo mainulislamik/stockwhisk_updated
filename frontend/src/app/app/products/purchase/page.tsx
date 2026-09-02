@@ -742,7 +742,7 @@ export default function PurchaseProductPage() {
                   </div>
                 </>
               )}
-              <div className="col-md-6">">
+              <div className="col-md-6">
                 <label className="small fw-medium">{(isSpecialShop && selected && Number(selected.purchase_multiplier) > 1) ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
                 <input
                   className="form-control"
