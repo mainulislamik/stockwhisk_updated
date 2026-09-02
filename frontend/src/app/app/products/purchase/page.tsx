@@ -59,7 +59,7 @@ export default function PurchaseProductPage() {
   const [autoGenerateBarcodes, setAutoGenerateBarcodes] = useState(false);
 
   const { user } = useAuth();
-  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics";
+  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const [fullPackCost, setFullPackCost] = useState("");
   const [fullPackSell, setFullPackSell] = useState("");
   const [pricingMode, setPricingMode] = useState<"regular" | "bulk">("regular");
@@ -683,7 +683,7 @@ export default function PurchaseProductPage() {
             <div className="row g-3">
 
               {/* Added Pricing Method Dropdown */}
-              {user?.shop_business_type === "cosmetics" && selected && Number(selected.purchase_multiplier) > 1 && selected.unit_detail?.measure_type !== "count" && (
+              {isSpecialShop && selected && Number(selected.purchase_multiplier) > 1 && selected.unit_detail?.measure_type !== "count" && (
                 <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
                   <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
                   <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>
@@ -693,7 +693,7 @@ export default function PurchaseProductPage() {
                 </div>
               )}
 
-              {(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") && (
+              {(isSpecialShop && pricingMode === "bulk") && (
                 <>
                   <div className="col-md-6">
                     <label className="small fw-medium text-primary">Full Drum/Box Cost (৳)</label>
@@ -758,14 +758,14 @@ export default function PurchaseProductPage() {
                 </>
               )}
               <div className="col-md-6">
-                <label className="small fw-medium">{(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
+                <label className="small fw-medium">{(isSpecialShop && pricingMode === "bulk") ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
                 <input
                   className="form-control"
                   type="number"
                   step="0.01"
                   value={selected ? cost : ""}
                   placeholder="0"
-                  disabled={!selected || (user?.shop_business_type === "cosmetics" && pricingMode === "bulk")}
+                  disabled={!selected || (isSpecialShop && pricingMode === "bulk")}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, cost_price: e.target.value });
@@ -778,14 +778,14 @@ export default function PurchaseProductPage() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">{(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? "Auto Calculated Selling Price (Base Unit)" : t("pp_lbl_sell_bdt")}</label>
+                <label className="small fw-medium">{(isSpecialShop && pricingMode === "bulk") ? "Auto Calculated Selling Price (Base Unit)" : t("pp_lbl_sell_bdt")}</label>
                 <input
                   className="form-control"
                   type="number"
                   step="0.01"
                   value={selected ? sell : ""}
                   placeholder="0"
-                  disabled={!selected || (user?.shop_business_type === "cosmetics" && pricingMode === "bulk")}
+                  disabled={!selected || (isSpecialShop && pricingMode === "bulk")}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, selling_price: e.target.value });

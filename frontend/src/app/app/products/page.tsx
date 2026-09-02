@@ -29,7 +29,7 @@ type Named = { id: number; name: string; measure_type?: string };
 export default function ProductsPage() {
   const { user, can, isOwner } = useAuth();
   const isCosmetics = user?.shop_business_type === "cosmetics";
-  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics";
+  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const { t, lang } = useLanguage();
 
   const canManage = isOwner || can("manage_products");
@@ -242,19 +242,19 @@ export default function ProductsPage() {
               {/* Added dynamic base unit name */}
               
               {/* Added Pricing Method Dropdown */}
-              {user?.shop_business_type === "cosmetics" && Number(form.purchase_multiplier) > 1 && (
+              {isSpecialShop && Number(form.purchase_multiplier) > 1 && (
                 <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
-                  <label className="small text-primary fw-bold mb-1">Pricing Entry Method (Cosmetics Batch)</label>
+                  <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
                   <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>
-                    <option value="regular">Regular Option (Enter Per Liter/Kg Price manually)</option>
-                    <option value="bulk">Bulk Auto-Calculate Option (Enter Full Drum Price)</option>
+                    <option value="regular">Regular Option (Enter Per {units.find(u => String(u.id) === String(form.unit))?.name || "Unit"} Price manually)</option>
+                    <option value="bulk">Bulk Auto-Calculate Option (Enter Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Pack"} Price)</option>
                   </select>
                 </div>
               )}
 
-              {(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") && (
+              {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && (
                 <div className="col-md-2">
-                  <label className="small text-primary fw-medium">Full Drum/Box Cost</label>
+                  <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Cost</label>
                   <div className="input-group input-group-sm mb-1">
                     <span className="input-group-text">৳</span>
                     <input type="number" step="0.01" min="0" className="form-control" 
@@ -265,27 +265,27 @@ export default function ProductsPage() {
                         const perUnitCost = (packCost / multiplier).toFixed(2);
                         setForm({ ...form, full_pack_cost: e.target.value, cost_price: perUnitCost });
                       }} 
-                      title="Enter full cost. Per literal/kg cost will be auto calculated." 
+                      title="Enter full cost. Per unit cost will be auto calculated." 
                     />
                   </div>
                 </div>
               )}
               
               <div className="col-md-3">
-                <label className="small text-primary fw-medium">{(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? `Cost per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_cost")}</label>
+                <label className="small text-primary fw-medium">{(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_cost")}</label>
                 <div className="input-group input-group-sm mb-1">
                   <span className="input-group-text">৳</span>
                   <input type="number" step="0.01" min="0" className="form-control" value={form.cost_price} 
                     onChange={(e) => setForm({ ...form, cost_price: e.target.value })} 
-                    readOnly={(user?.shop_business_type === "cosmetics" && pricingMode === "bulk")} 
-                    title={(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? "Auto calculated from Pack Cost / Multiplier" : ""}
+                    readOnly={Boolean(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1)} 
+                    title={(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? "Auto calculated from Pack Cost / Multiplier" : ""}
                   />
                 </div>
               </div>
 
-              {(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") && (
+              {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && (
                 <div className="col-md-2">
-                  <label className="small text-primary fw-medium">Full Drum/Box Sell</label>
+                  <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Sell</label>
                   <div className="input-group input-group-sm mb-1">
                     <span className="input-group-text">৳</span>
                     <input type="number" step="0.01" min="0" className="form-control" 
@@ -301,12 +301,12 @@ export default function ProductsPage() {
                 </div>
               )}
               <div className="col-md-3">
-                <label className="small text-primary fw-medium">{(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
+                <label className="small text-primary fw-medium">{(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
                 <div className="input-group input-group-sm mb-1">
                   <span className="input-group-text">৳</span>
-                  <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} readOnly={(user?.shop_business_type === "cosmetics" && pricingMode === "bulk")} />
+                  <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} readOnly={Boolean(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1)} />
                 </div>
-                {(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
+                {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
                   <div className="text-success fw-bold" style={{ fontSize: "0.75rem", marginTop: "-2px" }}>
                     ✅ Profit Margin: ৳{ (Number(form.selling_price) - Number(form.cost_price)).toFixed(2) } per unit
                   </div>
@@ -317,14 +317,18 @@ export default function ProductsPage() {
                 <label className="small">{t("prod_list_reorder_level")}</label>
                 <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="5" />
               </div>
-              <div className="col-md-2">
-                <label className="small">{t("prod_list_warranty_months")}</label>
-                <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
-              </div>
-              <div className="col-md-2">
-                <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days")}</label>
-                <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
-              </div>
+              {!isSpecialShop && (
+                <>
+                  <div className="col-md-2">
+                    <label className="small">{t("prod_list_warranty_months")}</label>
+                    <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
+                  </div>
+                  <div className="col-md-2">
+                    <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days")}</label>
+                    <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
+                  </div>
+                </>
+              )}
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
                   {saving ? t("prod_list_saving") : t("prod_list_save")}
