@@ -20,6 +20,7 @@ type Product = {
   current_stock: string;
   warranty_months: number;
   purchase_multiplier?: string | number;
+  unit_detail?: { id: number; name: string; measure_type?: string };
   track_inventory: boolean;
 };
 type Supplier = { id: number; name: string };
@@ -682,7 +683,7 @@ export default function PurchaseProductPage() {
             <div className="row g-3">
 
               {/* Added Pricing Method Dropdown */}
-              {user?.shop_business_type === "cosmetics" && selected && Number(selected.purchase_multiplier) > 1 && (
+              {user?.shop_business_type === "cosmetics" && selected && Number(selected.purchase_multiplier) > 1 && selected.unit_detail?.measure_type !== "count" && (
                 <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
                   <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
                   <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>

@@ -24,7 +24,7 @@ type Product = {
   is_active: boolean;
   track_inventory?: boolean;
 };
-type Named = { id: number; name: string };
+type Named = { id: number; name: string; measure_type?: string };
 
 export default function ProductsPage() {
   const { user, can, isOwner } = useAuth();
@@ -206,7 +206,7 @@ export default function ProductsPage() {
                 </select>
               </div>
 
-              {isSpecialShop && (
+              {isSpecialShop && form.unit && units.find((u) => String(u.id) === String(form.unit))?.measure_type !== "count" && (
                 <>
                   <div className="col-md-2">
                     <label className="small">Purchase Unit</label>
