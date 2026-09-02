@@ -216,7 +216,21 @@ export default function ProductsPage() {
                   </div>
                   <div className="col-md-2">
                     <label className="small">Liters/Kg per Drum</label>
-                    <input type="number" step="0.01" min="1" className="form-control form-control-sm mb-1" value={form.purchase_multiplier} onChange={(e) => setForm({ ...form, purchase_multiplier: e.target.value })} title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
+                    <input type="number" step="0.01" min="1" className="form-control form-control-sm mb-1" 
+                      value={form.purchase_multiplier} 
+                      onChange={(e) => {
+                        const newMult = e.target.value;
+                        const multiplierVal = Number(newMult) || 1;
+                        const packCost = Number(form.full_pack_cost) || 0;
+                        const perUnitCost = (packCost / multiplierVal).toFixed(2);
+                        
+                        if (isSpecialShop && packCost > 0) {
+                          setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost });
+                        } else {
+                          setForm({ ...form, purchase_multiplier: newMult });
+                        }
+                      }} 
+                      title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
                   </div>
                 </>
               )}
