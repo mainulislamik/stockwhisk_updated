@@ -47,6 +47,22 @@ export default function ShopsPage() {
   const [busy, setBusy] = useState<number | null>(null);
   const [pwFor, setPwFor] = useState<Shop | null>(null);
   const [delFor, setDelFor] = useState<Shop | null>(null);
+  const [editCatFor, setEditCatFor] = useState<Shop | null>(null);
+
+  
+  const updateCategory = async (shop_id: number, new_type: string) => {
+    setBusy(shop_id);
+    setEditCatFor(null);
+    try {
+      await api(`/platform/shops/${shop_id}/`, { method: "PATCH", body: { business_type: new_type } });
+      toast.success("Shop category updated!");
+      await load();
+    } catch(err: any) {
+      toast.error(err?.message || "Failed to update category.");
+    } finally {
+      setBusy(null);
+    }
+  };
 
   const load = useCallback(async () => {
     try {
@@ -132,7 +148,14 @@ export default function ShopsPage() {
                       {s.name}
                     </Link>
                   </td>
-                  <td>{TYPE_LABELS[s.business_type] || s.business_type}</td>
+                  <td>
+                    <div className="d-flex align-items-center gap-2">
+                      <span>{TYPE_LABELS[s.business_type] || s.business_type}</span>
+                      <button onClick={() => setEditCatFor(s)} className="btn btn-sm btn-link p-0 text-secondary" disabled={busy === s.id}>
+                        <i className="bi bi-pencil-square"></i>
+                      </button>
+                    </div>
+                  </td>
                   <td>
                     {s.subscription_info ? (
                       <div className="d-flex flex-column gap-1">
@@ -297,6 +320,34 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
       <div className="card shadow-lg" style={{ maxWidth: "26rem", width: "100%" }} onClick={(e) => e.stopPropagation()}>
         <div className="card-body">{children}</div>
       </div>
+
+      {/* Edit Category Modal */}
+      {editCatFor && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content text-body" style={{ background: "rgba(30,41,59,1)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <div className="modal-header border-0">
+                <h5 className="modal-title">Change Category: {editCatFor.name}</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setEditCatFor(null)}></button>
+              </div>
+              <div className="modal-body border-0">
+                <select className="form-select" id="catEditSelect" defaultValue={editCatFor.business_type}>
+                  {Object.entries(TYPE_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v as string}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer border-0">
+                <button className="btn btn-secondary" onClick={() => setEditCatFor(null)}>Cancel</button>
+                <button className="btn btn-primary" onClick={() => updateCategory(editCatFor.id, (document.getElementById(catEditSelect) as HTMLSelectElement).value)}>
+                  Save Category
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
