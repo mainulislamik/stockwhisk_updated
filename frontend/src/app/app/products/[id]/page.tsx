@@ -1,247 +1,375 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
-import { ErrorState, Spinner } from "@/components/ui";
-import { useAuth } from "@/components/AuthProvider";
+import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
-type Named = { id: number; name: string };
-type UnitT = { id: number; name: string; short_code?: string };
+type Product = {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  cost_price: string;
+  selling_price: string;
+  current_stock: string;
+  reorder_level: string;
+  is_low_stock: boolean;
+  is_active: boolean;
+  description: string;
+};
+type Movement = { id: number; movement_type: string; quantity: string; note: string; created_at: string };
+type ProductUnit = { 
+  id: number; 
+  barcode: string; 
+  status: string; 
+  cost_price: string | null; 
+  selling_price: string | null; 
+  warranty_months: number | null; 
+  effective_cost_price: string; 
+  effective_selling_price: string; 
+  effective_warranty_months: number;
+  created_at: string;
+  sale_id?: number | null;
+  sale_invoice_no?: string | null;
+  sold_at?: string | null;
+  warranty_status?: string | null;
+  repair_status?: string | null;
+};
+function warrantyBadge(status: string | null | undefined, t: any) {
+  if (!status) return <span className="text-secondary small">—</span>;
+  const map: Record<string, [string, string]> = {
+    active: ["bg-success-subtle text-success", "Active"],
+    expiring_soon: ["bg-warning-subtle text-warning", "Expiring soon"],
+    expired: ["bg-secondary-subtle text-secondary", "Expired"],
+    claimed: ["bg-info-subtle text-info", "Claimed"],
+    void: ["bg-dark-subtle text-dark", "Void"],
+  };
+  const [cls, label] = map[status] || ["bg-secondary-subtle text-secondary", status];
+  return <span className={`badge ${cls} px-2 py-1`}>{label}</span>;
+}
 
-export default function ProductEditPage() {
-  const { t, lang } = useLanguage();
-  const { user } = useAuth();
-  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+function repairBadge(status?: string | null) {
+  if (!status) return <span className="text-secondary small">—</span>;
+  const label = status.replace(/_/g, " ");
+  const cls = status === "delivered" ? "bg-success-subtle text-success"
+    : status === "ready_for_pickup" ? "bg-info-subtle text-info"
+    : "bg-warning-subtle text-warning";
+  return <span className={`badge ${cls} px-2 py-1 text-capitalize`}>{label}</span>;
+}
+
+export default function ProductProfilePage() {
+  const { t } = useLanguage();
   const { id } = useParams<{ id: string }>();
-
   const router = useRouter();
-  const [form, setForm] = useState<any>(null);
-  const [categories, setCategories] = useState<Named[]>([]);
-  const [brands, setBrands] = useState<Named[]>([]);
-  const [units, setUnits] = useState<UnitT[]>([]);
+  const [p, setP] = useState<Product | null>(null);
+  const [moves, setMoves] = useState<Movement[]>([]);
+  const [units, setUnits] = useState<ProductUnit[]>([]);
+  const [soldUnits, setSoldUnits] = useState<ProductUnit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [saving, setSaving] = useState(false);
-  const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
+  const [editingUnit, setEditingUnit] = useState<number | null>(null);
+  const [editForm, setEditForm] = useState({ cost_price: "", selling_price: "", warranty_months: "" });
 
-  const bulkActive = isSpecialShop && Number(form?.purchase_multiplier || 1) > 1 && pricingMode === "bulk";
+  const inStockUnits = usePagination(units, [units]);
+  const soldUnitsPaged = usePagination(soldUnits, [soldUnits]);
+  const movesPaged = usePagination(moves, [moves]);
+
+  const startEditing = (u: ProductUnit) => {
+    setEditingUnit(u.id);
+    setEditForm({
+      cost_price: u.cost_price?.toString() ?? u.effective_cost_price?.toString() ?? "",
+      selling_price: u.selling_price?.toString() ?? u.effective_selling_price?.toString() ?? "",
+      warranty_months: u.warranty_months?.toString() ?? u.effective_warranty_months?.toString() ?? "",
+    });
+  };
+
+  const saveUnit = async (u: ProductUnit) => {
+    try {
+      const data = {
+        cost_price: editForm.cost_price ? Number(editForm.cost_price) : null,
+        selling_price: editForm.selling_price ? Number(editForm.selling_price) : null,
+        warranty_months: editForm.warranty_months ? Number(editForm.warranty_months) : null,
+      };
+      await api(`/catalog/product-units/${u.id}/`, { method: "PATCH", body: data });
+      
+      const un = await api<ProductUnit[]>(`/catalog/product-units/`, { params: { product: id, status: "in_stock", page_size: 500 } });
+      setUnits(unwrap(un));
+      setEditingUnit(null);
+    } catch (e: any) {
+      toast.error(e.message || t("prd_err_update_unit"));
+    }
+  };
 
   useEffect(() => {
     (async () => {
       try {
-        const [p, c, b, u] = await Promise.all([
-          api(`/catalog/products/${id}/`),
-          api("/catalog/categories/").catch(() => []),
-          api("/catalog/brands/").catch(() => []),
-          api("/catalog/units/").catch(() => []),
+        const [prod, mv, un, sold] = await Promise.all([
+          api<Product>(`/catalog/products/${id}/`),
+          api(`/inventory/stock-movements/`, { params: { product: id, page_size: 500 } }).catch(() => []),
+          api(`/catalog/product-units/`, { params: { product: id, status: "in_stock", page_size: 500 } }).catch(() => []),
+          api(`/catalog/product-units/`, { params: { product: id, status: "sold", page_size: 500 } }).catch(() => []),
         ]);
-        // Restore bulk mode if this product was entered with drum-level prices
-        const mult = Number(p?.purchase_multiplier || 1);
-        const hasDrumVals = Number(p?.full_pack_cost || 0) > 0 || Number(p?.full_pack_sell || 0) > 0;
-        if (isSpecialShop && mult > 1 && hasDrumVals) {
-          setPricingMode("bulk");
-          p.full_pack_cost = p.full_pack_cost ? String(p.full_pack_cost) : "";
-          p.full_pack_sell = p.full_pack_sell ? String(p.full_pack_sell) : "";
-        } else {
-          p.full_pack_cost = "";
-          p.full_pack_sell = "";
-        }
-        p.purchase_multiplier = p.purchase_multiplier ? String(p.purchase_multiplier) : "1";
-        setForm(p);
-        setCategories(unwrap<Named>(c));
-        setBrands(unwrap<Named>(b));
-        setUnits(unwrap<UnitT>(u));
+        setP(prod);
+        setMoves(unwrap<Movement>(mv));
+        setUnits(unwrap<ProductUnit>(un));
+        setSoldUnits(unwrap<ProductUnit>(sold));
       } catch (e: any) {
-        setError(e?.message || t("pe_err_load"));
+        setError(e?.message || t("prd_err_load"));
       } finally {
         setLoading(false);
       }
     })();
   }, [id]);
 
-  async function save(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-    try {
-      await api(`/catalog/products/${id}/`, {
-        method: "PATCH",
-        body: {
-          name: form.name,
-          sku: form.sku,
-          barcode: form.barcode,
-          category: form.category || null,
-          brand: form.brand || null,
-          cost_price: form.cost_price,
-          selling_price: form.selling_price,
-          purchase_multiplier: form.purchase_multiplier !== "" ? Number(form.purchase_multiplier) : 1,
-          full_pack_cost: form.full_pack_cost !== "" ? Number(form.full_pack_cost) : 0,
-          full_pack_sell: form.full_pack_sell !== "" ? Number(form.full_pack_sell) : 0,
-          reorder_level: form.reorder_level === "" || form.reorder_level == null ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
-          warranty_months: form.warranty_months,
-          description: form.description,
-          is_active: form.is_active,
-          track_inventory: form.track_inventory !== false,
-        },
-      });
-      router.push(`/app/products/${id}`);
-
-    } catch (e: any) {
-      toast.error(e?.message || t("pe_err_save"));
-      setSaving(false);
-    }
-  }
-
-  if (loading) return <Spinner label={t("pe_loading")} />;
+  if (loading) return <Spinner label={t("prd_loading")} />;
   if (error) return <ErrorState error={error} />;
-  if (!form) return null;
-
-  const set = (k: string) => (e: any) => setForm({ ...form, [k]: e.target.value });
+  if (!p) return null;
 
   return (
-    <div className="vstack gap-3" style={{ maxWidth: "48rem" }}>
-      <h1 className="h4 fw-bold text-brand mb-0">{t("pe_title")}</h1>
+    <div className="vstack gap-3">
+      <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
+        <div>
+          <h1 className="h4 fw-bold text-brand mb-0">{p.name}</h1>
+          <div className="text-secondary small">SKU {p.sku || "—"}</div>
+        </div>
+        <div className="d-flex gap-2">
+          <Link href={`/app/products/${p.id}/edit`} className="btn btn-outline-brand btn-sm">
+            Edit
+          </Link>
+          <button
+            type="button"
+            className="btn btn-light btn-sm"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/app/products");
+              }
+            }}
+          >
+            {t("prd_btn_back") || "Back"}
+          </button>
+        </div>
+      </div>
+
+      <div className="row g-3">
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("prd_lbl_cost_val")}</div>
+            <div className="fs-5 fw-bold">{money(Number(p.cost_price || 0) * Math.max(0, Number(p.current_stock || 0)))}</div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("prd_lbl_retail_val")}</div>
+            <div className="fs-5 fw-bold">{money(Number(p.selling_price || 0) * Math.max(0, Number(p.current_stock || 0)))}</div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("prd_lbl_in_stock")}</div>
+            <div className={`fs-5 fw-bold ${p.is_low_stock ? "text-danger" : ""}`}>{Math.max(0, Number(p.current_stock || 0))}</div>
+          </Card>
+        </div>
+        <div className="col-6 col-lg-3">
+          <Card>
+            <div className="small text-secondary">{t("prd_lbl_reorder")}</div>
+            <div className="fs-5 fw-bold">{p.reorder_level}</div>
+          </Card>
+        </div>
+      </div>
+
+      {p.description && (
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <div className="fw-semibold mb-1">{t("prd_lbl_desc")}</div>
+            <div className="text-secondary">{p.description}</div>
+          </div>
+        </div>
+      )}
+
+      {units.length > 0 && (
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <h2 className="h6 fw-bold mb-3 text-brand">{t("prd_title_units")}</h2>
+            <div className="table-responsive">
+              <table className="table table-hover table-sm align-middle mb-0">
+                <thead className="thead-6">
+                  <tr>
+                    <th>{t("prd_col_date_rec")}</th>
+                    <th>{t("prd_col_barcode")}</th>
+                    <th className="text-end">{t("prd_col_cost")}</th>
+                    <th className="text-end">{t("prd_col_sell")}</th>
+                    <th className="text-end">{t("prd_col_warranty")}</th>
+                    <th className="text-end">{t("prd_col_status")}</th>
+                    <th className="text-end">{t("prd_col_actions")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {inStockUnits.paged.map((u) => {
+                    const isEditing = editingUnit === u.id;
+                    return (
+                      <tr key={u.id}>
+                        <td className="text-secondary small">{fmtDate(u.created_at)}</td>
+                        <td className="fw-medium font-monospace small">
+                          <i className="bi bi-upc-scan me-2 text-secondary"></i>
+                          {u.barcode}
+                        </td>
+                        <td className="text-end">
+                          {isEditing ? (
+                            <input 
+                              type="number" className="form-control form-control-sm text-end"
+                              value={editForm.cost_price} 
+                              onChange={(e) => setEditForm({ ...editForm, cost_price: e.target.value })}
+                            />
+                          ) : (
+                            <span className="text-secondary small">{money(u.effective_cost_price)}</span>
+                          )}
+                        </td>
+                        <td className="text-end fw-semibold text-brand small">
+                          {isEditing ? (
+                            <input 
+                              type="number" className="form-control form-control-sm text-end"
+                              value={editForm.selling_price} 
+                              onChange={(e) => setEditForm({ ...editForm, selling_price: e.target.value })}
+                            />
+                          ) : (
+                            money(u.effective_selling_price)
+                          )}
+                        </td>
+                        <td className="text-end small">
+                          {isEditing ? (
+                            <input 
+                              type="number" className="form-control form-control-sm text-end"
+                              value={editForm.warranty_months} 
+                              onChange={(e) => setEditForm({ ...editForm, warranty_months: e.target.value })}
+                            />
+                          ) : (
+                            u.effective_warranty_months || "—"
+                          )}
+                        </td>
+                        <td className="text-end">
+                          <span className="badge bg-success-subtle text-success text-capitalize px-2 py-1">
+                            {u.status.replace("_", " ")}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          {isEditing ? (
+                            <div className="btn-group btn-group-sm">
+                              <button className="btn btn-primary" onClick={() => saveUnit(u)}>{t("prd_btn_save")}</button>
+                              <button className="btn btn-light" onClick={() => setEditingUnit(null)}>{t("prd_btn_cancel")}</button>
+                            </div>
+                          ) : (
+                            <button className="btn btn-sm btn-light" onClick={() => startEditing(u)}>{t("prd_btn_edit")}</button>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              page={inStockUnits.page}
+              totalPages={inStockUnits.totalPages}
+              setPage={inStockUnits.setPage}
+              total={inStockUnits.total}
+            />
+          </div>
+        </div>
+      )}
+
+      {soldUnits.length > 0 && (
+        <div className="card shadow-sm">
+          <div className="card-body">
+            <h2 className="h6 fw-bold mb-3" style={{ color: "#b45309" }}>{t("prd_title_sold")}</h2>
+            <div className="table-responsive">
+              <table className="table table-hover table-sm align-middle mb-0">
+                <thead className="thead-6">
+                  <tr>
+                    <th>{t("prd_col_sold_on")}</th>
+                    <th>{t("prd_col_barcode")}</th>
+                    <th>{t("prd_col_invoice")}</th>
+                    <th className="text-center">{t("prd_col_warranty").replace(" (Months)", "").replace(" (মাস)", "")}</th>
+                    <th className="text-center">{t("prd_col_repair")}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {soldUnitsPaged.paged.map((u) => (
+                    <tr key={u.id}>
+                      <td className="text-secondary small">{u.sold_at ? fmtDate(u.sold_at) : "—"}</td>
+                      <td className="fw-medium font-monospace small">
+                        <i className="bi bi-upc-scan me-2 text-secondary"></i>{u.barcode}
+                      </td>
+                      <td>
+                        {u.sale_id ? (
+                          <a href={`/invoice/${u.sale_id}`} target="_blank" rel="noopener noreferrer" className="text-decoration-none fw-medium">
+                            <i className="bi bi-receipt me-1"></i>{u.sale_invoice_no || `#${u.sale_id}`}
+                          </a>
+                        ) : <span className="text-secondary">—</span>}
+                      </td>
+                      <td className="text-center">{warrantyBadge(u.warranty_status, t)}</td>
+                      <td className="text-center">{repairBadge(u.repair_status)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination
+              page={soldUnitsPaged.page}
+              totalPages={soldUnitsPaged.totalPages}
+              setPage={soldUnitsPaged.setPage}
+              total={soldUnitsPaged.total}
+            />
+          </div>
+        </div>
+      )}
+
       <div className="card shadow-sm">
         <div className="card-body">
-          <form onSubmit={save} className="row g-3">
-            <div className="col-md-6">
-              <label className="small">{t("pe_lbl_name")}</label>
-              <input required className="form-control form-control-sm" value={form.name || ""} onChange={set("name")} />
-            </div>
-            <div className="col-md-6">
-              <label className="small">{t("pe_lbl_sku")}</label>
-              <input className="form-control form-control-sm" value={form.sku || ""} onChange={set("sku")} />
-            </div>
-            <div className="col-md-6">
-              <label className="small">{t("pe_lbl_cat")}</label>
-              <select className="form-select form-select-sm" value={form.category || ""} onChange={set("category")}>
-                <option value="">{t("pe_opt_none")}</option>
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-6">
-              <label className="small">{t("pe_lbl_brand")}</label>
-              <select className="form-select form-select-sm" value={form.brand || ""} onChange={set("brand")}>
-                <option value="">{t("pe_opt_none")}</option>
-                {brands.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="col-md-3">
-              <label className="small">{t("pe_lbl_cost")}</label>
-              <input type="number" step="0.01" className="form-control form-control-sm" value={form.cost_price || ""} onChange={set("cost_price")} />
-            </div>
-            <div className="col-md-3">
-              <label className="small">{t("pe_lbl_selling")}</label>
-              <input type="number" step="0.01" className="form-control form-control-sm" value={form.selling_price || ""} onChange={set("selling_price")} />
-            </div>
-            <div className="col-md-3">
-              <label className="small">{t("pe_lbl_reorder")}</label>
-              <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
-            </div>
-            <div className="col-md-3">
-              <label className="small">{t("pe_lbl_warranty")}</label>
-              <input type="number" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} />
-            </div>
-
-            {isSpecialShop && (
-              <div className="col-md-3">
-                <label className="small">{lang === "bn" ? "বাল্ক মাল্টিপ্লায়ার" : "Bulk Multiplier"}</label>
-                <input type="number" step="0.001" min="0" className="form-control form-control-sm"
-                  value={form.purchase_multiplier || "1"}
-                  onChange={(e) => {
-                    const newMult = e.target.value;
-                    const multiplierVal = Number(newMult) || 1;
-                    const packCost = Number(form.full_pack_cost) || 0;
-                    const packSell = Number(form.full_pack_sell) || 0;
-                    const perUnitCost = packCost > 0 ? (packCost / multiplierVal).toFixed(2) : form.cost_price;
-                    const perUnitSell = packSell > 0 ? (packSell / multiplierVal).toFixed(2) : form.selling_price;
-                    setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost, selling_price: perUnitSell });
-                  }} />
-              </div>
-            )}
-
-            {isSpecialShop && Number(form?.purchase_multiplier || 1) > 1 && (
-              <div className="col-md-3">
-                <label className="small">{lang === "bn" ? "দাম নির্ধারণ পদ্ধতি" : "Pricing Entry Method"}</label>
-                <select className="form-select form-select-sm" value={pricingMode}
-                  onChange={(e) => {
-                    const mode = e.target.value as 'regular' | 'bulk';
-                    setPricingMode(mode);
-                    if (mode === "regular") {
-                      setForm({ ...form, full_pack_cost: "", full_pack_sell: "" });
-                    }
-                  }}>
-                  <option value="regular">{lang === "bn" ? "সাধারণ (প্রতি ইউনিট)" : "Regular (per unit)"}</option>
-                  <option value="bulk">{lang === "bn" ? "বাল্ক অটো-ক্যালকুলেট" : "Bulk Auto-Calculate"}</option>
-                </select>
-              </div>
-            )}
-
-            {bulkActive && (
-              <>
-                <div className="col-md-3">
-                  <label className="small">{lang === "bn" ? "সম্পূর্ণ ড্রাম খরচ" : "Full Drum Cost"}</label>
-                  <input type="number" step="0.01" min="0" className="form-control form-control-sm"
-                    value={form.full_pack_cost || ""}
-                    onChange={(e) => {
-                      const packCost = e.target.value;
-                      const perUnitCost = packCost && Number(packCost) > 0 && Number(form.purchase_multiplier || 1) > 0
-                        ? (Number(packCost) / Number(form.purchase_multiplier || 1)).toFixed(2) : "";
-                      setForm({ ...form, full_pack_cost: packCost, cost_price: perUnitCost });
-                    }} />
-                </div>
-                <div className="col-md-3">
-                  <label className="small">{lang === "bn" ? "সম্পূর্ণ ড্রাম বিক্রয়মূল্য" : "Full Drum Sell"}</label>
-                  <input type="number" step="0.01" min="0" className="form-control form-control-sm"
-                    value={form.full_pack_sell || ""}
-                    onChange={(e) => {
-                      const packSell = e.target.value;
-                      const perUnitSell = packSell && Number(packSell) > 0 && Number(form.purchase_multiplier || 1) > 0
-                        ? (Number(packSell) / Number(form.purchase_multiplier || 1)).toFixed(2) : "";
-                      setForm({ ...form, full_pack_sell: packSell, selling_price: perUnitSell });
-                    }} />
-                </div>
-              </>
-            )}
-
-            <div className="col-md-6 d-flex align-items-end gap-4">
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" id="isActive" checked={!!form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} />
-                <label className="form-check-label" htmlFor="isActive">
-                  {t("pe_lbl_active")}
-                </label>
-              </div>
-              <div className="form-check">
-                <input className="form-check-input" type="checkbox" id="trackInventory" checked={form.track_inventory !== false} onChange={(e) => setForm({ ...form, track_inventory: e.target.checked })} />
-                <label className="form-check-label" htmlFor="trackInventory">
-                  {lang === "bn" ? "ইনভেন্টরি স্টক ট্র্যাক করুন" : "Track Stock Inventory"}
-                </label>
-              </div>
-            </div>
-
-            <div className="col-12">
-              <label className="small">{t("pe_lbl_desc")}</label>
-              <textarea className="form-control form-control-sm" rows={3} value={form.description || ""} onChange={set("description")} />
-            </div>
-            <div className="col-12 d-flex gap-2">
-              <button className="btn btn-brand btn-sm" disabled={saving}>
-                {saving ? t("pe_btn_saving") : t("pe_btn_save")}
-              </button>
-              <button type="button" className="btn btn-light btn-sm" onClick={() => router.back()}>
-                {t("pe_btn_cancel")}
-              </button>
-            </div>
-          </form>
+          <div className="fw-semibold mb-3">{t("prd_title_moves")}</div>
+          <div className="table-responsive">
+            <table className="table table-striped table-sm mb-0">
+              <thead className="thead-6">
+                <tr>
+                  <th>{t("prd_col_date")}</th>
+                  <th>{t("prd_col_type")}</th>
+                  <th className="text-end">{t("prd_col_qty")}</th>
+                  <th>{t("prd_col_note")}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {moves.length === 0 ? (
+                  <tr data-empty="">
+                    <td colSpan={4} className="text-center text-secondary py-4">{t("prd_no_moves")}</td>
+                  </tr>
+                ) : (
+                  movesPaged.paged.map((m) => (
+                    <tr key={m.id}>
+                      <td className="text-secondary">{fmtDate(m.created_at)}</td>
+                      <td>
+                        <span className="badge text-bg-light">{m.movement_type}</span>
+                      </td>
+                      <td className="text-end">{m.quantity}</td>
+                      <td className="text-secondary">{m.note || "—"}</td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+          {moves.length > 0 && (
+            <Pagination
+              page={movesPaged.page}
+              totalPages={movesPaged.totalPages}
+              setPage={movesPaged.setPage}
+              total={movesPaged.total}
+            />
+          )}
         </div>
       </div>
     </div>
