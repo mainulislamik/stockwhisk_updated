@@ -61,6 +61,7 @@ export default function PurchaseProductPage() {
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics";
   const [fullPackCost, setFullPackCost] = useState("");
   const [fullPackSell, setFullPackSell] = useState("");
+  const [pricingMode, setPricingMode] = useState<"regular" | "bulk">("regular");
 
   const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop ?? undefined, (barcode) => {
     setBarcodeText((prev) => (prev ? `${prev}\n${barcode}` : barcode));
@@ -154,6 +155,7 @@ export default function PurchaseProductPage() {
     setSelected(p);
     setFullPackCost("");
     setFullPackSell("");
+    setPricingMode("regular");
     setSearchResults(null);
     setSearchName("");
     setSearchBarcode("");
@@ -678,7 +680,19 @@ export default function PurchaseProductPage() {
           <div className="card-body">
             <h2 className="h6 fw-bold mb-3 text-brand">💰 Pricing Information</h2>
             <div className="row g-3">
-              {(isSpecialShop && selected && Number(selected.purchase_multiplier) > 1) && (
+
+              {/* Added Pricing Method Dropdown */}
+              {user?.shop_business_type === "cosmetics" && selected && Number(selected.purchase_multiplier) > 1 && (
+                <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
+                  <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
+                  <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>
+                    <option value="regular">Regular Option (Manual Per-Unit Price)</option>
+                    <option value="bulk">Bulk Auto-Calculate Option (Enter Full Drum Price)</option>
+                  </select>
+                </div>
+              )}
+
+              {(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") && (
                 <>
                   <div className="col-md-6">
                     <label className="small fw-medium text-primary">Full Drum/Box Cost (৳)</label>
@@ -743,14 +757,14 @@ export default function PurchaseProductPage() {
                 </>
               )}
               <div className="col-md-6">
-                <label className="small fw-medium">{(isSpecialShop && selected && Number(selected.purchase_multiplier) > 1) ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
+                <label className="small fw-medium">{(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
                 <input
                   className="form-control"
                   type="number"
                   step="0.01"
                   value={selected ? cost : ""}
                   placeholder="0"
-                  disabled={!selected || (isSpecialShop && selected && Number(selected.purchase_multiplier) > 1)}
+                  disabled={!selected || (user?.shop_business_type === "cosmetics" && pricingMode === "bulk")}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, cost_price: e.target.value });
@@ -763,14 +777,14 @@ export default function PurchaseProductPage() {
                 />
               </div>
               <div className="col-md-6">
-                <label className="small fw-medium">{(isSpecialShop && selected && Number(selected.purchase_multiplier) > 1) ? "Auto Calculated Selling Price (Base Unit)" : t("pp_lbl_sell_bdt")}</label>
+                <label className="small fw-medium">{(user?.shop_business_type === "cosmetics" && pricingMode === "bulk") ? "Auto Calculated Selling Price (Base Unit)" : t("pp_lbl_sell_bdt")}</label>
                 <input
                   className="form-control"
                   type="number"
                   step="0.01"
                   value={selected ? sell : ""}
                   placeholder="0"
-                  disabled={!selected || (isSpecialShop && selected && Number(selected.purchase_multiplier) > 1)}
+                  disabled={!selected || (user?.shop_business_type === "cosmetics" && pricingMode === "bulk")}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, selling_price: e.target.value });
