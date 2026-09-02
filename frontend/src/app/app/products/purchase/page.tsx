@@ -19,6 +19,7 @@ type Product = {
   selling_price: string;
   current_stock: string;
   warranty_months: number;
+  purchase_multiplier?: string | number;
   track_inventory: boolean;
 };
 type Supplier = { id: number; name: string };
@@ -57,6 +58,9 @@ export default function PurchaseProductPage() {
   const [autoGenerateBarcodes, setAutoGenerateBarcodes] = useState(false);
 
   const { user } = useAuth();
+  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics";
+  const [fullPackCost, setFullPackCost] = useState("");
+
   const { isConnected: scannerConnected } = useScannerWebSocket(user?.shop ?? undefined, (barcode) => {
     setBarcodeText((prev) => (prev ? `${prev}\n${barcode}` : barcode));
   });
@@ -147,6 +151,7 @@ export default function PurchaseProductPage() {
 
   function selectProduct(p: Product) {
     setSelected(p);
+    setFullPackCost("");
     setSearchResults(null);
     setSearchName("");
     setSearchBarcode("");
@@ -671,15 +676,47 @@ export default function PurchaseProductPage() {
           <div className="card-body">
             <h2 className="h6 fw-bold mb-3 text-brand">💰 Pricing Information</h2>
             <div className="row g-3">
+              {isSpecialShop && (
+                <div className="col-12">
+                  <label className="small fw-medium text-primary">Full Drum/Box Cost</label>
+                  <div className="input-group">
+                    <span className="input-group-text">৳</span>
+                    <input
+                      className="form-control"
+                      type="number"
+                      step="0.01"
+                      placeholder="e.g. 5000"
+                      value={selected ? fullPackCost : ""}
+                      disabled={!selected}
+                      onChange={(e) => {
+                        const packVal = e.target.value;
+                        setFullPackCost(packVal);
+                        if (!selected) return;
+                        const mult = Number(selected.purchase_multiplier) || 1;
+                        const perUnitCost = (Number(packVal) / mult).toFixed(2);
+                        setSelected({ ...selected, cost_price: perUnitCost });
+                        setLines((prev) =>
+                          prev.map((l) =>
+                            l.product.id === selected.id ? { ...l, unit_cost: Number(perUnitCost) || 0 } : l
+                          )
+                        );
+                      }}
+                    />
+                  </div>
+                  <div className="small text-muted mt-1">
+                    Auto-calculates Cost per Liter/Kg based on Multiplier: <strong>{selected?.purchase_multiplier || 1}</strong>
+                  </div>
+                </div>
+              )}
               <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_cost_bdt")}</label>
+                <label className="small fw-medium">{isSpecialShop ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
                 <input
                   className="form-control"
                   type="number"
                   step="0.01"
                   value={selected ? cost : ""}
                   placeholder="0"
-                  disabled={!selected}
+                  disabled={!selected || isSpecialShop}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, cost_price: e.target.value });
