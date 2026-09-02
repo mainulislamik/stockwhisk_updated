@@ -30,12 +30,14 @@ type Shop = {
 };
 
 const TYPE_LABELS: Record<string, string> = {
-  electronics: "Electronics",
-  computer: "Computer",
-  mobile: "Mobile & Accessories",
   general: "General Retail",
+  supershop: "Super Shop & Grocery",
   camical: "Chemical & Lab Supplies",
-    supershop: "Super Shop & Grocery",
+  electronics: "Electronics & Gadgets",
+  computer: "Computer & IT",
+  mobile: "Mobile & Accessories",
+  handcrafts: "Handcrafts & Boutique",
+  other: "Other"
 };
 
 const COOLOFF_DAYS = 15;
