@@ -73,6 +73,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
         fields = [
             "id", "name", "sku", "barcode", "category", "brand", "unit",
             "purchase_unit", "purchase_multiplier",
+            "full_pack_cost", "full_pack_sell",
             "description", "cost_price", "selling_price", "tax_percent",
             "track_inventory", "reorder_level", "current_stock",
             "is_low_stock", "is_active", "variations", "warranty_months",

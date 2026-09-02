@@ -92,6 +92,8 @@ class Product(TenantScopedModel):
         Unit, on_delete=models.SET_NULL, null=True, blank=True, related_name="purchase_products"
     )
     purchase_multiplier = models.DecimalField(max_digits=10, decimal_places=3, default=1.0)
+    full_pack_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
+    full_pack_sell = models.DecimalField(max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)])
     # Default supplier this product is bought from (item 18: product↔supplier link).
     supplier = models.ForeignKey(
         "purchasing.Supplier", on_delete=models.SET_NULL, null=True, blank=True,

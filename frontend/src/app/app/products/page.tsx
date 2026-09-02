@@ -87,6 +87,8 @@ export default function ProductsPage() {
           unit: form.unit || null,
           purchase_unit: form.purchase_unit || null,
           purchase_multiplier: form.purchase_multiplier !== "" ? Number(form.purchase_multiplier) : 1.0,
+          full_pack_cost: form.full_pack_cost !== "" ? Number(form.full_pack_cost) : 0,
+          full_pack_sell: form.full_pack_sell !== "" ? Number(form.full_pack_sell) : 0,
           cost_price: form.cost_price || 0,
           selling_price: form.selling_price || 0,
           reorder_level: form.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
@@ -223,15 +225,10 @@ export default function ProductsPage() {
                         const newMult = e.target.value;
                         const multiplierVal = Number(newMult) || 1;
                         const packCost = Number(form.full_pack_cost) || 0;
-                        const perUnitCost = (packCost / multiplierVal).toFixed(2);
                         const packSell = Number(form.full_pack_sell) || 0;
-                        const perUnitSell = (packSell / multiplierVal).toFixed(2);
-                        
-                        if (isSpecialShop && packCost > 0) {
-                          setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost, selling_price: perUnitSell });
-                        } else {
-                          setForm({ ...form, purchase_multiplier: newMult });
-                        }
+                        const perUnitCost = packCost > 0 ? (packCost / multiplierVal).toFixed(2) : form.cost_price;
+                        const perUnitSell = packSell > 0 ? (packSell / multiplierVal).toFixed(2) : form.selling_price;
+                        setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost, selling_price: perUnitSell });
                       }} 
                       title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
                   </div>
@@ -277,8 +274,7 @@ export default function ProductsPage() {
                   <span className="input-group-text">৳</span>
                   <input type="number" step="0.01" min="0" className="form-control" value={form.cost_price} 
                     onChange={(e) => setForm({ ...form, cost_price: e.target.value })} 
-                    readOnly={Boolean(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1)} 
-                    title={(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? "Auto calculated from Pack Cost / Multiplier" : ""}
+                    title={(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? "Auto calculated from Pack Cost / Multiplier (or type manually)" : ""}
                   />
                 </div>
               </div>
@@ -304,7 +300,7 @@ export default function ProductsPage() {
                 <label className="small text-primary fw-medium">{(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
                 <div className="input-group input-group-sm mb-1">
                   <span className="input-group-text">৳</span>
-                  <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} readOnly={Boolean(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1)} />
+                  <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
                 </div>
                 {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
                   <div className="text-success fw-bold" style={{ fontSize: "0.75rem", marginTop: "-2px" }}>
