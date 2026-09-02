@@ -9,6 +9,7 @@ const BUSINESS_TYPES = [
   { value: "general", label: "General Retail" },
   { value: "camical", label: "Chemical & Lab Supplies" },
   { value: "supershop", label: "Super Shop & Grocery" },
+  { value: "cosmetics", label: "Cosmetics & Beauty" },
   { value: "electronics", label: "Electronics" },
   { value: "computer", label: "Computer" },
   { value: "mobile", label: "Mobile & Accessories" },

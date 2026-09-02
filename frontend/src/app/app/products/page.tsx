@@ -28,7 +28,8 @@ type Named = { id: number; name: string };
 
 export default function ProductsPage() {
   const { user, can, isOwner } = useAuth();
-  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop";
+  const isCosmetics = user?.shop_business_type === "cosmetics";
+  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics";
   const { t, lang } = useLanguage();
 
   const canManage = isOwner || can("manage_products");
@@ -58,7 +59,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
   const [saving, setSaving] = useState(false);
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
@@ -92,7 +93,7 @@ export default function ProductsPage() {
           replacement_guarantee_days: form.replacement_guarantee_days || 0,
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
       setShowAdd(false);
       mutate();
     } catch (e: any) {

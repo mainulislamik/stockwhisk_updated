@@ -101,7 +101,8 @@ class Shop(TimeStampedModel):
         MOBILE = "mobile", "Mobile & Accessories"
         GENERAL = "general", "General Retail"
         CAMICAL = "camical"
-        SUPERSHOP = "supershop", "Chemical & Lab Supplies"
+        SUPERSHOP = "supershop"
+        COSMETICS = "cosmetics", "Chemical & Lab Supplies"
         OTHER = "other", "Other"
 
     name = models.CharField(max_length=150)

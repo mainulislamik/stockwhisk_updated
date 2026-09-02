@@ -307,6 +307,7 @@ export default function LoginScreen() {
   const BUSINESS_TYPES = [
     { key: 'camical', label: isBN ? 'কেমিক্যাল ও ল্যাব সাপ্লাই' : 'Chemical & Lab Supplies' },
     { key: 'supershop', label: isBN ? 'সুপার শপ ও গ্রোসারি' : 'Super Shop & Grocery' },
+    { key: 'cosmetics', label: isBN ? 'কসমেটিকস ও বিউটি' : 'Cosmetics & Beauty' },
     { key: 'general', label: isBN ? 'সাধারণ রিটেইল শপ' : 'General Retail' },
     { key: 'electronics', label: isBN ? 'ইলেকট্রনিক্স ও মোবাইল' : 'Electronics & Mobile' },
     { key: 'grocery', label: isBN ? 'মুদি ও ডিপার্টমেন্টাল' : 'Grocery & Superstore' },

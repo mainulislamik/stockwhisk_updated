@@ -32,6 +32,7 @@ type Shop = {
 const TYPE_LABELS: Record<string, string> = {
   general: "General Retail",
   supershop: "Super Shop & Grocery",
+  cosmetics: "Cosmetics & Beauty",
   camical: "Chemical & Lab Supplies",
   electronics: "Electronics & Gadgets",
   computer: "Computer & IT",
