@@ -227,6 +227,34 @@ export default function ShopsPage() {
         </div>
       </div>
 
+      
+      {/* Edit Category Modal */}
+      {editCatFor && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content text-body" style={{ background: "rgba(30,41,59,1)", border: "1px solid rgba(255,255,255,0.1)" }}>
+              <div className="modal-header border-0">
+                <h5 className="modal-title">Change Category: {editCatFor.name}</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setEditCatFor(null)}></button>
+              </div>
+              <div className="modal-body border-0">
+                <select className="form-select" id="catEditSelect" defaultValue={editCatFor.business_type}>
+                  {Object.entries(TYPE_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v as string}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="modal-footer border-0">
+                <button className="btn btn-secondary" onClick={() => setEditCatFor(null)}>Cancel</button>
+                <button className="btn btn-primary" onClick={() => updateCategory(editCatFor.id, (document.getElementById(catEditSelect) as HTMLSelectElement).value)}>
+                  Save Category
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {pwFor && <OwnerPwModal shop={pwFor} onClose={() => setPwFor(null)} />}
       {delFor && <DeleteModal shop={delFor} onClose={(done) => { setDelFor(null); if (done) load(); }} />}
     </>
@@ -321,14 +349,7 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
         <div className="card-body">{children}</div>
       </div>
 
-      {/* Edit Category Modal */}
-      {editCatFor && (
-        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
-          <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content text-body" style={{ background: "rgba(30,41,59,1)", border: "1px solid rgba(255,255,255,0.1)" }}>
-              <div className="modal-header border-0">
-                <h5 className="modal-title">Change Category: {editCatFor.name}</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setEditCatFor(null)}></button>
+      ></button>
               </div>
               <div className="modal-body border-0">
                 <select className="form-select" id="catEditSelect" defaultValue={editCatFor.business_type}>
