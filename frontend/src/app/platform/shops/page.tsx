@@ -246,7 +246,7 @@ export default function ShopsPage() {
               </div>
               <div className="modal-footer border-0">
                 <button className="btn btn-secondary" onClick={() => setEditCatFor(null)}>Cancel</button>
-                <button className="btn btn-primary" onClick={() => updateCategory(editCatFor.id, (document.getElementById(catEditSelect) as HTMLSelectElement).value)}>
+                <button className="btn btn-primary" onClick={() => updateCategory(editCatFor.id, (document.getElementById('catEditSelect') as HTMLSelectElement).value)}>
                   Save Category
                 </button>
               </div>
@@ -348,27 +348,6 @@ function Backdrop({ children, onClose }: { children: React.ReactNode; onClose: (
       <div className="card shadow-lg" style={{ maxWidth: "26rem", width: "100%" }} onClick={(e) => e.stopPropagation()}>
         <div className="card-body">{children}</div>
       </div>
-
-      ></button>
-              </div>
-              <div className="modal-body border-0">
-                <select className="form-select" id="catEditSelect" defaultValue={editCatFor.business_type}>
-                  {Object.entries(TYPE_LABELS).map(([k, v]) => (
-                    <option key={k} value={k}>{v as string}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="modal-footer border-0">
-                <button className="btn btn-secondary" onClick={() => setEditCatFor(null)}>Cancel</button>
-                <button className="btn btn-primary" onClick={() => updateCategory(editCatFor.id, (document.getElementById(catEditSelect) as HTMLSelectElement).value)}>
-                  Save Category
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }
