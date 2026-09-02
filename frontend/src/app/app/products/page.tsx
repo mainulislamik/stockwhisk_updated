@@ -237,7 +237,7 @@ export default function ProductsPage() {
 
               
               {/* Added dynamic base unit name */}
-              {isSpecialShop && (
+              {(isSpecialShop && Number(form.purchase_multiplier) > 1) && (
                 <div className="col-md-2">
                   <label className="small text-primary fw-medium">Full Drum/Box Cost</label>
                   <div className="input-group input-group-sm mb-1">
@@ -257,23 +257,23 @@ export default function ProductsPage() {
               )}
               
               <div className="col-md-3">
-                <label className="small text-primary fw-medium">{isSpecialShop ? `Cost per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_cost")}</label>
+                <label className="small text-primary fw-medium">{(isSpecialShop && Number(form.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_cost")}</label>
                 <div className="input-group input-group-sm mb-1">
                   <span className="input-group-text">৳</span>
                   <input type="number" step="0.01" min="0" className="form-control" value={form.cost_price} 
                     onChange={(e) => setForm({ ...form, cost_price: e.target.value })} 
-                    readOnly={isSpecialShop} 
-                    title={isSpecialShop ? "Auto calculated from Pack Cost / Multiplier" : ""}
+                    readOnly={(isSpecialShop && Number(form.purchase_multiplier) > 1)} 
+                    title={(isSpecialShop && Number(form.purchase_multiplier) > 1) ? "Auto calculated from Pack Cost / Multiplier" : ""}
                   />
                 </div>
               </div>
               <div className="col-md-3">
-                <label className="small text-primary fw-medium">{isSpecialShop ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
+                <label className="small text-primary fw-medium">{(isSpecialShop && Number(form.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
                 <div className="input-group input-group-sm mb-1">
                   <span className="input-group-text">৳</span>
                   <input type="number" step="0.01" min="0" className="form-control" value={form.selling_price} onChange={(e) => setForm({ ...form, selling_price: e.target.value })} />
                 </div>
-                {isSpecialShop && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
+                {(isSpecialShop && Number(form.purchase_multiplier) > 1) && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
                   <div className="text-success fw-bold" style={{ fontSize: "0.75rem", marginTop: "-2px" }}>
                     ✅ Profit Margin: ৳{ (Number(form.selling_price) - Number(form.cost_price)).toFixed(2) } per unit
                   </div>
