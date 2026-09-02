@@ -676,7 +676,7 @@ export default function PurchaseProductPage() {
           <div className="card-body">
             <h2 className="h6 fw-bold mb-3 text-brand">💰 Pricing Information</h2>
             <div className="row g-3">
-              {isSpecialShop && (
+              {(isSpecialShop && selected && Number(selected.purchase_multiplier) > 1) && (
                 <div className="col-12">
                   <label className="small fw-medium text-primary">Full Drum/Box Cost</label>
                   <div className="input-group">
@@ -709,14 +709,14 @@ export default function PurchaseProductPage() {
                 </div>
               )}
               <div className="col-md-6">
-                <label className="small fw-medium">{isSpecialShop ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
+                <label className="small fw-medium">{(isSpecialShop && selected && Number(selected.purchase_multiplier) > 1) ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
                 <input
                   className="form-control"
                   type="number"
                   step="0.01"
                   value={selected ? cost : ""}
                   placeholder="0"
-                  disabled={!selected || isSpecialShop}
+                  disabled={!selected || (isSpecialShop && selected && Number(selected.purchase_multiplier) > 1)}
                   onChange={(e) => {
                     if (!selected) return;
                     setSelected({ ...selected, cost_price: e.target.value });
