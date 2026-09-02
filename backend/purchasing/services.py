@@ -285,7 +285,17 @@ def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, cr
         if update_cost:
             # Latest purchase cost (per base unit) becomes the product's standard cost.
             product.cost_price = effective_unit_cost
-            product.save(update_fields=["cost_price"])
+            # Also sync selling_price when a bulk purchase multiplier is in play:
+            # if the stored selling_price is still at drum/pack level (i.e. it's
+            # > 80 % of the drum/pack cost), divide it by the same multiplier
+            # so it stays consistent as a per-base-unit price.
+            update_fields = ["cost_price"]
+            if multiplier > 1 and product.selling_price is not None:
+                drum_cost = effective_unit_cost * multiplier
+                if product.selling_price > drum_cost * Decimal("0.8"):
+                    product.selling_price = product.selling_price / multiplier
+                    update_fields.append("selling_price")
+            product.save(update_fields=update_fields)
         # Bulk purchase → per-unit warranty tracking: one ProductUnit + Warranty
         # per received piece, so the batch is bought together but returned one
         # unit at a time.
