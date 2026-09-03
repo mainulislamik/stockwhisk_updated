@@ -224,7 +224,7 @@ export default function SalesPage() {
                 <th className="text-end">{t("sales_list_col_paid")}</th>
                 <th className="text-end">{t("sales_list_col_due")}</th>
                 <th>{t("sales_list_col_status")}</th>
-                <th className="text-end pe-3">Actions</th>
+                <th className="text-end pe-3">{t("col_actions")}</th>
               </tr>
             </thead>
             <tbody>

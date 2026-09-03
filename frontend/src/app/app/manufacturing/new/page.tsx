@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { api, fetchAll } from "@/lib/api";
 import { PageHeader, Spinner } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 import toast from "react-hot-toast";
 
 type Product = {
@@ -24,6 +25,7 @@ type MaterialRow = {
 };
 
 export default function NewProductionBatchPage() {
+  const { t, lang } = useLanguage();
   const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -155,7 +157,7 @@ export default function NewProductionBatchPage() {
           <i className="bi bi-arrow-left"></i> Back to Manufacturing Hub
         </Link>
         <PageHeader
-          title="Start Production Batch (WIP)"
+          title={lang === "bn" ? "নতুন প্রোডাকশন ব্যাচ শুরু করুন (WIP)" : "Start Production Batch (WIP)"}
           subtitle="Step 1: Commit and deduct raw materials from inventory. Final yield output will be recorded in Step 2 when manufacturing is completed."
         />
       </div>

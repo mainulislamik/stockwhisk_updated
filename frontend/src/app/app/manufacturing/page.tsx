@@ -5,6 +5,7 @@ import Link from "next/link";
 import { api, fetchAll } from "@/lib/api";
 import { PageHeader, Spinner, EmptyRow, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 import toast from "react-hot-toast";
 
 type ProductionMaterial = {
@@ -65,6 +66,7 @@ type SummaryStats = {
 
 export default function ManufacturingPage() {
   const { user } = useAuth();
+  const { t, lang } = useLanguage();
   const [batches, setBatches] = useState<ProductionBatch[] | null>(null);
   const [summary, setSummary] = useState<SummaryStats | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
@@ -174,10 +176,7 @@ export default function ManufacturingPage() {
   const handleFinalizeProduction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!completeBatch) return;
-    if (!outProductId) {
-      toast.error("Please select a finished output product.");
-      return;
-    }
+
     const qty = Number(outQty);
     if (!qty || qty <= 0) {
       toast.error("Please enter a valid output quantity greater than 0.");
@@ -186,21 +185,62 @@ export default function ManufacturingPage() {
 
     setBusy(true);
     try {
+      let targetProductId = Number(outProductId);
+
+      if (outProductMode === "new") {
+        if (!newProdName.trim()) {
+          toast.error("Please enter a name for the new finished product.");
+          setBusy(false);
+          return;
+        }
+        if (!newProdSellPrice || Number(newProdSellPrice) < 0) {
+          toast.error("Please enter a valid selling price for the new product.");
+          setBusy(false);
+          return;
+        }
+
+        // 1. Create the new product in catalog
+        const createdProd = await api<Product>("/catalog/products/", {
+          method: "POST",
+          body: {
+            name: newProdName.trim(),
+            cost_price: liveCalculatedCost,
+            selling_price: newProdSellPrice,
+            unit: newProdUnit ? Number(newProdUnit) : undefined,
+            category: newProdCategory ? Number(newProdCategory) : undefined,
+            track_inventory: true,
+          },
+        });
+        targetProductId = createdProd.id;
+      } else {
+        if (!targetProductId) {
+          toast.error("Please select a finished output product.");
+          setBusy(false);
+          return;
+        }
+      }
+
+      // 2. Complete batch and credit the yield to targetProductId
       await api(`/manufacturing/batches/${completeBatch.id}/complete/`, {
         method: "POST",
         body: {
-          output_product_id: Number(outProductId),
+          output_product_id: targetProductId,
           output_quantity: qty,
           additional_cost: Number(extraCost) || 0,
           additional_cost_note: extraCostNote,
           update_product_cost: updateCostPrice,
         },
       });
-      toast.success(`🎉 Production completed! Yield added to inventory.`);
+
+      toast.success(
+        outProductMode === "new"
+          ? `Product "${newProdName}" created & Batch #${completeBatch.batch_number} completed with ${qty} units in stock!`
+          : `Batch #${completeBatch.batch_number} successfully completed & ${qty} units credited to stock!`
+      );
       setCompleteBatch(null);
       await loadData();
     } catch (err: any) {
-      toast.error(err?.message || "Failed to finalize production.");
+      toast.error(err?.message || "Failed to complete production batch.");
     } finally {
       setBusy(false);
     }
@@ -362,13 +402,13 @@ export default function ManufacturingPage() {
               <thead className="table-light">
                 <tr>
                   <th className="ps-4">Batch Number</th>
-                  <th>Status</th>
-                  <th>Raw Materials Used</th>
-                  <th>Total Cost</th>
-                  <th>Yield / Output</th>
-                  <th>Per-Unit Cost</th>
-                  <th>Started Time</th>
-                  <th className="text-end pe-4">Actions</th>
+                  <th>{lang === "bn" ? "স্ট্যাটাস" : "Status"}</th>
+                  <th>{lang === "bn" ? "ব্যবহৃত কাঁচামাল" : "Raw Materials Used"}</th>
+                  <th>{lang === "bn" ? "মোট খরচ" : "Total Cost"}</th>
+                  <th>{lang === "bn" ? "উৎপাদিত পণ্য / পরিমাণ" : "Yield / Output"}</th>
+                  <th>{lang === "bn" ? "ইউনিট প্রতি খরচ" : "Per-Unit Cost"}</th>
+                  <th>{lang === "bn" ? "শুরুর সময়" : "Started Time"}</th>
+                  <th className="text-end pe-4">{lang === "bn" ? "অ্যাকশন" : "Actions"}</th>
                 </tr>
               </thead>
               <tbody>
@@ -488,7 +528,7 @@ export default function ManufacturingPage() {
             <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
               <div className="modal-header bg-success bg-opacity-10 border-bottom border-success border-opacity-25 py-3">
                 <h5 className="modal-title fw-bold text-success d-flex align-items-center gap-2">
-                  <i className="bi bi-bullseye"></i> Complete Production & Record Output Yield
+                  <i className="bi bi-bullseye"></i> {lang === "bn" ? "প্রোডাকশন সম্পন্ন ও উৎপাদিত পণ্য যুক্তকরণ" : "Complete Production & Record Output Yield"}
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setCompleteBatch(null)}></button>
               </div>
@@ -498,15 +538,15 @@ export default function ManufacturingPage() {
                   <div className="p-3 rounded-3 mb-4" style={{ backgroundColor: "rgba(16, 185, 129, 0.08)", border: "1px solid rgba(16, 185, 129, 0.2)" }}>
                     <div className="row g-3">
                       <div className="col-sm-4">
-                        <span className="text-secondary small d-block">Batch Number</span>
+                        <span className="text-secondary small d-block">{lang === "bn" ? "ব্যাচ নম্বর" : "Batch Number"}</span>
                         <strong className="text-primary font-monospace">{completeBatch.batch_number}</strong>
                       </div>
                       <div className="col-sm-4">
-                        <span className="text-secondary small d-block">Raw Material Invested</span>
+                        <span className="text-secondary small d-block">{lang === "bn" ? "কাঁচামালে মোট বিনিয়োগ" : "Raw Material Invested"}</span>
                         <strong className="text-success fs-6">৳{Number(completeBatch.total_material_cost).toFixed(2)}</strong>
                       </div>
                       <div className="col-sm-4">
-                        <span className="text-secondary small d-block">Materials Count</span>
+                        <span className="text-secondary small d-block">{lang === "bn" ? "কাঁচামালের সংখ্যা" : "Materials Count"}</span>
                         <strong className="text-dark">{completeBatch.materials.length} Raw Materials</strong>
                       </div>
                     </div>
@@ -515,7 +555,7 @@ export default function ManufacturingPage() {
                   <div className="mb-3">
                     <div className="d-flex justify-content-between align-items-center mb-2">
                       <label className="form-label fw-bold mb-0">
-                        Finished Output Product <span className="text-danger">*</span>
+                        {lang === "bn" ? "চূড়ান্ত উৎপাদিত পণ্য" : "Finished Output Product"} <span className="text-danger">*</span>
                       </label>
                       <div className="btn-group btn-group-sm">
                         <button
@@ -555,7 +595,7 @@ export default function ManufacturingPage() {
                         </div>
 
                         <div className="col-md-5">
-                          <label className="form-label fw-bold small">Actual Produced Yield (Quantity) <span className="text-danger">*</span></label>
+                          <label className="form-label fw-bold small">{lang === "bn" ? "প্রকৃত উৎপাদিত পরিমাণ (Yield)" : "Actual Produced Yield (Quantity)"} <span className="text-danger">*</span></label>
                           <div className="input-group">
                             <input
                               type="number"
@@ -576,7 +616,7 @@ export default function ManufacturingPage() {
                       <div className="p-3 bg-light rounded-3 border border-success border-opacity-50">
                         <div className="row g-3 mb-2">
                           <div className="col-md-7">
-                            <label className="small fw-bold text-dark">New Product Name <span className="text-danger">*</span></label>
+                            <label className="small fw-bold text-dark">{lang === "bn" ? "নতুন প্রোডাক্টের নাম" : "New Product Name"} <span className="text-danger">*</span></label>
                             <input
                               type="text"
                               className="form-control form-control-sm"
@@ -587,7 +627,7 @@ export default function ManufacturingPage() {
                             />
                           </div>
                           <div className="col-md-5">
-                            <label className="small fw-bold text-dark">Selling Price (৳) <span className="text-danger">*</span></label>
+                            <label className="small fw-bold text-dark">{lang === "bn" ? "বিক্রয় মূল্য (৳)" : "Selling Price (৳)"} <span className="text-danger">*</span></label>
                             <div className="input-group input-group-sm">
                               <span className="input-group-text">৳</span>
                               <input
@@ -606,7 +646,7 @@ export default function ManufacturingPage() {
 
                         <div className="row g-3 mb-2">
                           <div className="col-md-4">
-                            <label className="small fw-semibold text-dark">Unit of Measure</label>
+                            <label className="small fw-semibold text-dark">{lang === "bn" ? "পরিমাপের একক (Unit)" : "Unit of Measure"}</label>
                             <select
                               className="form-select form-select-sm"
                               value={newProdUnit}
@@ -621,7 +661,7 @@ export default function ManufacturingPage() {
                             </select>
                           </div>
                           <div className="col-md-4">
-                            <label className="small fw-semibold text-dark">Category (Optional)</label>
+                            <label className="small fw-semibold text-dark">{lang === "bn" ? "ক্যাটাগরি (ঐচ্ছিক)" : "Category (Optional)"}</label>
                             <select
                               className="form-select form-select-sm"
                               value={newProdCategory}
@@ -636,7 +676,7 @@ export default function ManufacturingPage() {
                             </select>
                           </div>
                           <div className="col-md-4">
-                            <label className="small fw-bold text-dark">Actual Produced Yield (Quantity) <span className="text-danger">*</span></label>
+                            <label className="small fw-bold text-dark">{lang === "bn" ? "প্রকৃত উৎপাদিত পরিমাণ (Yield)" : "Actual Produced Yield (Quantity)"} <span className="text-danger">*</span></label>
                             <div className="input-group input-group-sm">
                               <input
                                 type="number"
@@ -689,23 +729,23 @@ export default function ManufacturingPage() {
                   {/* Dynamic Cost Calculator Box */}
                   <div className="card border-0 rounded-4 p-3 mb-3" style={{ background: "linear-gradient(135deg, rgba(13, 110, 253, 0.08), rgba(16, 185, 129, 0.08))", border: "1px solid rgba(13, 110, 253, 0.2)" }}>
                     <div className="d-flex align-items-center justify-content-between mb-2">
-                      <span className="fw-bold text-dark"><i className="bi bi-calculator me-1"></i> Cost Breakdown & Calculation:</span>
+                      <span className="fw-bold text-dark"><i className="bi bi-calculator me-1"></i> {lang === "bn" ? "উৎপাদন খরচের হিসাব ও বিশ্লেষণ:" : "Cost Breakdown & Calculation:"}</span>
                       <span className="badge bg-primary px-3 py-1">Auto-Derived</span>
                     </div>
 
                     <div className="row g-2 small text-secondary">
-                      <div className="col-6">Total Raw Material Cost:</div>
+                      <div className="col-6">{lang === "bn" ? "মোট কাঁচামাল খরচ:" : "Total Raw Material Cost:"}</div>
                       <div className="col-6 text-end fw-bold text-dark">৳{Number(completeBatch.total_material_cost).toFixed(2)}</div>
 
-                      <div className="col-6">Additional Costs:</div>
+                      <div className="col-6">{lang === "bn" ? "অতিরিক্ত খরচ:" : "Additional Costs:"}</div>
                       <div className="col-6 text-end fw-bold text-dark">+ ৳{(Number(extraCost) || 0).toFixed(2)}</div>
 
-                      <div className="col-6 border-top pt-1 text-dark fw-bold">Total Batch Cost:</div>
+                      <div className="col-6 border-top pt-1 text-dark fw-bold">{lang === "bn" ? "সর্বমোট ব্যাচ খরচ:" : "Total Batch Cost:"}</div>
                       <div className="col-6 border-top pt-1 text-end text-dark fw-bold">
                         ৳{(Number(completeBatch.total_material_cost) + (Number(extraCost) || 0)).toFixed(2)}
                       </div>
 
-                      <div className="col-6 text-dark fw-bold">Total Finished Units:</div>
+                      <div className="col-6 text-dark fw-bold">{lang === "bn" ? "মোট উৎপাদিত ইউনিট:" : "Total Finished Units:"}</div>
                       <div className="col-6 text-end text-dark fw-bold">÷ {Number(outQty) || 0} Units</div>
                     </div>
 
@@ -713,12 +753,12 @@ export default function ManufacturingPage() {
 
                     <div className="d-flex align-items-center justify-content-between">
                       <div>
-                        <span className="d-block small text-secondary">Calculated Unit Cost Price:</span>
+                        <span className="d-block small text-secondary">{lang === "bn" ? "ইউনিট প্রতি উৎপাদন খরচ:" : "Calculated Unit Cost Price:"}</span>
                         <h4 className="fw-bold text-success mb-0">৳{liveCalculatedCost} <span className="fs-6 fw-normal text-secondary">/ {selectedOutputProduct?.unit_detail?.name || "Unit"}</span></h4>
                       </div>
                       {selectedOutputProduct && Number(selectedOutputProduct.selling_price) > 0 && (
                         <div className="text-end">
-                          <span className="d-block small text-secondary">Selling Price: ৳{selectedOutputProduct.selling_price}</span>
+                          <span className="d-block small text-secondary">{lang === "bn" ? "বিক্রয় মূল্য:" : "Selling Price:"} ৳{selectedOutputProduct.selling_price}</span>
                           <span className="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 px-2 py-1">
                             Margin: ৳{(Number(selectedOutputProduct.selling_price) - Number(liveCalculatedCost)).toFixed(2)} ({((Number(selectedOutputProduct.selling_price) - Number(liveCalculatedCost)) / Number(selectedOutputProduct.selling_price) * 100).toFixed(1)}%)
                           </span>
@@ -746,7 +786,7 @@ export default function ManufacturingPage() {
                     Cancel
                   </button>
                   <button type="submit" className="btn btn-success rounded-pill px-4 shadow-sm" disabled={busy || !Number(outQty)}>
-                    {busy ? "Finalizing..." : "Confirm & Credit Stock"}
+                    {busy ? (lang === "bn" ? "প্রসেস হচ্ছে..." : "Finalizing...") : (lang === "bn" ? "কনফার্ম করুন ও স্টকে যোগ করুন" : "Confirm & Credit Stock")}
                   </button>
                 </div>
               </form>

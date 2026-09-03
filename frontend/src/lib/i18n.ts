@@ -8,6 +8,25 @@ type Translations = {
 
 export const translations: Translations = {
   en: {
+    // Common Universal Actions & Columns
+    btn_save: "Save",
+    btn_cancel: "Cancel",
+    btn_delete: "Delete",
+    btn_edit: "Edit",
+    btn_update: "Update",
+    btn_confirm: "Confirm",
+    btn_back: "Back",
+    col_actions: "Actions",
+    col_paid: "Paid",
+    col_due: "Due",
+    col_status: "Status",
+    col_date: "Date",
+    col_total: "Total",
+    col_amount: "Amount",
+    col_note: "Note",
+    prod_list_unit: "Unit",
+    pe_lbl_unit: "Unit",
+    invest_purchases: "Purchasing Investment",
     pos_product_not_found: "Product not found",
     // Navigation
     nav_home: "Home",
@@ -1568,6 +1587,25 @@ export const translations: Translations = {
     plan_free_trial: "Free Trial"
   },
   bn: {
+    // Common Universal Actions & Columns
+    btn_save: "সংরক্ষণ",
+    btn_cancel: "বাতিল",
+    btn_delete: "মুছুন",
+    btn_edit: "এডিট",
+    btn_update: "আপডেট",
+    btn_confirm: "নিশ্চিত করুন",
+    btn_back: "ফিরে যান",
+    col_actions: "অ্যাকশন",
+    col_paid: "পরিশোধ",
+    col_due: "বকেয়া",
+    col_status: "স্ট্যাটাস",
+    col_date: "তারিখ",
+    col_total: "মোট",
+    col_amount: "পরিমাণ",
+    col_note: "নোট",
+    prod_list_unit: "ইউনিট",
+    pe_lbl_unit: "ইউনিট",
+    invest_purchases: "পণ্য ক্রয় বাবদ বিনিয়োগ",
     pos_product_not_found: "প্রোডাক্ট পাওয়া যায়নি",
     // Navigation
     nav_home: "হোম",

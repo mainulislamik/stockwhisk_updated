@@ -109,7 +109,7 @@ export default function ExpensesPage() {
                 <th>{t("exp_lbl_date")}</th>
                 <th>{t("exp_lbl_cat")}</th>
                 <th>{t("exp_lbl_method")}</th>
-                <th>Note</th>
+                <th>{t('col_note')}</th>
                 <th className="text-end">{t("exp_lbl_amt")}</th>
               </tr>
             </thead>

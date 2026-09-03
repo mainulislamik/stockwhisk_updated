@@ -274,8 +274,8 @@ export default function CustomerProfilePage() {
                 <th>{t("tkt_col_device")}</th>
                 <th>{t("tkt_col_received")}</th>
                 <th className="text-end">{t("tkt_col_charge")}</th>
-                <th className="text-end">Paid</th>
-                <th className="text-end">Due</th>
+                <th className="text-end">{t("col_paid")}</th>
+                <th className="text-end">{t("col_due")}</th>
                 <th>{t("tkt_col_status")}</th>
                 <th></th>
               </tr>

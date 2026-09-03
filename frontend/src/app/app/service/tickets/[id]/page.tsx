@@ -603,7 +603,7 @@ export default function TicketDetailPage() {
                         value={payAmount}
                         onChange={(e) => setPayAmount(e.target.value)}
                       />
-                      <button className="btn btn-success btn-sm" onClick={recordPayment}>Save</button>
+                      <button className="btn btn-success btn-sm" onClick={recordPayment}>{t("btn_save")}</button>
                       <button className="btn btn-light btn-sm border" onClick={() => setAddingPayment(false)}>✕</button>
                     </div>
                   </div>
