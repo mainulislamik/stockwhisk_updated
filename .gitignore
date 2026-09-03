@@ -37,3 +37,9 @@ redisdata/
 
 StockWhisk.apk
 *.apk
+
+# Mailserver runtime data (not backed up to git)
+mailserver/mail-data/
+mailserver/mail-db-data/
+mailserver/mail-logs/
+mailserver/mail-state/
