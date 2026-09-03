@@ -8,7 +8,7 @@ class ProductionMaterialSerializer(serializers.ModelSerializer):
     product_name = serializers.CharField(source="product.name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True)
     unit_name = serializers.CharField(source="product.unit.name", read_only=True, default="Unit")
-    unit_symbol = serializers.CharField(source="product.unit.symbol", read_only=True, default="")
+    unit_symbol = serializers.CharField(source="product.unit.short_code", read_only=True, default="")
 
     class Meta:
         model = ProductionMaterial

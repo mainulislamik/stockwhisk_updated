@@ -369,14 +369,18 @@ export default function ManufacturingPage() {
                         )}
                       </td>
                       <td>
-                        <div className="d-flex flex-wrap gap-1" style={{ maxWidth: 260 }}>
-                          {b.materials.slice(0, 3).map((m, idx) => (
-                            <span key={idx} className="badge bg-secondary bg-opacity-15 text-secondary border border-secondary border-opacity-25 rounded-pill px-2 py-1 small">
-                              {m.product_name} ({Number(m.quantity)} {m.unit_name || "Unit"})
-                            </span>
-                          ))}
-                          {b.materials.length > 3 && (
-                            <span className="badge bg-primary bg-opacity-25 text-primary rounded-pill px-2 py-1 small">
+                        <div className="d-flex flex-wrap gap-1" style={{ maxWidth: 280 }}>
+                          {b.materials && b.materials.length > 0 ? (
+                            b.materials.slice(0, 3).map((m, idx) => (
+                              <span key={idx} className="badge bg-white text-dark border shadow-xs rounded-pill px-2 py-1 small fw-normal">
+                                🧪 {m.product_name} <strong className="text-primary">({Number(m.quantity)} {m.unit_name || m.unit_symbol || "Unit"})</strong>
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-muted small fst-italic">No materials recorded</span>
+                          )}
+                          {b.materials && b.materials.length > 3 && (
+                            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small">
                               +{b.materials.length - 3} more
                             </span>
                           )}

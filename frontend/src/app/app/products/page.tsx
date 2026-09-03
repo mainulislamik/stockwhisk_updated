@@ -81,9 +81,8 @@ export default function ProductsPage() {
       setUnits(res);
       if (!isSpecialShop && res.length > 0) {
         const pcs = res.find((u) => u.name.toLowerCase().includes("piece") || u.name.toLowerCase().includes("pcs") || u.short_code?.toLowerCase() === "pcs");
-        if (pcs) {
-          setForm((f: any) => (f.unit ? f : { ...f, unit: String(pcs.id) }));
-        }
+        const defaultUnitId = pcs ? String(pcs.id) : String(res[0].id);
+        setForm((f: any) => (f.unit ? f : { ...f, unit: defaultUnitId }));
       }
     }).catch(() => {});
   }, [isSpecialShop]);
@@ -232,10 +231,14 @@ export default function ProductsPage() {
                 </div>
               ) : (
                 <div className="col-md-2">
-                  <label className="small">{t("prod_list_unit") || "Unit"}</label>
+                  <label className="small fw-medium">{t("prod_list_unit") || "Unit"}</label>
                   <select className="form-select form-select-sm" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                    <option value="">{lang === "bn" ? "পিস (Piece / Pcs)" : "Piece / Pcs"}</option>
-                    {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
+                    {units.length === 0 && <option value="">{lang === "bn" ? "পিস (Piece / Pcs)" : "Piece / Pcs"}</option>}
+                    {units.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.name} {u.short_code ? `(${u.short_code})` : ""}
+                      </option>
+                    ))}
                   </select>
                 </div>
               )}
