@@ -77,8 +77,16 @@ export default function ProductsPage() {
   useEffect(() => {
     fetchAll<Named>("/catalog/categories/").then(setCategories).catch(() => {});
     fetchAll<Named>("/catalog/brands/").then(setBrands).catch(() => {});
-    fetchAll<Named>("/catalog/units/").then(setUnits).catch(() => {});
-  }, []);
+    fetchAll<Named>("/catalog/units/").then((res) => {
+      setUnits(res);
+      if (!isSpecialShop && res.length > 0) {
+        const pcs = res.find((u) => u.name.toLowerCase().includes("piece") || u.name.toLowerCase().includes("pcs") || u.short_code?.toLowerCase() === "pcs");
+        if (pcs) {
+          setForm((f: any) => (f.unit ? f : { ...f, unit: String(pcs.id) }));
+        }
+      }
+    }).catch(() => {});
+  }, [isSpecialShop]);
 
   async function saveProduct(e: React.FormEvent) {
     e.preventDefault();
@@ -210,17 +218,27 @@ export default function ProductsPage() {
                   <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("brand")}>{t("prod_list_add")}</button>
                 </div>
               </div>
-              <div className="col-md-3">
-                <label className="small fw-medium">{lang === "bn" ? "ইউনিট (Unit)" : "Unit"}</label>
-                <select className="form-select form-select-sm mb-1" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                  <option value="">{lang === "bn" ? "-- ইউনিট সিলেক্ট করুন --" : "-- Select Unit --"}</option>
-                  {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
-                </select>
-                <div className="input-group input-group-sm">
-                  <input className="form-control" placeholder={lang === "bn" ? "নতুন ইউনিট (যেমন: Kg, Liter)" : "+ New unit"} value={newUnit} onChange={(e) => setNewUnit(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("unit"))} />
-                  <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("unit")}>{t("prod_list_add")}</button>
+              {isSpecialShop ? (
+                <div className="col-md-3">
+                  <label className="small fw-medium text-primary">{lang === "bn" ? "বিক্রয় ইউনিট (Unit)" : "Sale Unit"}</label>
+                  <select className="form-select form-select-sm mb-1" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+                    <option value="">{lang === "bn" ? "-- ইউনিট সিলেক্ট করুন --" : "-- Select Unit --"}</option>
+                    {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
+                  </select>
+                  <div className="input-group input-group-sm">
+                    <input className="form-control" placeholder={lang === "bn" ? "নতুন ইউনিট (যেমন: Kg, Liter)" : "+ New unit"} value={newUnit} onChange={(e) => setNewUnit(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("unit"))} />
+                    <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("unit")}>{t("prod_list_add")}</button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="col-md-2">
+                  <label className="small">{t("prod_list_unit") || "Unit"}</label>
+                  <select className="form-select form-select-sm" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
+                    <option value="">{lang === "bn" ? "পিস (Piece / Pcs)" : "Piece / Pcs"}</option>
+                    {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
+                  </select>
+                </div>
+              )}
 
               {isSpecialShop && (
                 <>

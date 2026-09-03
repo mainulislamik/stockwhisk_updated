@@ -145,9 +145,9 @@ export default function ProductEditPage() {
               </select>
             </div>
             <div className="col-md-4">
-              <label className="small fw-medium">{lang === "bn" ? "ইউনিট (Unit)" : "Unit"}</label>
+              <label className="small fw-medium">{isSpecialShop ? (lang === "bn" ? "বিক্রয় ইউনিট (Unit)" : "Sale Unit") : (t("pe_lbl_unit") || "Unit")}</label>
               <select className="form-select form-select-sm" value={form.unit || ""} onChange={set("unit")}>
-                <option value="">{lang === "bn" ? "-- ইউনিট সিলেক্ট করুন --" : "-- Select Unit --"}</option>
+                <option value="">{isSpecialShop ? (lang === "bn" ? "-- ইউনিট সিলেক্ট করুন --" : "-- Select Unit --") : (lang === "bn" ? "পিস (Piece / Pcs)" : "Piece / Pcs")}</option>
                 {units.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} {u.short_code ? `(${u.short_code})` : ""}
