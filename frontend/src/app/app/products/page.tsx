@@ -71,6 +71,7 @@ export default function ProductsPage() {
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
   const [newCat, setNewCat] = useState("");
   const [newBrand, setNewBrand] = useState("");
+  const [newUnit, setNewUnit] = useState("");
 
   // Load small dictionaries once
   useEffect(() => {
@@ -132,13 +133,15 @@ export default function ProductsPage() {
     }
   }
 
-  async function quickAdd(kind: "category" | "brand") {
-    const name = kind === "category" ? newCat.trim() : newBrand.trim();
+  async function quickAdd(kind: "category" | "brand" | "unit") {
+    const name = kind === "category" ? newCat.trim() : kind === "brand" ? newBrand.trim() : newUnit.trim();
     if (!name) return;
     try {
-      const created = await api(`/catalog/${kind === "category" ? "categories" : "brands"}/`, { method: "POST", body: { name } });
+      const endpoint = kind === "category" ? "categories" : kind === "brand" ? "brands" : "units";
+      const created = await api(`/catalog/${endpoint}/`, { method: "POST", body: { name } });
       if (kind === "category") { setCategories((c) => [...c, created]); setNewCat(""); }
-      else { setBrands((b) => [...b, created]); setNewBrand(""); }
+      else if (kind === "brand") { setBrands((b) => [...b, created]); setNewBrand(""); }
+      else { setUnits((u) => [...u, created]); setNewUnit(""); }
       setForm((f: any) => ({ ...f, [kind]: created.id }));
     } catch (e: any) {
       toast.error(e?.message || t("prod_err_add"));
@@ -208,19 +211,23 @@ export default function ProductsPage() {
                 </div>
               </div>
               <div className="col-md-3">
-                <label className="small fw-semibold text-primary">{lang === "bn" ? "খুচরা বিক্রয় ইউনিট (Base)" : "Retail Unit (Base)"}</label>
+                <label className="small fw-medium">{lang === "bn" ? "ইউনিট (Unit)" : "Unit"}</label>
                 <select className="form-select form-select-sm mb-1" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                  <option value="">(e.g., Liter / Kg / Pcs)</option>
+                  <option value="">{lang === "bn" ? "-- ইউনিট সিলেক্ট করুন --" : "-- Select Unit --"}</option>
                   {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
                 </select>
+                <div className="input-group input-group-sm">
+                  <input className="form-control" placeholder={lang === "bn" ? "নতুন ইউনিট (যেমন: Kg, Liter)" : "+ New unit"} value={newUnit} onChange={(e) => setNewUnit(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("unit"))} />
+                  <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("unit")}>{t("prod_list_add")}</button>
+                </div>
               </div>
 
               {isSpecialShop && (
                 <>
                   <div className="col-md-3">
-                    <label className="small fw-semibold text-primary">{lang === "bn" ? "হোলসেইল/ড্রাম ইউনিট (Bulk)" : "Bulk/Wholesale Unit"}</label>
+                    <label className="small fw-medium text-primary">{lang === "bn" ? "পাইকারি/ড্রাম ইউনিট (Purchase Unit)" : "Bulk/Purchase Unit"}</label>
                     <select className="form-select form-select-sm mb-1" value={form.purchase_unit} onChange={(e) => setForm({ ...form, purchase_unit: e.target.value })}>
-                      <option value="">(e.g., Drum / Gallon / Box)</option>
+                      <option value="">{lang === "bn" ? "-- ড্রাম/বক্স ইউনিট (ঐচ্ছিক) --" : "-- Select Bulk Unit (Optional) --"}</option>
                       {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
                     </select>
                   </div>

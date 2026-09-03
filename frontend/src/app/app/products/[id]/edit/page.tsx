@@ -145,9 +145,9 @@ export default function ProductEditPage() {
               </select>
             </div>
             <div className="col-md-4">
-              <label className="small fw-semibold text-primary">{lang === "bn" ? "খুচরা ইউনিট (Base)" : "Retail Unit (Base)"}</label>
+              <label className="small fw-medium">{lang === "bn" ? "ইউনিট (Unit)" : "Unit"}</label>
               <select className="form-select form-select-sm" value={form.unit || ""} onChange={set("unit")}>
-                <option value="">{lang === "bn" ? "-- সিলেক্ট করুন --" : "-- Select --"}</option>
+                <option value="">{lang === "bn" ? "-- ইউনিট সিলেক্ট করুন --" : "-- Select Unit --"}</option>
                 {units.map((u) => (
                   <option key={u.id} value={u.id}>
                     {u.name} {u.short_code ? `(${u.short_code})` : ""}
@@ -159,9 +159,9 @@ export default function ProductEditPage() {
             {isSpecialShop && (
               <>
                 <div className="col-md-4">
-                  <label className="small fw-semibold text-primary">{lang === "bn" ? "হোলসেইল/ড্রাম ইউনিট (Bulk)" : "Bulk/Purchase Unit"}</label>
+                  <label className="small fw-medium text-primary">{lang === "bn" ? "পাইকারি/ড্রাম ইউনিট (Purchase Unit)" : "Bulk/Purchase Unit"}</label>
                   <select className="form-select form-select-sm" value={form.purchase_unit || ""} onChange={set("purchase_unit")}>
-                    <option value="">{lang === "bn" ? "-- সিলেক্ট করুন --" : "-- Select --"}</option>
+                    <option value="">{lang === "bn" ? "-- ড্রাম/বক্স ইউনিট (ঐচ্ছিক) --" : "-- Select Bulk Unit (Optional) --"}</option>
                     {units.map((u) => (
                       <option key={u.id} value={u.id}>
                         {u.name} {u.short_code ? `(${u.short_code})` : ""}
