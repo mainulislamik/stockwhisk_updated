@@ -15,7 +15,7 @@ class ProductService(BaseService[Product]):
         """
         from django.db.models import Prefetch
         from .models import ProductUnit
-        qs = cls.get_queryset().select_related("category", "brand", "unit").prefetch_related("variations")
+        qs = cls.get_queryset().select_related("category", "brand", "unit", "purchase_unit").prefetch_related("variations")
         if not light:
             in_stock_prefetch = Prefetch(
                 "units",

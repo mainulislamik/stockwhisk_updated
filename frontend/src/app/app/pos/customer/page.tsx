@@ -11,7 +11,20 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import PrintFormatModal from "@/components/PrintFormatModal";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
-type CartLine = { product: { id: number; name: string }; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
+type CartLine = { 
+  product: { 
+    id: number; 
+    name: string; 
+    purchase_multiplier?: string | number; 
+    unit_detail?: { id: number; name: string; short_code: string } | null;
+    purchase_unit_detail?: { id: number; name: string; short_code: string } | null;
+  }; 
+  qty: number; 
+  price: number; 
+  discount: number; 
+  selectedUnits: ProductUnit[];
+  sellMode?: "base" | "bulk";
+};
 type Customer = { id: number; name: string; phone?: string; email?: string; address?: string; };
 
 const PAY_METHODS = [
@@ -150,13 +163,19 @@ export default function PosCustomerPage() {
           delivery_charge: deliveryCharge,
           tax: 0,
           note: asQuotation ? "Quotation / প্রাক-বিক্রয় কোটেশন" : "",
-          items: cart.map((l) => ({ 
-            product: l.product.id, 
-            quantity: l.qty, 
-            unit_price: l.price, 
-            discount: l.discount,
-            unit_ids: asQuotation ? [] : (l.selectedUnits ? l.selectedUnits.map(u => u.id) : [])
-          })),
+          items: cart.map((l) => {
+            const mult = Number((l.product as any)?.purchase_multiplier) || 1;
+            const isBulk = l.sellMode === "bulk" && mult > 1;
+            const effQty = isBulk ? Number((l.qty * mult).toFixed(3)) : l.qty;
+            const effPrice = isBulk ? Number((l.price / mult).toFixed(4)) : l.price;
+            return { 
+              product: l.product.id, 
+              quantity: effQty, 
+              unit_price: effPrice, 
+              discount: l.discount,
+              unit_ids: asQuotation ? [] : (l.selectedUnits ? l.selectedUnits.map(u => u.id) : [])
+            };
+          }),
           payments: asQuotation ? [] : (finalPaid > 0 ? [{ amount: finalPaid, method }] : []),
           sale_date: user?.shop_offline_sale_mode && saleDate ? new Date(saleDate).toISOString() : undefined,
           due_date: (!asQuotation && !isEmi && paid !== "" && paidNum < total && dueDate) ? dueDate : undefined,
@@ -204,14 +223,26 @@ export default function PosCustomerPage() {
                   <tr><th className="ps-3">{t("pos_checkout_product")}</th><th className="text-center">{t("pos_checkout_qty")}</th><th className="text-end">{t("pos_checkout_price")}</th><th className="text-end pe-3">{t("pos_checkout_total")}</th></tr>
                 </thead>
                 <tbody>
-                  {cart.map((l) => (
-                    <tr key={l.product.id}>
-                      <td className="ps-3 fw-medium">{l.product.name}</td>
-                      <td className="text-center">{l.qty}</td>
-                      <td className="text-end">{l.price}</td>
-                      <td className="text-end pe-3 fw-semibold">{money(l.qty * l.price - l.discount)}</td>
-                    </tr>
-                  ))}
+                  {cart.map((l) => {
+                    const mult = Number((l.product as any)?.purchase_multiplier) || 1;
+                    const isBulk = l.sellMode === "bulk" && mult > 1;
+                    const unitLabel = isBulk ? ((l.product as any)?.purchase_unit_detail?.name || "Drum/Pack") : ((l.product as any)?.unit_detail?.short_code || "");
+                    return (
+                      <tr key={l.product.id}>
+                        <td className="ps-3">
+                          <div className="fw-medium">{l.product.name}</div>
+                          {isBulk && (
+                            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                              📦 Full {unitLabel} ({mult} {(l.product as any)?.unit_detail?.short_code || "Unit"})
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-center">{l.qty} {unitLabel}</td>
+                        <td className="text-end">{money(l.price)}</td>
+                        <td className="text-end pe-3 fw-semibold">{money(l.qty * l.price - l.discount)}</td>
+                      </tr>
+                    );
+                  })}
                   <tr className="table-light">
                     <td colSpan={3} className="ps-3 fw-bold">{t("pos_checkout_total")}</td>
                     <td className="text-end pe-3 fw-bold">{money(subtotal)}</td>

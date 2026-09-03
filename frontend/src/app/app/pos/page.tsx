@@ -15,17 +15,29 @@ type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
   warranty_months?: number;
+  purchase_multiplier?: string | number;
+  full_pack_cost?: string | number;
+  full_pack_sell?: string | number;
   units?: ProductUnit[];
   scanned_unit?: ProductUnit;
   unit_detail?: { id: number; name: string; short_code: string; measure_type: string; allow_decimal: boolean } | null;
+  purchase_unit_detail?: { id: number; name: string; short_code: string; measure_type: string } | null;
 };
-type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
+type CartLine = { 
+  product: Product; 
+  qty: number; 
+  price: number; 
+  discount: number; 
+  selectedUnits: ProductUnit[];
+  sellMode?: "base" | "bulk"; // "base" = Retail (Liter/Kg/Pcs), "bulk" = Wholesale (Drum/Box/Pack)
+};
 type ScanMsg = { text: string; ok: boolean } | null;
 
 export default function PosPage() {
   const router = useRouter();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -80,7 +92,7 @@ export default function PosPage() {
     setUnitLoadingId(p.id);
     try {
       const full = await api<Product>(`/catalog/products/${p.id}/`);
-      tryAdd({ ...p, units: full.units });
+      tryAdd({ ...p, units: full.units, unit_detail: full.unit_detail, purchase_unit_detail: full.purchase_unit_detail });
     } catch {
       tryAdd(p);
     } finally {
@@ -141,28 +153,58 @@ export default function PosPage() {
       return [...c, { 
         product: p, 
         qty: 1, 
-        price: Number(specificUnit?.effective_selling_price || p.selling_price), 
+        price: Number(specificUnit?.effective_selling_price || p.selling_price) || 0, 
         discount: 0, 
-        selectedUnits: specificUnit ? [specificUnit] : [] 
+        selectedUnits: specificUnit ? [specificUnit] : [],
+        sellMode: "base",
       }];
     });
   }
+
+  function toggleSellMode(id: number, mode: "base" | "bulk") {
+    setCart((c) => c.map((l) => {
+      if (l.product.id !== id) return l;
+      const mult = Number(l.product.purchase_multiplier) || 1;
+      const baseSell = Number(l.product.selling_price) || 0;
+      const packSell = Number(l.product.full_pack_sell) || (mult > 1 ? Number((baseSell * mult).toFixed(2)) : baseSell);
+      
+      if (mode === "bulk") {
+        return {
+          ...l,
+          sellMode: "bulk",
+          price: packSell,
+          qty: Math.max(1, Math.round(l.qty)),
+        };
+      } else {
+        return {
+          ...l,
+          sellMode: "base",
+          price: baseSell,
+          qty: 1,
+        };
+      }
+    }));
+  }
+
   function setQty(id: number, qty: number) {
     setCart((c) => c.map((l) => {
       if (l.product.id !== id) return l;
       const v = Number.isFinite(qty) ? qty : 0;
-      return { ...l, qty: Math.max(0, Math.round(v * 100) / 100) };
+      return { ...l, qty: Math.max(0, Math.round(v * 1000) / 1000) };
     }));
   }
+
   function clampQty(id: number) {
     setCart((c) => c.map((l) => {
       if (l.product.id !== id) return l;
-      const allowDec = !!l.product.unit_detail?.allow_decimal;
+      const isBulk = l.sellMode === "bulk";
+      const allowDec = !isBulk && !!l.product.unit_detail?.allow_decimal;
       const min = allowDec ? 0.01 : 1;
       if (l.qty > 0 && l.qty < min) return { ...l, qty: min };
       return l;
     }));
   }
+
   function removeLine(id: number) { setCart((c) => c.filter((l) => l.product.id !== id)); }
   function clearCart() { setCart([]); sessionStorage.removeItem("pos_cart"); }
 
@@ -236,13 +278,6 @@ export default function PosPage() {
       }
     }
 
-    // Note: whether a barcode belongs to a SOLD unit is decided authoritatively
-    // by the backend lookup below (grid cards are loaded light, without units),
-    // so we never guess "already sold" from the local list here.
-
-    // The grid only reflects `code` once the debounced search for it has run.
-    // If it's still stale (fast scanner: type + Enter before debounce fires),
-    // don't trust the grid — fall straight through to the authoritative lookup.
     const gridReflectsCode = debouncedQuery === code && !gridLoading;
 
     // 3. Exactly one filtered result → auto-add
@@ -262,13 +297,11 @@ export default function PosPage() {
         tryAdd(res as Product);
       }
     } catch (e: any) {
-      // 409 → barcode belongs to a real unit that's already sold/returned.
       if (e?.status === 409 || e?.data?.sold_unit) {
         flash(e?.data?.detail || t("pos_unit_sold_alert", { code }), false);
         setQuery("");
         setTimeout(() => inputRef.current?.focus(), 50);
       } else {
-        // Unknown barcode -> show error message instead of assignment popup
         flash(t("pos_product_not_found"), false);
         setQuery("");
         setTimeout(() => inputRef.current?.focus(), 50);
@@ -282,12 +315,10 @@ export default function PosPage() {
     processCode(barcode);
   });
 
-  // ── Enter / scan handler ────────────────────────────────────────────────
   const handleEnter = useCallback(async () => {
     await processCode(query.trim());
   }, [query, processCode]);
 
-  // ── Assign barcode from within POS ─────────────────────────────────────
   async function doAssign() {
     if (!assignSelected || !assignBarcode) return;
     setAssignSaving(true);
@@ -296,7 +327,6 @@ export default function PosPage() {
         method: "PATCH",
         body: { barcode: assignBarcode },
       });
-      // Refresh shown list is automatic due to SWR mutate or next search
       setShowAssign(false);
       setQuery("");
       flash(t("pos_barcode_assigned_alert", { name: assignSelected.name }), true);
@@ -361,7 +391,6 @@ export default function PosPage() {
                 )}
               </div>
 
-              {/* Feedback flash */}
               {scanMsg && (
                 <div className={`mt-2 px-3 py-2 rounded small fw-semibold ${
                   scanMsg.ok ? "text-success bg-success bg-opacity-10" : "text-danger bg-danger bg-opacity-10"
@@ -370,7 +399,6 @@ export default function PosPage() {
                 </div>
               )}
 
-              {/* Status line */}
               <div className="mt-2 small text-secondary">
                 {query
                   ? shown.length > 0
@@ -395,6 +423,10 @@ export default function PosPage() {
           ) : (
             <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
               {shown.map((p) => {
+                const mult = Number(p.purchase_multiplier) || 1;
+                const isBulk = mult > 1;
+                const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                const bulkUnit = p.purchase_unit_detail?.name || "Pack";
                 const out = Number(p.current_stock) <= 0;
                 const inCart = cart.some((l) => l.product.id === p.id);
 
@@ -409,15 +441,23 @@ export default function PosPage() {
                     >
                       <div className="small fw-semibold text-truncate">{p.name}</div>
                       <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
-                        {p.barcode}
+                        {p.barcode || p.sku}
                       </div>
                       <div className="d-flex justify-content-between align-items-center mt-1">
-                        <span className="small fw-bold">{money(p.selling_price)}</span>
+                        <div>
+                          <span className="small fw-bold">{money(p.selling_price)}</span>
+                          {baseUnit ? <span className="text-secondary" style={{ fontSize: "0.68rem" }}>/{baseUnit}</span> : null}
+                        </div>
                         <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
                               style={{ fontSize: ".68rem" }}>
                           {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
                         </span>
                       </div>
+                      {isBulk && (
+                        <div className="text-primary mt-1" style={{ fontSize: "0.65rem", lineHeight: "1.1" }}>
+                          📦 {bulkUnit}: ৳{Number(p.full_pack_sell || (Number(p.selling_price) * mult)).toFixed(0)} ({mult} {baseUnit})
+                        </div>
+                      )}
                     </button>
                   </div>
                 );
@@ -455,83 +495,135 @@ export default function PosPage() {
                           <div className="small mt-1">{t("pos_scan_to_add")}</div>
                         </td>
                       </tr>
-                    ) : cart.map((l) => (
-                      <tr key={l.product.id}>
-                        <td className="ps-3">
-                          <div className="small fw-semibold">
-                            {l.product.name}
+                    ) : cart.map((l) => {
+                      const mult = Number(l.product.purchase_multiplier) || 1;
+                      const isBulk = mult > 1;
+                      const baseUnit = l.product.unit_detail?.short_code || l.product.unit_detail?.name || (isSpecialShop ? "Unit" : "");
+                      const bulkUnit = l.product.purchase_unit_detail?.name || "Pack";
+                      const packSell = Number(l.product.full_pack_sell) || (isBulk ? Number((Number(l.product.selling_price) * mult).toFixed(2)) : Number(l.product.selling_price));
+                      
+                      return (
+                        <tr key={l.product.id}>
+                          <td className="ps-3">
+                            <div className="small fw-semibold">{l.product.name}</div>
+                            
+                            {/* Dual unit switcher pill buttons if product has purchase_multiplier > 1 */}
+                            {isBulk ? (
+                              <div className="d-flex flex-wrap align-items-center gap-1 my-1">
+                                <div className="btn-group btn-group-sm" role="group">
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs py-0 px-2 ${l.sellMode !== "bulk" ? "btn-brand text-white fw-bold" : "btn-outline-secondary"}`}
+                                    style={{ fontSize: "0.68rem" }}
+                                    onClick={() => toggleSellMode(l.product.id, "base")}
+                                  >
+                                    🟢 {baseUnit || "খুচরা / Loose"} (৳{Number(l.product.selling_price).toFixed(2)})
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className={`btn btn-xs py-0 px-2 ${l.sellMode === "bulk" ? "btn-primary text-white fw-bold" : "btn-outline-secondary"}`}
+                                    style={{ fontSize: "0.68rem" }}
+                                    onClick={() => toggleSellMode(l.product.id, "bulk")}
+                                  >
+                                    📦 {bulkUnit || "ড্রাম / Drum"} ({mult} {baseUnit} @ ৳{packSell.toFixed(0)})
+                                  </button>
+                                </div>
+                              </div>
+                            ) : (
+                              !!l.product.unit_detail && (
+                                <div className="text-secondary small fw-normal">
+                                  Rate: ৳{l.price} / {l.product.unit_detail.short_code || l.product.unit_detail.name}
+                                </div>
+                              )
+                            )}
+
+                            {l.sellMode === "bulk" ? (
+                              <div className="text-primary fw-medium" style={{ fontSize: ".72rem" }}>
+                                ৳{money(l.price)} / {bulkUnit} ({mult} {baseUnit})
+                              </div>
+                            ) : (
+                              <div className="text-secondary" style={{ fontSize: ".72rem" }}>
+                                {money(l.price)} {t("pos_each")}
+                              </div>
+                            )}
+
                             {!!l.product.warranty_months && l.selectedUnits.length === 0 && (
-                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-2 fw-normal" style={{ fontSize: '.6rem' }}>
+                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-1 fw-normal" style={{ fontSize: '.6rem' }}>
                                 <i className="bi bi-shield-check me-1"></i>
                                 {t("pos_months_warranty", { months: l.product.warranty_months })}
                               </span>
                             )}
-                          </div>
-                          <div className="text-secondary" style={{ fontSize: ".72rem" }}>{money(l.price)} {t("pos_each")}</div>
-                          {l.selectedUnits.length > 0 && (
-                            <div className="mt-1 d-flex flex-wrap gap-1">
-                              {l.selectedUnits.map(u => (
-                                <span key={u.id} className="badge bg-body-secondary text-secondary border fw-normal d-inline-flex align-items-center" style={{ fontSize: ".65rem" }}>
-                                  <span>{u.barcode}</span>
-                                  {!!u.effective_warranty_months && (
-                                    <span className="text-warning-emphasis ms-1">
-                                      <i className="bi bi-shield-check"></i> {t("pos_months_warranty_short", { months: u.effective_warranty_months })}
-                                    </span>
-                                  )}
-                                  <i 
-                                    className="bi bi-trash text-danger ms-2 hover-opacity" 
-                                    style={{ cursor: "pointer" }}
-                                    onClick={() => {
-                                      setCart(c => {
-                                        const newC = [...c];
-                                        const idx = newC.findIndex(line => line.product.id === l.product.id);
-                                        if (idx >= 0) {
-                                          const ex = newC[idx];
-                                          const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
-                                          if (updatedUnits.length === 0 && ex.qty === 1) {
-                                            return newC.filter(line => line.product.id !== l.product.id);
+                            
+                            {l.selectedUnits.length > 0 && (
+                              <div className="mt-1 d-flex flex-wrap gap-1">
+                                {l.selectedUnits.map(u => (
+                                  <span key={u.id} className="badge bg-body-secondary text-secondary border fw-normal d-inline-flex align-items-center" style={{ fontSize: ".65rem" }}>
+                                    <span>{u.barcode}</span>
+                                    {!!u.effective_warranty_months && (
+                                      <span className="text-warning-emphasis ms-1">
+                                        <i className="bi bi-shield-check"></i> {t("pos_months_warranty_short", { months: u.effective_warranty_months })}
+                                      </span>
+                                    )}
+                                    <i 
+                                      className="bi bi-trash text-danger ms-2 hover-opacity" 
+                                      style={{ cursor: "pointer" }}
+                                      onClick={() => {
+                                        setCart(c => {
+                                          const newC = [...c];
+                                          const idx = newC.findIndex(line => line.product.id === l.product.id);
+                                          if (idx >= 0) {
+                                            const ex = newC[idx];
+                                            const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
+                                            if (updatedUnits.length === 0 && ex.qty === 1) {
+                                              return newC.filter(line => line.product.id !== l.product.id);
+                                            }
+                                            newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
                                           }
-                                          newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
-                                        }
-                                        return newC;
-                                      });
-                                    }}
-                                  ></i>
-                                </span>
-                              ))}
-                              <button 
-                                className="btn btn-link btn-sm text-brand p-0 ms-1" 
-                                style={{ fontSize: ".65rem" }}
-                                onClick={() => setUnitSelectProduct(l.product)}
-                              >
-                                {t("pos_edit_units")}
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ width: "5rem" }}>
-                          {l.selectedUnits.length > 0 ? (
-                            <div className="text-center fw-semibold small bg-body-secondary border rounded px-2 py-1">
-                              {l.qty}
-                            </div>
-                          ) : (
-                            <input
-                              type="number"
-                              min={l.product.unit_detail?.allow_decimal ? 0.01 : 1}
-                              step={l.product.unit_detail?.allow_decimal ? 0.01 : 1}
-                              className="form-control form-control-sm"
-                              value={l.qty === 0 ? "" : l.qty}
-                              onChange={(e) => setQty(l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
-                              onBlur={() => clampQty(l.product.id)}
-                            />
-                          )}
-                        </td>
-                        <td className="text-end small fw-bold">{money(l.qty * l.price - l.discount)}</td>
-                        <td className="text-end pe-2">
-                          <button className="btn btn-link btn-sm text-danger p-0" onClick={() => removeLine(l.product.id)}>✕</button>
-                        </td>
-                      </tr>
-                    ))}
+                                          return newC;
+                                        });
+                                      }}
+                                    ></i>
+                                  </span>
+                                ))}
+                                <button 
+                                  className="btn btn-link btn-sm text-brand p-0 ms-1" 
+                                  style={{ fontSize: ".65rem" }}
+                                  onClick={() => setUnitSelectProduct(l.product)}
+                                >
+                                  {t("pos_edit_units")}
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ width: "5.5rem" }}>
+                            {l.selectedUnits.length > 0 ? (
+                              <div className="text-center fw-semibold small bg-body-secondary border rounded px-2 py-1">
+                                {l.qty}
+                              </div>
+                            ) : (
+                              <div>
+                                <input
+                                  type="number"
+                                  min={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
+                                  step={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
+                                  className="form-control form-control-sm text-center"
+                                  value={l.qty === 0 ? "" : l.qty}
+                                  onChange={(e) => setQty(l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
+                                  onBlur={() => clampQty(l.product.id)}
+                                />
+                                <div className="text-center text-secondary small" style={{ fontSize: "0.65rem" }}>
+                                  {l.sellMode === "bulk" ? bulkUnit : (l.product.unit_detail?.short_code || "")}
+                                </div>
+                              </div>
+                            )}
+                          </td>
+                          <td className="text-end small fw-bold">{money(l.qty * l.price - l.discount)}</td>
+                          <td className="text-end pe-2">
+                            <button className="btn btn-link btn-sm text-danger p-0" onClick={() => removeLine(l.product.id)}>✕</button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -654,7 +746,6 @@ export default function PosPage() {
                               if (e.target.checked) {
                                 addToCart(unitSelectProduct, u);
                               } else {
-                                // Remove unit
                                 setCart(c => {
                                   const newC = [...c];
                                   const idx = newC.findIndex(l => l.product.id === unitSelectProduct.id);

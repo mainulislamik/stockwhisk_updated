@@ -23,8 +23,15 @@ type Product = {
   is_low_stock: boolean;
   is_active: boolean;
   track_inventory?: boolean;
+  purchase_multiplier?: string | number;
+  full_pack_cost?: string | number;
+  full_pack_sell?: string | number;
+  unit?: number | null;
+  purchase_unit?: number | null;
+  unit_detail?: { id: number; name: string; short_code: string; measure_type: string; allow_decimal: boolean } | null;
+  purchase_unit_detail?: { id: number; name: string; short_code: string; measure_type: string } | null;
 };
-type Named = { id: number; name: string; measure_type?: string };
+type Named = { id: number; name: string; measure_type?: string; short_code?: string };
 
 export default function ProductsPage() {
   const { user, can, isOwner } = useAuth();
@@ -169,7 +176,7 @@ export default function ProductsPage() {
             <form onSubmit={saveProduct} className="row g-3">
               <div className="col-md-4">
                 <label className="small">{t("prod_list_name")}</label>
-                <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Castor Oil / Shampoo" />
               </div>
               <div className="col-md-4">
                 <label className="small">
@@ -189,7 +196,7 @@ export default function ProductsPage() {
                   <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("category")}>{t("prod_list_add")}</button>
                 </div>
               </div>
-              <div className="col-md-2">
+              <div className="col-md-3">
                 <label className="small">{t("prod_list_brand")}</label>
                 <select className="form-select form-select-sm mb-1" value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })}>
                   <option value="">{t("prod_list_none")}</option>
@@ -200,27 +207,28 @@ export default function ProductsPage() {
                   <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("brand")}>{t("prod_list_add")}</button>
                 </div>
               </div>
-              <div className="col-md-2">
-                <label className="small">Sale Unit (Base)</label>
+              <div className="col-md-3">
+                <label className="small fw-semibold text-primary">{lang === "bn" ? "খুচরা বিক্রয় ইউনিট (Base)" : "Retail Unit (Base)"}</label>
                 <select className="form-select form-select-sm mb-1" value={form.unit} onChange={(e) => setForm({ ...form, unit: e.target.value })}>
-                  <option value="">(e.g., Liter/Kg/Pcs)</option>
-                  {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  <option value="">(e.g., Liter / Kg / Pcs)</option>
+                  {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
                 </select>
               </div>
 
-              {isSpecialShop && form.unit && units.find((u) => String(u.id) === String(form.unit))?.measure_type !== "count" && (
+              {isSpecialShop && (
                 <>
-                  <div className="col-md-2">
-                    <label className="small">Purchase Unit</label>
+                  <div className="col-md-3">
+                    <label className="small fw-semibold text-primary">{lang === "bn" ? "হোলসেইল/ড্রাম ইউনিট (Bulk)" : "Bulk/Wholesale Unit"}</label>
                     <select className="form-select form-select-sm mb-1" value={form.purchase_unit} onChange={(e) => setForm({ ...form, purchase_unit: e.target.value })}>
-                      <option value="">(e.g., Drum/Box)</option>
-                      {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                      <option value="">(e.g., Drum / Gallon / Box)</option>
+                      {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
                     </select>
                   </div>
-                  <div className="col-md-2">
-                    <label className="small">Liters/Kg per Drum</label>
+                  <div className="col-md-3">
+                    <label className="small fw-semibold text-primary" title="Conversion Multiplier">{lang === "bn" ? "প্রতি ড্রাম/বক্সে পরিমাণ" : "Qty per Drum/Box"}</label>
                     <input type="number" step="0.01" min="1" className="form-control form-control-sm mb-1" 
                       value={form.purchase_multiplier} 
+                      placeholder="e.g. 50"
                       onChange={(e) => {
                         const newMult = e.target.value;
                         const multiplierVal = Number(newMult) || 1;
@@ -230,59 +238,57 @@ export default function ProductsPage() {
                         const perUnitSell = packSell > 0 ? (packSell / multiplierVal).toFixed(2) : form.selling_price;
                         setForm({ ...form, purchase_multiplier: newMult, cost_price: perUnitCost, selling_price: perUnitSell });
                       }} 
-                      title="Example: If 1 Drum contains 50 Liters, place 50 here. Place 1 if none." />
+                      title="Example: 1 Drum = 50 Liters, place 50 here." />
                   </div>
                 </>
               )}
 
-              
-              {/* Added dynamic base unit name */}
-              
-              {/* Added Pricing Method Dropdown */}
               {isSpecialShop && Number(form.purchase_multiplier) > 1 && (
                 <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
-                  <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
+                  <label className="small text-primary fw-bold mb-1">{lang === "bn" ? "দাম নির্ধারণ পদ্ধতি" : "Pricing Entry Method"}</label>
                   <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>
-                    <option value="regular">Regular Option (Enter Per {units.find(u => String(u.id) === String(form.unit))?.name || "Unit"} Price manually)</option>
-                    <option value="bulk">Bulk Auto-Calculate Option (Enter Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Pack"} Price)</option>
+                    <option value="regular">{lang === "bn" ? `সাধারণ (প্রতি ${units.find(u => String(u.id) === String(form.unit))?.name || "লিটার/কেজি"} আলাদা ইনপুট)` : `Regular (Per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"} manually)`}</option>
+                    <option value="bulk">{lang === "bn" ? `বাল্ক অটো-ক্যালকুলেট (সম্পূর্ণ ${units.find(u => String(u.id) === String(form.purchase_unit))?.name || "ড্রাম/বক্স"} এর দাম)` : `Bulk Auto-Calculate (Full ${units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Pack"} Price)`}</option>
                   </select>
                 </div>
               )}
 
               {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && (
-                <div className="col-md-2">
-                  <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Cost</label>
-                  <div className="input-group input-group-sm mb-1">
-                    <span className="input-group-text">৳</span>
-                    <input type="number" step="0.01" min="0" className="form-control" 
-                      value={form.full_pack_cost} 
-                      onChange={(e) => {
-                        const packCost = Number(e.target.value) || 0;
-                        const multiplier = Number(form.purchase_multiplier) || 1;
-                        const perUnitCost = (packCost / multiplier).toFixed(2);
-                        setForm({ ...form, full_pack_cost: e.target.value, cost_price: perUnitCost });
-                      }} 
-                      title="Enter full cost. Per unit cost will be auto calculated." 
-                    />
+                <>
+                  <div className="col-md-3">
+                    <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Cost</label>
+                    <div className="input-group input-group-sm mb-1">
+                      <span className="input-group-text">৳</span>
+                      <input type="number" step="0.01" min="0" className="form-control" 
+                        value={form.full_pack_cost} 
+                        placeholder="e.g. 20000"
+                        onChange={(e) => {
+                          const packCost = Number(e.target.value) || 0;
+                          const multiplier = Number(form.purchase_multiplier) || 1;
+                          const perUnitCost = (packCost / multiplier).toFixed(2);
+                          setForm({ ...form, full_pack_cost: e.target.value, cost_price: perUnitCost });
+                        }} 
+                        title="Enter full drum cost. Per unit cost will be auto calculated." 
+                      />
+                    </div>
                   </div>
-                </div>
-              )}
-              {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && (
-                <div className="col-md-2">
-                  <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Sell</label>
-                  <div className="input-group input-group-sm mb-1">
-                    <span className="input-group-text">৳</span>
-                    <input type="number" step="0.01" min="0" className="form-control" 
-                      value={form.full_pack_sell} 
-                      onChange={(e) => {
-                        const packSell = Number(e.target.value) || 0;
-                        const multiplier = Number(form.purchase_multiplier) || 1;
-                        const perUnitSell = (packSell / multiplier).toFixed(2);
-                        setForm({ ...form, full_pack_sell: e.target.value, selling_price: perUnitSell });
-                      }} 
-                    />
+                  <div className="col-md-3">
+                    <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Sell</label>
+                    <div className="input-group input-group-sm mb-1">
+                      <span className="input-group-text">৳</span>
+                      <input type="number" step="0.01" min="0" className="form-control" 
+                        value={form.full_pack_sell} 
+                        placeholder="e.g. 24000"
+                        onChange={(e) => {
+                          const packSell = Number(e.target.value) || 0;
+                          const multiplier = Number(form.purchase_multiplier) || 1;
+                          const perUnitSell = (packSell / multiplier).toFixed(2);
+                          setForm({ ...form, full_pack_sell: e.target.value, selling_price: perUnitSell });
+                        }} 
+                      />
+                    </div>
                   </div>
-                </div>
+                </>
               )}
               
               <div className="col-md-3">
@@ -304,7 +310,7 @@ export default function ProductsPage() {
                 </div>
                 {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && Number(form.selling_price) > 0 && Number(form.cost_price) > 0 && (
                   <div className="text-success fw-bold" style={{ fontSize: "0.75rem", marginTop: "-2px" }}>
-                    ✅ Profit Margin: ৳{ (Number(form.selling_price) - Number(form.cost_price)).toFixed(2) } per unit
+                    ✅ Margin: ৳{(Number(form.selling_price) - Number(form.cost_price)).toFixed(2)} per {units.find(u => String(u.id) === String(form.unit))?.short_code || "Unit"}
                   </div>
                 )}
               </div>
@@ -363,52 +369,93 @@ export default function ProductsPage() {
                   </td>
                 </tr>
               ) : (
-                products.map((p) => (
-                  <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
-                    <td>
-                      <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
-                        {p.name}
-                      </Link>
-                      <div className="text-secondary small">{p.sku}</div>
-                    </td>
-                    <td className="text-end">{p.cost_price}</td>
-                    <td className="text-end">{p.selling_price}</td>
-                    <td className={`text-end ${p.is_low_stock ? "text-danger fw-semibold" : ""}`}>
-                      {p.track_inventory === false ? (
-                        <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style={{ fontSize: "0.72rem" }}>
-                          {lang === "bn" ? "সার্ভিস / আনট্র্যাকড" : "Service / Untracked"}
-                        </span>
-                      ) : (
-                        Math.max(0, Number(p.current_stock || 0))
-                      )}
-                    </td>
+                products.map((p) => {
+                  const mult = Number(p.purchase_multiplier) || 1;
+                  const isBulk = mult > 1;
+                  const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                  const bulkUnit = p.purchase_unit_detail?.name || "Pack";
+                  const cost = Number(p.cost_price) || 0;
+                  const sell = Number(p.selling_price) || 0;
+                  const packCost = Number(p.full_pack_cost) || (isBulk && cost > 0 ? Number((cost * mult).toFixed(2)) : 0);
+                  const packSell = Number(p.full_pack_sell) || (isBulk && sell > 0 ? Number((sell * mult).toFixed(2)) : 0);
+                  const stockNum = Math.max(0, Number(p.current_stock || 0));
+                  const fullPacks = isBulk ? Math.floor(stockNum / mult) : 0;
+                  const looseBase = isBulk ? Number((stockNum % mult).toFixed(2)) : 0;
 
+                  return (
+                    <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
+                      <td>
+                        <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
+                          {p.name}
+                        </Link>
+                        <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
+                          <span>{p.sku || "—"}</span>
+                          {isBulk && (
+                            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                              📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="text-end">
+                        <div className="fw-semibold">৳{cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{baseUnit ? ` / ${baseUnit}` : ""}</div>
+                        {isBulk && packCost > 0 && (
+                          <div className="text-secondary small" style={{ fontSize: "0.72rem" }}>
+                            ৳{packCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {bulkUnit}
+                          </div>
+                        )}
+                      </td>
+                      <td className="text-end">
+                        <div className="fw-semibold text-brand">৳{sell.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{baseUnit ? ` / ${baseUnit}` : ""}</div>
+                        {isBulk && packSell > 0 && (
+                          <div className="text-secondary small" style={{ fontSize: "0.72rem" }}>
+                            ৳{packSell.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {bulkUnit}
+                          </div>
+                        )}
+                      </td>
+                      <td className={`text-end ${p.is_low_stock ? "text-danger fw-semibold" : ""}`}>
+                        {p.track_inventory === false ? (
+                          <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style={{ fontSize: "0.72rem" }}>
+                            {lang === "bn" ? "সার্ভিস / আনট্র্যাকড" : "Service / Untracked"}
+                          </span>
+                        ) : (
+                          <div>
+                            <span className="fw-bold">{stockNum}</span> {baseUnit}
+                            {isBulk && (
+                              <div className="text-secondary small" style={{ fontSize: "0.72rem" }}>
+                                ({fullPacks} {bulkUnit}{looseBase > 0 ? ` + ${looseBase} ${baseUnit}` : ""})
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </td>
 
-                    <td className="text-center">
-                      {canManage ? (
-                        <button onClick={() => toggle(p)} className={`btn btn-sm ${p.is_active ? "btn-success" : "btn-outline-secondary"} py-0 px-2`}>
-                          {p.is_active ? t("prod_list_on") : t("prod_list_off")}
-                        </button>
-                      ) : p.is_active ? (
-                        t("prod_list_yes")
-                      ) : (
-                        t("prod_list_no")
-                      )}
-                    </td>
-                    <td className="text-end text-nowrap">
-                      {canManage && (
-                        <>
-                          <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
-                            {t("prod_list_edit")}
-                          </Link>
-                          <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
-                            {t("prod_list_delete")}
+                      <td className="text-center">
+                        {canManage ? (
+                          <button onClick={() => toggle(p)} className={`btn btn-sm ${p.is_active ? "btn-success" : "btn-outline-secondary"} py-0 px-2`}>
+                            {p.is_active ? t("prod_list_on") : t("prod_list_off")}
                           </button>
-                        </>
-                      )}
-                    </td>
-                  </tr>
-                ))
+                        ) : p.is_active ? (
+                          t("prod_list_yes")
+                        ) : (
+                          t("prod_list_no")
+                        )}
+                      </td>
+                      <td className="text-end text-nowrap">
+                        {canManage && (
+                          <>
+                            <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
+                              {t("prod_list_edit")}
+                            </Link>
+                            <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
+                              {t("prod_list_delete")}
+                            </button>
+                          </>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>

@@ -19,9 +19,13 @@ type Product = {
   selling_price: string;
   current_stock: string;
   full_pack_cost?: string | number;
+  full_pack_sell?: string | number;
   warranty_months: number;
   purchase_multiplier?: string | number;
-  unit_detail?: { id: number; name: string; measure_type?: string };
+  unit?: number | null;
+  purchase_unit?: number | null;
+  unit_detail?: { id: number; name: string; short_code?: string; measure_type?: string; allow_decimal?: boolean } | null;
+  purchase_unit_detail?: { id: number; name: string; short_code?: string; measure_type?: string } | null;
   track_inventory: boolean;
 };
 type Supplier = { id: number; name: string };
@@ -822,10 +826,10 @@ export default function PurchaseProductPage() {
                           const mult = Number(selected.purchase_multiplier) || 1;
                           const perUnitCost = (Number(packVal) / mult).toFixed(2);
                           
-                          setSelected({ ...selected, cost_price: perUnitCost });
+                          setSelected({ ...selected, cost_price: perUnitCost, full_pack_cost: packVal });
                           setLines((prev) =>
                             prev.map((l) =>
-                              l.product.id === selected.id ? { ...l, unit_cost: Number(perUnitCost) || 0 } : l
+                              l.product.id === selected.id ? { ...l, unit_cost: Number(packVal) || 0 } : l
                             )
                           );
                         }}
@@ -1135,55 +1139,66 @@ export default function PurchaseProductPage() {
               <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
                 <table className="table table-sm align-middle mb-0">
                   <tbody>
-                    {lines.map((l) => (
-                      <tr key={l.product.id}>
-                        <td className="ps-3">
-                          <div className="fw-semibold small">{l.product.name}</div>
-                          {l.barcodes.length > 0 && (
-                            <div className="text-muted" style={{ fontSize: "0.7rem", fontFamily: "monospace" }}>
-                              ▦ {l.barcodes[0]}
-                              {l.barcodes.length > 1 ? ` +${l.barcodes.length - 1} more` : ""}
-                            </div>
-                          )}
-                        </td>
-                        <td style={{ width: "4.5rem" }}>
-                          <input
-                            type="number"
-                            min={1}
-                            step={1}
-                            className="form-control form-control-sm"
-                            value={l.quantity}
-                            onChange={(e) =>
-                              updateLine(
-                                l.product.id,
-                                "quantity",
-                                Math.max(1, Math.round(Number(e.target.value) || 1))
-                              )
-                            }
-                          />
-                        </td>
-                        <td style={{ width: "5.5rem" }}>
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.01"
-                            className="form-control form-control-sm"
-                            value={l.unit_cost}
-                            onChange={(e) =>
-                              updateLine(l.product.id, "unit_cost", Number(e.target.value) || 0)
-                            }
-                          />
-                        </td>
-                        <td className="text-end pe-2">
-                          <button
-                            className="btn btn-link btn-sm p-0 text-danger"
-                            onClick={() => removeLine(l.product.id)}
-                          >
-                            ✕
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {lines.map((l) => {
+                      const mult = Number(l.product.purchase_multiplier) || 1;
+                      const isBulk = mult > 1;
+                      const baseUnit = l.product.unit_detail?.short_code || l.product.unit_detail?.name || "Unit";
+                      const bulkUnit = l.product.purchase_unit_detail?.name || "Pack";
+                      return (
+                        <tr key={l.product.id}>
+                          <td className="ps-3">
+                            <div className="fw-semibold small">{l.product.name}</div>
+                            {isBulk && (
+                              <div className="text-primary small" style={{ fontSize: "0.68rem" }}>
+                                📦 {l.quantity} {bulkUnit} = {l.quantity * mult} {baseUnit} (@ ৳{mult > 0 ? (l.unit_cost / mult).toFixed(2) : l.unit_cost}/{baseUnit})
+                              </div>
+                            )}
+                            {l.barcodes.length > 0 && (
+                              <div className="text-muted" style={{ fontSize: "0.7rem", fontFamily: "monospace" }}>
+                                ▦ {l.barcodes[0]}
+                                {l.barcodes.length > 1 ? ` +${l.barcodes.length - 1} more` : ""}
+                              </div>
+                            )}
+                          </td>
+                          <td style={{ width: "4.5rem" }}>
+                            <input
+                              type="number"
+                              min={1}
+                              step={1}
+                              className="form-control form-control-sm text-center"
+                              value={l.quantity}
+                              onChange={(e) =>
+                                updateLine(
+                                  l.product.id,
+                                  "quantity",
+                                  Math.max(1, Math.round(Number(e.target.value) || 1))
+                                )
+                              }
+                            />
+                          </td>
+                          <td style={{ width: "5.5rem" }}>
+                            <input
+                              type="number"
+                              min={0}
+                              step="0.01"
+                              className="form-control form-control-sm text-end"
+                              value={l.unit_cost}
+                              onChange={(e) =>
+                                updateLine(l.product.id, "unit_cost", Number(e.target.value) || 0)
+                              }
+                            />
+                          </td>
+                          <td className="text-end pe-2">
+                            <button
+                              className="btn btn-link btn-sm p-0 text-danger"
+                              onClick={() => removeLine(l.product.id)}
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

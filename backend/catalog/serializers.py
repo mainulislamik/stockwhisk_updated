@@ -66,6 +66,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
     variations = ProductVariationSerializer(many=True, read_only=True)
     is_low_stock = serializers.BooleanField(read_only=True)
     unit_detail = serializers.SerializerMethodField()
+    purchase_unit_detail = serializers.SerializerMethodField()
     units = serializers.SerializerMethodField()
 
     class Meta:
@@ -78,7 +79,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "track_inventory", "reorder_level", "current_stock",
             "is_low_stock", "is_active", "variations", "warranty_months",
             "replacement_guarantee_days",
-            "units", "unit_detail",
+            "units", "unit_detail", "purchase_unit_detail",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]
 
@@ -91,6 +92,17 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "short_code": getattr(obj.unit, "short_code", ""),
             "measure_type": getattr(obj.unit, "measure_type", "count"),
             "allow_decimal": getattr(obj.unit, "allow_decimal", False),
+        }
+
+    def get_purchase_unit_detail(self, obj):
+        if obj.purchase_unit_id is None:
+            return None
+        return {
+            "id": obj.purchase_unit_id,
+            "name": obj.purchase_unit.name if obj.purchase_unit_id else None,
+            "short_code": getattr(obj.purchase_unit, "short_code", ""),
+            "measure_type": getattr(obj.purchase_unit, "measure_type", "count"),
+            "allow_decimal": getattr(obj.purchase_unit, "allow_decimal", False),
         }
 
     def get_units(self, obj):
