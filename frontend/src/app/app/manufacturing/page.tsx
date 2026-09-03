@@ -54,6 +54,8 @@ type Product = {
   unit_detail?: { name: string; symbol: string; measure_type: string };
 };
 
+type NamedItem = { id: number; name: string; short_code?: string };
+
 type SummaryStats = {
   in_progress_count: number;
   completed_count: number;
@@ -66,6 +68,8 @@ export default function ManufacturingPage() {
   const [batches, setBatches] = useState<ProductionBatch[] | null>(null);
   const [summary, setSummary] = useState<SummaryStats | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
+  const [units, setUnits] = useState<NamedItem[]>([]);
+  const [categories, setCategories] = useState<NamedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [q, setQ] = useState("");
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -73,7 +77,12 @@ export default function ManufacturingPage() {
 
   // Complete Modal State
   const [completeBatch, setCompleteBatch] = useState<ProductionBatch | null>(null);
+  const [outProductMode, setOutProductMode] = useState<"existing" | "new">("existing");
   const [outProductId, setOutProductId] = useState<string>("");
+  const [newProdName, setNewProdName] = useState<string>("");
+  const [newProdSellPrice, setNewProdSellPrice] = useState<string>("");
+  const [newProdUnit, setNewProdUnit] = useState<string>("");
+  const [newProdCategory, setNewProdCategory] = useState<string>("");
   const [outQty, setOutQty] = useState<string>("");
   const [extraCost, setExtraCost] = useState<string>("0");
   const [extraCostNote, setExtraCostNote] = useState<string>("");
@@ -85,14 +94,18 @@ export default function ManufacturingPage() {
   const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const [batchList, sumData, prodList] = await Promise.all([
+      const [batchList, sumData, prodList, unitList, catList] = await Promise.all([
         fetchAll<ProductionBatch>("/manufacturing/batches/"),
         api<SummaryStats>("/manufacturing/batches/summary/"),
         fetchAll<Product>("/catalog/products/"),
+        fetchAll<NamedItem>("/catalog/units/").catch(() => []),
+        fetchAll<NamedItem>("/catalog/categories/").catch(() => []),
       ]);
       setBatches(batchList);
       setSummary(sumData);
       setProducts(prodList);
+      setUnits(unitList);
+      setCategories(catList);
     } catch (err: any) {
       toast.error(err?.message || "Failed to load manufacturing data.");
     } finally {
@@ -145,7 +158,12 @@ export default function ManufacturingPage() {
   // Open Complete Modal
   const openCompleteModal = (batch: ProductionBatch) => {
     setCompleteBatch(batch);
+    setOutProductMode("existing");
     setOutProductId(batch.output_product ? String(batch.output_product) : (products[0] ? String(products[0].id) : ""));
+    setNewProdName("");
+    setNewProdSellPrice("");
+    setNewProdUnit(units[0] ? String(units[0].id) : "");
+    setNewProdCategory("");
     setOutQty("");
     setExtraCost(batch.additional_cost ? String(batch.additional_cost) : "0");
     setExtraCostNote(batch.additional_cost_note || "");
@@ -189,8 +207,20 @@ export default function ManufacturingPage() {
   };
 
   const selectedOutputProduct = useMemo(() => {
+    if (outProductMode === "new") {
+      const u = units.find((x) => String(x.id) === String(newProdUnit));
+      return {
+        id: 0,
+        sku: "Auto-generated",
+        current_stock: "0",
+        name: newProdName || "New Product",
+        cost_price: "0",
+        selling_price: newProdSellPrice || "0",
+        unit_detail: { name: u?.name || "Unit", symbol: u?.short_code || "", measure_type: "count" },
+      };
+    }
     return products.find((p) => String(p.id) === String(outProductId));
-  }, [products, outProductId]);
+  }, [products, outProductId, outProductMode, newProdName, newProdSellPrice, newProdUnit, units]);
 
   const liveCalculatedCost = useMemo(() => {
     if (!completeBatch) return "0.00";
@@ -482,42 +512,151 @@ export default function ManufacturingPage() {
                     </div>
                   </div>
 
-                  <div className="row g-3 mb-3">
-                    <div className="col-md-7">
-                      <label className="form-label fw-bold">Finished Output Product <span className="text-danger">*</span></label>
-                      <select
-                        className="form-select"
-                        value={outProductId}
-                        onChange={(e) => setOutProductId(e.target.value)}
-                        required
-                      >
-                        <option value="">-- Select Finished Product --</option>
-                        {products.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name} (SKU: {p.sku || "N/A"}) [Stock: {p.current_stock}]
-                          </option>
-                        ))}
-                      </select>
-                      <div className="form-text small">This is the final produced product that will be credited to inventory.</div>
+                  <div className="mb-3">
+                    <div className="d-flex justify-content-between align-items-center mb-2">
+                      <label className="form-label fw-bold mb-0">
+                        Finished Output Product <span className="text-danger">*</span>
+                      </label>
+                      <div className="btn-group btn-group-sm">
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${outProductMode === "existing" ? "btn-primary" : "btn-outline-secondary"}`}
+                          onClick={() => setOutProductMode("existing")}
+                        >
+                          <i className="bi bi-list-check me-1"></i> Existing Product
+                        </button>
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${outProductMode === "new" ? "btn-success" : "btn-outline-secondary"}`}
+                          onClick={() => setOutProductMode("new")}
+                        >
+                          <i className="bi bi-plus-circle me-1"></i> + Create New Product
+                        </button>
+                      </div>
                     </div>
 
-                    <div className="col-md-5">
-                      <label className="form-label fw-bold">Actual Produced Yield (Quantity) <span className="text-danger">*</span></label>
-                      <div className="input-group">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0.01"
-                          className="form-control"
-                          placeholder="e.g. 150"
-                          value={outQty}
-                          onChange={(e) => setOutQty(e.target.value)}
-                          required
-                        />
-                        <span className="input-group-text">{selectedOutputProduct?.unit_detail?.name || "Units"}</span>
+                    {outProductMode === "existing" ? (
+                      <div className="row g-3">
+                        <div className="col-md-7">
+                          <select
+                            className="form-select"
+                            value={outProductId}
+                            onChange={(e) => setOutProductId(e.target.value)}
+                            required={outProductMode === "existing"}
+                          >
+                            <option value="">-- Select Finished Product --</option>
+                            {products.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name} (SKU: {p.sku || "N/A"}) [Stock: {p.current_stock}]
+                              </option>
+                            ))}
+                          </select>
+                          <div className="form-text small">Select an existing catalog product to receive the produced yield.</div>
+                        </div>
+
+                        <div className="col-md-5">
+                          <label className="form-label fw-bold small">Actual Produced Yield (Quantity) <span className="text-danger">*</span></label>
+                          <div className="input-group">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.01"
+                              className="form-control"
+                              placeholder="e.g. 150"
+                              value={outQty}
+                              onChange={(e) => setOutQty(e.target.value)}
+                              required
+                            />
+                            <span className="input-group-text">{selectedOutputProduct?.unit_detail?.name || "Units"}</span>
+                          </div>
+                          <div className="form-text small">Final produced quantity.</div>
+                        </div>
                       </div>
-                      <div className="form-text small">Enter final output quantity produced.</div>
-                    </div>
+                    ) : (
+                      <div className="p-3 bg-light rounded-3 border border-success border-opacity-50">
+                        <div className="row g-3 mb-2">
+                          <div className="col-md-7">
+                            <label className="small fw-bold text-dark">New Product Name <span className="text-danger">*</span></label>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="e.g. Yellow Textile Dye 500ml"
+                              value={newProdName}
+                              onChange={(e) => setNewProdName(e.target.value)}
+                              required={outProductMode === "new"}
+                            />
+                          </div>
+                          <div className="col-md-5">
+                            <label className="small fw-bold text-dark">Selling Price (৳) <span className="text-danger">*</span></label>
+                            <div className="input-group input-group-sm">
+                              <span className="input-group-text">৳</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                className="form-control"
+                                placeholder="e.g. 120.00"
+                                value={newProdSellPrice}
+                                onChange={(e) => setNewProdSellPrice(e.target.value)}
+                                required={outProductMode === "new"}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="row g-3 mb-2">
+                          <div className="col-md-4">
+                            <label className="small fw-semibold text-dark">Unit of Measure</label>
+                            <select
+                              className="form-select form-select-sm"
+                              value={newProdUnit}
+                              onChange={(e) => setNewProdUnit(e.target.value)}
+                            >
+                              <option value="">-- Default (Piece / Pcs) --</option>
+                              {units.map((u) => (
+                                <option key={u.id} value={u.id}>
+                                  {u.name} {u.short_code ? `(${u.short_code})` : ""}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="col-md-4">
+                            <label className="small fw-semibold text-dark">Category (Optional)</label>
+                            <select
+                              className="form-select form-select-sm"
+                              value={newProdCategory}
+                              onChange={(e) => setNewProdCategory(e.target.value)}
+                            >
+                              <option value="">-- None --</option>
+                              {categories.map((c) => (
+                                <option key={c.id} value={c.id}>
+                                  {c.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="col-md-4">
+                            <label className="small fw-bold text-dark">Actual Produced Yield (Quantity) <span className="text-danger">*</span></label>
+                            <div className="input-group input-group-sm">
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                className="form-control"
+                                placeholder="e.g. 150"
+                                value={outQty}
+                                onChange={(e) => setOutQty(e.target.value)}
+                                required={outProductMode === "new"}
+                              />
+                              <span className="input-group-text">{units.find(u => String(u.id) === String(newProdUnit))?.short_code || "Units"}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="small text-success mt-1">
+                          <i className="bi bi-info-circle me-1"></i> This new product will be created with Cost Price = <strong>৳{liveCalculatedCost}</strong> and initial Stock = <strong>{outQty || "0"} {units.find(u => String(u.id) === String(newProdUnit))?.name || "Units"}</strong>.
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="row g-3 mb-4">
