@@ -26,6 +26,7 @@ type Product = {
 type Supplier = { id: number; name: string };
 type Branch = { id: number; name: string };
 type ReceiveLine = { product: Product; quantity: number; unit_cost: number; barcodes: string[] };
+type Named = { id: number; name: string; measure_type?: string };
 
 const PAY_METHODS: Record<string, string> = {
   cash: "💵 Cash",
@@ -70,7 +71,9 @@ export default function PurchaseProductPage() {
 
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);
-  const [newProd, setNewProd] = useState({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "5" });
+  const [units, setUnits] = useState<Named[]>([]);
+  const [newProd, setNewProd] = useState({ name: "", sku: "", barcode: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "5", warranty_months: "", replacement_guarantee_days: "" });
+  const [newPricingMode, setNewPricingMode] = useState<'regular' | 'bulk'>('regular');
   const [savingProd, setSavingProd] = useState(false);
 
   // Sidebar / payment
@@ -107,9 +110,11 @@ export default function PurchaseProductPage() {
     Promise.all([
       fetchAll<Supplier>("/purchasing/suppliers/").catch(() => []),
       fetchAll<Branch>("/tenants/branches/").catch(() => []),
-    ]).then(([s, b]) => {
+      fetchAll<Named>("/catalog/units/").catch(() => []),
+    ]).then(([s, b, u]) => {
       setSuppliers(s);
       setBranches(b);
+      setUnits(u);
     });
   }, []);
 
@@ -181,17 +186,25 @@ export default function PurchaseProductPage() {
         body: {
           name: newProd.name.trim(),
           sku: newProd.sku.trim() || "",
+          barcode: newProd.barcode || "",
+          unit: newProd.unit || null,
+          purchase_unit: newProd.purchase_unit || null,
+          purchase_multiplier: newProd.purchase_multiplier !== "" ? Number(newProd.purchase_multiplier) : 1.0,
+          full_pack_cost: newProd.full_pack_cost !== "" ? Number(newProd.full_pack_cost) : 0,
+          full_pack_sell: newProd.full_pack_sell !== "" ? Number(newProd.full_pack_sell) : 0,
           cost_price: newProd.cost_price || 0,
           selling_price: newProd.selling_price || 0,
           reorder_level:
             newProd.reorder_level === ""
               ? 5
               : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
+          warranty_months: newProd.warranty_months || 0,
+          replacement_guarantee_days: newProd.replacement_guarantee_days || 0,
           track_inventory: true,
         },
       });
       setShowNewProduct(false);
-      setNewProd({ name: "", sku: "", cost_price: "", selling_price: "", reorder_level: "5" });
+      setNewProd({ name: "", sku: "", barcode: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "5", warranty_months: "", replacement_guarantee_days: "" });
       selectProduct(p);
       setLines((prev) => [
         ...prev,
@@ -523,65 +536,132 @@ export default function PurchaseProductPage() {
               <form onSubmit={createProduct} className="row g-2">
                 <div className="col-md-6">
                   <label className="small fw-medium">{t("pp_lbl_prod_name")}</label>
-                  <input
-                    required
-                    className="form-control form-control-sm"
-                    value={newProd.name}
-                    onChange={(e) => setNewProd({ ...newProd, name: e.target.value })}
-                    placeholder="e.g. DVR High Resolution"
-                  />
+                  <input required className="form-control form-control-sm" value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} placeholder="e.g. DVR High Resolution" />
                 </div>
                 <div className="col-md-6">
                   <label className="small fw-medium">{t("pp_lbl_sku_auto")}</label>
-                  <input
-                    className="form-control form-control-sm"
-                    value={newProd.sku}
-                    onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })}
-                    placeholder="auto-generated"
-                  />
+                  <input className="form-control form-control-sm" value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="auto-generated" />
+                </div>
+                <div className="col-md-4">
+                  <label className="small fw-medium">Barcode</label>
+                  <input className="form-control form-control-sm" value={newProd.barcode} onChange={(e) => setNewProd({ ...newProd, barcode: e.target.value })} placeholder="optional" />
+                </div>
+                <div className="col-md-4">
+                  <label className="small fw-medium">Sale Unit</label>
+                  <select className="form-select form-select-sm" value={newProd.unit} onChange={(e) => setNewProd({ ...newProd, unit: e.target.value, purchase_unit: "" })}>
+                    <option value="">-- Select --</option>
+                    {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                  </select>
+                </div>
+                {isSpecialShop && newProd.unit && units.find((u) => String(u.id) === String(newProd.unit))?.measure_type !== "count" && (
+                  <div className="col-md-4">
+                    <label className="small fw-medium">Purchase Unit</label>
+                    <select className="form-select form-select-sm" value={newProd.purchase_unit} onChange={(e) => setNewProd({ ...newProd, purchase_unit: e.target.value })}>
+                      <option value="">-- Select --</option>
+                      {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
+                    </select>
+                  </div>
+                )}
+                {isSpecialShop && newProd.unit && units.find((u) => String(u.id) === String(newProd.unit))?.measure_type !== "count" && (
+                  <div className="col-md-2">
+                    <label className="small fw-medium" title="Liters/Kg per Drum">Liters/Kg per Drum</label>
+                    <input type="number" step="0.001" min="1" className="form-control form-control-sm" value={newProd.purchase_multiplier}
+                      onChange={(e) => {
+                        const newMult = e.target.value;
+                        const m = Number(newMult) || 1;
+                        const pc = Number(newProd.full_pack_cost) || 0;
+                        const ps = Number(newProd.full_pack_sell) || 0;
+                        const perCost = pc > 0 ? (pc / m).toFixed(2) : newProd.cost_price;
+                        const perSell = ps > 0 ? (ps / m).toFixed(2) : newProd.selling_price;
+                        setNewProd({ ...newProd, purchase_multiplier: newMult, cost_price: perCost, selling_price: perSell });
+                      }}
+                      title="Example: 1 Drum = 50 Liters, place 50. Enter 1 if none."
+                    />
+                  </div>
+                )}
+                {isSpecialShop && Number(newProd.purchase_multiplier) > 1 && (
+                  <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
+                    <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
+                    <select className="form-select form-select-sm" value={newPricingMode} onChange={(e) => setNewPricingMode(e.target.value as any)}>
+                      <option value="regular">Regular Option (Enter Per {units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"} Price manually)</option>
+                      <option value="bulk">Bulk Auto-Calculate Option (Enter Full {units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Pack"} Price)</option>
+                    </select>
+                  </div>
+                )}
+                {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) && (
+                  <>
+                    <div className="col-md-2">
+                      <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Drum/Box"} Cost</label>
+                      <div className="input-group input-group-sm mb-1">
+                        <span className="input-group-text">৳</span>
+                        <input type="number" step="0.01" min="0" className="form-control" value={newProd.full_pack_cost}
+                          onChange={(e) => {
+                            const pc = Number(e.target.value) || 0;
+                            const m = Number(newProd.purchase_multiplier) || 1;
+                            setNewProd({ ...newProd, full_pack_cost: e.target.value, cost_price: (pc / m).toFixed(2) });
+                          }}
+                          title="Enter full cost. Per unit cost auto-calculated."
+                        />
+                      </div>
+                    </div>
+                    <div className="col-md-2">
+                      <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Drum/Box"} Sell</label>
+                      <div className="input-group input-group-sm mb-1">
+                        <span className="input-group-text">৳</span>
+                        <input type="number" step="0.01" min="0" className="form-control" value={newProd.full_pack_sell}
+                          onChange={(e) => {
+                            const ps = Number(e.target.value) || 0;
+                            const m = Number(newProd.purchase_multiplier) || 1;
+                            setNewProd({ ...newProd, full_pack_sell: e.target.value, selling_price: (ps / m).toFixed(2) });
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
+                <div className="col-md-3">
+                  <label className="small fw-medium">{(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"}` : t("pp_lbl_cost")}</label>
+                  <div className="input-group input-group-sm mb-1">
+                    <span className="input-group-text">৳</span>
+                    <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={newProd.cost_price}
+                      onChange={(e) => setNewProd({ ...newProd, cost_price: e.target.value })}
+                      title={(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? "Auto-calculated from Pack Cost / Multiplier" : ""}
+                    />
+                  </div>
                 </div>
                 <div className="col-md-3">
-                  <label className="small fw-medium">{t("pp_lbl_cost")}</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-control form-control-sm"
-                    value={newProd.cost_price}
-                    onChange={(e) => setNewProd({ ...newProd, cost_price: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div className="col-md-3">
-                  <label className="small fw-medium">{t("pp_lbl_selling")}</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    className="form-control form-control-sm"
-                    value={newProd.selling_price}
-                    onChange={(e) => setNewProd({ ...newProd, selling_price: e.target.value })}
-                    placeholder="0"
-                  />
+                  <label className="small fw-medium">{(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? `Selling per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"}` : t("pp_lbl_selling")}</label>
+                  <div className="input-group input-group-sm mb-1">
+                    <span className="input-group-text">৳</span>
+                    <input type="number" step="0.01" min="0" className="form-control form-control-sm" value={newProd.selling_price} onChange={(e) => setNewProd({ ...newProd, selling_price: e.target.value })} />
+                  </div>
+                  {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) && Number(newProd.selling_price) > 0 && Number(newProd.cost_price) > 0 && (
+                    <div className="text-success" style={{ fontSize: "0.75rem", marginTop: "2px" }}>
+                      ✅ Profit Margin: ৳{(Number(newProd.selling_price) - Number(newProd.cost_price)).toFixed(2)}/unit
+                    </div>
+                  )}
                 </div>
                 <div className="col-md-3">
                   <label className="small fw-medium">{t("pp_lbl_reorder")}</label>
-                  <input
-                    type="number"
-                    step="1"
-                    min="0"
-                    className="form-control form-control-sm"
-                    value={newProd.reorder_level}
-                    onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })}
-                  />
+                  <input type="number" step="1" min="0" className="form-control form-control-sm" value={newProd.reorder_level} onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })} />
                 </div>
+                {!isSpecialShop && (
+                  <>
+                    <div className="col-md-2">
+                      <label className="small fw-medium">Warranty (Months)</label>
+                      <input type="number" min="0" className="form-control form-control-sm" value={newProd.warranty_months} onChange={(e) => setNewProd({ ...newProd, warranty_months: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="small fw-medium" title="Replacement Guarantee (Days)">Replacement (Days)</label>
+                      <input type="number" min="0" className="form-control form-control-sm" value={newProd.replacement_guarantee_days} onChange={(e) => setNewProd({ ...newProd, replacement_guarantee_days: e.target.value })} placeholder="0" />
+                    </div>
+                  </>
+                )}
                 <div className="col-md-3 d-flex align-items-end gap-2">
                   <button className="btn btn-brand btn-sm" disabled={savingProd}>
                     {savingProd ? "Creating…" : "Create & add"}
                   </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline-secondary btn-sm"
-                    onClick={() => setShowNewProduct(false)}
-                  >
+                  <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowNewProduct(false)}>
                     {t("pp_btn_cancel")}
                   </button>
                 </div>
@@ -656,20 +736,35 @@ export default function PurchaseProductPage() {
             )}
 
             {selected && (
-              <div className="mt-2 p-2 border rounded bg-secondary bg-opacity-10 d-flex align-items-center justify-content-between">
-                <div>
-                  <span className="fw-semibold">✓ {selected.name}</span>
-                  <span className="text-secondary small ms-2">
-                    {t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {Math.max(0, Number(selected.current_stock || 0))}
-                  </span>
+              <div className="mt-2 p-2 border rounded bg-secondary bg-opacity-10">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div>
+                    <span className="fw-semibold">✓ {selected.name}</span>
+                    <span className="text-secondary small ms-2">
+                      {t("pp_sku")}: {selected.sku || "—"} · {t("pp_stock")}: {Math.max(0, Number(selected.current_stock || 0))}
+                    </span>
+                  </div>
+                  <div className="d-flex gap-2">
+                    <button className="btn btn-brand btn-sm" onClick={addManualLine}>
+                      + Add to receive
+                    </button>
+                    <button className="btn btn-outline-secondary btn-sm" onClick={() => setSelected(null)}>
+                      ✕ Clear
+                    </button>
+                  </div>
                 </div>
-                <div className="d-flex gap-2">
-                  <button className="btn btn-brand btn-sm" onClick={addManualLine}>
-                    + Add to receive
-                  </button>
-                  <button className="btn btn-outline-secondary btn-sm" onClick={() => setSelected(null)}>
-                    ✕ Clear
-                  </button>
+                <div className="d-flex flex-wrap gap-2 mt-2">
+                  <span className="badge rounded-pill text-bg-success bg-opacity-75">
+                    🛒 Purchase: ৳{Number(selected.cost_price || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
+                  <span className="badge rounded-pill text-bg-primary bg-opacity-75">
+                    💰 Selling: ৳{Number(selected.selling_price || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                  </span>
+                  {Number(selected.cost_price || 0) > 0 && Number(selected.selling_price || 0) > 0 && (
+                    <span className="badge rounded-pill text-bg-info bg-opacity-75">
+                      📈 Margin: {(((Number(selected.selling_price) - Number(selected.cost_price)) / Number(selected.cost_price)) * 100).toFixed(1)}%
+                    </span>
+                  )}
                 </div>
               </div>
             )}
@@ -1127,8 +1222,8 @@ export default function PurchaseProductPage() {
               </div>
 
               {supplierDue > 0 && (
-                <div className="mt-2 p-2 bg-danger-subtle rounded border border-danger-subtle">
-                  <label className="form-label small fw-semibold text-danger mb-1 d-flex align-items-center gap-1">
+                <div className="mt-2 p-2 bg-warning-subtle rounded border border-warning-subtle">
+                  <label className="form-label small fw-semibold text-warning mb-1 d-flex align-items-center gap-1">
                     📅 {lang === "bn" ? "পরিশোধের প্রতিশ্রুত তারিখ (Promised Due Date)" : "Promised Payment Date"}
                   </label>
                   <input
@@ -1138,10 +1233,10 @@ export default function PurchaseProductPage() {
                     onChange={(e) => setPromisedDate(e.target.value)}
                   />
                   <div className="d-flex flex-wrap gap-1 mt-1">
-                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(7))}>+7d</button>
-                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(15))}>+15d</button>
-                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(30))}>+30d</button>
-                    <button type="button" className="btn btn-outline-danger btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(getNextMonthFirstDay())}>1st Next Mth</button>
+                    <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(7))}>+7d</button>
+                    <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(15))}>+15d</button>
+                    <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(30))}>+30d</button>
+                    <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(getNextMonthFirstDay())}>1st Next Mth</button>
                   </div>
                 </div>
               )}

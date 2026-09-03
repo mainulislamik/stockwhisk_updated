@@ -267,18 +267,6 @@ export default function ProductsPage() {
                   </div>
                 </div>
               )}
-              
-              <div className="col-md-3">
-                <label className="small text-primary fw-medium">{(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_cost")}</label>
-                <div className="input-group input-group-sm mb-1">
-                  <span className="input-group-text">৳</span>
-                  <input type="number" step="0.01" min="0" className="form-control" value={form.cost_price} 
-                    onChange={(e) => setForm({ ...form, cost_price: e.target.value })} 
-                    title={(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? "Auto calculated from Pack Cost / Multiplier (or type manually)" : ""}
-                  />
-                </div>
-              </div>
-
               {(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) && (
                 <div className="col-md-2">
                   <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(form.purchase_unit))?.name || "Drum/Box"} Sell</label>
@@ -296,6 +284,18 @@ export default function ProductsPage() {
                   </div>
                 </div>
               )}
+              
+              <div className="col-md-3">
+                <label className="small text-primary fw-medium">{(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_cost")}</label>
+                <div className="input-group input-group-sm mb-1">
+                  <span className="input-group-text">৳</span>
+                  <input type="number" step="0.01" min="0" className="form-control" value={form.cost_price} 
+                    onChange={(e) => setForm({ ...form, cost_price: e.target.value })} 
+                    title={(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? "Auto calculated from Pack Cost / Multiplier (or type manually)" : ""}
+                  />
+                </div>
+              </div>
+
               <div className="col-md-3">
                 <label className="small text-primary fw-medium">{(isSpecialShop && pricingMode === "bulk" && Number(form.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(form.unit))?.name || "Unit"}` : t("prod_list_selling_price")}</label>
                 <div className="input-group input-group-sm mb-1">

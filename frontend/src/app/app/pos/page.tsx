@@ -150,10 +150,17 @@ export default function PosPage() {
   function setQty(id: number, qty: number) {
     setCart((c) => c.map((l) => {
       if (l.product.id !== id) return l;
+      const v = Number.isFinite(qty) ? qty : 0;
+      return { ...l, qty: Math.max(0, Math.round(v * 100) / 100) };
+    }));
+  }
+  function clampQty(id: number) {
+    setCart((c) => c.map((l) => {
+      if (l.product.id !== id) return l;
       const allowDec = !!l.product.unit_detail?.allow_decimal;
       const min = allowDec ? 0.01 : 1;
-      const v = Number.isFinite(qty) ? qty : min;
-      return { ...l, qty: Math.max(min, Math.round(v * 100) / 100) };
+      if (l.qty > 0 && l.qty < min) return { ...l, qty: min };
+      return l;
     }));
   }
   function removeLine(id: number) { setCart((c) => c.filter((l) => l.product.id !== id)); }
@@ -513,8 +520,9 @@ export default function PosPage() {
                               min={l.product.unit_detail?.allow_decimal ? 0.01 : 1}
                               step={l.product.unit_detail?.allow_decimal ? 0.01 : 1}
                               className="form-control form-control-sm"
-                              value={l.qty}
-                              onChange={(e) => setQty(l.product.id, Number(e.target.value))}
+                              value={l.qty === 0 ? "" : l.qty}
+                              onChange={(e) => setQty(l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
+                              onBlur={() => clampQty(l.product.id)}
                             />
                           )}
                         </td>
