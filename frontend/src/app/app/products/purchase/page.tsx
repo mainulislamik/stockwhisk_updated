@@ -18,6 +18,7 @@ type Product = {
   cost_price: string;
   selling_price: string;
   current_stock: string;
+  full_pack_cost?: string | number;
   warranty_months: number;
   purchase_multiplier?: string | number;
   unit_detail?: { id: number; name: string; measure_type?: string };
@@ -208,7 +209,7 @@ export default function PurchaseProductPage() {
       selectProduct(p);
       setLines((prev) => [
         ...prev,
-        { product: p, quantity: 1, unit_cost: Number(p.cost_price) || 0, barcodes: autoGenerateBarcodes ? generateBarcodesHelper(p, 1) : [] },
+        { product: p, quantity: 1, unit_cost: drumCostFor(p), barcodes: autoGenerateBarcodes ? generateBarcodesHelper(p, 1) : [] },
       ]);
       toast.success(t("pp_success_create_prod") || "Product created successfully");
     } catch (e: any) {
@@ -299,7 +300,7 @@ export default function PurchaseProductPage() {
           newLines.push({
             product: selected,
             quantity: qty,
-            unit_cost: Number(selected.cost_price) || 0,
+            unit_cost: drumCostFor(selected),
             barcodes: finalBarcodes,
           });
         }
@@ -335,7 +336,7 @@ export default function PurchaseProductPage() {
             newLines.push({
               product: match,
               quantity: qty,
-              unit_cost: Number(match.cost_price) || 0,
+            unit_cost: drumCostFor(match),
               barcodes: Array(qty).fill(bc),
             });
           }
@@ -383,7 +384,7 @@ export default function PurchaseProductPage() {
         {
           product: selected,
           quantity: qty,
-          unit_cost: Number(selected.cost_price) || 0,
+          unit_cost: drumCostFor(selected),
           barcodes: finalBarcodes,
         },
       ];
@@ -402,7 +403,21 @@ export default function PurchaseProductPage() {
   }
 
   // ─── Totals ───────────────────────────────────────────────────────────────
+  // PO unit_cost contract: ALWAYS the FULL drum/pack cost (backend divides by
+  // purchase_multiplier to get the per-base-unit cost). The API's cost_price
+  // is per base unit, so bulk products must be multiplied back up here.
+  function drumCostFor(p: Product): number {
+    const m = Number(p.purchase_multiplier) || 1;
+    if (m > 1) {
+      const fpc = Number(p.full_pack_cost) || 0;
+      if (fpc > 0) return fpc;
+      const perUnit = Number(p.cost_price) || 0;
+      return perUnit > 0 ? Number((perUnit * m).toFixed(2)) : 0;
+    }
+    return Number(p.cost_price) || 0;
+  }
   const subtotal = lines.reduce((s, l) => s + l.quantity * l.unit_cost, 0);
+
   const paid = Number(payAmount) || 0;
   const supplierDue = Math.max(0, subtotal - paid);
 

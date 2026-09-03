@@ -3,6 +3,7 @@ from decimal import Decimal
 
 from django.db import transaction
 from django.utils import timezone
+from django.utils.translation import gettext as _
 
 from accounting.models import ExpenseCategory, LedgerEntry
 from accounting.services import record_expense, resolve_ledger_account
@@ -283,6 +284,27 @@ def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, cr
             reference_type="PurchaseOrder", reference_id=po.id, created_by=created_by,
         )
         if update_cost:
+            # Sanity guard: a per-unit (per-Liter) cost was likely sent instead of
+            # the full drum/pack cost when the incoming effective_unit_cost is
+            # implausibly small versus the product's stored per-unit cost —
+            # receiving would silently corrupt cost_price (and trigger the 80 %
+            # heuristic below), so stop and tell the operator instead.
+            if (
+                multiplier > 1
+                and product.cost_price
+                and effective_unit_cost > 0
+                and effective_unit_cost
+                < (product.cost_price / multiplier) * Decimal("1.5")
+            ):
+                raise ValueError(
+                    _(
+                        "Unit cost for bulk product '%s' looks like a per-unit "
+                        "(per-Liter/Kg) price rather than the full drum/pack "
+                        "cost. Enter the FULL PACK cost (e.g. 600 for a 600 drum, "
+                        "not 12 per Liter); received qty %s × multiplier %s."
+                    )
+                    % (product.name, item.quantity, multiplier)
+                )
             # Latest purchase cost (per base unit) becomes the product's standard cost.
             product.cost_price = effective_unit_cost
             # Also sync selling_price when a bulk purchase multiplier is in play:
