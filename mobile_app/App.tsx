@@ -27,6 +27,8 @@ import ReturnsScreen from './src/screens/ReturnsScreen';
 import SettlementScreen from './src/screens/SettlementScreen';
 import AccountingScreen from './src/screens/AccountingScreen';
 import BarcodesScreen from './src/screens/BarcodesScreen';
+import ManufacturingScreen from './src/screens/ManufacturingScreen';
+import NewBatchScreen from './src/screens/NewBatchScreen';
 import GlobalHeader from './src/components/GlobalHeader';
 import { View, LogBox, Platform } from 'react-native';
 
@@ -102,6 +104,8 @@ function RootNavigator() {
             <Stack.Screen name="UsersAndRoles" component={UsersAndRolesScreen} />
             <Stack.Screen name="TutorialsScreen" component={TutorialsScreen} />
             <Stack.Screen name="BarcodesScreen" component={BarcodesScreen} />
+            <Stack.Screen name="ManufacturingScreen" component={ManufacturingScreen} />
+            <Stack.Screen name="NewBatchScreen" component={NewBatchScreen} />
           </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />

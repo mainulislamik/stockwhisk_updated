@@ -9,6 +9,8 @@ type FullProduct = {
   id: number; name: string; sku: string; selling_price: string; cost_price: string;
   current_stock: string; reorder_level?: string; is_low_stock?: boolean;
   is_active?: boolean; category?: number | null; category_name?: string;
+  expiry_date?: string | null; lot_number?: string; mfg_date?: string | null;
+  purchase_multiplier?: string | number; warranty_months?: number;
 };
 
 type ProductUnit = {
@@ -107,6 +109,43 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
         </View>
 
         <ScrollView contentContainerStyle={{ padding: 16 }}>
+          {/* Chemical, Expiry & Batch Badges */}
+          {(product.expiry_date || product.lot_number || Number(product.purchase_multiplier) > 1 || (product.warranty_months && product.warranty_months > 0)) && (
+            <Surface style={{ padding: 12, borderRadius: 14, backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc', marginBottom: 16, elevation: 1 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                {product.expiry_date && (() => {
+                  const exp = new Date(product.expiry_date);
+                  const today = new Date();
+                  const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  const isExp = diffDays < 0;
+                  const isSoon = diffDays <= 30;
+                  return (
+                    <View style={{ backgroundColor: isExp ? '#fee2e2' : isSoon ? '#fef3c7' : '#dcfce7', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: isExp ? '#dc2626' : isSoon ? '#d97706' : '#16a34a' }}>
+                        {isExp ? `⛔ ${isBN ? 'মেয়াদোত্তীর্ণ' : 'Expired'} (${product.expiry_date})` : isSoon ? `⚠️ ${isBN ? `${diffDays} দিনে মেয়াদ শেষ` : `Exp in ${diffDays}d`} (${product.expiry_date})` : `📅 ${isBN ? 'মেয়াদ:' : 'Exp:'} ${product.expiry_date}`}
+                      </Text>
+                    </View>
+                  );
+                })()}
+                {product.lot_number ? (
+                  <View style={{ backgroundColor: '#f1f5f9', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#475569' }}>Lot: {product.lot_number}</Text>
+                  </View>
+                ) : null}
+                {Number(product.purchase_multiplier) > 1 ? (
+                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#2563eb' }}>📦 Multiplier: 1 = {product.purchase_multiplier}</Text>
+                  </View>
+                ) : null}
+                {product.warranty_months && product.warranty_months > 0 ? (
+                  <View style={{ backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#16a34a' }}>🛡️ {product.warranty_months} {isBN ? 'মাস ওয়ারেন্টি' : 'M Warranty'}</Text>
+                  </View>
+                ) : null}
+              </View>
+            </Surface>
+          )}
+
           {/* Summary Cards */}
           <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 20 }}>
             

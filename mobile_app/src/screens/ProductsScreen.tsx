@@ -22,6 +22,9 @@ type Product = {
   category?: number;
   is_active?: boolean;
   warranty_months?: number;
+  expiry_date?: string | null;
+  lot_number?: string;
+  purchase_multiplier?: string | number;
 };
 
 type Category = {

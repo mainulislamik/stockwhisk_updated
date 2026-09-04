@@ -85,6 +85,10 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           current_stock: product.current_stock?.toString() || '',
           reorder_level: product.reorder_level?.toString() || '5',
           is_active: product.is_active !== false,
+          expiry_date: product.expiry_date || '',
+          lot_number: product.lot_number || '',
+          purchase_multiplier: product.purchase_multiplier?.toString() || '1',
+          warranty_months: product.warranty_months?.toString() || '',
         });
         if (product.barcode) {
           setSerialBarcodes([product.barcode]);
@@ -101,6 +105,10 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           current_stock: '0',
           reorder_level: '5',
           is_active: true,
+          expiry_date: '',
+          lot_number: '',
+          purchase_multiplier: '1',
+          warranty_months: '',
         });
       }
     }
