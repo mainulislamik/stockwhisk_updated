@@ -409,7 +409,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n1000}
                                 onChange={(e) => setNotes({ ...notes, n1000: e.target.value })}
                               />
@@ -420,7 +420,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n500}
                                 onChange={(e) => setNotes({ ...notes, n500: e.target.value })}
                               />
@@ -431,7 +431,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n200}
                                 onChange={(e) => setNotes({ ...notes, n200: e.target.value })}
                               />
@@ -442,7 +442,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n100}
                                 onChange={(e) => setNotes({ ...notes, n100: e.target.value })}
                               />
@@ -453,7 +453,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n50}
                                 onChange={(e) => setNotes({ ...notes, n50: e.target.value })}
                               />
@@ -464,7 +464,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n20}
                                 onChange={(e) => setNotes({ ...notes, n20: e.target.value })}
                               />
@@ -475,7 +475,7 @@ export default function DailySettlementPage() {
                                 type="number"
                                 min="0"
                                 className="form-control form-control-sm"
-                                placeholder="Qty"
+                                placeholder={lang === "bn" ? "সংখ্যা" : "Qty"}
                                 value={notes.n10}
                                 onChange={(e) => setNotes({ ...notes, n10: e.target.value })}
                               />

@@ -287,7 +287,7 @@ export default function PosCustomerPage() {
                    <input id="existingEmail" type="email"
                      className={`form-control shadow-sm${isEmi && !existingEmail ? " is-invalid" : ""}`}
                      value={existingEmail} onChange={(e) => setExistingEmail(e.target.value)}
-                     placeholder="Enter email…" required={isEmi} />
+                     placeholder={lang === "bn" ? "ইমেইল লিখুন…" : "Enter email…"} required={isEmi} />
                    <label htmlFor="existingEmail">
                      {isEmi ? "📧 Email (Required for EMI)" : t("pos_checkout_email_opt")}
                    </label>
@@ -312,14 +312,14 @@ export default function PosCustomerPage() {
                   </div>
                 )}
                 <div className="form-floating">
-                  <input id="walkName" className="form-control shadow-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder="Enter name…" />
+                  <input id="walkName" className="form-control shadow-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder={lang === "bn" ? "নাম লিখুন…" : "Enter name…"} />
                   <label htmlFor="walkName">{t("pos_checkout_cust_name")}</label>
                 </div>
                 <div className="form-floating">
                   <input id="walkEmail" type="email"
                     className={`form-control shadow-sm${isEmi && !walkEmail ? " is-invalid" : ""}`}
                     value={walkEmail} onChange={(e) => setWalkEmail(e.target.value)}
-                    placeholder="Enter email…" required={isEmi} />
+                    placeholder={lang === "bn" ? "ইমেইল লিখুন…" : "Enter email…"} required={isEmi} />
                   <label htmlFor="walkEmail">
                     {isEmi ? "📧 Email (Required for EMI)" : t("pos_checkout_email_opt")}
                   </label>
@@ -330,7 +330,7 @@ export default function PosCustomerPage() {
                   )}
                 </div>
                 <div className="form-floating">
-                  <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder="Optional…" />
+                  <input id="walkAddress" className="form-control shadow-sm" value={walkAddress} onChange={(e) => setWalkAddress(e.target.value)} placeholder={lang === "bn" ? "ঐচ্ছিক…" : "Optional…"} />
                   <label htmlFor="walkAddress">{t("pos_checkout_address_opt")}</label>
                 </div>
               </div>

@@ -924,12 +924,12 @@ export default function ConvertQuotationModal({
                                         value={emiMonths}
                                         onChange={(e) => setEmiMonths(Number(e.target.value))}
                                       >
-                                        <option value={3}>3 Months</option>
-                                        <option value={6}>6 Months</option>
-                                        <option value={9}>9 Months</option>
-                                        <option value={12}>12 Months</option>
-                                        <option value={18}>18 Months</option>
-                                        <option value={24}>24 Months</option>
+                                        <option value={3}>{lang === "bn" ? "৩ মাস" : "3 Months"}</option>
+                                        <option value={6}>{lang === "bn" ? "৬ মাস" : "6 Months"}</option>
+                                        <option value={9}>{lang === "bn" ? "৯ মাস" : "9 Months"}</option>
+                                        <option value={12}>{lang === "bn" ? "১২ মাস" : "12 Months"}</option>
+                                        <option value={18}>{lang === "bn" ? "১৮ মাস" : "18 Months"}</option>
+                                        <option value={24}>{lang === "bn" ? "২৪ মাস" : "24 Months"}</option>
                                       </select>
                                       <label htmlFor="modalEmiMonths">{lang === "bn" ? "কিস্তির মেয়াদ" : "Duration"}</label>
                                     </div>

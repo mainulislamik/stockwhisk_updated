@@ -609,7 +609,7 @@ export default function ManufacturingPage() {
                             />
                             <span className="input-group-text">{selectedOutputProduct?.unit_detail?.name || "Units"}</span>
                           </div>
-                          <div className="form-text small">Final produced quantity.</div>
+                          <div className="form-text small">{lang === "bn" ? "চূড়ান্ত উৎপাদিত পরিমাণ।" : "Final produced quantity."}</div>
                         </div>
                       </div>
                     ) : (
@@ -620,7 +620,7 @@ export default function ManufacturingPage() {
                             <input
                               type="text"
                               className="form-control form-control-sm"
-                              placeholder="e.g. Yellow Textile Dye 500ml"
+                              placeholder={lang === "bn" ? "যেমন: হলুদ ডাই ৫০০ মিলি" : "e.g. Yellow Textile Dye 500ml"}
                               value={newProdName}
                               onChange={(e) => setNewProdName(e.target.value)}
                               required={outProductMode === "new"}
@@ -652,7 +652,7 @@ export default function ManufacturingPage() {
                               value={newProdUnit}
                               onChange={(e) => setNewProdUnit(e.target.value)}
                             >
-                              <option value="">-- Default (Piece / Pcs) --</option>
+                              <option value="">{lang === "bn" ? "-- ডিফল্ট (পিস / Pcs) --" : "-- Default (Piece / Pcs) --"}</option>
                               {units.map((u) => (
                                 <option key={u.id} value={u.id}>
                                   {u.name} {u.short_code ? `(${u.short_code})` : ""}
@@ -667,7 +667,7 @@ export default function ManufacturingPage() {
                               value={newProdCategory}
                               onChange={(e) => setNewProdCategory(e.target.value)}
                             >
-                              <option value="">-- None --</option>
+                              <option value="">{lang === "bn" ? "-- কোনোটি নয় --" : "-- None --"}</option>
                               {categories.map((c) => (
                                 <option key={c.id} value={c.id}>
                                   {c.name}
@@ -693,7 +693,7 @@ export default function ManufacturingPage() {
                           </div>
                         </div>
                         <div className="small text-success mt-1">
-                          <i className="bi bi-info-circle me-1"></i> This new product will be created with Cost Price = <strong>৳{liveCalculatedCost}</strong> and initial Stock = <strong>{outQty || "0"} {units.find(u => String(u.id) === String(newProdUnit))?.name || "Units"}</strong>.
+                          <i className="bi bi-info-circle me-1"></i> {lang === "bn" ? "নতুন এই পণ্যটির ক্রয়মূল্য নির্ধারিত হবে =" : "This new product will be created with Cost Price ="} <strong>৳{liveCalculatedCost}</strong> {lang === "bn" ? "এবং প্রারম্ভিক স্টক =" : "and initial Stock ="} <strong>{outQty || "0"} {units.find(u => String(u.id) === String(newProdUnit))?.name || "Units"}</strong>.
                         </div>
                       </div>
                     )}
@@ -701,7 +701,7 @@ export default function ManufacturingPage() {
 
                   <div className="row g-3 mb-4">
                     <div className="col-md-6">
-                      <label className="form-label fw-medium text-secondary">Additional Production Cost (Labor / Packaging / Fuel) ৳</label>
+                      <label className="form-label fw-medium text-secondary">{lang === "bn" ? "অতিরিক্ত উৎপাদন খরচ (শ্রম / প্যাকেজিং / জ্বালানি) ৳" : "Additional Production Cost (Labor / Packaging / Fuel) ৳"}</label>
                       <div className="input-group">
                         <span className="input-group-text">৳</span>
                         <input
@@ -715,11 +715,11 @@ export default function ManufacturingPage() {
                       </div>
                     </div>
                     <div className="col-md-6">
-                      <label className="form-label fw-medium text-secondary">Additional Cost Description</label>
+                      <label className="form-label fw-medium text-secondary">{lang === "bn" ? "অতিরিক্ত খরচের বিবরণ" : "Additional Cost Description"}</label>
                       <input
                         type="text"
                         className="form-control"
-                        placeholder="e.g. 150 Plastic Bottles + Labor charges"
+                        placeholder={lang === "bn" ? "যেমন: ১৫০টি প্লাস্টিক বোতল + লেবার খরচ" : "e.g. 150 Plastic Bottles + Labor charges"}
                         value={extraCostNote}
                         onChange={(e) => setExtraCostNote(e.target.value)}
                       />
@@ -730,7 +730,7 @@ export default function ManufacturingPage() {
                   <div className="card border-0 rounded-4 p-3 mb-3" style={{ background: "linear-gradient(135deg, rgba(13, 110, 253, 0.08), rgba(16, 185, 129, 0.08))", border: "1px solid rgba(13, 110, 253, 0.2)" }}>
                     <div className="d-flex align-items-center justify-content-between mb-2">
                       <span className="fw-bold text-dark"><i className="bi bi-calculator me-1"></i> {lang === "bn" ? "উৎপাদন খরচের হিসাব ও বিশ্লেষণ:" : "Cost Breakdown & Calculation:"}</span>
-                      <span className="badge bg-primary px-3 py-1">Auto-Derived</span>
+                      <span className="badge bg-primary px-3 py-1">{lang === "bn" ? "স্বয়ংক্রিয় গণনা" : "Auto-Derived"}</span>
                     </div>
 
                     <div className="row g-2 small text-secondary">
@@ -882,7 +882,7 @@ export default function ManufacturingPage() {
                           <strong className="text-success fs-5">{Number(viewBatch.output_quantity)} {viewBatch.output_unit_name || "Units"}</strong>
                         </div>
                         <div className="col-md-3">
-                          <span className="text-secondary small d-block">Calculated Unit Cost:</span>
+                          <span className="text-secondary small d-block">{lang === "bn" ? "গণনাকৃত প্রতি ইউনিট খরচ:" : "Calculated Unit Cost:"}</span>
                           <strong className="text-success fs-5">৳{Number(viewBatch.calculated_unit_cost).toFixed(2)}</strong>
                         </div>
                       </div>

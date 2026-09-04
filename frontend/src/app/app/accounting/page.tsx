@@ -531,13 +531,13 @@ export default function AccountingPage() {
                           </tr>
                           {position?.bkash_balance !== undefined && Number(position.bkash_balance) !== 0 && (
                             <tr>
-                              <td className="text-secondary">📱 bKash Balance</td>
+                              <td className="text-secondary">{lang === "bn" ? "📱 বিকাশ ব্যালেন্স" : "📱 bKash Balance"}</td>
                               <td className="text-end fw-semibold">{money(position?.bkash_balance)}</td>
                             </tr>
                           )}
                           {position?.nagad_balance !== undefined && Number(position.nagad_balance) !== 0 && (
                             <tr>
-                              <td className="text-secondary">📱 Nagad Balance</td>
+                              <td className="text-secondary">{lang === "bn" ? "📱 নগদ ব্যালেন্স" : "📱 Nagad Balance"}</td>
                               <td className="text-end fw-semibold">{money(position?.nagad_balance)}</td>
                             </tr>
                           )}
@@ -970,7 +970,7 @@ export default function AccountingPage() {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. Md. Rafiqul Islam, Owner Capital"
+                      placeholder={lang === "bn" ? "যেমন: মো: রফিকুল ইসলাম, স্বত্বাধিকারী মূলধন" : "e.g. Md. Rafiqul Islam, Owner Capital"}
                       value={form.investor_name}
                       onChange={(e) => setForm({ ...form, investor_name: e.target.value })}
                       required
@@ -1049,7 +1049,7 @@ export default function AccountingPage() {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. VOUCH-1002"
+                      placeholder={lang === "bn" ? "যেমন: ভাউচার-১০০২" : "e.g. VOUCH-1002"}
                       value={form.reference}
                       onChange={(e) => setForm({ ...form, reference: e.target.value })}
                     />
@@ -1185,7 +1185,7 @@ export default function AccountingPage() {
                     <input
                       type="text"
                       className="form-control"
-                      placeholder="e.g. TrxID-982341, Deposit Slip #44"
+                      placeholder={lang === "bn" ? "যেমন: TrxID-982341, ডিপোজিট স্লিপ #৪৪" : "e.g. TrxID-982341, Deposit Slip #44"}
                       value={transferForm.reference}
                       onChange={(e) => setTransferForm({ ...transferForm, reference: e.target.value })}
                     />

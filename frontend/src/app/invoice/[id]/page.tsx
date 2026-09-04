@@ -6,6 +6,7 @@ import Barcode from "react-barcode";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { Spinner } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Standalone route — outside /app/ layout, so no AppShell, no sidebar, no banner.
 
@@ -108,6 +109,7 @@ export default function InvoicePage() {
   
   const queryFormat = searchParams.get("format");
   const [format, setFormat] = useState<"regular" | "pos">("regular");
+  const { t, lang } = useLanguage();
   const [sale, setSale] = useState<Sale | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -254,17 +256,17 @@ export default function InvoicePage() {
           <div className="text-center my-1">
             <Barcode value={sale.invoice_no} width={1.3} height={30} displayValue={false} margin={0} background="transparent" />
             <div className="fw-bold mt-1" style={{ fontSize: "11pt", letterSpacing: "0.05em" }}>
-              {isQuotation ? "QUOTATION" : "RETAIL INVOICE"}
+              {isQuotation ? (lang === "bn" ? "কোটেশন" : "QUOTATION") : (lang === "bn" ? "ক্যাশ মেমো / ইনভয়েস" : "RETAIL INVOICE")}
             </div>
           </div>
 
           <div className="pos-meta-grid">
-            <div><span>Invoice:</span> <b>{sale.invoice_no}</b></div>
-            <div><span>Date:</span> {fmtDateTime(sale.sale_date)}</div>
-            <div><span>Customer:</span> {sale.bill_name || "Walk-in Customer"}</div>
-            {sale.bill_phone && <div><span>Phone:</span> {sale.bill_phone}</div>}
-            {paymentMethods && <div><span>Payment:</span> {paymentMethods}</div>}
-            <div><span>Status:</span> <b style={{ textTransform: "uppercase" }}>{statusLabel}</b></div>
+            <div><span>{lang === "bn" ? "ইনভয়েস:" : "Invoice:"}</span> <b>{sale.invoice_no}</b></div>
+            <div><span>{lang === "bn" ? "তারিখ:" : "Date:"}</span> {fmtDateTime(sale.sale_date)}</div>
+            <div><span>{lang === "bn" ? "ক্রেতা:" : "Customer:"}</span> {sale.bill_name || "Walk-in Customer"}</div>
+            {sale.bill_phone && <div><span>{lang === "bn" ? "মোবাইল:" : "Phone:"}</span> {sale.bill_phone}</div>}
+            {paymentMethods && <div><span>{lang === "bn" ? "পেমেন্ট:" : "Payment:"}</span> {paymentMethods}</div>}
+            <div><span>{lang === "bn" ? "স্ট্যাটাস:" : "Status:"}</span> <b style={{ textTransform: "uppercase" }}>{statusLabel}</b></div>
           </div>
 
           <div className="pos-divider" />
@@ -273,9 +275,9 @@ export default function InvoicePage() {
           <table className="pos-items-table">
             <thead>
               <tr>
-                <th style={{ textAlign: "left", width: "55%" }}>ITEM</th>
-                <th style={{ textAlign: "center", width: "15%" }}>QTY</th>
-                <th style={{ textAlign: "right", width: "30%" }}>TOTAL</th>
+                <th style={{ textAlign: "left", width: "55%" }}>{lang === "bn" ? "পণ্য" : "ITEM"}</th>
+                <th style={{ textAlign: "center", width: "15%" }}>{lang === "bn" ? "পরিমাণ" : "QTY"}</th>
+                <th style={{ textAlign: "right", width: "30%" }}>{lang === "bn" ? "মোট" : "TOTAL"}</th>
               </tr>
             </thead>
             <tbody>
@@ -414,7 +416,7 @@ export default function InvoicePage() {
                 <div className="inv-status-badge" style={{ background: statusColor + "1a", color: statusColor, borderColor: statusColor }}>
                   ● {statusLabel}
                 </div>
-                <div className="inv-title-text">{isQuotation ? "QUOTATION" : "INVOICE"}</div>
+                <div className="inv-title-text">{isQuotation ? (lang === "bn" ? "কোটেশন" : "QUOTATION") : (lang === "bn" ? "ইনভয়েস" : "INVOICE")}</div>
               </div>
               <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
                 <Barcode value={sale.invoice_no} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
@@ -433,7 +435,7 @@ export default function InvoicePage() {
 
           {/* ── BILL TO ── */}
           <div className="inv-bill-to">
-            <div className="inv-section-label">BILL TO</div>
+            <div className="inv-section-label">{lang === "bn" ? "ক্রেতার বিবরণ" : "BILL TO"}</div>
             <div className="inv-customer-name">{sale.bill_name || "Walk-in customer"}</div>
             {sale.bill_phone && <div className="inv-customer-detail">📞 {sale.bill_phone}</div>}
           </div>
@@ -443,9 +445,9 @@ export default function InvoicePage() {
             <thead>
               <tr>
                 <th className="inv-th-center" style={{ width: "5%" }}>#</th>
-                <th style={{ width: "65%" }}>Product Description</th>
-                <th className="inv-th-center" style={{ width: "10%" }}>Qty</th>
-                <th className="inv-th-right" style={{ width: "20%" }}>Total</th>
+                <th style={{ width: "65%" }}>{lang === "bn" ? "পণ্যের বিবরণ" : "Product Description"}</th>
+                <th className="inv-th-center" style={{ width: "10%" }}>{lang === "bn" ? "পরিমাণ" : "Qty"}</th>
+                <th className="inv-th-right" style={{ width: "20%" }}>{lang === "bn" ? "মোট" : "Total"}</th>
               </tr>
             </thead>
             <tbody>
@@ -471,7 +473,7 @@ export default function InvoicePage() {
             <div className="inv-notes">
               {sale.note ? (
                 <>
-                  <div className="inv-section-label">NOTES</div>
+                  <div className="inv-section-label">{lang === "bn" ? "নোট / বিবরণ" : "NOTES"}</div>
                   <div className="inv-note-text">{sale.note}</div>
                 </>
               ) : (
@@ -497,33 +499,33 @@ export default function InvoicePage() {
             {/* Totals (right) */}
             <div className="inv-totals">
               <div className="inv-total-row">
-                <span>Subtotal</span><span>{fmt(sale.subtotal)}</span>
+                <span>{lang === "bn" ? "সাবটোটাল" : "Subtotal"}</span><span>{fmt(sale.subtotal)}</span>
               </div>
               {totalDiscount > 0 && (
                 <div className="inv-total-row inv-disc-row">
-                  <span>Total Discounts</span><span>-{fmt(totalDiscount)}</span>
+                  <span>{lang === "bn" ? "মোট ছাড় / ডিসকাউন্ট" : "Total Discounts"}</span><span>-{fmt(totalDiscount)}</span>
                 </div>
               )}
               {Number(sale.delivery_charge) > 0 && (
                 <div className="inv-total-row">
-                  <span>Delivery Charge</span><span>{fmt(sale.delivery_charge)}</span>
+                  <span>{lang === "bn" ? "ডেলিভারি চার্জ" : "Delivery Charge"}</span><span>{fmt(sale.delivery_charge)}</span>
                 </div>
               )}
               {Number(sale.tax) > 0 && (
                 <div className="inv-total-row">
-                  <span>VAT / Tax</span><span>{fmt(sale.tax)}</span>
+                  <span>{lang === "bn" ? "ভ্যাট / ট্যাক্স" : "VAT / Tax"}</span><span>{fmt(sale.tax)}</span>
                 </div>
               )}
               <div className="inv-grand-row">
-                <span>GRAND TOTAL</span><span>{fmt(sale.total)}</span>
+                <span>{lang === "bn" ? "সর্বমোট" : "GRAND TOTAL"}</span><span>{fmt(sale.total)}</span>
               </div>
               {Number(sale.paid) > 0 && (
                 <div className="inv-total-row inv-paid-row">
-                  <span>Paid Amount</span><span>-{fmt(sale.paid)}</span>
+                  <span>{lang === "bn" ? "পরিশোধিত" : "Paid Amount"}</span><span>-{fmt(sale.paid)}</span>
                 </div>
               )}
               <div className={`inv-total-row inv-due-row ${Number(sale.due) > 0 ? "inv-due-outstanding" : "inv-due-clear"}`}>
-                <span>Balance Due</span><span>{fmt(sale.due)}</span>
+                <span>{lang === "bn" ? "বকেয়া" : "Balance Due"}</span><span>{fmt(sale.due)}</span>
               </div>
               {Number(sale.due) > 0 && sale.due_date && (
                 <div className="inv-total-row" style={{ color: "#dc2626", fontWeight: 600, fontSize: "0.9em" }}>
@@ -537,11 +539,11 @@ export default function InvoicePage() {
           <div className="inv-signatures">
             <div className="inv-sign-box">
               <div className="inv-sign-line" />
-              <div className="inv-sign-label">Customer Signature</div>
+              <div className="inv-sign-label">{lang === "bn" ? "ক্রেতার স্বাক্ষর" : "Customer Signature"}</div>
             </div>
             <div className="inv-sign-box">
               <div className="inv-sign-line" />
-              <div className="inv-sign-label">Authorized Signature{shopName ? ` — ${shopName}` : ""}</div>
+              <div className="inv-sign-label">{lang === "bn" ? "কর্তৃপক্ষের স্বাক্ষর" : "Authorized Signature"}{shopName ? ` — ${shopName}` : ""}</div>
             </div>
           </div>
 

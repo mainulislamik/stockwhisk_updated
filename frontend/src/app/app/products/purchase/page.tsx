@@ -558,20 +558,20 @@ export default function PurchaseProductPage() {
               <form onSubmit={createProduct} className="row g-2">
                 <div className="col-md-6">
                   <label className="small fw-medium">{t("pp_lbl_prod_name")}</label>
-                  <input required className="form-control form-control-sm" value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} placeholder="e.g. DVR High Resolution" />
+                  <input required className="form-control form-control-sm" value={newProd.name} onChange={(e) => setNewProd({ ...newProd, name: e.target.value })} placeholder={lang === "bn" ? "যেমন: টেস্টটিউব / অ্যাসিড ড্রাম" : "e.g. DVR High Resolution"} />
                 </div>
                 <div className="col-md-6">
                   <label className="small fw-medium">{t("pp_lbl_sku_auto")}</label>
-                  <input className="form-control form-control-sm" value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="auto-generated" />
+                  <input className="form-control form-control-sm" value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder={lang === "bn" ? "স্বয়ংক্রিয় তৈরি হবে" : "auto-generated"} />
                 </div>
                 <div className="col-md-4">
                   <label className="small fw-medium">{lang === "bn" ? "বারকোড" : "Barcode"}</label>
-                  <input className="form-control form-control-sm" value={newProd.barcode} onChange={(e) => setNewProd({ ...newProd, barcode: e.target.value })} placeholder="optional" />
+                  <input className="form-control form-control-sm" value={newProd.barcode} onChange={(e) => setNewProd({ ...newProd, barcode: e.target.value })} placeholder={lang === "bn" ? "ঐচ্ছিক" : "optional"} />
                 </div>
                 <div className="col-md-4">
                   <label className="small fw-medium">{lang === "bn" ? "বিক্রয় ইউনিট (Base)" : "Sale Unit"}</label>
                   <select className="form-select form-select-sm" value={newProd.unit} onChange={(e) => setNewProd({ ...newProd, unit: e.target.value, purchase_unit: "" })}>
-                    <option value="">-- Select --</option>
+                    <option value="">{lang === "bn" ? "-- নির্বাচন করুন --" : "-- Select --"}</option>
                     {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                   </select>
                 </div>
@@ -579,7 +579,7 @@ export default function PurchaseProductPage() {
                   <div className="col-md-4">
                     <label className="small fw-medium">{lang === "bn" ? "ক্রয়/ড্রাম ইউনিট (Bulk)" : "Purchase Unit"}</label>
                     <select className="form-select form-select-sm" value={newProd.purchase_unit} onChange={(e) => setNewProd({ ...newProd, purchase_unit: e.target.value })}>
-                      <option value="">-- Select --</option>
+                      <option value="">{lang === "bn" ? "-- নির্বাচন করুন --" : "-- Select --"}</option>
                       {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
                     </select>
                   </div>
@@ -682,7 +682,7 @@ export default function PurchaseProductPage() {
                         </div>
                         <div className="col-md-3">
                           <label className="small fw-medium">{t("prod_lbl_lot") || (lang === "bn" ? "লট / ব্যাচ নম্বর" : "Lot / Batch No")}</label>
-                          <input type="text" className="form-control form-control-sm" value={newProd.lot_number} onChange={(e) => setNewProd({ ...newProd, lot_number: e.target.value })} placeholder="e.g. LOT-2026-09" />
+                          <input type="text" className="form-control form-control-sm" value={newProd.lot_number} onChange={(e) => setNewProd({ ...newProd, lot_number: e.target.value })} placeholder={lang === "bn" ? "যেমন: LOT-2026-09" : "e.g. LOT-2026-09"} />
                         </div>
                         <div className="col-md-3">
                           <label className="small fw-medium">{t("prod_lbl_mfg") || (lang === "bn" ? "উৎপাদন তারিখ (ঐচ্ছিক)" : "Mfg Date (Optional)")}</label>
@@ -727,7 +727,7 @@ export default function PurchaseProductPage() {
                 <label className="small fw-medium">{t("pp_lbl_prod_name_search")}</label>
                 <input
                   className="form-control form-control-sm"
-                  placeholder="e.g. DVR High Resolution"
+                  placeholder={lang === "bn" ? "যেমন: টেস্টটিউব / অ্যাসিড ড্রাম" : "e.g. DVR High Resolution"}
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
                 />
@@ -736,7 +736,7 @@ export default function PurchaseProductPage() {
                 <label className="small fw-medium">{t("pp_sku")}</label>
                 <input
                   className="form-control form-control-sm"
-                  placeholder="Scan or type SKU…"
+                  placeholder={lang === "bn" ? "বারকোড স্ক্যান বা SKU লিখুন…" : "Scan or type SKU…"}
                   value={searchBarcode}
                   onChange={(e) => setSearchBarcode(e.target.value)}
                 />
@@ -822,7 +822,7 @@ export default function PurchaseProductPage() {
         {/* Pricing Information */}
         <div className="card shadow-sm mb-3">
           <div className="card-body">
-            <h2 className="h6 fw-bold mb-3 text-brand">💰 Pricing Information</h2>
+            <h2 className="h6 fw-bold mb-3 text-brand">{lang === "bn" ? "💰 মূল্যের তথ্য" : "💰 Pricing Information"}</h2>
             <div className="row g-3">
 
               {/* Added Pricing Method Dropdown */}
@@ -839,7 +839,7 @@ export default function PurchaseProductPage() {
               {(isSpecialShop && pricingMode === "bulk") && (
                 <>
                   <div className="col-md-6">
-                    <label className="small fw-medium text-primary">Full Drum/Box Cost (৳)</label>
+                    <label className="small fw-medium text-primary">{lang === "bn" ? "পুরো ড্রাম/বক্স ক্রয়মূল্য (৳)" : "Full Drum/Box Cost (৳)"}</label>
                     <div className="input-group">
                       <input
                         className="form-control"

@@ -262,7 +262,7 @@ export default function SuppliersPage() {
                             <div className="d-flex align-items-center gap-1">
                               <span className={"badge rounded-pill px-2 py-1 small " + (overdue ? "bg-danger text-white" : "bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25")}>
                                 📅 {fmtDate(s.due_date)}
-                                {overdue && <span className="ms-1 fw-bold">(! Overdue)</span>}
+                                {overdue && <span className="ms-1 fw-bold">{lang === "bn" ? "(! মেয়াদোত্তীর্ণ)" : "(! Overdue)"}</span>}
                               </span>
                               {canManage && (
                                 <button 
@@ -299,8 +299,8 @@ export default function SuppliersPage() {
                               {t("sup_btn_pay")}
                             </button>
                           )}
-                          <button className="btn btn-link btn-sm p-0 me-2" onClick={() => startEdit(s)}>Edit</button>
-                          <button className="btn btn-link btn-sm text-danger p-0" onClick={() => remove(s)}>Delete</button>
+                          <button className="btn btn-link btn-sm p-0 me-2" onClick={() => startEdit(s)}>{lang === "bn" ? "এডিট" : "Edit"}</button>
+                          <button className="btn btn-link btn-sm text-danger p-0" onClick={() => remove(s)}>{lang === "bn" ? "মুছুন" : "Delete"}</button>
                         </td>
                       )}
                     </tr>
@@ -331,7 +331,7 @@ export default function SuppliersPage() {
                               </select>
                             </div>
                             <div className="col-md-2">
-                              <label className="small fw-medium">Amount</label>
+                              <label className="small fw-medium">{lang === "bn" ? "পরিমাণ" : "Amount"}</label>
                               <input type="number" step="0.01" max={s.due_balance} required className="form-control form-control-sm" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} />
                             </div>
                             {payForm.type === "payment" && (
@@ -359,13 +359,13 @@ export default function SuppliersPage() {
                                 <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: addDays(7) })}>+7d</button>
                                 <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: addDays(15) })}>+15d</button>
                                 <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: addDays(30) })}>+30d</button>
-                                <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: getNextMonthFirstDay() })}>1st Next Mth</button>
+                                <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: getNextMonthFirstDay() })}>{lang === "bn" ? "পরবর্তী মাসের ১ তারিখ" : "1st Next Mth"}</button>
                               </div>
                             </div>
 
                             <div className={payForm.type === "payment" ? "col-md-3" : "col-md-3"}>
-                              <label className="small fw-medium">Note / Reference</label>
-                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder="Optional reference..." />
+                              <label className="small fw-medium">{lang === "bn" ? "নোট / রেফারেন্স" : "Note / Reference"}</label>
+                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder={lang === "bn" ? "ঐচ্ছিক রেফারেন্স..." : "Optional reference..."} />
                             </div>
                             <div className="col-12 d-flex justify-content-end gap-2 pt-2 border-top">
                               <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>{t("sup_btn_cancel")}</button>

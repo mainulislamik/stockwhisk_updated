@@ -200,7 +200,7 @@ export default function PurchasesPage() {
                             <div className="d-flex align-items-center justify-content-end gap-1 mt-1">
                               <span className={`badge rounded-pill px-2 py-0 small ${isOverdue(po.due_date) ? 'bg-danger text-white' : 'bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25'}`} style={{ fontSize: "0.72rem" }}>
                                 📅 {fmtDate(po.due_date)}
-                                {isOverdue(po.due_date) && <span className="ms-1 fw-bold">(! Overdue)</span>}
+                                {isOverdue(po.due_date) && <span className="ms-1 fw-bold">{lang === "bn" ? "(! মেয়াদোত্তীর্ণ)" : "(! Overdue)"}</span>}
                               </span>
                               {canManage && (
                                 <button 
@@ -295,16 +295,16 @@ export default function PurchasesPage() {
                                 <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: addDays(7) })}>+7d</button>
                                 <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: addDays(15) })}>+15d</button>
                                 <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: addDays(30) })}>+30d</button>
-                                <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: getNextMonthFirstDay() })}>1st Next Mth</button>
+                                <button type="button" className="btn btn-outline-secondary btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPayForm({ ...payForm, due_date: getNextMonthFirstDay() })}>{lang === "bn" ? "পরবর্তী মাসের ১ তারিখ" : "1st Next Mth"}</button>
                               </div>
                             </div>
 
                             <div className={payForm.type === "payment" ? "col-md-3" : "col-md-3"}>
-                              <label className="small fw-medium">Note / Reference</label>
-                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder="Optional reference..." />
+                              <label className="small fw-medium">{lang === "bn" ? "নোট / রেফারেন্স" : "Note / Reference"}</label>
+                              <input className="form-control form-control-sm" value={payForm.note} onChange={(e) => setPayForm({ ...payForm, note: e.target.value })} placeholder={lang === "bn" ? "ঐচ্ছিক রেফারেন্স..." : "Optional reference..."} />
                             </div>
                             <div className="col-12 d-flex justify-content-end gap-2 pt-2 border-top">
-                              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>Cancel</button>
+                              <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPaying(null)}>{lang === "bn" ? "বাতিল" : "Cancel"}</button>
                               <button type="submit" className="btn btn-success btn-sm px-4" disabled={saving}>
                                 {saving ? "Processing…" : "Submit"}
                               </button>
