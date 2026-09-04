@@ -812,7 +812,7 @@ export default function ManufacturingPage() {
                   <div className="col-md-3">
                     <div className="p-3 rounded-3 bg-light">
                       <span className="text-secondary small d-block">{lang === "bn" ? "স্ট্যাটাস" : "Status"}</span>
-                      <strong className="text-capitalize">{viewBatch.status.replace("_", " ")}</strong>
+                      <strong className="text-capitalize">{viewBatch.status === "completed" ? (lang === "bn" ? "সম্পন্ন ✅" : "Completed") : viewBatch.status === "in_progress" ? (lang === "bn" ? "প্রক্রিয়াধীন ⏳" : "Processing") : (lang === "bn" ? "বাতিল ❌" : "Cancelled")}</strong>
                     </div>
                   </div>
                   <div className="col-md-3">
@@ -852,7 +852,7 @@ export default function ManufacturingPage() {
                         <tr key={m.id}>
                           <td className="fw-semibold">{m.product_name}</td>
                           <td className="font-monospace small text-secondary">{m.product_sku || "—"}</td>
-                          <td>{Number(m.quantity)} {m.unit_name || "Unit"}</td>
+                          <td>{Number(m.quantity)} {m.unit_name || (lang === "bn" ? "ইউনিট" : "Unit")}</td>
                           <td>৳{Number(m.unit_cost).toFixed(2)}</td>
                           <td className="text-end fw-bold">৳{Number(m.subtotal).toFixed(2)}</td>
                         </tr>
@@ -879,7 +879,7 @@ export default function ManufacturingPage() {
                         </div>
                         <div className="col-md-3">
                           <span className="text-secondary small d-block">{lang === "bn" ? "উৎপাদিত পরিমাণ:" : "Quantity Produced:"}</span>
-                          <strong className="text-success fs-5">{Number(viewBatch.output_quantity)} {viewBatch.output_unit_name || "Units"}</strong>
+                          <strong className="text-success fs-5">{Number(viewBatch.output_quantity)} {viewBatch.output_unit_name || (lang === "bn" ? "ইউনিট" : "Units")}</strong>
                         </div>
                         <div className="col-md-3">
                           <span className="text-secondary small d-block">{lang === "bn" ? "গণনাকৃত প্রতি ইউনিট খরচ:" : "Calculated Unit Cost:"}</span>
