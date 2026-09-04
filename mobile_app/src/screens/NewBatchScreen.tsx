@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicato
 import { Appbar, Text, Card, TextInput, Chip, useTheme, Button, Divider, Surface } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { api, fetchAll } from '../api';
+import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 
 type Product = {
