@@ -209,7 +209,7 @@ export default function NewProductionBatchPage() {
                         </select>
                         {prod && (
                           <div className={`small mt-1 ${isStockLow ? "text-danger fw-bold" : "text-secondary"}`}>
-                            {isStockLow && "⚠️ Warning: "}Current Stock: {prod.current_stock} {prod.unit_detail?.name || "Units"}
+                            {isStockLow && (lang === "bn" ? "⚠️ সতর্কতা: " : "⚠️ Warning: ")}{lang === "bn" ? "বর্তমান স্টক: " : "Current Stock: "}{prod.current_stock} {prod.unit_detail?.name || (lang === "bn" ? "ইউনিট" : "Units")}
                           </div>
                         )}
                       </td>
@@ -220,7 +220,7 @@ export default function NewProductionBatchPage() {
                             step="0.01"
                             min="0.01"
                             className="form-control"
-                            placeholder="Qty"
+                            placeholder={lang === "bn" ? "পরিমাণ" : "Qty"}
                             value={row.quantity}
                             onChange={(e) => handleQtyChange(idx, e.target.value)}
                             required
@@ -238,7 +238,7 @@ export default function NewProductionBatchPage() {
                             className="form-control"
                             value={row.unit_cost}
                             onChange={(e) => handleCostChange(idx, e.target.value)}
-                            title="Snapshot cost price for this batch"
+                            title={lang === "bn" ? "এই ব্যাচের জন্য ক্রয়মূল্য" : "Snapshot cost price for this batch"}
                           />
                         </div>
                       </td>
@@ -250,7 +250,7 @@ export default function NewProductionBatchPage() {
                           type="button"
                           className="btn btn-link text-danger p-0"
                           onClick={() => removeRow(idx)}
-                          title="Remove material"
+                          title={lang === "bn" ? "উপাদান মুছে ফেলুন" : "Remove material"}
                         >
                           <i className="bi bi-trash fs-6"></i>
                         </button>
@@ -290,7 +290,7 @@ export default function NewProductionBatchPage() {
               <input
                 type="text"
                 className="form-control form-control-sm"
-                placeholder="e.g. Labor & Bottles"
+                placeholder={lang === "bn" ? "যেমন: মজুরি ও প্যাকেজিং বোতল" : "e.g. Labor & Bottles"}
                 value={additionalCostNote}
                 onChange={(e) => setAdditionalCostNote(e.target.value)}
               />
@@ -300,7 +300,7 @@ export default function NewProductionBatchPage() {
               <textarea
                 className="form-control form-control-sm"
                 rows={2}
-                placeholder="e.g. Formula B-12 Shampoos with Rose Fragrance"
+                placeholder={lang === "bn" ? "যেমন: ফর্মুলা বি-১২ শ্যাম্পু বা অ্যাসিড মিশ্রণ" : "e.g. Formula B-12 Shampoos with Rose Fragrance"}
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
               ></textarea>
@@ -318,7 +318,7 @@ export default function NewProductionBatchPage() {
               {lang === "bn" ? "বাতিল" : "Cancel"}
             </Link>
             <button type="submit" className="btn btn-brand rounded-pill px-5 shadow-sm" disabled={busy || rows.length === 0}>
-              {busy ? "Starting Batch..." : "🚀 Start Batch (Commit Materials)"}
+              {busy ? (lang === "bn" ? "ব্যাচ শুরু হচ্ছে..." : "Starting Batch...") : (lang === "bn" ? "🚀 ব্যাচ শুরু করুন (কাঁচামাল কর্তন)" : "🚀 Start Batch (Commit Materials)")}
             </button>
           </div>
         </div>
