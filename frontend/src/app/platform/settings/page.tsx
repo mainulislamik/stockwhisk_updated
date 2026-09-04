@@ -1,10 +1,13 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, PageHeader } from "@/components/ui";
 
 export default function PlatformSettingsPage() {
+  const { lang, t } = useLanguage();
   const [msg, setMsg] = useState<{ ok: boolean; text: string; trace?: string } | null>(null);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
@@ -185,7 +188,7 @@ export default function PlatformSettingsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-3xl">
-      <PageHeader title="Platform Settings" />
+      <PageHeader title={lang === "bn" ? "প্ল্যাটফর্ম কনফিগারেশন ও সেটিংস" : "Platform Settings"} />
 
       {msg && (
         <div className={`alert ${msg.ok ? 'alert-success' : 'alert-danger'} d-flex flex-column gap-2`}>
@@ -297,7 +300,7 @@ export default function PlatformSettingsPage() {
                     value={smtpHost}
                     onChange={e => setSmtpHost(e.target.value)}
                   />
-                  <label>SMTP Host (e.g., smtp.gmail.com)</label>
+                  <label>{lang === "bn" ? "এসএমটিপি হোস্ট (যেমন: smtp.gmail.com)" : "SMTP Host (e.g., smtp.gmail.com)"}</label>
                 </div>
               </div>
               <div className="col-md-4">
@@ -309,7 +312,7 @@ export default function PlatformSettingsPage() {
                     value={smtpPort}
                     onChange={e => setSmtpPort(e.target.value)}
                   />
-                  <label>SMTP Port (e.g., 587)</label>
+                  <label>{lang === "bn" ? "এসএমটিপি পোর্ট (যেমন: 587)" : "SMTP Port (e.g., 587)"}</label>
                 </div>
               </div>
             </div>
@@ -322,18 +325,18 @@ export default function PlatformSettingsPage() {
                 value={smtpUser}
                 onChange={e => setSmtpUser(e.target.value)}
               />
-              <label>SMTP Username (e.g., your.email@gmail.com)</label>
+              <label>{lang === "bn" ? "এসএমটিপি ইউজারনেম" : "SMTP Username (e.g., your.email@gmail.com)"}</label>
             </div>
             
             <div className="form-floating">
               <input
                 type="password"
                 className="form-control"
-                placeholder="SMTP Password / App Password"
+                placeholder="setPasswordForm"
                 value={smtpPassword}
                 onChange={e => setSmtpPassword(e.target.value)}
               />
-              <label>SMTP Password / App Password</label>
+              <label>setPasswordForm</label>
             </div>
             <div className="form-text text-secondary small">If using Gmail, generate a 16-character App Password.</div>
 

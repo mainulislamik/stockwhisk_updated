@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -11,6 +13,7 @@ import MarketingFooter from "@/components/MarketingFooter";
 import { M } from "@/lib/marketing";
 
 export default function ResellerLoginPage() {
+  const { lang, t } = useLanguage();
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -54,8 +57,8 @@ export default function ResellerLoginPage() {
           <Container maxWidth="xs" sx={{ position: "relative", zIndex: 1 }}>
             <Paper sx={{ p: { xs: 4, md: 5 }, borderRadius: "24px", border: `1px solid ${M.border}`, boxShadow: "0 20px 40px -20px rgba(15,23,42,.15)", bgcolor: "rgba(255,255,255,0.85)", backdropFilter: "blur(20px)" }}>
               <Box sx={{ textAlign: "center", mb: 4 }}>
-                <Typography variant="h4" sx={{ fontWeight: 800, color: M.text, mb: 1, letterSpacing: "-0.02em" }}>StockWhisk Partner</Typography>
-                <Typography sx={{ color: M.textMuted, fontSize: "1.05rem" }}>Reseller portal login</Typography>
+                <Typography variant="h4" sx={{ fontWeight: 800, color: M.text, mb: 1, letterSpacing: "-0.02em" }}>{lang === "bn" ? "স্টকহুইস্ক পার্টনার পোর্টাল" : "StockWhisk Partner"}</Typography>
+                <Typography sx={{ color: M.textMuted, fontSize: "1.05rem" }}>{lang === "bn" ? "রিসেলার একাউন্টে লগইন করুন" : "Reseller portal login"}</Typography>
               </Box>
               
               <form onSubmit={submit}>
@@ -77,7 +80,7 @@ export default function ResellerLoginPage() {
               
               <Box sx={{ mt: 4, textAlign: "center" }}>
                 <Typography sx={{ color: M.textMuted, fontSize: ".9rem" }}>
-                  Not a partner yet? <Typography component={Link} href="/reseller/register" sx={{ color: M.primary, textDecoration: "none", fontWeight: 700, ml: 1, "&:hover": { textDecoration: "underline" } }}>Become a reseller</Typography>
+                  Not a partner yet? <Typography component={Link} href="/reseller/register" sx={{ color: M.primary, textDecoration: "none", fontWeight: 700, ml: 1, "&:hover": { textDecoration: "underline" } }}>{lang === "bn" ? "নতুন রিসেলার হতে আবেদন করুন" : "Become a reseller"}</Typography>
                 </Typography>
               </Box>
             </Paper>

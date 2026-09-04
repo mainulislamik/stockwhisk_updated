@@ -402,7 +402,7 @@ export default function ManufacturingPage() {
               <thead className="table-light">
                 <tr>
                   <th className="ps-4">{lang === "bn" ? "ব্যাচ নম্বর" : "Batch Number"}</th>
-                  <th>{lang === "bn" ? "স্ট্যাটাস" : "Status"}</th>
+                  <th>setStatus</th>
                   <th>{lang === "bn" ? "ব্যবহৃত কাঁচামাল" : "Raw Materials Used"}</th>
                   <th>{lang === "bn" ? "মোট খরচ" : "Total Cost"}</th>
                   <th>{lang === "bn" ? "উৎপাদিত পণ্য / পরিমাণ" : "Yield / Output"}</th>
@@ -811,7 +811,7 @@ export default function ManufacturingPage() {
                 <div className="row g-3 mb-4">
                   <div className="col-md-3">
                     <div className="p-3 rounded-3 bg-light">
-                      <span className="text-secondary small d-block">{lang === "bn" ? "স্ট্যাটাস" : "Status"}</span>
+                      <span className="text-secondary small d-block">setStatus</span>
                       <strong className="text-capitalize">{viewBatch.status === "completed" ? (lang === "bn" ? "সম্পন্ন ✅" : "Completed") : viewBatch.status === "in_progress" ? (lang === "bn" ? "প্রক্রিয়াধীন ⏳" : "Processing") : (lang === "bn" ? "বাতিল ❌" : "Cancelled")}</strong>
                     </div>
                   </div>

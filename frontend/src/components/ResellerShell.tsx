@@ -17,9 +17,9 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
 
   const NAV = [
     { href: "/reseller/dashboard", label: t("nav_dashboard") || "Dashboard", icon: "bi-speedometer2" },
-    { href: "/reseller/shops", label: lang === 'bn' ? "আমার শপসমূহ" : "My Shops", icon: "bi-shop" },
+    { href: "/reseller/shops", label: lang === "bn" ? "আমার শপসমূহ" : "My Shops", icon: "bi-shop" },
     { href: "/reseller/commissions", label: lang === 'bn' ? "কমিশন বিবরণী" : "Commissions", icon: "bi-cash-coin" },
-    { href: "/reseller/tutorials", label: lang === 'bn' ? "ভিডিও টিউটোরিয়াল" : "Tutorials", icon: "bi-play-btn" },
+    { href: "/reseller/tutorials", label: lang === "bn" ? "ভিডিও টিউটোরিয়াল" : "Tutorials", icon: "bi-play-btn" },
     { href: "/reseller/profile", label: lang === 'bn' ? "প্রোফাইল" : "Profile", icon: "bi-person-badge" },
   ];
 
@@ -58,7 +58,7 @@ export default function ResellerShell({ children }: { children: React.ReactNode 
           ))}
         </nav>
         <div className="small text-secondary text-truncate mb-2">{name}</div>
-        <button className="btn btn-outline-light btn-sm" onClick={logout}>{lang === 'bn' ? "লগআউট →" : "Log out →"}</button>
+        <button className="btn btn-outline-light btn-sm" onClick={logout}>{lang === "bn" ? "লগআউট →" : "Log out →"}</button>
       </aside>
       <main className="flex-grow-1 p-4" style={{ minWidth: 0 }}>{children}</main>
     </div>

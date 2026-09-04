@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -24,6 +26,7 @@ function fmt(v: string) {
 }
 
 export default function MessagesPage() {
+  const { lang, t } = useLanguage();
   const [rows, setRows] = useState<Message[] | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -61,12 +64,12 @@ export default function MessagesPage() {
   return (
     <>
       <PageHeader title="Contact Messages" />
-      <input className="form-control mb-3" placeholder="Filter messages…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="form-control mb-3" placeholder={lang === "bn" ? "বার্তা খুঁজুন…" : "Filter messages…"} value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="card shadow-sm">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-4">
-              <tr><th>When</th><th>From</th><th>Subject</th><th>Message</th><th className="text-end">Actions</th></tr>
+              <tr><th>{lang === "bn" ? "সময়" : "When"}</th><th>{lang === "bn" ? "প্রেরক" : "From"}</th><th>{lang === "bn" ? "বিষয়" : "Subject"}</th><th>{lang === "bn" ? "বার্তা" : "Message"}</th><th className="text-end">Actions</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 && <EmptyRow cols={5} text="No messages." />}
@@ -81,8 +84,8 @@ export default function MessagesPage() {
                   <td style={{ whiteSpace: "pre-wrap", maxWidth: "28rem" }}>{m.message}</td>
                   <td className="text-end">
                     <div className="d-flex gap-2 justify-content-end">
-                      {!m.is_read && <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => markRead(m)}>Mark read</button>}
-                      <button className="btn btn-link btn-sm p-0 text-decoration-none text-danger" onClick={() => del(m)}>Delete</button>
+                      {!m.is_read && <button className="btn btn-link btn-sm p-0 text-decoration-none" onClick={() => markRead(m)}>{lang === "bn" ? "পঠিত চিহ্নিত করুন" : "Mark read"}</button>}
+                      <button className="btn btn-link btn-sm p-0 text-decoration-none text-danger" onClick={() => del(m)}>{lang === "bn" ? "মুছুন" : "Delete"}</button>
                     </div>
                   </td>
                 </tr>

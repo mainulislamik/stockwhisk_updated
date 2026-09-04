@@ -4,8 +4,10 @@ import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, PageHeader } from "@/components/ui";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function BackupsPage() {
+  const { lang, t } = useLanguage();
   const [downloading, setDownloading] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -234,7 +236,7 @@ export default function BackupsPage() {
 
   return (
     <div className="space-y-6 animate-fade-in max-w-4xl">
-      <PageHeader title="System Backups" />
+      <PageHeader title={lang === "bn" ? "সিস্টেম ক্লাউড ব্যাকআপ" : "System Backups"} />
 
       {msg && (
         <div className={`p-4 rounded-lg font-medium text-sm flex items-center gap-2 ${msg.ok ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
@@ -248,11 +250,11 @@ export default function BackupsPage() {
         <div className="p-6">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-2">
             <h2 className="text-xl font-semibold flex items-center gap-2 text-blue-400 mb-0">
-              <i className="bi bi-google"></i> Automated Google Drive Backups
+              <i className="bi bi-google"></i> {lang === "bn" ? "স্বয়ংক্রিয় গুগল ড্রাইভ ব্যাকআপ" : "Automated Google Drive Backups"}
             </h2>
             {isConnected ? (
               <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 px-3 py-2 rounded-pill small">
-                <i className="bi bi-check-circle-fill me-1"></i> Connected to Google Drive
+                <i className="bi bi-check-circle-fill me-1"></i> {lang === "bn" ? "গুগল ড্রাইভ সংযুক্ত রয়েছে" : "Connected to Google Drive"}
               </span>
             ) : (
               <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25 px-3 py-2 rounded-pill small">
@@ -306,7 +308,7 @@ export default function BackupsPage() {
                 onChange={e => setBackupEnabled(e.target.checked)}
               />
               <label className="form-check-label text-slate-300 fw-semibold" htmlFor="enableBackupSwitch">
-                Enable Automated Google Drive Backups
+                Enable {lang === "bn" ? "স্বয়ংক্রিয় গুগল ড্রাইভ ব্যাকআপ" : "Automated Google Drive Backups"}
               </label>
             </div>
 

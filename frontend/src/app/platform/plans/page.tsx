@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useEffect, useRef, useState } from "react";
 import { api } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner } from "@/components/ui";
@@ -40,6 +42,7 @@ const TIER_LABEL: Record<string, string> = {
 };
 
 export default function PlansPage() {
+  const { lang, t } = useLanguage();
   const [plans, setPlans] = useState<Plan[]>([]);
   const [keys, setKeys] = useState<string[]>([]);
   const [tiers, setTiers] = useState<string[]>([]);
@@ -210,7 +213,7 @@ export default function PlansPage() {
                 <div className="form-check form-switch mb-0">
                   <input className="form-check-input" type="checkbox" role="switch" id="offerSwitch"
                     checked={offer.enabled} disabled={offerBusy || !offer.url} onChange={(e) => toggleOffer(e.target.checked)} />
-                  <label className="form-check-label small" htmlFor="offerSwitch">Show on pricing page</label>
+                  <label className="form-check-label small" htmlFor="offerSwitch">{lang === "bn" ? "প্রাইসিং পেইজে প্রদর্শন করুন" : "Show on pricing page"}</label>
                 </div>
                 {offer.url && (
                   <button className="btn btn-outline-danger btn-sm" disabled={offerBusy} onClick={removeOffer}>
@@ -229,7 +232,7 @@ export default function PlansPage() {
           <h2 className="h6 fw-bold d-flex align-items-center gap-2 text-info mb-1">
             <i className="bi bi-fonts"></i> Pricing Page Text
           </h2>
-          <p className="text-secondary small mb-3">Edit the wording shown on the public pricing page.</p>
+          <p className="text-secondary small mb-3">{lang === "bn" ? "পাবলিক প্রাইসিং পেইজে প্রদর্শিত টেক্সট এডিট করুন।" : "Edit the wording shown on the public pricing page."}</p>
           <div className="row g-3">
             {CONTENT_FIELDS.map((f) => (
               <div className="col-md-6" key={f.key}>
@@ -252,12 +255,12 @@ export default function PlansPage() {
       <div className="d-flex align-items-center justify-content-between">
         <h2 className="h6 fw-bold mb-0">Packages ({plans.length})</h2>
         <button className="btn btn-brand btn-sm" onClick={addPackage} disabled={usedTiers.size >= tiers.length}>
-          <i className="bi bi-plus-lg me-1"></i> Add Package
+          <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "প্যাকেজ যোগ করুন" : "Add Package"}
         </button>
       </div>
 
       {plans.length === 0 && (
-        <div className="alert alert-info">No packages yet. Click <strong>Add Package</strong> to create one.</div>
+        <div className="alert alert-info">{lang === "bn" ? "কোনো প্যাকেজ তৈরি হয়নি।" : "No packages yet."} Click <strong>{lang === "bn" ? "প্যাকেজ যোগ করুন" : "Add Package"}</strong> to create one.</div>
       )}
 
       <div className="row g-3">
@@ -293,7 +296,7 @@ export default function PlansPage() {
                     on={(v) => upd(plan.id, { max_products: Number(v) })} onShow={(b) => upd(plan.id, { show_products: b })} id={`p-${plan.id}`} />
                 </div>
 
-                <label className="form-label small fw-bold">Features</label>
+                <label className="form-label small fw-bold">{lang === "bn" ? "ফিচারসমূহ" : "Features"}</label>
                 <div className="row g-2 mb-3">
                   {keys.map((k) => (
                     <div className="col-6" key={k}>
@@ -306,7 +309,7 @@ export default function PlansPage() {
                   ))}
                 </div>
 
-                <label className="form-label small fw-bold">Feature bullets (one per line)</label>
+                <label className="form-label small fw-bold">{lang === "bn" ? "ফিচার বুলেটসমূহ (প্রতি লাইনে একটি)" : "Feature bullets (one per line)"}</label>
                 <textarea className="form-control form-control-sm font-monospace mb-1" rows={5}
                   placeholder={"Leave blank to auto-list limits & features.\nUp to 1000 Users\nPoint of Sale (POS)\nFree setup & training"}
                   value={(plan.highlights || []).join("\n")}

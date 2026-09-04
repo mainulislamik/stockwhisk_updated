@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import { useCallback, useEffect, useState } from "react";
@@ -19,6 +21,7 @@ type Video = {
 };
 
 export default function TutorialsPage() {
+  const { lang, t } = useLanguage();
   const [videos, setVideos] = useState<Video[] | null>(null);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ title: "", youtube_url: "", sequence: "", target_audience: "all" as "all" | "public" | "both" | "shop" | "reseller" });
@@ -99,18 +102,18 @@ export default function TutorialsPage() {
       )}
 
       <Card className="mb-4">
-        <h2 className="h6 fw-bold mb-3">Add a tutorial video</h2>
+        <h2 className="h6 fw-bold mb-3">{lang === "bn" ? "নতুন টিউটোরিয়াল ভিডিও যুক্ত করুন" : "Add a tutorial video"}</h2>
         <form className="row g-3 align-items-end" onSubmit={add}>
           <div className="col-md-5">
-            <label className="form-label small fw-medium">Video title</label>
-            <input className="form-control" required placeholder="e.g. How to make your first sale" value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+            <label className="form-label small fw-medium">{lang === "bn" ? "ভিডিওর শিরোনাম" : "Video title"}</label>
+            <input className="form-control" required placeholder={lang === "bn" ? "যেমন: কীভাবে প্রথম বিক্রয় করবেন" : "e.g. How to make your first sale"} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
           </div>
           <div className="col-md-4">
-            <label className="form-label small fw-medium">YouTube link</label>
+            <label className="form-label small fw-medium">{lang === "bn" ? "ইউটিউব লিংক" : "YouTube link"}</label>
             <input className="form-control" required placeholder="https://youtu.be/…" value={form.youtube_url} onChange={(e) => setForm((f) => ({ ...f, youtube_url: e.target.value }))} />
           </div>
           <div className="col-md-2">
-            <label className="form-label small fw-medium">Audience</label>
+            <label className="form-label small fw-medium">{lang === "bn" ? "দর্শকদের ধরন (Audience)" : "Audience"}</label>
             <select className="form-select" value={form.target_audience} onChange={(e) => setForm(f => ({...f, target_audience: e.target.value as any}))}>
               <option value="all">All (Public, Shop, Reseller)</option>
               <option value="public">Public Website Only</option>
@@ -132,7 +135,7 @@ export default function TutorialsPage() {
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-4">
-              <tr><th>Seq</th><th>Preview</th><th>Title / Link</th><th>Audience</th><th>Active</th><th className="text-end">Actions</th></tr>
+              <tr><th>Seq</th><th>Preview</th><th>Title / Link</th><th>{lang === "bn" ? "দর্শকদের ধরন (Audience)" : "Audience"}</th><th>Active</th><th className="text-end">Actions</th></tr>
             </thead>
             <tbody>
               {videos.length === 0 && <EmptyRow cols={6} text="No tutorials yet." />}

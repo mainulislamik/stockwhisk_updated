@@ -194,7 +194,7 @@ export default function ProductsPage() {
             <form onSubmit={saveProduct} className="row g-3">
               <div className="col-md-4">
                 <label className="small">{t("prod_list_name")}</label>
-                <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Castor Oil / Shampoo" />
+                <input required className="form-control form-control-sm" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder={lang === "bn" ? "যেমন: ক্যাস্টর অয়েল / শ্যাম্পু" : "e.g. Castor Oil / Shampoo"} />
               </div>
               <div className="col-md-4">
                 <label className="small">

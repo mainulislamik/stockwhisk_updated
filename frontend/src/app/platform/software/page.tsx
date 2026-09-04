@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { confirmAction } from "@/lib/dialogs";
 import { useEffect, useState } from "react";
 import { api, unwrap } from "@/lib/api";
@@ -17,6 +19,7 @@ type SoftwareRelease = {
 };
 
 export default function SoftwareAdminPage() {
+  const { lang, t } = useLanguage();
   const [releases, setReleases] = useState<SoftwareRelease[] | null>(null);
   const [error, setError] = useState("");
   
@@ -90,7 +93,7 @@ export default function SoftwareAdminPage() {
         title="Software Releases" 
         actions={
           <button className="btn btn-brand" onClick={() => setShowModal(true)}>
-            + Upload Software
+            + {lang === "bn" ? "নতুন সফটওয়্যার বিল্ড আপলোড" : "Upload Software"}
           </button>
         }
       />
@@ -100,10 +103,10 @@ export default function SoftwareAdminPage() {
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-1">
               <tr>
-                <th>Platform</th>
-                <th>Version</th>
-                <th>Status</th>
-                <th>Uploaded At</th>
+                <th>{lang === "bn" ? "প্ল্যাটফর্ম" : "Platform"}</th>
+                <th>{lang === "bn" ? "ভার্সন" : "Version"}</th>
+                <th>setStatus</th>
+                <th>{lang === "bn" ? "আপলোডের সময়" : "Uploaded At"}</th>
                 <th className="text-end">Actions</th>
               </tr>
             </thead>
@@ -148,7 +151,7 @@ export default function SoftwareAdminPage() {
             <div className="modal-dialog modal-dialog-centered">
               <form className="modal-content" onSubmit={handleUpload}>
                 <div className="modal-header border-0 pb-0">
-                  <h5 className="modal-title fw-bold">Upload Software</h5>
+                  <h5 className="modal-title fw-bold">{lang === "bn" ? "নতুন সফটওয়্যার বিল্ড আপলোড" : "Upload Software"}</h5>
                   <button type="button" className="btn-close" onClick={() => setShowModal(false)} />
                 </div>
                 <div className="modal-body">

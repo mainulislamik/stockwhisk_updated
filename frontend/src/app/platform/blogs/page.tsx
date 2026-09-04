@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import { useEffect, useState } from "react";
@@ -18,6 +20,7 @@ type BlogPost = {
 };
 
 export default function BlogsAdminPage() {
+  const { lang, t } = useLanguage();
   const [blogs, setBlogs] = useState<BlogPost[] | null>(null);
   const [error, setError] = useState("");
 
@@ -60,9 +63,9 @@ export default function BlogsAdminPage() {
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-1">
               <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Published At</th>
+                <th>{lang === "bn" ? "শিরোনাম" : "Title"}</th>
+                <th>setStatus</th>
+                <th>{lang === "bn" ? "প্রকাশের তারিখ" : "Published At"}</th>
                 <th className="text-end">Actions</th>
               </tr>
             </thead>

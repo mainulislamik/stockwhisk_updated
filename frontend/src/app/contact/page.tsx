@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useState } from "react";
 import { Box, Typography, Button, Container, Grid, Card, CardContent, TextField, Stack } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
@@ -24,6 +26,7 @@ const WHATSAPP = "8801613511887"; // wa.me international format
 const EMAIL = "contact@stockwhisk.com";
 
 export default function ContactPage() {
+  const { lang, t } = useLanguage();
   const [form, setForm] = useState({ name: "", email: "", phone: "", subject: "", message: "" });
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
@@ -126,11 +129,11 @@ export default function ContactPage() {
                   {sent ? (
                     <Box sx={{ textAlign: "center", py: 5 }}>
                       <Box sx={{ fontSize: "3rem", mb: 1 }}>✅</Box>
-                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>Message sent!</Typography>
+                      <Typography variant="h6" sx={{ fontWeight: 700, mb: 1 }}>{lang === "bn" ? "বার্তা সফলভাবে পাঠানো হয়েছে!" : "Message sent!"}</Typography>
                       <Typography sx={{ color: COLORS.onSurfaceVariant, mb: 3 }}>
                         Thanks for reaching out. We&apos;ll get back to you at your email soon.
                       </Typography>
-                      <Button variant="outlined" onClick={() => setSent(false)}>Send another message</Button>
+                      <Button variant="outlined" onClick={() => setSent(false)}>{lang === "bn" ? "আরেকটি বার্তা পাঠান" : "Send another message"}</Button>
                     </Box>
                   ) : (
                     <Box component="form" onSubmit={submit}>

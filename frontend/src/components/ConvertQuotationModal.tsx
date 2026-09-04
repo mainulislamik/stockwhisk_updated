@@ -723,7 +723,7 @@ export default function ConvertQuotationModal({
                                     id="existingEmail"
                                     value={walkEmail}
                                     onChange={(e) => setWalkEmail(e.target.value)}
-                                    placeholder="email@example.com"
+                                    placeholder={lang === "bn" ? "ইমেইল ঠিকানা" : "email@example.com"}
                                   />
                                   <label htmlFor="existingEmail">
                                     {isEmi ? "📧 Email (Required for EMI)" : lang === "bn" ? "📧 ইমেইল (ঐচ্ছিক)" : "📧 Email (Optional)"}
@@ -741,7 +741,7 @@ export default function ConvertQuotationModal({
                                         id="walkPhone"
                                         value={walkPhone}
                                         onChange={(e) => onWalkPhoneChange(e.target.value)}
-                                        placeholder="017XXXXXXXX"
+                                        placeholder={lang === "bn" ? "মোবাইল নম্বর" : "017XXXXXXXX"}
                                       />
                                       <label htmlFor="walkPhone">{lang === "bn" ? "মোবাইল নম্বর" : "Phone"}</label>
                                     </div>
@@ -754,7 +754,7 @@ export default function ConvertQuotationModal({
                                         id="walkName"
                                         value={walkName}
                                         onChange={(e) => setWalkName(e.target.value)}
-                                        placeholder="Name"
+                                        placeholder={lang === "bn" ? "গ্রাহকের নাম" : "Name"}
                                       />
                                       <label htmlFor="walkName">{lang === "bn" ? "কাস্টমারের নাম" : "Customer Name"}</label>
                                     </div>
@@ -790,7 +790,7 @@ export default function ConvertQuotationModal({
                                         id="walkAddress"
                                         value={walkAddress}
                                         onChange={(e) => setWalkAddress(e.target.value)}
-                                        placeholder="Address"
+                                        placeholder={lang === "bn" ? "ঠিকানা" : "Address"}
                                       />
                                       <label htmlFor="walkAddress">{lang === "bn" ? "ঠিকানা (ঐচ্ছিক)" : "Address (Optional)"}</label>
                                     </div>

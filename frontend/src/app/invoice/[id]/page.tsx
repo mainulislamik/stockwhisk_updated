@@ -266,7 +266,7 @@ export default function InvoicePage() {
             <div><span>{lang === "bn" ? "ক্রেতা:" : "Customer:"}</span> {sale.bill_name || "Walk-in Customer"}</div>
             {sale.bill_phone && <div><span>{lang === "bn" ? "মোবাইল:" : "Phone:"}</span> {sale.bill_phone}</div>}
             {paymentMethods && <div><span>{lang === "bn" ? "পেমেন্ট:" : "Payment:"}</span> {paymentMethods}</div>}
-            <div><span>{lang === "bn" ? "স্ট্যাটাস:" : "Status:"}</span> <b style={{ textTransform: "uppercase" }}>{statusLabel}</b></div>
+            <div><span>setStatus</span> <b style={{ textTransform: "uppercase" }}>{statusLabel}</b></div>
           </div>
 
           <div className="pos-divider" />

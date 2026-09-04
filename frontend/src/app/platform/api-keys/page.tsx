@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import { useCallback, useEffect, useState } from "react";
@@ -23,6 +25,7 @@ type Key = {
 const RESOURCES = ["products", "inventory", "customers", "sales", "reports"];
 
 export default function ApiKeysPage() {
+  const { lang, t } = useLanguage();
   const [keys, setKeys] = useState<Key[] | null>(null);
   const [shops, setShops] = useState<{ id: number; name: string }[]>([]);
   const [error, setError] = useState("");
@@ -69,7 +72,7 @@ export default function ApiKeysPage() {
   }
 
   async function revoke(k: Key) {
-    if (!(await confirmAction(`Revoke "${k.name}"?`))) return;
+    if (!(await confirmAction(`{lang === "bn" ? "বাতিল করুন" : "Revoke"} "${k.name}"?`))) return;
     try { await api(`/platform/api-keys/${k.id}/`, { method: "DELETE" }); await load(); }
     catch (e: any) { toast.error(e?.message || "Failed."); }
   }
@@ -94,7 +97,7 @@ export default function ApiKeysPage() {
         <div className="alert alert-warning">
           <div className="fw-semibold mb-1">New key “{rawKey.name}” — copy it now, it won’t be shown again.</div>
           <code className="d-block bg-white border rounded p-2 text-break">{rawKey.key}</code>
-          <button className="btn btn-sm btn-outline-secondary mt-2" onClick={() => navigator.clipboard?.writeText(rawKey.key)}>Copy</button>
+          <button className="btn btn-sm btn-outline-secondary mt-2" onClick={() => navigator.clipboard?.writeText(rawKey.key)}>{lang === "bn" ? "কপি" : "Copy"}</button>
         </div>
       )}
 
@@ -108,15 +111,15 @@ export default function ApiKeysPage() {
             </select>
           </div>
           <div className="col-md-3">
-            <label className="form-label small fw-medium">Key name</label>
-            <input className="form-control" placeholder="API key" value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
+            <label className="form-label small fw-medium">{lang === "bn" ? "এপিআই কি এর নাম" : "Key name"}</label>
+            <input className="form-control" placeholder={lang === "bn" ? "যেমন: POS API Key" : "API key"} value={form.name} onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))} />
           </div>
           <div className="col-md-2">
-            <div className="form-check"><input className="form-check-input" type="checkbox" id="cr" checked={form.can_read} onChange={(e) => setForm((f) => ({ ...f, can_read: e.target.checked }))} /><label className="form-check-label" htmlFor="cr">Read</label></div>
-            <div className="form-check"><input className="form-check-input" type="checkbox" id="cw" checked={form.can_write} onChange={(e) => setForm((f) => ({ ...f, can_write: e.target.checked }))} /><label className="form-check-label" htmlFor="cw">Write</label></div>
+            <div className="form-check"><input className="form-check-input" type="checkbox" id="cr" checked={form.can_read} onChange={(e) => setForm((f) => ({ ...f, can_read: e.target.checked }))} /><label className="form-check-label" htmlFor="cr">{lang === "bn" ? "পড়ার অনুমতি (Read)" : "Read"}</label></div>
+            <div className="form-check"><input className="form-check-input" type="checkbox" id="cw" checked={form.can_write} onChange={(e) => setForm((f) => ({ ...f, can_write: e.target.checked }))} /><label className="form-check-label" htmlFor="cw">{lang === "bn" ? "লেখার অনুমতি (Write)" : "Write"}</label></div>
           </div>
           <div className="col-md-3">
-            <label className="form-label small fw-medium d-block">Resources</label>
+            <label className="form-label small fw-medium d-block">{lang === "bn" ? "রিসোর্স অনুমতিসমূহ" : "Resources"}</label>
             {RESOURCES.map((r) => (
               <span key={r} className="form-check form-check-inline">
                 <input className="form-check-input" type="checkbox" id={`r-${r}`} checked={form.resources.includes(r)} onChange={() => toggleResource(r)} />
@@ -142,14 +145,14 @@ export default function ApiKeysPage() {
                   <td>{k.name}</td>
                   <td><code>{k.prefix}…</code></td>
                   <td className="small">{[k.can_read && "read", k.can_write && "write"].filter(Boolean).join(", ")}<br /><span className="text-secondary">{(k.resources || []).join(", ")}</span></td>
-                  <td>{k.is_active ? <span className="text-success">Active</span> : <span className="text-danger">Revoked</span>}</td>
+                  <td>{k.is_active ? <span className="text-success">Active</span> : <span className="text-danger">{lang === "bn" ? "বাতিল করুন" : "Revoke"}d</span>}</td>
                   <td className="text-nowrap small">{k.last_used_at ? fmtDate(k.last_used_at) : "—"}</td>
                   <td className="text-nowrap small">{fmtDate(k.created_at)}</td>
                   <td className="text-end">
                     {k.is_active && (
                       <div className="d-flex gap-1 justify-content-end">
                         <button className="btn btn-outline-secondary btn-sm py-0" onClick={() => regenerate(k)}>Regenerate</button>
-                        <button className="btn btn-outline-danger btn-sm py-0" onClick={() => revoke(k)}>Revoke</button>
+                        <button className="btn btn-outline-danger btn-sm py-0" onClick={() => revoke(k)}>{lang === "bn" ? "বাতিল করুন" : "Revoke"}</button>
                       </div>
                     )}
                   </td>

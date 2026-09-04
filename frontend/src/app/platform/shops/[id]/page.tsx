@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { startImpersonation } from "@/lib/impersonation";
 import { ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 type Shop = {
   id: number;
@@ -60,6 +61,7 @@ const TYPE_LABELS: Record<string, string> = {
 };
 
 export default function ShopDetailsPage() {
+  const { lang, t } = useLanguage();
   const { id } = useParams() as { id: string };
   const router = useRouter();
   
@@ -259,42 +261,42 @@ export default function ShopDetailsPage() {
         <div className="col-lg-8">
           <div className="card border-0 shadow-sm rounded-4 h-100" style={{ background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(10px)" }}>
             <div className="card-body p-4">
-              <h5 className="fw-bold text-white mb-4"><i className="bi bi-shop me-2 text-brand"></i>Shop Information</h5>
+              <h5 className="fw-bold text-white mb-4"><i className="bi bi-shop me-2 text-brand"></i>{lang === "bn" ? "দোকানের সাধারণ তথ্য" : "Shop Information"}</h5>
               
               <div className="row g-4">
                 <div className="col-md-6">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
-                    <p className="text-secondary small mb-1">Unique Shop ID</p>
+                    <p className="text-secondary small mb-1">{lang === "bn" ? "ইউনিক শপ আইডি" : "Unique Shop ID"}</p>
                     <p className="fw-bold text-brand mb-0 font-monospace fs-5">{shop.shop_code || `SW-${1000 + shop.id}`}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
-                    <p className="text-secondary small mb-1">Business Type</p>
+                    <p className="text-secondary small mb-1">{lang === "bn" ? "ব্যবসার ধরন" : "Business Type"}</p>
                     <p className="fw-medium text-white mb-0">{TYPE_LABELS[shop.business_type] || shop.business_type}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
-                    <p className="text-secondary small mb-1">Contact Phone</p>
+                    <p className="text-secondary small mb-1">{lang === "bn" ? "যোগাযোগের নম্বর" : "Contact Phone"}</p>
                     <p className="fw-medium text-white mb-0">{shop.phone || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
-                    <p className="text-secondary small mb-1">Public Email</p>
+                    <p className="text-secondary small mb-1">{lang === "bn" ? "অফিসিয়াল ইমেইল" : "Public Email"}</p>
                     <p className="fw-medium text-white mb-0">{shop.email || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
-                    <p className="text-secondary small mb-1">Total Users</p>
+                    <p className="text-secondary small mb-1">{lang === "bn" ? "মোট ব্যবহারকারী" : "Total Users"}</p>
                     <p className="fw-medium text-white mb-0">{shop.user_count} User(s)</p>
                   </div>
                 </div>
                 <div className="col-12">
                   <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
-                    <p className="text-secondary small mb-1">Physical Address</p>
+                    <p className="text-secondary small mb-1">{lang === "bn" ? "ঠিকানা" : "Physical Address"}</p>
                     <p className="fw-medium text-white mb-0">{shop.address || "No address provided"}</p>
                   </div>
                 </div>

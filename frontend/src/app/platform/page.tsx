@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -28,6 +30,7 @@ type Dashboard = {
 };
 
 export default function OverviewPage() {
+  const { lang, t } = useLanguage();
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState("");
 
@@ -70,16 +73,16 @@ export default function OverviewPage() {
       <div className="row g-3 mb-4">
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="text-secondary small">Pending manual payments</div>
+            <div className="text-secondary small">{lang === "bn" ? "অপেক্ষমাণ ম্যানুয়াল পেমেন্ট" : "Pending manual payments"}</div>
             <div className="fs-3 fw-bold">{data.pending_payments}</div>
-            <Link href="/platform/payments" className="small text-decoration-none">Review queue →</Link>
+            <Link href="/platform/payments" className="small text-decoration-none">{lang === "bn" ? "পর্যালোচনা করুন →" : "Review queue →"}</Link>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="text-secondary small">Unread messages</div>
+            <div className="text-secondary small">{lang === "bn" ? "অপঠিত বার্তা" : "Unread messages"}</div>
             <div className="fs-3 fw-bold">{data.unread_messages}</div>
-            <Link href="/platform/messages" className="small text-decoration-none">Open inbox →</Link>
+            <Link href="/platform/messages" className="small text-decoration-none">{lang === "bn" ? "ইনবক্স খুলুন →" : "Open inbox →"}</Link>
           </Card>
         </div>
         <div className="col-6 col-lg-3">
@@ -87,18 +90,18 @@ export default function OverviewPage() {
             <Card>
               <div className="d-flex justify-content-between align-items-start">
                 <div>
-                  <div className="text-secondary small">Approved revenue (all time)</div>
+                  <div className="text-secondary small">{lang === "bn" ? "অনুমোদিত মোট আয় (সর্বমোট)" : "Approved revenue (all time)"}</div>
                   <div className="fs-3 fw-bold">{money(data.approved_revenue)}</div>
                 </div>
                 <i className="bi bi-graph-up-arrow text-success fs-5"></i>
               </div>
-              <div className="small text-brand mt-1">View monthly revenue →</div>
+              <div className="small text-brand mt-1">{lang === "bn" ? "মাসিক আয় বিবরণী →" : "View monthly revenue →"}</div>
             </Card>
           </Link>
         </div>
         <div className="col-6 col-lg-3">
           <Card>
-            <div className="text-secondary small mb-1">Shops by type</div>
+            <div className="text-secondary small mb-1">{lang === "bn" ? "ধরন অনুযায়ী দোকানসমূহ" : "Shops by type"}</div>
             {data.by_business_type.length === 0 && <div className="text-secondary small">—</div>}
             {data.by_business_type.map((b) => (
               <div key={b.business_type} className="d-flex justify-content-between small">
@@ -111,10 +114,10 @@ export default function OverviewPage() {
 
       <Card body={false}>
         <div className="card-body d-flex align-items-center justify-content-between">
-          <h2 className="h6 fw-bold mb-0">Recent shops</h2>
+          <h2 className="h6 fw-bold mb-0">{lang === "bn" ? "সাম্প্রতিক দোকানসমূহ" : "Recent shops"}</h2>
           <div className="d-flex gap-2">
-            <Link href="/platform/shops/new" className="btn btn-brand btn-sm">+ Create shop</Link>
-            <Link href="/platform/shops" className="btn btn-outline-brand btn-sm">All shops →</Link>
+            <Link href="/platform/shops/new" className="btn btn-brand btn-sm">{lang === "bn" ? "+ নতুন শপ তৈরি" : "+ Create shop"}</Link>
+            <Link href="/platform/shops" className="btn btn-outline-brand btn-sm">{lang === "bn" ? "সকল দোকান →" : "All shops →"}</Link>
           </div>
         </div>
         <div className="table-responsive">

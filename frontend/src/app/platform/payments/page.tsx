@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { EmptyRow, ErrorState, PageHeader, Spinner, fmtDate, money } from "@/components/ui";
@@ -25,6 +27,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function PaymentsPage() {
+  const { lang, t } = useLanguage();
   const [rows, setRows] = useState<Payment[] | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -69,12 +72,12 @@ export default function PaymentsPage() {
   return (
     <>
       <PageHeader title="Manual Payment Review" />
-      <input className="form-control mb-3" placeholder="Filter payments…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="form-control mb-3" placeholder={lang === "bn" ? "পেমেন্ট খুঁজুন…" : "Filter payments…"} value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="card shadow-sm">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-2">
-              <tr><th>Shop</th><th>Amount</th><th>Method</th><th>Reference</th><th>Proof</th><th>Status</th><th>Submitted</th><th className="text-end">Action</th></tr>
+              <tr><th>{lang === "bn" ? "দোকান" : "Shop"}</th><th>{lang === "bn" ? "পরিমাণ" : "Amount"}</th><th>{lang === "bn" ? "পেমেন্ট মাধ্যম" : "Method"}</th><th>{lang === "bn" ? "রেফারেন্স / TrxID" : "Reference"}</th><th>{lang === "bn" ? "প্রমাণপত্র / স্লিপ" : "Proof"}</th><th>setStatus</th><th>{lang === "bn" ? "জমার সময়" : "Submitted"}</th><th className="text-end">Action</th></tr>
             </thead>
             <tbody>
               {filtered.length === 0 && <EmptyRow cols={8} text="No payments." />}
@@ -90,8 +93,8 @@ export default function PaymentsPage() {
                   <td className="text-end">
                     {p.status === "pending_review" ? (
                       <div className="d-flex gap-1 justify-content-end">
-                        <button className="btn btn-outline-success btn-sm py-0" disabled={busy === p.id} onClick={() => review(p, "approve")}>Approve</button>
-                        <button className="btn btn-outline-danger btn-sm py-0" disabled={busy === p.id} onClick={() => review(p, "reject")}>Reject</button>
+                        <button className="btn btn-outline-success btn-sm py-0" disabled={busy === p.id} onClick={() => review(p, "approve")}>{lang === "bn" ? "অনুমোদন" : "Approve"}</button>
+                        <button className="btn btn-outline-danger btn-sm py-0" disabled={busy === p.id} onClick={() => review(p, "reject")}>{lang === "bn" ? "প্রত্যাখ্যান" : "Reject"}</button>
                       </div>
                     ) : <span className="text-secondary small">—</span>}
                   </td>

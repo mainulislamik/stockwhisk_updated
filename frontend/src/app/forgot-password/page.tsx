@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +13,7 @@ import VpnKeyIcon from '@mui/icons-material/VpnKey';
 import PublicThemeProvider from '@/components/PublicThemeProvider';
 
 export default function ForgotPasswordPage() {
+  const { lang, t } = useLanguage();
   const router = useRouter();
   const [step, setStep] = useState(0); // 0: Request OTP, 1: Verify OTP & Reset
   const [timeLeft, setTimeLeft] = useState(180); // 3 minutes = 180 seconds
@@ -200,7 +203,7 @@ export default function ForgotPasswordPage() {
         <Box sx={{ width: '100%', maxWidth: '440px' }}>
           <Box sx={{ mb: 5 }}>
             <Typography variant="h4" sx={{ fontWeight: 800, mb: 1.5, color: isDark ? '#fff' : '#0F172A', letterSpacing: '-0.5px' }}>
-              Reset Password
+              setPasswordForm
             </Typography>
             <Typography variant="body1" sx={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '1.05rem' }}>
               {step === 0 ? "Enter your email to receive a verification code." : "Enter the code and your new password."}
@@ -209,10 +212,10 @@ export default function ForgotPasswordPage() {
 
           <Stepper activeStep={step} sx={{ mb: 4 }} alternativeLabel>
             <Step>
-              <StepLabel>Request Code</StepLabel>
+              <StepLabel>{lang === "bn" ? "ভেরিফিকেশন কোড পাঠান" : "Request Code"}</StepLabel>
             </Step>
             <Step>
-              <StepLabel>Reset Password</StepLabel>
+              <StepLabel>setPasswordForm</StepLabel>
             </Step>
           </Stepper>
           
@@ -329,9 +332,9 @@ export default function ForgotPasswordPage() {
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: -1.5, mb: 1 }}>
                   <Typography variant="body2" sx={{ color: isDark ? '#94a3b8' : '#64748b' }}>
                     {timeLeft > 0 ? (
-                      <>Code expires in: <strong style={{ color: isDark ? '#fff' : '#0F172A', paddingLeft: 4 }}>{formatTime(timeLeft)}</strong></>
+                      <>{lang === "bn" ? "কোডের মেয়াদ বাকি:" : "Code expires in:"} <strong style={{ color: isDark ? '#fff' : '#0F172A', paddingLeft: 4 }}>{formatTime(timeLeft)}</strong></>
                     ) : (
-                      <span style={{ color: '#ef4444', fontWeight: 600 }}>Code expired</span>
+                      <span style={{ color: '#ef4444', fontWeight: 600 }}>{lang === "bn" ? "কোডের মেয়াদ শেষ" : "Code expired"}</span>
                     )}
                   </Typography>
                   
@@ -431,7 +434,7 @@ export default function ForgotPasswordPage() {
                     },
                   }}
                 >
-                  {busy ? "Resetting..." : "Reset Password"}
+                  {busy ? "Resetting..." : "setPasswordForm"}
                 </Button>
               </Stack>
             </form>

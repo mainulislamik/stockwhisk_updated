@@ -207,7 +207,7 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
           {loading ? (
             <div className="px-4 py-5 text-center small text-secondary">
               <span className="spinner-border spinner-border-sm me-2 align-middle"></span>
-              <span className="align-middle">Searching everywhere...</span>
+              <span className="align-middle">{lang === "bn" ? "সর্বত্র খোঁজা হচ্ছে..." : "Searching everywhere..."}</span>
             </div>
           ) : !any ? (
             <div className="px-4 py-5 text-center small text-secondary">

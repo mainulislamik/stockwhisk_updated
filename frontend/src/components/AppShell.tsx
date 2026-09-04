@@ -18,7 +18,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const { user, loading, logout, billing, can, isOwner } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const branding = useBranding();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
@@ -266,10 +266,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         {mounted && user?.shop_is_demo && (
           <div className="d-print-none d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "#059669" }}>
             <span className="small">
-              🔴 <strong>Demo mode</strong> — you can browse everything, but changes are disabled (read-only).
+              🔴 <strong>{lang === "bn" ? "ডেমো মোড" : "Demo mode"}</strong> — {lang === "bn" ? "আপনি সবকিছু দেখতে পারবেন, কিন্তু পরিবর্তন করতে পারবেন না (রিড-অনলি)।" : "you can browse everything, but changes are disabled (read-only)."}
             </span>
             <button className="btn btn-light btn-sm py-0" onClick={logout}>
-              ← Exit demo
+              {lang === "bn" ? "← ডেমো থেকে প্রস্থান" : "← Exit demo"}
             </button>
           </div>
         )}

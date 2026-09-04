@@ -1255,7 +1255,7 @@ export default function BarcodesGeneratorPage() {
                       <tr className="small text-secondary">
                         <th>#</th>
                         <th>{lang === "bn" ? "সিরিয়াল বারকোড" : "Serial Barcode"}</th>
-                        <th>{lang === "bn" ? "স্ট্যাটাস" : "Status"}</th>
+                        <th>setStatus</th>
                         <th>{lang === "bn" ? "মূল্য" : "Price"}</th>
                         <th className="text-end">{lang === "bn" ? "অ্যাকশন" : "Action"}</th>
                       </tr>

@@ -1,4 +1,6 @@
 "use client";
+
+import { useLanguage } from "@/contexts/LanguageContext";
 import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -29,6 +31,7 @@ const STATUS_BADGE: Record<string, string> = {
 };
 
 export default function ImportsPage() {
+  const { lang, t } = useLanguage();
   const router = useRouter();
   const [meta, setMeta] = useState<{ shops: { id: number; name: string }[]; types: { value: string; label: string }[] } | null>(null);
   const [jobs, setJobs] = useState<Job[] | null>(null);
@@ -79,35 +82,35 @@ export default function ImportsPage() {
       <PageHeader title="Data Import" />
 
       <Card className="mb-4">
-        <h2 className="h6 fw-bold mb-3">New import</h2>
+        <h2 className="h6 fw-bold mb-3">{lang === "bn" ? "নতুন ডাটা ইমপোর্ট" : "New import"}</h2>
         <form className="row g-3 align-items-end" onSubmit={upload}>
           <div className="col-md-4">
-            <label className="form-label small fw-medium">Target shop</label>
+            <label className="form-label small fw-medium">{lang === "bn" ? "টার্গেট শপ নির্বাচন" : "Target shop"}</label>
             <select className="form-select" required value={shop} onChange={(e) => setShop(e.target.value)}>
-              <option value="">— choose shop —</option>
+              <option value="">{lang === "bn" ? "— শপ নির্বাচন করুন —" : "— choose shop —"}</option>
               {meta.shops.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div className="col-md-4">
-            <label className="form-label small fw-medium">Import type</label>
+            <label className="form-label small fw-medium">{lang === "bn" ? "ইমপোর্টের ধরন" : "Import type"}</label>
             <select className="form-select" value={type} onChange={(e) => setType(e.target.value)}>
               {meta.types.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
             </select>
           </div>
           <div className="col-md-3">
-            <label className="form-label small fw-medium">File (CSV or XLSX)</label>
+            <label className="form-label small fw-medium">{lang === "bn" ? "ফাইল (CSV বা XLSX)" : "File (CSV or XLSX)"}</label>
             <input ref={fileRef} type="file" accept=".csv,.xlsx" className="form-control" required />
           </div>
-          <div className="col-md-1"><button className="btn btn-brand w-100" disabled={busy}>Upload →</button></div>
+          <div className="col-md-1"><button className="btn btn-brand w-100" disabled={busy}>{lang === "bn" ? "আপলোড করুন →" : "Upload →"}</button></div>
         </form>
       </Card>
 
       <div className="card shadow-sm">
-        <div className="card-body"><h2 className="h6 fw-bold mb-0">Recent import jobs</h2></div>
+        <div className="card-body"><h2 className="h6 fw-bold mb-0">{lang === "bn" ? "সাম্প্রতিক ইমপোর্ট হিস্টোরি" : "Recent import jobs"}</h2></div>
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-1">
-              <tr><th>Created</th><th>Shop</th><th>Type</th><th>Status</th><th>Rows</th><th>Created</th><th>Updated</th><th className="text-end"></th></tr>
+              <tr><th>{lang === "bn" ? "তারিখ" : "Created"}</th><th>{lang === "bn" ? "দোকান" : "Shop"}</th><th>{lang === "bn" ? "ধরন" : "Type"}</th><th>setStatus</th><th>{lang === "bn" ? "মোট রো" : "Rows"}</th><th>{lang === "bn" ? "তারিখ" : "Created"}</th><th>Updated</th><th className="text-end"></th></tr>
             </thead>
             <tbody>
               {jobs.length === 0 && <EmptyRow cols={8} text="No import jobs yet." />}

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useState, useEffect } from "react";
 import toast from "react-hot-toast";
 import { api, ApiError } from "@/lib/api";
@@ -26,6 +28,7 @@ type Modal =
   | null;
 
 export default function MailServerPage() {
+  const { lang, t } = useLanguage();
   const [accounts, setAccounts] = useState<MailAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState<Modal>(null);
@@ -65,7 +68,7 @@ export default function MailServerPage() {
     e.preventDefault();
     if (modal?.type !== "password") return;
     if (passwordForm.password !== passwordForm.confirm) {
-      toast.error("Passwords do not match");
+      toast.error(lang === "bn" ? "পাসওয়ার্ড দুটি মিলছে না।" : "Passwords do not match");
       return;
     }
     try {
@@ -73,7 +76,7 @@ export default function MailServerPage() {
         method: "PATCH",
         body: { email: modal.email, password: passwordForm.password },
       });
-      toast.success("Password updated");
+      toast.success(lang === "bn" ? "পাসওয়ার্ড সফলভাবে আপডেট করা হয়েছে।" : "Password updated successfully.");
       setModal(null);
       setPasswordForm({ password: "", confirm: "" });
     } catch (err) {
@@ -134,7 +137,7 @@ export default function MailServerPage() {
       {/* Page header */}
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
-          <h2 className="mb-1 fw-bold">Mail Server Admin</h2>
+          <h2 className="mb-1 fw-bold">{lang === "bn" ? "মেইল সার্ভার প্রশাসন ও অ্যাকাউন্টস" : "Mail Server Admin"}</h2>
           <p className="text-muted small mb-0">
             <i className="bi-envelope-at me-1 text-primary"></i>
             Manage mailboxes, quotas &amp; 1-click logins
@@ -156,8 +159,8 @@ export default function MailServerPage() {
           <table className="table table-hover align-middle mb-0">
             <thead className="table-dark">
               <tr>
-                <th className="ps-4">Email Account</th>
-                <th style={{ minWidth: 220 }}>Storage Used / Quota</th>
+                <th className="ps-4">setEmail</th>
+                <th style={{ minWidth: 220 }}>{lang === "bn" ? "ব্যবহৃত স্টোরেজ / কোটা" : "Storage Used / Quota"}</th>
                 <th className="text-end pe-4">Actions</th>
               </tr>
             </thead>
@@ -228,20 +231,20 @@ export default function MailServerPage() {
 
       {/* ── Create Account Modal ── */}
       {modal?.type === "create" && (
-        <ModalWrap title="New Email Account" icon="bi-envelope-plus" onClose={closeModal}>
+        <ModalWrap title="New setEmail" icon="bi-envelope-plus" onClose={closeModal}>
           <form onSubmit={handleCreate}>
             <div className="mb-3">
-              <label className="form-label small fw-semibold">Email Address</label>
+              <label className="form-label small fw-semibold">setEmail</label>
               <input type="email" className="form-control" placeholder="name@stockwhisk.com"
                 value={createForm.email} onChange={e => setCreateForm({ ...createForm, email: e.target.value })} required />
             </div>
             <div className="mb-3">
-              <label className="form-label small fw-semibold">Password</label>
+              <label className="form-label small fw-semibold">setPasswordForm</label>
               <input type="password" className="form-control" placeholder="Strong password"
                 value={createForm.password} onChange={e => setCreateForm({ ...createForm, password: e.target.value })} required />
             </div>
             <div className="mb-4">
-              <label className="form-label small fw-semibold">Storage Quota</label>
+              <label className="form-label small fw-semibold">{lang === "bn" ? "স্টোরেজ কোটা (MB)" : "Storage Quota"}</label>
               <QuotaField value={createForm.quota}
                 onChange={q => setCreateForm({ ...createForm, quota: q })} />
             </div>
@@ -250,28 +253,28 @@ export default function MailServerPage() {
         </ModalWrap>
       )}
 
-      {/* ── Change Password Modal ── */}
+      {/* ── Change setPasswordForm Modal ── */}
       {modal?.type === "password" && (
-        <ModalWrap title={`Change Password — ${modal.email}`} icon="bi-key" onClose={closeModal}>
+        <ModalWrap title={lang === "bn" ? `পাসওয়ার্ড পরিবর্তন — ${modal.email}` : `Change Password — ${modal.email}`} icon="bi-key" onClose={closeModal}>
           <form onSubmit={handlePasswordChange}>
             <div className="mb-3">
-              <label className="form-label small fw-semibold">New Password</label>
+              <label className="form-label small fw-semibold">{lang === "bn" ? "নতুন পাসওয়ার্ড" : "New Password"}</label>
               <input type="password" className="form-control" placeholder="New password"
                 value={passwordForm.password} onChange={e => setPasswordForm({ ...passwordForm, password: e.target.value })} required />
             </div>
             <div className="mb-4">
-              <label className="form-label small fw-semibold">Confirm Password</label>
+              <label className="form-label small fw-semibold">{lang === "bn" ? "পাসওয়ার্ড নিশ্চিত করুন" : "Confirm Password"}</label>
               <input type="password" className="form-control" placeholder="Repeat password"
                 value={passwordForm.confirm} onChange={e => setPasswordForm({ ...passwordForm, confirm: e.target.value })} required />
             </div>
-            <ModalFooter onClose={closeModal} label="Update Password" btnClass="btn-warning" />
+            <ModalFooter onClose={closeModal} label={lang === "bn" ? "পাসওয়ার্ড আপডেট করুন" : "Update Password"} btnClass="btn-warning" />
           </form>
         </ModalWrap>
       )}
 
       {/* ── Change Quota Modal ── */}
       {modal?.type === "quota" && (
-        <ModalWrap title={`Storage Quota — ${modal.email}`} icon="bi-hdd" onClose={closeModal}>
+        <ModalWrap title={lang === "bn" ? `স্টোরেজ কোটা পরিবর্তন — ${modal.email}` : `Storage Quota — ${modal.email}`} icon="bi-hdd" onClose={closeModal}>
           <form onSubmit={handleQuotaChange}>
             <div className="mb-4">
               <label className="form-label small fw-semibold">
@@ -287,7 +290,7 @@ export default function MailServerPage() {
 
       {/* ── Delete Account Modal ── */}
       {modal?.type === "delete" && (
-        <ModalWrap title="Delete Email Account" icon="bi-exclamation-triangle" onClose={closeModal}>
+        <ModalWrap title={lang === "bn" ? "ইমেইল অ্যাকাউন্ট মুছে ফেলুন" : "Delete Email Account"} icon="bi-exclamation-triangle" onClose={closeModal}>
           <div className="text-center mb-4">
             <div className="d-inline-flex align-items-center justify-content-center rounded-circle mb-3"
               style={{ width: 64, height: 64, background: "rgba(220,53,69,0.15)" }}>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { api } from "@/lib/api";
@@ -47,6 +49,7 @@ const COMM_BADGE: Record<string, string> = {
 };
 
 export default function ResellersPage() {
+  const { lang, t } = useLanguage();
   const [data, setData] = useState<{ resellers: ResellerRow[] } | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -178,14 +181,14 @@ export default function ResellersPage() {
       <PageHeader title="Reseller Management" />
       <div className="d-flex flex-wrap align-items-center gap-2 mb-3">
         <input className="form-control form-control-sm" style={{ width: "250px" }}
-          placeholder="Search name, email, or company…" value={q} onChange={(e) => setQ(e.target.value)} />
+          placeholder={lang === "bn" ? "নাম, ইমেইল বা কোম্পানি দিয়ে খুঁজুন…" : "Search name, email, or company…"} value={q} onChange={(e) => setQ(e.target.value)} />
         <select className="form-select form-select-sm" style={{ width: "auto" }}
           value={filterStatus} onChange={(e) => setFilterStatus(e.target.value)}>
-          <option value="all">All Statuses</option>
-          <option value="pending">Pending</option>
-          <option value="active">Active</option>
-          <option value="rejected">Rejected</option>
-          <option value="suspended">Suspended</option>
+          <option value="all">setStatus</option>
+          <option value="pending">{lang === "bn" ? "অপেক্ষমাণ (Pending)" : "Pending"}</option>
+          <option value="active">{lang === "bn" ? "সক্রিয় (Active)" : "Active"}</option>
+          <option value="rejected">{lang === "bn" ? "বাতিল (Rejected)" : "Rejected"}</option>
+          <option value="suspended">{lang === "bn" ? "স্থগিত (Suspended)" : "Suspended"}</option>
         </select>
       </div>
 
@@ -195,8 +198,8 @@ export default function ResellersPage() {
             <table className="table table-hover align-middle mb-0">
               <thead className="thead-1">
                 <tr>
-                  <th>Code</th><th>Name & Contact</th><th>Company</th><th>Rate</th>
-                  <th>Registered</th><th>Status</th><th className="text-end">Actions</th>
+                  <th>{lang === "bn" ? "কোড" : "Code"}</th><th>Name & Contact</th><th>{lang === "bn" ? "কোম্পানি" : "Company"}</th><th>Rate</th>
+                  <th>Registered</th><th>setStatus</th><th className="text-end">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -331,7 +334,7 @@ export default function ResellersPage() {
                 <div className="fw-semibold mb-1">Referred shops ({detail.shops.length})</div>
                 <div className="table-responsive mb-3" style={{ maxHeight: 180 }}>
                   <table className="table table-sm mb-0">
-                    <thead><tr className="small text-secondary"><th>Shop</th><th>Plan</th><th>Status</th><th>Since</th></tr></thead>
+                    <thead><tr className="small text-secondary"><th>Shop</th><th>Plan</th><th>setStatus</th><th>Since</th></tr></thead>
                     <tbody>
                       {detail.shops.length === 0 ? <tr><td colSpan={4} className="text-secondary small">No referred shops yet.</td></tr> :
                         detail.shops.map(s => (
@@ -350,7 +353,7 @@ export default function ResellersPage() {
                 <div className="fw-semibold mb-1">Commissions & payouts</div>
                 <div className="table-responsive" style={{ maxHeight: 260 }}>
                   <table className="table table-sm align-middle mb-0">
-                    <thead><tr className="small text-secondary"><th>Period</th><th>Shop</th><th className="text-end">Gross profit</th><th className="text-end">Amount</th><th>Status</th><th className="text-end">Action</th></tr></thead>
+                    <thead><tr className="small text-secondary"><th>Period</th><th>Shop</th><th className="text-end">Gross profit</th><th className="text-end">Amount</th><th>setStatus</th><th className="text-end">Action</th></tr></thead>
                     <tbody>
                       {detail.commissions.length === 0 ? <tr><td colSpan={6} className="text-secondary small">No commissions recorded.</td></tr> :
                         detail.commissions.map(c => (

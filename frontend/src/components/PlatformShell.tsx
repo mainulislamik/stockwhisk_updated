@@ -1,13 +1,17 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import PlatformNav from "@/components/PlatformNav";
 import ThemeToggle from "@/components/ThemeToggle";
+import LanguageToggle from "@/components/LanguageToggle";
 import { useBranding } from "@/lib/branding";
 
 export default function PlatformShell({ children }: { children: React.ReactNode }) {
+  const { lang, t } = useLanguage();
   const { user, loading, logout } = useAuth();
   const branding = useBranding();
   const router = useRouter();
@@ -57,7 +61,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
                     <img src={branding.logo} alt="Logo" style={{ height: 44, maxWidth: 170, objectFit: "contain", display: "block" }} />
                   </span>
                 : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
-              <div className="small text-secondary">Platform Admin</div>
+              <div className="small text-secondary">{lang === "bn" ? "প্ল্যাটফর্ম অ্যাডমিন" : "Platform Admin"}</div>
             </div>
           )}
           <button onClick={toggle} className="btn btn-sm text-secondary flex-shrink-0" title={collapsed ? "Expand" : "Collapse"}>
@@ -70,7 +74,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
         <div className="p-3 border-top border-secondary border-opacity-25 small text-secondary">
           {!collapsed && <div className="text-truncate">{user.email}</div>}
           <a onClick={logout} role="button" className="d-inline-block mt-2 text-danger text-decoration-none" title="Log out">
-            {collapsed ? "⎋" : "Log out →"}
+            {collapsed ? "⎋" : (lang === "bn" ? "লগআউট →" : "Log out →")}
           </a>
         </div>
       </aside>
@@ -84,7 +88,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
                   <img src={branding.logo} alt="Logo" style={{ height: 44, maxWidth: 170, objectFit: "contain", display: "block" }} />
                 </span>
               : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
-            <div className="small text-secondary">Platform Admin</div>
+            <div className="small text-secondary">{lang === "bn" ? "প্ল্যাটফর্ম অ্যাডমিন" : "Platform Admin"}</div>
           </div>
           <button type="button" className="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
@@ -92,7 +96,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
           <nav className="nav flex-column gap-1">{mounted && <PlatformNav />}</nav>
           <div className="border-top border-secondary border-opacity-25 mt-2 pt-2 small text-secondary">
             <div className="text-truncate">{user.email}</div>
-            <a onClick={logout} role="button" className="text-danger text-decoration-none">Log out →</a>
+            <a onClick={logout} role="button" className="text-danger text-decoration-none">{lang === "bn" ? "লগআউট →" : "Log out →"}</a>
           </div>
         </div>
       </div>
@@ -109,8 +113,8 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
           >
             <i className="bi bi-list"></i>
           </button>
-          <span className="fw-semibold text-secondary">Platform Admin</span>
-          <ThemeToggle className="ms-auto" />
+          <span className="fw-semibold text-secondary">{lang === "bn" ? "প্ল্যাটফর্ম অ্যাডমিন" : "Platform Admin"}</span>
+          <div className="ms-auto d-flex align-items-center gap-2"><LanguageToggle /><ThemeToggle /></div>
         </header>
         <main className="p-3 p-md-4 flex-grow-1">{children}</main>
       </div>

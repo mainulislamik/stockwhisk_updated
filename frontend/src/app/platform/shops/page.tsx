@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, fetchAll } from "@/lib/api";
@@ -45,6 +47,7 @@ const TYPE_LABELS: Record<string, string> = {
 const COOLOFF_DAYS = 15;
 
 export default function ShopsPage() {
+  const { lang, t } = useLanguage();
   const [shops, setShops] = useState<Shop[] | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -119,12 +122,12 @@ export default function ShopsPage() {
     <>
       <PageHeader
         title="All Shops"
-        actions={<Link href="/platform/shops/new" className="btn btn-brand btn-sm">+ Create shop</Link>}
+        actions={<Link href="/platform/shops/new" className="btn btn-brand btn-sm">{lang === "bn" ? "+ নতুন শপ তৈরি" : "+ Create shop"}</Link>}
       />
 
       <input
         className="form-control mb-3 shadow-sm"
-        placeholder="Filter shops by name or unique ID (e.g. SW-1001 or Fast Electronics)…"
+        placeholder={lang === "bn" ? "নাম বা ইউনিক শপ আইডি দিয়ে খুঁজুন (যেমন: SW-1001)…" : "Filter shops by name or unique ID (e.g. SW-1001 or Fast Electronics)…"}
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
@@ -134,8 +137,8 @@ export default function ShopsPage() {
           <table className="table table-hover align-middle mb-0">
             <thead className="thead-1">
               <tr>
-                <th>Unique ID</th><th>Shop</th><th>Type</th><th>Plan</th><th>Users</th>
-                <th>Status</th><th>Created</th><th className="text-end">Actions</th>
+                <th>{lang === "bn" ? "ইউনিক আইডি" : "Unique ID"}</th><th>{lang === "bn" ? "দোকান / ব্যবসা" : "Shop"}</th><th>{lang === "bn" ? "ধরন" : "Type"}</th><th>{lang === "bn" ? "প্যাকেজ" : "Plan"}</th><th>{lang === "bn" ? "ব্যবহারকারী" : "Users"}</th>
+                <th>setStatus</th><th>{lang === "bn" ? "তৈরির তারিখ" : "Created"}</th><th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>

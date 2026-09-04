@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useEffect, useState } from "react";
 import ResellerShell from "@/components/ResellerShell";
 import { api } from "@/lib/api";
@@ -16,6 +18,7 @@ type TutorialVideo = {
 };
 
 export default function ResellerTutorialsPage() {
+  const { lang, t } = useLanguage();
   const [videos, setVideos] = useState<TutorialVideo[] | null>(null);
   const [error, setError] = useState("");
   const [active, setActive] = useState<TutorialVideo | null>(null);
@@ -28,8 +31,8 @@ export default function ResellerTutorialsPage() {
 
   return (
     <ResellerShell>
-      <h3 className="fw-bold mb-1">Video Tutorials</h3>
-      <p className="text-secondary mb-4">Learn how to make the most of StockWhisk and grow your partner earnings.</p>
+      <h3 className="fw-bold mb-1">{lang === "bn" ? "ভিডিও টিউটোরিয়াল" : "Video Tutorials"}</h3>
+      <p className="text-secondary mb-4">{lang === "bn" ? "স্টকহুইস্ক ব্যবহার শিখে আপনার পার্টনার উপার্জন বাড়ান।" : "Learn how to make the most of StockWhisk and grow your partner earnings."}</p>
 
       {error ? (
         <div className="alert alert-warning py-2">{error}</div>
@@ -38,7 +41,7 @@ export default function ResellerTutorialsPage() {
       ) : videos.length === 0 ? (
         <div className="card border-0 shadow-sm"><div className="card-body text-center py-5 text-secondary">
           <div className="fs-1 mb-2">🎬</div>
-          <div className="fw-semibold">No tutorials available at the moment.</div>
+          <div className="fw-semibold">{lang === "bn" ? "বর্তমানে কোনো টিউটোরিয়াল পাওয়া যায়নি।" : "No tutorials available at the moment."}</div>
         </div></div>
       ) : (
         <div className="row g-3">
@@ -96,7 +99,7 @@ export default function ResellerTutorialsPage() {
                       allowFullScreen className="rounded" />
                   ) : (
                     <div className="d-flex align-items-center justify-content-center text-white">
-                      <a href={active.youtube_url} target="_blank" rel="noreferrer" className="btn btn-primary">Open in YouTube</a>
+                      <a href={active.youtube_url} target="_blank" rel="noreferrer" className="btn btn-primary">{lang === "bn" ? "ইউটিউবে দেখুন" : "Open in YouTube"}</a>
                     </div>
                   )}
                 </div>

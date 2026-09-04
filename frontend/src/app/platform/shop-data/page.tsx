@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
@@ -35,6 +37,7 @@ type Shop = {
 };
 
 export default function ShopDataPage() {
+  const { lang, t } = useLanguage();
   const [backups, setBackups] = useState<ShopDataBackup[] | null>(null);
   const [operations, setOperations] = useState<ShopDataOperation[] | null>(null);
   const [shops, setShops] = useState<Shop[]>([]);
@@ -143,7 +146,7 @@ export default function ShopDataPage() {
       />
 
       <div className="alert alert-danger shadow-sm border-danger border-opacity-50">
-        <h5 className="alert-heading text-danger fw-bold"><i className="bi bi-exclamation-triangle-fill me-2"></i>Danger Zone: Clear Shop Operational Data</h5>
+        <h5 className="alert-heading text-danger fw-bold"><i className="bi bi-exclamation-triangle-fill me-2"></i>{lang === "bn" ? "সতর্কতা অঞ্চল: শপের অপারেশনাল ডাটা মুছে ফেলুন" : "Danger Zone: Clear Shop Operational Data"}</h5>
         <p className="mb-3">
           This utility permanently deletes a shop's <strong>operational data</strong> (sales, inventory, customers, expenses, products) 
           while preserving the shop's configuration, users, and subscription data.
@@ -155,7 +158,7 @@ export default function ShopDataPage() {
             value={selectedShopId} 
             onChange={(e) => setSelectedShopId(e.target.value)}
           >
-            <option value="">-- Select a shop to clear --</option>
+            <option value="">{lang === "bn" ? "-- ডাটা মুছে ফেলার জন্য শপ নির্বাচন করুন --" : "-- Select a shop to clear --"}</option>
             {shops.map(s => (
               <option key={s.id} value={s.id}>{s.name} ({s.shop_code || `SW-${1000 + s.id}`})</option>
             ))}
@@ -174,7 +177,7 @@ export default function ShopDataPage() {
         <div className="col-lg-8">
           <div className="card shadow-sm mb-4">
             <div className="card-header bg-white">
-              <h5 className="mb-0 fw-semibold">15-Day Recovery Backups</h5>
+              <h5 className="mb-0 fw-semibold">{lang === "bn" ? "১৫ দিনের রিকভারি ব্যাকআপসমূহ" : "15-Day Recovery Backups"}</h5>
             </div>
             <div className="table-responsive">
               <table className="table table-hover align-middle mb-0">
@@ -189,7 +192,7 @@ export default function ShopDataPage() {
                 </thead>
                 <tbody>
                   {backups.length === 0 && (
-                    <tr><td colSpan={5} className="text-center text-muted py-4">No active backups available.</td></tr>
+                    <tr><td colSpan={5} className="text-center text-muted py-4">{lang === "bn" ? "কোনো ব্যাকআপ পাওয়া যায়নি।" : "No active backups available."}</td></tr>
                   )}
                   {backups.map(b => (
                     <tr key={b.id}>

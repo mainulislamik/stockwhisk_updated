@@ -1017,7 +1017,7 @@ export default function PurchaseProductPage() {
           <div className="card-body">
             <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 border-bottom pb-2">
               <div className="d-flex flex-wrap align-items-center gap-3">
-                <h2 className="h6 fw-bold mb-0 text-brand text-nowrap">▦ Bulk Barcode Scan &amp; Ingestion</h2>
+                <h2 className="h6 fw-bold mb-0 text-brand text-nowrap">▦ {lang === "bn" ? "বাল্ক বারকোড স্ক্যান ও স্টক ইনজেকশন" : "Bulk Barcode Scan & Ingestion"}</h2>
                 
                 {/* Modern Self-Contained Auto-Barcode Toggle Pill */}
                 <div
@@ -1088,7 +1088,7 @@ export default function PurchaseProductPage() {
                 <textarea
                   className="form-control font-monospace"
                   rows={6}
-                  placeholder="Scan or paste barcodes — each code separates automatically. One code per line."
+                  placeholder={lang === "bn" ? "বারকোড স্ক্যান বা পেস্ট করুন — প্রতি লাইনে একটি।" : "Scan or paste barcodes — each code separates automatically. One code per line."}
                   value={barcodeText}
                   onChange={handleBarcodeInput}
                 />
@@ -1115,7 +1115,7 @@ export default function PurchaseProductPage() {
                     className="btn btn-outline-primary btn-sm w-100 mt-1"
                     onClick={() => setShowScanner(true)}
                   >
-                    📷 Scan with Camera
+                    📷 {lang === "bn" ? "ক্যামেরা দিয়ে স্ক্যান করুন" : "Scan with Camera"}
                   </button>
                   <button
                     type="button"
@@ -1144,7 +1144,7 @@ export default function PurchaseProductPage() {
                 ) : (
                   "+ "
                 )}
-                Add {effQty} unit(s) to receive
+                {lang === "bn" ? `+ ${effQty} ইউনিট তালিকায় যুক্ত করুন` : `+ Add ${effQty} unit(s) to receive`}
               </button>
             </div>
           </div>
@@ -1155,7 +1155,7 @@ export default function PurchaseProductPage() {
       <div className="col-lg-4">
         <div className="card shadow-sm" style={{ position: "sticky", top: "1rem" }}>
           <div className="card-header text-white fw-semibold" style={{ background: "var(--brand-900, #1a2433)" }}>
-            <div>📦 To Receive</div>
+            <div>📦 {lang === "bn" ? "গ্রহণের তালিকা" : "To Receive"}</div>
             <div className="small fw-normal opacity-75">{t("pp_pending_inject")}</div>
           </div>
           <div className="card-body p-0">
@@ -1295,7 +1295,7 @@ export default function PurchaseProductPage() {
                     <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(7))}>+7d</button>
                     <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(15))}>+15d</button>
                     <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(addDays(30))}>+30d</button>
-                    <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(getNextMonthFirstDay())}>1st Next Mth</button>
+                    <button type="button" className="btn btn-outline-warning btn-xs py-0 px-1" style={{ fontSize: "0.68rem" }} onClick={() => setPromisedDate(getNextMonthFirstDay())}>{lang === "bn" ? "পরের মাসের ১ তারিখ" : "1st Next Mth"}</button>
                   </div>
                 </div>
               )}
@@ -1312,7 +1312,7 @@ export default function PurchaseProductPage() {
                     value={supplier}
                     onChange={(e) => setSupplier(e.target.value)}
                   >
-                    <option value="">— none —</option>
+                    <option value="">{lang === "bn" ? "— কোনোটি নয় —" : "— none —"}</option>
                     {suppliers.map((s) => (
                       <option key={s.id} value={s.id}>
                         {s.name}
@@ -1334,23 +1334,23 @@ export default function PurchaseProductPage() {
                   onSubmit={createVendor}
                   className="border rounded p-3 mt-2 mb-3 bg-light"
                 >
-                  <div className="small fw-bold text-brand mb-2">✨ Quick Add Vendor</div>
+                  <div className="small fw-bold text-brand mb-2">✨ {lang === "bn" ? "দ্রুত সাপ্লায়ার যুক্ত করুন" : "Quick Add Vendor"}</div>
                   <input
                     required
                     className="form-control form-control-sm mb-2"
-                    placeholder="Vendor Name *"
+                    placeholder={lang === "bn" ? "সাপ্লায়ারের নাম *" : "Vendor Name *"}
                     value={newVendor.name}
                     onChange={(e) => setNewVendor({ ...newVendor, name: e.target.value })}
                   />
                   <input
                     className="form-control form-control-sm mb-2"
-                    placeholder="Phone Number"
+                    placeholder={lang === "bn" ? "মোবাইল নম্বর" : "Phone Number"}
                     value={newVendor.phone}
                     onChange={(e) => setNewVendor({ ...newVendor, phone: e.target.value })}
                   />
                   <input
                     className="form-control form-control-sm mb-3"
-                    placeholder="Warehouse / Address"
+                    placeholder={lang === "bn" ? "ঠিকানা / ওয়্যারহাউজ" : "Warehouse / Address"}
                     value={newVendor.address}
                     onChange={(e) => setNewVendor({ ...newVendor, address: e.target.value })}
                   />
@@ -1363,7 +1363,7 @@ export default function PurchaseProductPage() {
                       {t("pp_btn_cancel")}
                     </button>
                     <button className="btn btn-brand btn-sm" disabled={savingVendor}>
-                      {savingVendor ? "Adding…" : "Add Vendor"}
+                      {savingVendor ? (lang === "bn" ? "যোগ হচ্ছে…" : "Adding…") : (lang === "bn" ? "সাপ্লায়ার সংরক্ষণ" : "Add Vendor")}
                     </button>
                   </div>
                 </form>
@@ -1377,7 +1377,7 @@ export default function PurchaseProductPage() {
                     value={branch}
                     onChange={(e) => setBranch(e.target.value)}
                   >
-                    <option value="">— default —</option>
+                    <option value="">{lang === "bn" ? "— ডিফল্ট —" : "— default —"}</option>
                     {branches.map((b) => (
                       <option key={b.id} value={b.id}>
                         {b.name}

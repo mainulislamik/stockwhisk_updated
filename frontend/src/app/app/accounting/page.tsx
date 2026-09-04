@@ -817,7 +817,7 @@ export default function AccountingPage() {
                     <th>{lang === "bn" ? "PO নম্বর" : "PO Number"}</th>
                     <th>{lang === "bn" ? "সাপ্লায়ার" : "Supplier"}</th>
                     <th>{lang === "bn" ? "তারিখ" : "Date"}</th>
-                    <th>{lang === "bn" ? "স্ট্যাটাস" : "Status"}</th>
+                    <th>setStatus</th>
                     <th>{lang === "bn" ? "পেমেন্ট" : "Payment"}</th>
                     <th className="text-end">{lang === "bn" ? "ক্রয় মূল্য (বিনিয়োগ)" : "Purchase Amount (Inv)"}</th>
                   </tr>

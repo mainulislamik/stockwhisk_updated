@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useState } from "react";
 import { Box, Typography, Button, Container, TextField, Stack, Alert } from "@mui/material";
 import MarketingNav from "@/components/MarketingNav";
@@ -12,6 +14,7 @@ const DEMO_EMAIL = "admin@demo.stockwhisk.com";
 const DEMO_PASSWORD = "admin";
 
 export default function DemoPage() {
+  const { lang, t } = useLanguage();
   const { login } = useAuth();
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin");
@@ -94,9 +97,9 @@ export default function DemoPage() {
               </Box>
 
               <Box sx={{ mt: 3, pt: 2.5, borderTop: `1px dashed ${M.borderStrong}`, textAlign: "center" }}>
-                <Typography sx={{ color: M.textFaint, fontSize: ".85rem", mb: 0.5 }}>Demo login</Typography>
+                <Typography sx={{ color: M.textFaint, fontSize: ".85rem", mb: 0.5 }}>{lang === "bn" ? "ডেমো লগইন" : "Demo login"}</Typography>
                 <Typography sx={{ fontWeight: 700, color: M.text }}>
-                  Username: <span style={{ color: M.primary }}>admin</span> &nbsp;·&nbsp; Password: <span style={{ color: M.primary }}>admin</span>
+                  Username: <span style={{ color: M.primary }}>admin</span> &nbsp;·&nbsp; setPasswordForm <span style={{ color: M.primary }}>admin</span>
                 </Typography>
                 <Typography sx={{ color: M.textFaint, fontSize: ".8rem", mt: 1 }}>
                   These credentials only open the demo shop — not real accounts.

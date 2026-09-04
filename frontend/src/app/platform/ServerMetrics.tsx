@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { api } from "@/lib/api";
@@ -16,6 +18,7 @@ function formatBytes(bytes: number) {
 const fetcher = (url: string) => api(url);
 
 export function ServerMetrics() {
+  const { lang } = useLanguage();
   const { data, error } = useSWR("/platform/metrics/", fetcher, {
     refreshInterval: 3000,
   });
@@ -44,7 +47,7 @@ export function ServerMetrics() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data]);
 
-  if (error) return <div className="text-danger small p-3">Failed to load server metrics.</div>;
+  if (error) return <div className="text-danger small p-3">{lang === "bn" ? "সার্ভার মেট্রিক্স লোড করতে ব্যর্থ।" : "Failed to load server metrics."}</div>;
   if (!data) return (
     <Card>
       <div className="placeholder-glow">
@@ -62,7 +65,7 @@ export function ServerMetrics() {
   return (
     <Card>
       <div className="d-flex align-items-center justify-content-between mb-4">
-        <h2 className="h6 fw-bold mb-0 text-secondary">Server Resources</h2>
+        <h2 className="h6 fw-bold mb-0 text-secondary">{lang === "bn" ? "সার্ভার রিসোর্স ও লোড" : "Server Resources"}</h2>
         <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill animate-pulse" style={{ fontSize: '0.75rem' }}>
           <i className="bi bi-broadcast me-1"></i> Live
         </span>
@@ -70,7 +73,7 @@ export function ServerMetrics() {
 
       <div className="row g-4">
         <div className="col-12 col-md-6 col-lg-3">
-          <div className="text-secondary small mb-2 fw-medium">CPU Usage</div>
+          <div className="text-secondary small mb-2 fw-medium">{lang === "bn" ? "সিপিইউ ব্যবহার (CPU)" : "CPU Usage"}</div>
           <div className="d-flex align-items-center mb-2">
             <h3 className="h4 fw-bold mb-0 me-2 font-monospace">{data.cpu_percent.toFixed(1)}%</h3>
           </div>
@@ -80,7 +83,7 @@ export function ServerMetrics() {
         </div>
 
         <div className="col-12 col-md-6 col-lg-3">
-          <div className="text-secondary small mb-2 fw-medium">RAM Usage</div>
+          <div className="text-secondary small mb-2 fw-medium">{lang === "bn" ? "র্যাম ব্যবহার (RAM)" : "RAM Usage"}</div>
           <div className="d-flex align-items-center mb-2">
             <h3 className="h4 fw-bold mb-0 me-2 font-monospace">{data.memory.percent.toFixed(1)}%</h3>
             <span className="text-secondary small">({formatBytes(data.memory.used)} / {formatBytes(data.memory.total)})</span>
@@ -91,7 +94,7 @@ export function ServerMetrics() {
         </div>
 
         <div className="col-12 col-md-6 col-lg-3">
-          <div className="text-secondary small mb-2 fw-medium">Storage</div>
+          <div className="text-secondary small mb-2 fw-medium">{lang === "bn" ? "স্টোরেজ ও ডিস্ক" : "Storage"}</div>
           <div className="d-flex align-items-center mb-2">
             <h3 className="h4 fw-bold mb-0 me-2 font-monospace">{data.disk.percent.toFixed(1)}%</h3>
             <span className="text-secondary small">({formatBytes(data.disk.used)} / {formatBytes(data.disk.total)})</span>
@@ -110,7 +113,7 @@ export function ServerMetrics() {
             </div>
             <div className="text-end">
               <div className="fs-3 fw-bold lh-1 text-primary">{data.active_visitors}</div>
-              <div className="small text-secondary fw-medium">Active Now</div>
+              <div className="small text-secondary fw-medium">{lang === "bn" ? "সক্রিয় রয়েছে" : "Active Now"}</div>
             </div>
           </div>
         </div>

@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
@@ -38,6 +40,7 @@ function monthLabel(m: string) {
 }
 
 export default function RevenuePage() {
+  const { lang, t } = useLanguage();
   const [data, setData] = useState<RevenueData | null>(null);
   const [error, setError] = useState("");
   const [month, setMonth] = useState<string>("");
@@ -112,7 +115,7 @@ export default function RevenuePage() {
         <div className="col-6 col-lg-3">
           <div className="card border-0 shadow-sm rounded-4" style={{ background: "rgba(30,41,59,.5)" }}>
             <div className="card-body">
-              <div className="text-secondary small">All-time revenue</div>
+              <div className="text-secondary small">{lang === "bn" ? "সর্বমোট অর্জিত আয়" : "All-time revenue"}</div>
               <div className="fs-3 fw-bold">{money(data.all_time_total)}</div>
             </div>
           </div>
@@ -125,7 +128,7 @@ export default function RevenuePage() {
           <div className="form-check form-switch">
             <input className="form-check-input" type="checkbox" id="incTest" checked={includeTest}
               onChange={(e) => setIncludeTest(e.target.checked)} />
-            <label className="form-check-label small" htmlFor="incTest">Include test shops</label>
+            <label className="form-check-label small" htmlFor="incTest">{lang === "bn" ? "টেস্ট শপ অন্তর্ভুক্ত করুন" : "Include test shops"}</label>
           </div>
         </div>
       </div>
@@ -137,10 +140,10 @@ export default function RevenuePage() {
             <thead className="table-dark">
               <tr>
                 <th className="ps-4">Invoice</th>
-                <th>Shop</th>
-                <th>Plan</th>
-                <th>Period</th>
-                <th>Date</th>
+                <th>{lang === "bn" ? "দোকান" : "Shop"}</th>
+                <th>{lang === "bn" ? "প্যাকেজ" : "Plan"}</th>
+                <th>{lang === "bn" ? "মেয়াদকাল" : "Period"}</th>
+                <th>{lang === "bn" ? "তারিখ" : "Date"}</th>
                 <th className="text-end">Amount</th>
                 <th className="text-end pe-4">Actions</th>
               </tr>

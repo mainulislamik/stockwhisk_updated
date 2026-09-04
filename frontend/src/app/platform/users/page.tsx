@@ -1,5 +1,7 @@
 "use client";
 
+import { useLanguage } from "@/contexts/LanguageContext";
+
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { EmptyRow, ErrorState, PageHeader, Spinner } from "@/components/ui";
@@ -23,6 +25,7 @@ function fmtSeen(v: string | null) {
 }
 
 export default function ActiveUsersPage() {
+  const { lang, t } = useLanguage();
   const [data, setData] = useState<{ users: Row[]; online_count: number } | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
@@ -51,8 +54,8 @@ export default function ActiveUsersPage() {
           className="d-flex gap-2"
           onSubmit={(e) => { e.preventDefault(); load({ q, all: showAll }); }}
         >
-          <input className="form-control form-control-sm" placeholder="Search email…" value={q} onChange={(e) => setQ(e.target.value)} />
-          <button className="btn btn-brand btn-sm" type="submit">Search</button>
+          <input className="form-control form-control-sm" placeholder={lang === "bn" ? "ইমেইল দিয়ে খুঁজুন…" : "Search email…"} value={q} onChange={(e) => setQ(e.target.value)} />
+          <button className="btn btn-brand btn-sm" type="submit">{lang === "bn" ? "অনুসন্ধান" : "Search"}</button>
           <button
             type="button"
             className={`btn btn-sm ${showAll ? "btn-brand" : "btn-outline-brand"}`}
@@ -68,7 +71,7 @@ export default function ActiveUsersPage() {
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="thead-1">
-                <tr><th></th><th>Name</th><th>Email</th><th>Shop</th><th>Role</th><th>Status</th><th>Last seen</th></tr>
+                <tr><th></th><th>{lang === "bn" ? "নাম" : "Name"}</th><th>setEmail</th><th>{lang === "bn" ? "দোকান" : "Shop"}</th><th>{lang === "bn" ? "পদবী / রোল" : "Role"}</th><th>setStatus</th><th>{lang === "bn" ? "সর্বশেষ সক্রিয়" : "Last seen"}</th></tr>
               </thead>
               <tbody>
                 {data.users.length === 0 && <EmptyRow cols={7} text="No users." />}
