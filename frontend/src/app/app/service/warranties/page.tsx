@@ -34,7 +34,7 @@ const statusBadge: Record<string, string> = {
 };
 
 export default function WarrantiesPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [activeTab, setActiveTab] = useState<"products" | "issued">("products");
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [filter, setFilter] = useState("");
@@ -120,7 +120,7 @@ export default function WarrantiesPage() {
 
       {activeTab === "issued" && (
         <div className="d-flex flex-wrap align-items-center gap-2 pt-1">
-          <span className="small text-secondary fw-semibold me-1">Status:</span>
+          <span className="small text-secondary fw-semibold me-1">{lang === "bn" ? "স্ট্যাটাস:" : "Status:"}</span>
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-3 py-1 ${!statusFilter ? "btn-dark shadow-sm" : "btn-light border text-secondary"}`}

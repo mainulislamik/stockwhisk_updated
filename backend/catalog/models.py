@@ -103,6 +103,11 @@ class Product(TenantScopedModel):
     warranty_months = models.PositiveSmallIntegerField(default=0)
     # Default replacement guarantee in days (e.g. 7, 30) (0 = none).
     replacement_guarantee_days = models.PositiveSmallIntegerField(default=0)
+    
+    # Expiry & Lot tracking for Chemicals, Liquids, and Perishables
+    expiry_date = models.DateField(null=True, blank=True, help_text="Expiry date for chemicals/liquids")
+    lot_number = models.CharField(max_length=120, blank=True, help_text="Batch or Lot number")
+    mfg_date = models.DateField(null=True, blank=True, help_text="Manufacturing date")
 
     description = models.TextField(blank=True)
     cost_price = models.DecimalField(

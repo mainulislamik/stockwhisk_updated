@@ -12,7 +12,7 @@ type Cat = { id: number; name: string };
 const PAGE_SIZE = 20;
 
 export default function ExpensesPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [page, setPage] = useState(1);
   const [form, setForm] = useState({ category: "", amount: "", spent_on: new Date().toISOString().slice(0, 10), payment_method: "CASH", note: "" });
   const [saving, setSaving] = useState(false);
@@ -116,7 +116,7 @@ export default function ExpensesPage() {
             <tbody>
               {rows.length === 0 ? (
                 <tr data-empty="">
-                  <td colSpan={5} className="text-center text-secondary py-5">No expenses recorded.</td>
+                  <td colSpan={5} className="text-center text-secondary py-5">{lang === "bn" ? "কোনো খরচ পাওয়া যায়নি।" : "No expenses recorded."}</td>
                 </tr>
               ) : (
                 rows.map((r) => (

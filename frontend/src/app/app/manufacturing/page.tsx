@@ -279,7 +279,7 @@ export default function ManufacturingPage() {
         subtitle="2-Step Dynamic Batch Production: Commit raw materials, process, and enter final yield with automatic unit cost calculation."
         actions={
           <Link href="/app/manufacturing/new" className="btn btn-brand rounded-pill px-4 shadow-sm">
-            <i className="bi bi-plus-lg me-1"></i> Start New Batch
+            <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "নতুন ব্যাচ শুরু করুন" : "Start New Batch"}
           </Link>
         }
       />
@@ -290,7 +290,7 @@ export default function ManufacturingPage() {
           <div className="card border-0 shadow-sm rounded-4 h-100 p-3" style={{ background: "linear-gradient(135deg, rgba(245, 158, 11, 0.12), rgba(245, 158, 11, 0.03))", borderLeft: "4px solid #f59e0b" }}>
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <p className="text-secondary small fw-medium mb-1">Active Batches (WIP)</p>
+                <p className="text-secondary small fw-medium mb-1">{lang === "bn" ? "চলমান ব্যাচ (WIP)" : "Active Batches (WIP)"}</p>
                 <h3 className="fw-bold mb-0 text-warning d-flex align-items-center gap-2">
                   {summary?.in_progress_count ?? 0}
                   <span className="spinner-grow spinner-grow-sm text-warning" role="status"></span>
@@ -307,7 +307,7 @@ export default function ManufacturingPage() {
           <div className="card border-0 shadow-sm rounded-4 h-100 p-3" style={{ background: "linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(16, 185, 129, 0.03))", borderLeft: "4px solid #10b981" }}>
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <p className="text-secondary small fw-medium mb-1">Completed Batches</p>
+                <p className="text-secondary small fw-medium mb-1">{lang === "bn" ? "সম্পন্ন ব্যাচ" : "Completed Batches"}</p>
                 <h3 className="fw-bold mb-0 text-success">{summary?.completed_count ?? 0}</h3>
               </div>
               <div className="p-3 bg-success bg-opacity-25 text-success rounded-circle fs-4">
@@ -321,7 +321,7 @@ export default function ManufacturingPage() {
           <div className="card border-0 shadow-sm rounded-4 h-100 p-3" style={{ background: "linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(99, 102, 241, 0.03))", borderLeft: "4px solid #6366f1" }}>
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <p className="text-secondary small fw-medium mb-1">Total Finished Units</p>
+                <p className="text-secondary small fw-medium mb-1">{lang === "bn" ? "মোট উৎপাদিত ইউনিট" : "Total Finished Units"}</p>
                 <h3 className="fw-bold mb-0 text-primary">{Number(summary?.total_units_produced || 0).toLocaleString()}</h3>
               </div>
               <div className="p-3 bg-primary bg-opacity-25 text-primary rounded-circle fs-4">
@@ -335,7 +335,7 @@ export default function ManufacturingPage() {
           <div className="card border-0 shadow-sm rounded-4 h-100 p-3" style={{ background: "linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(14, 165, 233, 0.03))", borderLeft: "4px solid #0ea5e9" }}>
             <div className="d-flex align-items-center justify-content-between">
               <div>
-                <p className="text-secondary small fw-medium mb-1">Raw Material Utilized</p>
+                <p className="text-secondary small fw-medium mb-1">{lang === "bn" ? "ব্যবহৃত কাঁচামাল খরচ" : "Raw Material Utilized"}</p>
                 <h3 className="fw-bold mb-0 text-info">৳{Number(summary?.total_material_cost_utilized || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}</h3>
               </div>
               <div className="p-3 bg-info bg-opacity-25 text-info rounded-circle fs-4">
@@ -355,7 +355,7 @@ export default function ManufacturingPage() {
               <input
                 type="text"
                 className="form-control bg-body border-start-0 shadow-none"
-                placeholder="Search by batch #, raw material, or finished product..."
+                placeholder={lang === "bn" ? "ব্যাচ #, কাঁচামাল বা পণ্য দিয়ে খুঁজুন..." : "Search by batch #, raw material, or finished product..."}
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
               />
@@ -367,25 +367,25 @@ export default function ManufacturingPage() {
                 className={`btn btn-sm rounded-pill px-3 ${filterStatus === "all" ? "btn-primary" : "btn-outline-secondary"}`}
                 onClick={() => setFilterStatus("all")}
               >
-                All Batches ({batches?.length ?? 0})
+                {lang === "bn" ? "সকল ব্যাচ (" : "All Batches ("}{batches?.length ?? 0})
               </button>
               <button
                 className={`btn btn-sm rounded-pill px-3 ${filterStatus === "in_progress" ? "btn-warning text-dark fw-bold" : "btn-outline-warning"}`}
                 onClick={() => setFilterStatus("in_progress")}
               >
-                Processing ⏳ ({batches?.filter((b) => b.status === "in_progress").length ?? 0})
+                {lang === "bn" ? "প্রক্রিয়াধীন ⏳ (" : "Processing ⏳ ("}{batches?.filter((b) => b.status === "in_progress").length ?? 0})
               </button>
               <button
                 className={`btn btn-sm rounded-pill px-3 ${filterStatus === "completed" ? "btn-success" : "btn-outline-success"}`}
                 onClick={() => setFilterStatus("completed")}
               >
-                Completed ✅ ({batches?.filter((b) => b.status === "completed").length ?? 0})
+                {lang === "bn" ? "সম্পন্ন ✅ (" : "Completed ✅ ("}{batches?.filter((b) => b.status === "completed").length ?? 0})
               </button>
               <button
                 className={`btn btn-sm rounded-pill px-3 ${filterStatus === "cancelled" ? "btn-danger" : "btn-outline-danger"}`}
                 onClick={() => setFilterStatus("cancelled")}
               >
-                Cancelled ({batches?.filter((b) => b.status === "cancelled").length ?? 0})
+                {lang === "bn" ? "বাতিল (" : "Cancelled ("}{batches?.filter((b) => b.status === "cancelled").length ?? 0})
               </button>
             </div>
           </div>
@@ -401,7 +401,7 @@ export default function ManufacturingPage() {
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th className="ps-4">Batch Number</th>
+                  <th className="ps-4">{lang === "bn" ? "ব্যাচ নম্বর" : "Batch Number"}</th>
                   <th>{lang === "bn" ? "স্ট্যাটাস" : "Status"}</th>
                   <th>{lang === "bn" ? "ব্যবহৃত কাঁচামাল" : "Raw Materials Used"}</th>
                   <th>{lang === "bn" ? "মোট খরচ" : "Total Cost"}</th>
@@ -413,7 +413,7 @@ export default function ManufacturingPage() {
               </thead>
               <tbody>
                 {filteredBatches.length === 0 ? (
-                  <EmptyRow cols={8} text="No production batches found matching your criteria." />
+                  <EmptyRow cols={8} text={lang === "bn" ? "কোনো প্রোডাকশন ব্যাচ পাওয়া যায়নি।" : "No production batches found matching your criteria."} />
                 ) : (
                   filteredBatches.map((b) => (
                     <tr key={b.id}>
@@ -424,17 +424,17 @@ export default function ManufacturingPage() {
                       <td>
                         {b.status === "in_progress" && (
                           <span className="badge bg-warning bg-opacity-25 text-warning border border-warning border-opacity-25 rounded-pill px-3 py-1">
-                            <i className="bi bi-hourglass-split me-1"></i> Processing
+                            <i className="bi bi-hourglass-split me-1"></i> {lang === "bn" ? "প্রক্রিয়াধীন" : "Processing"}
                           </span>
                         )}
                         {b.status === "completed" && (
                           <span className="badge bg-success bg-opacity-25 text-success border border-success border-opacity-25 rounded-pill px-3 py-1">
-                            <i className="bi bi-check2-circle me-1"></i> Completed
+                            <i className="bi bi-check2-circle me-1"></i> {lang === "bn" ? "সম্পন্ন" : "Completed"}
                           </span>
                         )}
                         {b.status === "cancelled" && (
                           <span className="badge bg-danger bg-opacity-25 text-danger border border-danger border-opacity-25 rounded-pill px-3 py-1">
-                            <i className="bi bi-x-circle me-1"></i> Cancelled
+                            <i className="bi bi-x-circle me-1"></i> {lang === "bn" ? "বাতিল" : "Cancelled"}
                           </span>
                         )}
                       </td>
@@ -447,7 +447,7 @@ export default function ManufacturingPage() {
                               </span>
                             ))
                           ) : (
-                            <span className="text-muted small fst-italic">No materials recorded</span>
+                            <span className="text-muted small fst-italic">{lang === "bn" ? "কোনো উপাদান নেই" : "No materials recorded"}</span>
                           )}
                           {b.materials && b.materials.length > 3 && (
                             <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25 rounded-pill px-2 py-1 small">
@@ -468,7 +468,7 @@ export default function ManufacturingPage() {
                             </div>
                           </div>
                         ) : (
-                          <span className="text-secondary small fst-italic">Pending Yield Entry...</span>
+                          <span className="text-secondary small fst-italic">{lang === "bn" ? "উৎপাদন এন্ট্রি অপেক্ষমাণ..." : "Pending Yield Entry..."}</span>
                         )}
                       </td>
                       <td className="text-nowrap">
@@ -492,7 +492,7 @@ export default function ManufacturingPage() {
                                 onClick={() => openCompleteModal(b)}
                                 disabled={busy}
                               >
-                                <i className="bi bi-bullseye me-1"></i> Enter Yield
+                                <i className="bi bi-bullseye me-1"></i> {lang === "bn" ? "উৎপাদন এন্ট্রি" : "Enter Yield"}
                               </button>
                               <button
                                 className="btn btn-outline-danger btn-sm rounded-pill px-2"
@@ -508,7 +508,7 @@ export default function ManufacturingPage() {
                             className="btn btn-outline-secondary btn-sm rounded-pill px-3"
                             onClick={() => setViewBatch(b)}
                           >
-                            <i className="bi bi-eye me-1"></i> Details
+                            <i className="bi bi-eye me-1"></i> {lang === "bn" ? "বিস্তারিত" : "Details"}
                           </button>
                         </div>
                       </td>
@@ -563,14 +563,14 @@ export default function ManufacturingPage() {
                           className={`btn btn-sm ${outProductMode === "existing" ? "btn-primary" : "btn-outline-secondary"}`}
                           onClick={() => setOutProductMode("existing")}
                         >
-                          <i className="bi bi-list-check me-1"></i> Existing Product
+                          <i className="bi bi-list-check me-1"></i> {lang === "bn" ? "বিদ্যমান পণ্য" : "Existing Product"}
                         </button>
                         <button
                           type="button"
                           className={`btn btn-sm ${outProductMode === "new" ? "btn-success" : "btn-outline-secondary"}`}
                           onClick={() => setOutProductMode("new")}
                         >
-                          <i className="bi bi-plus-circle me-1"></i> + Create New Product
+                          <i className="bi bi-plus-circle me-1"></i> {lang === "bn" ? "+ নতুন পণ্য তৈরি" : "+ Create New Product"}
                         </button>
                       </div>
                     </div>
@@ -584,14 +584,14 @@ export default function ManufacturingPage() {
                             onChange={(e) => setOutProductId(e.target.value)}
                             required={outProductMode === "existing"}
                           >
-                            <option value="">-- Select Finished Product --</option>
+                            <option value="">{lang === "bn" ? "-- উৎপাদিত পণ্য নির্বাচন করুন --" : "-- Select Finished Product --"}</option>
                             {products.map((p) => (
                               <option key={p.id} value={p.id}>
                                 {p.name} (SKU: {p.sku || "N/A"}) [Stock: {p.current_stock}]
                               </option>
                             ))}
                           </select>
-                          <div className="form-text small">Select an existing catalog product to receive the produced yield.</div>
+                          <div className="form-text small">{lang === "bn" ? "উৎপাদিত স্টক যোগ করার জন্য বিদ্যমান পণ্য নির্বাচন করুন।" : "Select an existing catalog product to receive the produced yield."}</div>
                         </div>
 
                         <div className="col-md-5">
@@ -900,7 +900,7 @@ export default function ManufacturingPage() {
 
               <div className="modal-footer bg-light border-top p-3">
                 <button type="button" className="btn btn-secondary rounded-pill px-4" onClick={() => setViewBatch(null)}>
-                  Close
+                  {lang === "bn" ? "বন্ধ করুন" : "Close"}
                 </button>
               </div>
             </div>

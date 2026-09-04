@@ -456,10 +456,10 @@ export default function AccountingPage() {
                       <span className="fs-4 fw-bold text-success">{money(position?.total_liquid_cash ?? (Number(position?.cash_balance || 0) + Number(position?.bank_balance || 0)))}</span>
                     </div>
                     <div className="small text-secondary d-flex flex-wrap gap-2 pt-1 border-top border-success-subtle">
-                      <span>Cash: <strong>{money(position?.cash_balance || 0)}</strong></span>
+                      <span>{lang === "bn" ? "ক্যাশ" : "Cash"}: <strong>{money(position?.cash_balance || 0)}</strong></span>
                       {position?.bkash_balance !== undefined && <span>· bKash: <strong>{money(position?.bkash_balance || 0)}</strong></span>}
                       {position?.nagad_balance !== undefined && <span>· Nagad: <strong>{money(position?.nagad_balance || 0)}</strong></span>}
-                      <span>· Bank: <strong>{money(position?.bank_balance || 0)}</strong></span>
+                      <span>· {lang === "bn" ? "ব্যাংক" : "Bank"}: <strong>{money(position?.bank_balance || 0)}</strong></span>
                     </div>
                   </div>
                 </div>

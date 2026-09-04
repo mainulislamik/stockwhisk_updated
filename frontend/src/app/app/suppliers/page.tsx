@@ -338,10 +338,10 @@ export default function SuppliersPage() {
                               <div className="col-md-2">
                                 <label className="small fw-medium">{lang === "bn" ? "পেমেন্ট মাধ্যম" : "Payment Method"}</label>
                                 <select className="form-select form-select-sm" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
-                                  <option value="cash">Cash</option>
+                                  <option value="cash">{lang === "bn" ? "ক্যাশ" : "Cash"}</option>
                                   <option value="bkash">bKash</option>
-                                  <option value="nagad">Nagad</option>
-                                  <option value="bank">Bank</option>
+                                  <option value="nagad">{lang === "bn" ? "নগদ (Nagad)" : "Nagad"}</option>
+                                  <option value="bank">{lang === "bn" ? "ব্যাংক" : "Bank"}</option>
                                 </select>
                               </div>
                             )}

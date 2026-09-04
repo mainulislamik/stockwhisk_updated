@@ -79,6 +79,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "track_inventory", "reorder_level", "current_stock",
             "is_low_stock", "is_active", "variations", "warranty_months",
             "replacement_guarantee_days",
+            "expiry_date", "lot_number", "mfg_date",
             "units", "unit_detail", "purchase_unit_detail",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]

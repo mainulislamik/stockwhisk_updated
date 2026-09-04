@@ -31,7 +31,7 @@ type Product = {
 type Supplier = { id: number; name: string };
 type Branch = { id: number; name: string };
 type ReceiveLine = { product: Product; quantity: number; unit_cost: number; barcodes: string[] };
-type Named = { id: number; name: string; measure_type?: string };
+type Named = { id: number; name: string; measure_type?: string; short_code?: string };
 
 const PAY_METHODS: Record<string, string> = {
   cash: "💵 Cash",
@@ -77,7 +77,7 @@ export default function PurchaseProductPage() {
   // New product modal
   const [showNewProduct, setShowNewProduct] = useState(false);
   const [units, setUnits] = useState<Named[]>([]);
-  const [newProd, setNewProd] = useState({ name: "", sku: "", barcode: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "5", warranty_months: "", replacement_guarantee_days: "" });
+  const [newProd, setNewProd] = useState({ name: "", sku: "", barcode: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "5", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "" });
   const [newPricingMode, setNewPricingMode] = useState<'regular' | 'bulk'>('regular');
   const [savingProd, setSavingProd] = useState(false);
 
@@ -205,11 +205,14 @@ export default function PurchaseProductPage() {
               : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
           warranty_months: newProd.warranty_months || 0,
           replacement_guarantee_days: newProd.replacement_guarantee_days || 0,
+          expiry_date: newProd.expiry_date || null,
+          lot_number: newProd.lot_number || "",
+          mfg_date: newProd.mfg_date || null,
           track_inventory: true,
         },
       });
       setShowNewProduct(false);
-      setNewProd({ name: "", sku: "", barcode: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "5", warranty_months: "", replacement_guarantee_days: "" });
+      setNewProd({ name: "", sku: "", barcode: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "5", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "" });
       selectProduct(p);
       setLines((prev) => [
         ...prev,
@@ -664,18 +667,44 @@ export default function PurchaseProductPage() {
                   <label className="small fw-medium">{t("pp_lbl_reorder")}</label>
                   <input type="number" step="1" min="0" className="form-control form-control-sm" value={newProd.reorder_level} onChange={(e) => setNewProd({ ...newProd, reorder_level: e.target.value })} />
                 </div>
-                {!isSpecialShop && (
-                  <>
-                    <div className="col-md-2">
-                      <label className="small fw-medium">{lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)"}</label>
-                      <input type="number" min="0" className="form-control form-control-sm" value={newProd.warranty_months} onChange={(e) => setNewProd({ ...newProd, warranty_months: e.target.value })} placeholder="0" />
-                    </div>
-                    <div className="col-md-2">
-                      <label className="small fw-medium" title="Replacement Guarantee (Days)">Replacement (Days)</label>
-                      <input type="number" min="0" className="form-control form-control-sm" value={newProd.replacement_guarantee_days} onChange={(e) => setNewProd({ ...newProd, replacement_guarantee_days: e.target.value })} placeholder="0" />
-                    </div>
-                  </>
-                )}
+                {/* Unit-based Warranty vs Expiry Management */}
+                {(() => {
+                  const selectedNewUnit = units.find((u) => String(u.id) === String(newProd.unit));
+                  const isNewCountUnit = !selectedNewUnit || selectedNewUnit.measure_type === "count" || selectedNewUnit.name?.toLowerCase().includes("piece") || selectedNewUnit.name?.toLowerCase().includes("pcs") || selectedNewUnit.short_code?.toLowerCase() === "pcs";
+                  const showNewExpiry = isSpecialShop && !isNewCountUnit;
+
+                  if (showNewExpiry) {
+                    return (
+                      <>
+                        <div className="col-md-3">
+                          <label className="small fw-semibold text-danger">{t("prod_lbl_expiry") || (lang === "bn" ? "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)" : "Expiry Date")}</label>
+                          <input type="date" className="form-control form-control-sm" value={newProd.expiry_date} onChange={(e) => setNewProd({ ...newProd, expiry_date: e.target.value })} />
+                        </div>
+                        <div className="col-md-3">
+                          <label className="small fw-medium">{t("prod_lbl_lot") || (lang === "bn" ? "লট / ব্যাচ নম্বর" : "Lot / Batch No")}</label>
+                          <input type="text" className="form-control form-control-sm" value={newProd.lot_number} onChange={(e) => setNewProd({ ...newProd, lot_number: e.target.value })} placeholder="e.g. LOT-2026-09" />
+                        </div>
+                        <div className="col-md-3">
+                          <label className="small fw-medium">{t("prod_lbl_mfg") || (lang === "bn" ? "উৎপাদন তারিখ (ঐচ্ছিক)" : "Mfg Date (Optional)")}</label>
+                          <input type="date" className="form-control form-control-sm" value={newProd.mfg_date} onChange={(e) => setNewProd({ ...newProd, mfg_date: e.target.value })} />
+                        </div>
+                      </>
+                    );
+                  }
+
+                  return (
+                    <>
+                      <div className="col-md-2">
+                        <label className="small fw-medium">{lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)"}</label>
+                        <input type="number" min="0" className="form-control form-control-sm" value={newProd.warranty_months} onChange={(e) => setNewProd({ ...newProd, warranty_months: e.target.value })} placeholder="0" />
+                      </div>
+                      <div className="col-md-2">
+                        <label className="small fw-medium" title={lang === "bn" ? "রিপ্লেসমেন্ট গ্যারান্টি (দিন)" : "Replacement Guarantee (Days)"}>{lang === "bn" ? "রিপ্লেসমেন্ট (দিন)" : "Replacement (Days)"}</label>
+                        <input type="number" min="0" className="form-control form-control-sm" value={newProd.replacement_guarantee_days} onChange={(e) => setNewProd({ ...newProd, replacement_guarantee_days: e.target.value })} placeholder="0" />
+                      </div>
+                    </>
+                  );
+                })()}
                 <div className="col-md-3 d-flex align-items-end gap-2">
                   <button className="btn btn-brand btn-sm" disabled={savingProd}>
                     {savingProd ? "Creating…" : "Create & add"}
@@ -692,7 +721,7 @@ export default function PurchaseProductPage() {
         {/* Advanced Product Search */}
         <div className="card shadow-sm mb-3">
           <div className="card-body">
-            <h2 className="h6 fw-bold mb-3 text-brand">🔍 Advanced Product Search</h2>
+            <h2 className="h6 fw-bold mb-3 text-brand">🔍 {lang === "bn" ? "অ্যাডভান্সড প্রোডাক্ট সার্চ ও নির্বাচন" : "Advanced Product Search"}</h2>
             <div className="row g-2 mb-2">
               <div className="col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_prod_name_search")}</label>

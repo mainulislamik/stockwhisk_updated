@@ -169,7 +169,7 @@ export default function NewProductionBatchPage() {
               <i className="bi bi-list-check me-2 text-primary"></i>Raw Materials to Use
             </h5>
             <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={addRow}>
-              <i className="bi bi-plus-lg me-1"></i> Add Another Material
+              <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "আরও উপাদান যোগ করুন" : "Add Another Material"}
             </button>
           </div>
 
@@ -177,10 +177,10 @@ export default function NewProductionBatchPage() {
             <table className="table align-middle">
               <thead className="table-light small text-secondary">
                 <tr>
-                  <th style={{ width: "40%" }}>Select Raw Material</th>
-                  <th style={{ width: "20%" }}>Quantity</th>
-                  <th style={{ width: "20%" }}>Unit Cost (৳)</th>
-                  <th style={{ width: "15%" }} className="text-end">Subtotal (৳)</th>
+                  <th style={{ width: "40%" }}>{lang === "bn" ? "কাঁচামাল নির্বাচন" : "Select Raw Material"}</th>
+                  <th style={{ width: "20%" }}>{lang === "bn" ? "পরিমাণ" : "Quantity"}</th>
+                  <th style={{ width: "20%" }}>{lang === "bn" ? "একক খরচ (৳)" : "Unit Cost (৳)"}</th>
+                  <th style={{ width: "15%" }} className="text-end">{lang === "bn" ? "সাবটোটাল (৳)" : "Subtotal (৳)"}</th>
                   <th style={{ width: "5%" }} className="text-center"></th>
                 </tr>
               </thead>
@@ -200,7 +200,7 @@ export default function NewProductionBatchPage() {
                           onChange={(e) => handleProductChange(idx, e.target.value)}
                           required
                         >
-                          <option value="">-- Choose Raw Material --</option>
+                          <option value="">{lang === "bn" ? "-- কাঁচামাল নির্বাচন করুন --" : "-- Choose Raw Material --"}</option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
                               {p.name} (In Stock: {p.current_stock} {p.unit_detail?.name || ""})
@@ -264,14 +264,14 @@ export default function NewProductionBatchPage() {
 
           <div className="d-flex justify-content-end mb-4">
             <div className="p-3 rounded-3 bg-light border text-end" style={{ minWidth: 280 }}>
-              <span className="text-secondary small d-block">Total Raw Material Investment:</span>
+              <span className="text-secondary small d-block">{lang === "bn" ? "কাঁচামালে মোট বিনিয়োগ:" : "Total Raw Material Investment:"}</span>
               <h4 className="fw-bold text-primary mb-0">৳{totalMaterialCost.toFixed(2)}</h4>
             </div>
           </div>
 
           <div className="row g-3">
             <div className="col-md-6">
-              <label className="form-label small fw-bold">Upfront Estimated Extra Cost (Optional)</label>
+              <label className="form-label small fw-bold">{lang === "bn" ? "আনুমানিক অতিরিক্ত খরচ (ঐচ্ছিক)" : "Upfront Estimated Extra Cost (Optional)"}</label>
               <div className="input-group input-group-sm">
                 <span className="input-group-text">৳</span>
                 <input
@@ -283,10 +283,10 @@ export default function NewProductionBatchPage() {
                   onChange={(e) => setAdditionalCost(e.target.value)}
                 />
               </div>
-              <div className="form-text small">Labor, packaging bottles, fuel, electricity overheads.</div>
+              <div className="form-text small">{lang === "bn" ? "মজুরি, বোতল/প্যাকেজিং, বিদ্যুৎ, জ্বালানি ও ওভারহেড খরচ।" : "Labor, packaging bottles, fuel, electricity overheads."}</div>
             </div>
             <div className="col-md-6">
-              <label className="form-label small fw-bold">Extra Cost Note</label>
+              <label className="form-label small fw-bold">{lang === "bn" ? "অতিরিক্ত খরচের বিবরণ" : "Extra Cost Note"}</label>
               <input
                 type="text"
                 className="form-control form-control-sm"
@@ -296,7 +296,7 @@ export default function NewProductionBatchPage() {
               />
             </div>
             <div className="col-12">
-              <label className="form-label small fw-bold">Batch Notes / Recipe Reference</label>
+              <label className="form-label small fw-bold">{lang === "bn" ? "ব্যাচ নোট / রেসিপি বিবরণ" : "Batch Notes / Recipe Reference"}</label>
               <textarea
                 className="form-control form-control-sm"
                 rows={2}
@@ -310,12 +310,12 @@ export default function NewProductionBatchPage() {
 
         <div className="d-flex align-items-center justify-content-between p-3 rounded-4 bg-body-tertiary border">
           <div>
-            <span className="text-secondary small d-block">Grand Total Batch Cost:</span>
+            <span className="text-secondary small d-block">{lang === "bn" ? "ব্যাচের মোট সম্ভাব্য খরচ:" : "Grand Total Batch Cost:"}</span>
             <strong className="text-success fs-5">৳{grandTotalEstimatedCost.toFixed(2)}</strong>
           </div>
           <div className="d-flex gap-2">
             <Link href="/app/manufacturing" className="btn btn-outline-secondary rounded-pill px-4">
-              Cancel
+              {lang === "bn" ? "বাতিল" : "Cancel"}
             </Link>
             <button type="submit" className="btn btn-brand rounded-pill px-5 shadow-sm" disabled={busy || rows.length === 0}>
               {busy ? "Starting Batch..." : "🚀 Start Batch (Commit Materials)"}

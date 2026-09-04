@@ -8,6 +8,14 @@ type Translations = {
 
 export const translations: Translations = {
   en: {
+    prod_lbl_expiry: "Expiry Date",
+    prod_lbl_lot: "Lot / Batch No",
+    prod_lbl_mfg: "Mfg Date (Optional)",
+    prod_exp_badge_valid: "Exp: {date}",
+    prod_exp_badge_soon: "⚠️ Expiring in {days}d ({date})",
+    prod_exp_badge_expired: "⛔ Expired ({date})",
+    prod_lbl_warranty_duration: "Warranty (Months)",
+    prod_lbl_replacement_duration: "Replacement (Days)",
     nav_manufacturing: "Manufacturing",
     nav_mfg_hub: "Production Hub",
     nav_mfg_new: "Start Batch",
@@ -1590,6 +1598,14 @@ export const translations: Translations = {
     plan_free_trial: "Free Trial"
   },
   bn: {
+    prod_lbl_expiry: "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)",
+    prod_lbl_lot: "লট / ব্যাচ নম্বর (Lot / Batch)",
+    prod_lbl_mfg: "উৎপাদন তারিখ (Mfg Date)",
+    prod_exp_badge_valid: "📅 মেয়াদ: {date}",
+    prod_exp_badge_soon: "⚠️ {days} দিনে মেয়াদ শেষ ({date})",
+    prod_exp_badge_expired: "⛔ মেয়াদোত্তীর্ণ ({date})",
+    prod_lbl_warranty_duration: "ওয়ারেন্টি (মাস)",
+    prod_lbl_replacement_duration: "রিপ্লেসমেন্ট গ্যারান্টি (দিন)",
     nav_manufacturing: "ম্যানুফ্যাকচারিং",
     nav_mfg_hub: "প্রোডাকশন হাব",
     nav_mfg_new: "নতুন ব্যাচ শুরু",

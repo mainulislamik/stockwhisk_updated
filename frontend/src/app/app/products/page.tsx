@@ -30,6 +30,11 @@ type Product = {
   purchase_unit?: number | null;
   unit_detail?: { id: number; name: string; short_code: string; measure_type: string; allow_decimal: boolean } | null;
   purchase_unit_detail?: { id: number; name: string; short_code: string; measure_type: string } | null;
+  warranty_months?: number;
+  replacement_guarantee_days?: number;
+  expiry_date?: string | null;
+  lot_number?: string;
+  mfg_date?: string | null;
 };
 type Named = { id: number; name: string; measure_type?: string; short_code?: string };
 
@@ -66,7 +71,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "" });
   const [saving, setSaving] = useState(false);
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
   const [newCat, setNewCat] = useState("");
@@ -109,9 +114,12 @@ export default function ProductsPage() {
           reorder_level: form.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
           warranty_months: form.warranty_months || 0,
           replacement_guarantee_days: form.replacement_guarantee_days || 0,
+          expiry_date: form.expiry_date || null,
+          lot_number: form.lot_number || "",
+          mfg_date: form.mfg_date || null,
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "" });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "" });
       setShowAdd(false);
       mutate();
     } catch (e: any) {
@@ -347,18 +355,44 @@ export default function ProductsPage() {
                 <label className="small">{t("prod_list_reorder_level")}</label>
                 <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="5" />
               </div>
-              {!isSpecialShop && (
-                <>
-                  <div className="col-md-2">
-                    <label className="small">{t("prod_list_warranty_months")}</label>
-                    <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
-                  </div>
-                  <div className="col-md-2">
-                    <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days")}</label>
-                    <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
-                  </div>
-                </>
-              )}
+              {/* Unit-based Warranty vs Expiry Management */}
+              {(() => {
+                const selectedUnit = units.find((u) => String(u.id) === String(form.unit));
+                const isCountUnit = !selectedUnit || selectedUnit.measure_type === "count" || selectedUnit.name?.toLowerCase().includes("piece") || selectedUnit.name?.toLowerCase().includes("pcs") || selectedUnit.short_code?.toLowerCase() === "pcs";
+                const isChemicalBulk = isSpecialShop && !isCountUnit;
+
+                if (isChemicalBulk) {
+                  return (
+                    <>
+                      <div className="col-md-3">
+                        <label className="small fw-semibold text-danger">{t("prod_lbl_expiry") || (lang === "bn" ? "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)" : "Expiry Date")}</label>
+                        <input type="date" className="form-control form-control-sm" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} />
+                      </div>
+                      <div className="col-md-3">
+                        <label className="small fw-medium">{t("prod_lbl_lot") || (lang === "bn" ? "লট / ব্যাচ নম্বর" : "Lot / Batch No")}</label>
+                        <input type="text" className="form-control form-control-sm" value={form.lot_number} onChange={(e) => setForm({ ...form, lot_number: e.target.value })} placeholder="e.g. LOT-2026-09" />
+                      </div>
+                      <div className="col-md-3">
+                        <label className="small fw-medium">{t("prod_lbl_mfg") || (lang === "bn" ? "উৎপাদন তারিখ (ঐচ্ছিক)" : "Mfg Date (Optional)")}</label>
+                        <input type="date" className="form-control form-control-sm" value={form.mfg_date} onChange={(e) => setForm({ ...form, mfg_date: e.target.value })} />
+                      </div>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="col-md-2">
+                      <label className="small">{t("prod_list_warranty_months") || (lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)")}</label>
+                      <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days") || (lang === "bn" ? "রিপ্লেসমেন্ট (দিন)" : "Replacement (Days)")}</label>
+                      <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
+                    </div>
+                  </>
+                );
+              })()}
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
                   {saving ? t("prod_list_saving") : t("prod_list_save")}
@@ -421,6 +455,40 @@ export default function ProductsPage() {
                           {isBulk && (
                             <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
                               📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                            </span>
+                          )}
+                          {p.expiry_date && (() => {
+                            const exp = new Date(p.expiry_date);
+                            const today = new Date();
+                            const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                            if (diffDays < 0) {
+                              return (
+                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                  ⛔ {lang === "bn" ? `মেয়াদোত্তীর্ণ (${p.expiry_date})` : `Expired (${p.expiry_date})`}
+                                </span>
+                              );
+                            }
+                            if (diffDays <= 30) {
+                              return (
+                                <span className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50" style={{ fontSize: "0.68rem" }}>
+                                  ⚠️ {lang === "bn" ? `${diffDays} দিনে মেয়াদ শেষ (${p.expiry_date})` : `Exp in ${diffDays}d (${p.expiry_date})`}
+                                </span>
+                              );
+                            }
+                            return (
+                              <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                📅 {lang === "bn" ? `মেয়াদ: ${p.expiry_date}` : `Exp: ${p.expiry_date}`}
+                              </span>
+                            );
+                          })()}
+                          {p.lot_number && (
+                            <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                              Lot: {p.lot_number}
+                            </span>
+                          )}
+                          {p.warranty_months && p.warranty_months > 0 && (
+                            <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                              🛡️ {p.warranty_months} {lang === "bn" ? "মাস ওয়ারেন্টি" : "M Warranty"}
                             </span>
                           )}
                         </div>

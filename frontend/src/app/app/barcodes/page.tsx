@@ -480,7 +480,7 @@ export default function BarcodesGeneratorPage() {
             background: #fff !important;
           }
 
-          /* A4 Sheet Grid */
+          /* {lang === "bn" ? "A4 শিট গ্রিড" : "A4 Sheet Grid"} */
           .label-a4-grid {
             display: grid !important;
             grid-template-columns: repeat(4, 1fr) !important;
@@ -569,7 +569,7 @@ export default function BarcodesGeneratorPage() {
                       >
                         <option value="38x25">38mm × 25mm (Thermal)</option>
                         <option value="50x30">50mm × 30mm (Thermal)</option>
-                        <option value="a4">A4 Sheet Grid</option>
+                        <option value="a4">{lang === "bn" ? "A4 শিট গ্রিড" : "A4 Sheet Grid"}</option>
                       </select>
                     </div>
 
@@ -703,7 +703,7 @@ export default function BarcodesGeneratorPage() {
                             <td>
                               <div className="fw-bold text-dark">{product.name}</div>
                               <div className="small text-secondary d-flex align-items-center gap-2 mt-0.5">
-                                <span>SKU: <strong className="text-muted">{product.sku || "—"}</strong></span>
+                                <span>{lang === "bn" ? "এসকেইউ:" : "SKU:"} <strong className="text-muted">{product.sku || "—"}</strong></span>
                                 {product.category?.name && (
                                   <span className="badge bg-light text-secondary border">{product.category.name}</span>
                                 )}

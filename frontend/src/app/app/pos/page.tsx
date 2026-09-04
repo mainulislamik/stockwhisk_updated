@@ -15,6 +15,8 @@ type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
   warranty_months?: number;
+  expiry_date?: string | null;
+  lot_number?: string;
   purchase_multiplier?: string | number;
   full_pack_cost?: string | number;
   full_pack_sell?: string | number;
@@ -458,6 +460,30 @@ export default function PosPage() {
                           📦 {bulkUnit}: ৳{Number(p.full_pack_sell || (Number(p.selling_price) * mult)).toFixed(0)} ({mult} {baseUnit})
                         </div>
                       )}
+                      {p.expiry_date && (() => {
+                        const exp = new Date(p.expiry_date);
+                        const today = new Date();
+                        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                        if (diffDays < 0) {
+                          return (
+                            <div className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mt-1" style={{ fontSize: "0.6rem" }}>
+                              ⛔ {lang === "bn" ? `মেয়াদোত্তীর্ণ` : `Expired`}
+                            </div>
+                          );
+                        }
+                        if (diffDays <= 30) {
+                          return (
+                            <div className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50 mt-1" style={{ fontSize: "0.6rem" }}>
+                              ⚠️ {lang === "bn" ? `${diffDays}দ বাকি` : `Exp in ${diffDays}d`}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 mt-1" style={{ fontSize: "0.6rem" }}>
+                            📅 {p.expiry_date}
+                          </div>
+                        );
+                      })()}
                     </button>
                   </div>
                 );
@@ -551,6 +577,11 @@ export default function PosPage() {
                               <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-1 fw-normal" style={{ fontSize: '.6rem' }}>
                                 <i className="bi bi-shield-check me-1"></i>
                                 {t("pos_months_warranty", { months: l.product.warranty_months })}
+                              </span>
+                            )}
+                            {!!l.product.expiry_date && (
+                              <span className="badge bg-success-subtle text-success-emphasis border border-success-subtle rounded-pill ms-1 fw-normal" style={{ fontSize: '.6rem' }}>
+                                📅 {lang === "bn" ? `মেয়াদ: ${l.product.expiry_date}` : `Exp: ${l.product.expiry_date}`}
                               </span>
                             )}
                             

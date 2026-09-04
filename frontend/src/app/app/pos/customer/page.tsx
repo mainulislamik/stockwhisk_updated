@@ -352,7 +352,7 @@ export default function PosCustomerPage() {
                     value={saleDate}
                     onChange={(e) => setSaleDate(e.target.value)}
                   />
-                  <label htmlFor="saleDate">Backdated Sale Time (Optional)</label>
+                  <label htmlFor="saleDate">{lang === "bn" ? "পূর্ববর্তী বিক্রয় সময় (ঐচ্ছিক)" : "Backdated Sale Time (Optional)"}</label>
                 </div>
               </div>
             )}
