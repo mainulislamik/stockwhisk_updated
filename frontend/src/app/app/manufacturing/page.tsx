@@ -275,8 +275,8 @@ export default function ManufacturingPage() {
   return (
     <div className="container-fluid px-0 pb-5">
       <PageHeader
-        title="Manufacturing & Production Hub"
-        subtitle="2-Step Dynamic Batch Production: Commit raw materials, process, and enter final yield with automatic unit cost calculation."
+        title={lang === "bn" ? "ম্যানুফ্যাকচারিং ও প্রোডাকশন হাব" : "Manufacturing & Production Hub"}
+        subtitle={lang === "bn" ? "২-ধাপের ডায়নামিক ব্যাচ উৎপাদন: কাঁচামাল স্টক থেকে কর্তন, প্রসেসিং এবং চূড়ান্ত উৎপাদিত পণ্যের স্বয়ংক্রিয় ইউনিট খরচ গণনা।" : "2-Step Dynamic Batch Production: Commit raw materials, process, and enter final yield with automatic unit cost calculation."}
         actions={
           <Link href="/app/manufacturing/new" className="btn btn-brand rounded-pill px-4 shadow-sm">
             <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "নতুন ব্যাচ শুরু করুন" : "Start New Batch"}
@@ -802,7 +802,7 @@ export default function ManufacturingPage() {
             <div className="modal-content border-0 shadow-lg rounded-4 overflow-hidden">
               <div className="modal-header bg-primary bg-opacity-10 border-bottom border-primary border-opacity-25 py-3">
                 <h5 className="modal-title fw-bold text-primary d-flex align-items-center gap-2">
-                  <i className="bi bi-card-checklist"></i> Production Batch Details #{viewBatch.batch_number}
+                  <i className="bi bi-card-checklist"></i> {lang === "bn" ? "প্রোডাকশন ব্যাচের বিবরণ #" : "Production Batch Details #"}{viewBatch.batch_number}
                 </h5>
                 <button type="button" className="btn-close" onClick={() => setViewBatch(null)}></button>
               </div>
@@ -811,40 +811,40 @@ export default function ManufacturingPage() {
                 <div className="row g-3 mb-4">
                   <div className="col-md-3">
                     <div className="p-3 rounded-3 bg-light">
-                      <span className="text-secondary small d-block">Status</span>
+                      <span className="text-secondary small d-block">{lang === "bn" ? "স্ট্যাটাস" : "Status"}</span>
                       <strong className="text-capitalize">{viewBatch.status.replace("_", " ")}</strong>
                     </div>
                   </div>
                   <div className="col-md-3">
                     <div className="p-3 rounded-3 bg-light">
-                      <span className="text-secondary small d-block">Started At</span>
+                      <span className="text-secondary small d-block">{lang === "bn" ? "শুরুর তারিখ ও সময়" : "Started At"}</span>
                       <strong>{fmtDate(viewBatch.started_at)}</strong>
                     </div>
                   </div>
                   <div className="col-md-3">
                     <div className="p-3 rounded-3 bg-light">
-                      <span className="text-secondary small d-block">Total Cost</span>
+                      <span className="text-secondary small d-block">{lang === "bn" ? "মোট খরচ" : "Total Cost"}</span>
                       <strong className="text-primary">৳{Number(viewBatch.total_cost || viewBatch.total_material_cost).toFixed(2)}</strong>
                     </div>
                   </div>
                   <div className="col-md-3">
                     <div className="p-3 rounded-3 bg-light">
-                      <span className="text-secondary small d-block">Output Yield</span>
+                      <span className="text-secondary small d-block">{lang === "bn" ? "উৎপাদিত ফলন" : "Output Yield"}</span>
                       <strong className="text-success">{viewBatch.status === "completed" ? `${Number(viewBatch.output_quantity)} Units` : "Pending"}</strong>
                     </div>
                   </div>
                 </div>
 
-                <h6 className="fw-bold mb-2 text-dark"><i className="bi bi-box-arrow-down text-danger me-1"></i> Raw Materials Deducted from Inventory:</h6>
+                <h6 className="fw-bold mb-2 text-dark"><i className="bi bi-box-arrow-down text-danger me-1"></i> {lang === "bn" ? "ইনভেন্টরি থেকে কর্তনকৃত কাঁচামাল:" : "Raw Materials Deducted from Inventory:"}</h6>
                 <div className="table-responsive rounded-3 border mb-4">
                   <table className="table table-sm table-striped align-middle mb-0">
                     <thead className="table-light">
                       <tr>
-                        <th>Material</th>
+                        <th>{lang === "bn" ? "কাঁচামাল" : "Material"}</th>
                         <th>SKU</th>
-                        <th>Quantity Used</th>
-                        <th>Unit Cost (Snapshot)</th>
-                        <th className="text-end">Subtotal</th>
+                        <th>{lang === "bn" ? "ব্যবহৃত পরিমাণ" : "Quantity Used"}</th>
+                        <th>{lang === "bn" ? "একক খরচ (স্ন্যাপশট)" : "Unit Cost (Snapshot)"}</th>
+                        <th className="text-end">{lang === "bn" ? "সাবটোটাল" : "Subtotal"}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -860,7 +860,7 @@ export default function ManufacturingPage() {
                     </tbody>
                     <tfoot className="table-light">
                       <tr>
-                        <td colSpan={4} className="fw-bold text-end">Total Material Cost:</td>
+                        <td colSpan={4} className="fw-bold text-end">{lang === "bn" ? "মোট কাঁচামাল খরচ:" : "Total Material Cost:"}</td>
                         <td className="fw-bold text-end text-primary">৳{Number(viewBatch.total_material_cost).toFixed(2)}</td>
                       </tr>
                     </tfoot>
@@ -869,16 +869,16 @@ export default function ManufacturingPage() {
 
                 {viewBatch.status === "completed" && (
                   <>
-                    <h6 className="fw-bold mb-2 text-dark"><i className="bi bi-box-arrow-up text-success me-1"></i> Finished Production Output:</h6>
+                    <h6 className="fw-bold mb-2 text-dark"><i className="bi bi-box-arrow-up text-success me-1"></i> {lang === "bn" ? "চূড়ান্ত উৎপাদিত পণ্য:" : "Finished Production Output:"}</h6>
                     <div className="p-3 rounded-3 bg-success bg-opacity-10 border border-success border-opacity-25 mb-3">
                       <div className="row g-2">
                         <div className="col-md-6">
-                          <span className="text-secondary small d-block">Product:</span>
+                          <span className="text-secondary small d-block">{lang === "bn" ? "পণ্য:" : "Product:"}</span>
                           <strong className="text-dark fs-5">{viewBatch.output_product_name}</strong>
                           <span className="text-secondary small d-block">SKU: {viewBatch.output_product_sku || "N/A"}</span>
                         </div>
                         <div className="col-md-3">
-                          <span className="text-secondary small d-block">Quantity Produced:</span>
+                          <span className="text-secondary small d-block">{lang === "bn" ? "উৎপাদিত পরিমাণ:" : "Quantity Produced:"}</span>
                           <strong className="text-success fs-5">{Number(viewBatch.output_quantity)} {viewBatch.output_unit_name || "Units"}</strong>
                         </div>
                         <div className="col-md-3">
@@ -892,7 +892,7 @@ export default function ManufacturingPage() {
 
                 {viewBatch.notes && (
                   <div className="p-3 bg-light rounded-3">
-                    <span className="text-secondary small d-block fw-bold mb-1">Notes / Logs:</span>
+                    <span className="text-secondary small d-block fw-bold mb-1">{lang === "bn" ? "নোট / প্রোডাকশন লগ:" : "Notes / Logs:"}</span>
                     <p className="mb-0 small text-body">{viewBatch.notes}</p>
                   </div>
                 )}

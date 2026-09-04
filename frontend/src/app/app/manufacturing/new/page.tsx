@@ -154,11 +154,11 @@ export default function NewProductionBatchPage() {
     <div className="container-fluid px-0 pb-5 max-w-5xl">
       <div className="mb-3">
         <Link href="/app/manufacturing" className="text-decoration-none text-secondary small d-flex align-items-center gap-1 mb-2">
-          <i className="bi bi-arrow-left"></i> Back to Manufacturing Hub
+          <i className="bi bi-arrow-left"></i> {lang === "bn" ? "ম্যানুফ্যাকচারিং হাবে ফিরে যান" : "Back to Manufacturing Hub"}
         </Link>
         <PageHeader
           title={lang === "bn" ? "নতুন প্রোডাকশন ব্যাচ শুরু করুন (WIP)" : "Start Production Batch (WIP)"}
-          subtitle="Step 1: Commit and deduct raw materials from inventory. Final yield output will be recorded in Step 2 when manufacturing is completed."
+          subtitle={lang === "bn" ? "ধাপ ১: কাঁচামাল নিশ্চিত করুন এবং ইনভেন্টরি থেকে কেটে নিন। উৎপাদন সম্পন্ন হলে ধাপ ২-তে চূড়ান্ত ফলন এন্ট্রি করা হবে।" : "Step 1: Commit and deduct raw materials from inventory. Final yield output will be recorded in Step 2 when manufacturing is completed."}
         />
       </div>
 
@@ -166,7 +166,7 @@ export default function NewProductionBatchPage() {
         <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
           <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
             <h5 className="fw-bold mb-0 text-dark">
-              <i className="bi bi-list-check me-2 text-primary"></i>Raw Materials to Use
+              <i className="bi bi-list-check me-2 text-primary"></i>{lang === "bn" ? "ব্যবহৃত কাঁচামালসমূহ" : "Raw Materials to Use"}
             </h5>
             <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={addRow}>
               <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "আরও উপাদান যোগ করুন" : "Add Another Material"}
