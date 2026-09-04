@@ -36,12 +36,52 @@ SUPERSHOP_DEFAULT_UNITS = [
 ]
 
 def seed_measurement_units(shop, business_type):
-    """Seed default units for CAMICAL shops so kg/L/decimal quantities work out of the box."""
+    """Seed appropriate standard units for any shop category (Chemical, Cosmetics, Supershop, Electronics, General, etc.)"""
     from catalog.models import Unit
 
-    if str(business_type) != "camical":
-        return
-    for name, short_code, measure_type, allow_decimal in CAMICAL_DEFAULT_UNITS:
+    btype = str(business_type or "").lower()
+
+    if btype in ["camical", "cosmetics", "beauty"]:
+        units = [
+            ("Piece", "pcs", "count", False),
+            ("Liter", "L", "volume", True),
+            ("Milliliter", "ml", "volume", True),
+            ("Kilogram", "kg", "weight", True),
+            ("Gram", "g", "weight", True),
+            ("Bottle", "bottle", "count", False),
+            ("Box", "box", "count", False),
+            ("Drum", "drum", "volume", False),
+            ("Pack", "pack", "count", False),
+        ]
+        if hasattr(shop, "manufacturing_enabled") and not shop.manufacturing_enabled:
+            Shop.objects.filter(pk=shop.pk).update(manufacturing_enabled=True)
+    elif btype in ["supershop", "food"]:
+        units = [
+            ("Piece", "pcs", "count", False),
+            ("Kilogram", "kg", "weight", True),
+            ("Gram", "g", "weight", True),
+            ("Liter", "L", "volume", True),
+            ("Milliliter", "ml", "volume", True),
+            ("Dozen", "dz", "count", True),
+            ("Pack / Box", "pkt", "count", False),
+        ]
+    elif btype in ["electronics", "computer", "mobile"]:
+        units = [
+            ("Piece", "pcs", "count", False),
+            ("Box", "box", "count", False),
+            ("Set", "set", "count", False),
+            ("Carton", "ctn", "count", False),
+        ]
+    else:
+        units = [
+            ("Piece", "pcs", "count", False),
+            ("Kilogram", "kg", "weight", True),
+            ("Liter", "L", "volume", True),
+            ("Box", "box", "count", False),
+            ("Pack", "pack", "count", False),
+        ]
+
+    for name, short_code, measure_type, allow_decimal in units:
         Unit.all_objects.get_or_create(
             shop=shop,
             name=name,

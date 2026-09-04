@@ -311,3 +311,16 @@ class Subscription(TimeStampedModel):
         if self.current_period_end and self.current_period_end < timezone.now():
             return False
         return True
+
+
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+
+@receiver(post_save, sender=Shop)
+def on_shop_save_auto_seed_units(sender, instance, created, **kwargs):
+    try:
+        from .services import seed_measurement_units
+        seed_measurement_units(instance, instance.business_type)
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Failed to auto-seed measurement units for shop %s: %s", instance.pk, e)
