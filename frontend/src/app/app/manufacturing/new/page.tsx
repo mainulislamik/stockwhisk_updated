@@ -95,7 +95,7 @@ export default function NewProductionBatchPage() {
 
   const removeRow = (index: number) => {
     if (rows.length === 1) {
-      toast.error("At least one raw material is required.");
+      toast.error(lang === "bn" ? "কমপক্ষে একটি কাঁচামাল থাকা আবশ্যক।" : "At least one raw material is required.");
       return;
     }
     setRows(rows.filter((_, i) => i !== index));
@@ -124,7 +124,7 @@ export default function NewProductionBatchPage() {
       }));
 
     if (validMaterials.length === 0) {
-      toast.error("Please add at least one raw material with quantity greater than 0.");
+      toast.error(lang === "bn" ? "অনুগ্রহ করে অন্তত একটি কাঁচামাল এবং তার সঠিক পরিমাণ প্রদান করুন।" : "Please add at least one raw material with quantity greater than 0.");
       return;
     }
 
@@ -139,10 +139,10 @@ export default function NewProductionBatchPage() {
           additional_cost_note: additionalCostNote,
         },
       });
-      toast.success(`🎉 Batch #${res.batch_number} started successfully! Raw materials deducted.`);
+      toast.success(lang === "bn" ? `🎉 ব্যাচ #${res.batch_number} সফলভাবে শুরু হয়েছে! কাঁচামাল স্টক কর্তন সম্পন্ন।` : `🎉 Batch #${res.batch_number} started successfully! Raw materials deducted.`);
       router.push("/app/manufacturing");
     } catch (err: any) {
-      toast.error(err?.message || "Failed to start batch.");
+      toast.error(err?.message || (lang === "bn" ? "ব্যাচ শুরু করতে ব্যর্থ হয়েছে।" : "Failed to start batch."));
     } finally {
       setBusy(false);
     }
@@ -163,22 +163,23 @@ export default function NewProductionBatchPage() {
       </div>
 
       <form onSubmit={handleSubmit}>
-        <div className="card border-0 shadow-sm rounded-4 p-4 mb-4">
-          <div className="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
-            <h5 className="fw-bold mb-0 text-dark">
-              <i className="bi bi-list-check me-2 text-primary"></i>{lang === "bn" ? "ব্যবহৃত কাঁচামালসমূহ" : "Raw Materials to Use"}
+        <div className="card border-0 shadow-sm rounded-4 p-3 p-md-4 mb-4">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3 border-bottom pb-3">
+            <h5 className="fw-bold mb-0 text-dark d-flex align-items-center gap-2">
+              <i className="bi bi-list-check text-primary fs-5"></i>
+              <span>{lang === "bn" ? "ব্যবহৃত কাঁচামালসমূহ" : "Raw Materials to Use"}</span>
             </h5>
-            <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3" onClick={addRow}>
-              <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "আরও উপাদান যোগ করুন" : "Add Another Material"}
+            <button type="button" className="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-sm" onClick={addRow}>
+              <i className="bi bi-plus-lg me-1"></i> {lang === "bn" ? "+ আরও উপাদান যোগ করুন" : "+ Add Another Material"}
             </button>
           </div>
 
           <div className="table-responsive mb-3">
-            <table className="table align-middle">
+            <table className="table align-top" style={{ minWidth: "620px" }}>
               <thead className="table-light small text-secondary">
                 <tr>
-                  <th style={{ width: "40%" }}>{lang === "bn" ? "কাঁচামাল নির্বাচন" : "Select Raw Material"}</th>
-                  <th style={{ width: "20%" }}>{lang === "bn" ? "পরিমাণ" : "Quantity"}</th>
+                  <th style={{ width: "38%" }}>{lang === "bn" ? "কাঁচামাল নির্বাচন" : "Select Raw Material"}</th>
+                  <th style={{ width: "22%" }}>{lang === "bn" ? "পরিমাণ" : "Quantity"}</th>
                   <th style={{ width: "20%" }}>{lang === "bn" ? "একক খরচ (৳)" : "Unit Cost (৳)"}</th>
                   <th style={{ width: "15%" }} className="text-end">{lang === "bn" ? "সাবটোটাল (৳)" : "Subtotal (৳)"}</th>
                   <th style={{ width: "5%" }} className="text-center"></th>
@@ -192,8 +193,8 @@ export default function NewProductionBatchPage() {
                   const isStockLow = stock < Number(row.quantity || 0);
 
                   return (
-                    <tr key={idx}>
-                      <td>
+                    <tr key={idx} className="border-bottom">
+                      <td className="py-2">
                         <select
                           className="form-select form-select-sm"
                           value={row.product_id}
@@ -203,17 +204,19 @@ export default function NewProductionBatchPage() {
                           <option value="">{lang === "bn" ? "-- কাঁচামাল নির্বাচন করুন --" : "-- Choose Raw Material --"}</option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
-                              {p.name} (In Stock: {p.current_stock} {p.unit_detail?.name || ""})
+                              {p.name} ({lang === "bn" ? "স্টক:" : "Stock:"} {p.current_stock} {p.unit_detail?.name || ""})
                             </option>
                           ))}
                         </select>
                         {prod && (
-                          <div className={`small mt-1 ${isStockLow ? "text-danger fw-bold" : "text-secondary"}`}>
-                            {isStockLow && (lang === "bn" ? "⚠️ সতর্কতা: " : "⚠️ Warning: ")}{lang === "bn" ? "বর্তমান স্টক: " : "Current Stock: "}{prod.current_stock} {prod.unit_detail?.name || (lang === "bn" ? "ইউনিট" : "Units")}
+                          <div className={`small mt-1.5 ${isStockLow ? "text-danger fw-bold" : "text-secondary"}`} style={{ fontSize: "0.78rem" }}>
+                            {isStockLow && (lang === "bn" ? "⚠️ সতর্কতা: " : "⚠️ Warning: ")}
+                            {lang === "bn" ? "বর্তমান স্টক: " : "Current Stock: "}
+                            <span className="fw-semibold text-dark">{prod.current_stock}</span> {prod.unit_detail?.name || (lang === "bn" ? "ইউনিট" : "Units")}
                           </div>
                         )}
                       </td>
-                      <td>
+                      <td className="py-2">
                         <div className="input-group input-group-sm">
                           <input
                             type="number"
@@ -225,12 +228,12 @@ export default function NewProductionBatchPage() {
                             onChange={(e) => handleQtyChange(idx, e.target.value)}
                             required
                           />
-                          <span className="input-group-text small">{prod?.unit_detail?.name || "Unit"}</span>
+                          <span className="input-group-text small bg-light text-secondary">{prod?.unit_detail?.name || (lang === "bn" ? "একক" : "Unit")}</span>
                         </div>
                       </td>
-                      <td>
+                      <td className="py-2">
                         <div className="input-group input-group-sm">
-                          <span className="input-group-text">৳</span>
+                          <span className="input-group-text bg-light text-secondary">৳</span>
                           <input
                             type="number"
                             step="0.01"
@@ -242,13 +245,13 @@ export default function NewProductionBatchPage() {
                           />
                         </div>
                       </td>
-                      <td className="text-end fw-bold text-dark">
+                      <td className="py-2 text-end fw-bold text-dark font-monospace fs-6 pt-2">
                         ৳{sub.toFixed(2)}
                       </td>
-                      <td className="text-center">
+                      <td className="py-2 text-center pt-2">
                         <button
                           type="button"
-                          className="btn btn-link text-danger p-0"
+                          className="btn btn-outline-danger btn-sm border-0 p-1"
                           onClick={() => removeRow(idx)}
                           title={lang === "bn" ? "উপাদান মুছে ফেলুন" : "Remove material"}
                         >
@@ -262,18 +265,18 @@ export default function NewProductionBatchPage() {
             </table>
           </div>
 
-          <div className="d-flex justify-content-end mb-4">
-            <div className="p-3 rounded-3 bg-light border text-end" style={{ minWidth: 280 }}>
-              <span className="text-secondary small d-block">{lang === "bn" ? "কাঁচামালে মোট বিনিয়োগ:" : "Total Raw Material Investment:"}</span>
-              <h4 className="fw-bold text-primary mb-0">৳{totalMaterialCost.toFixed(2)}</h4>
+          <div className="d-flex flex-wrap justify-content-end mb-4">
+            <div className="p-3 rounded-3 bg-light border text-end w-100 w-sm-auto shadow-sm" style={{ minWidth: 260 }}>
+              <span className="text-secondary small d-block mb-1">{lang === "bn" ? "কাঁচামালে মোট বিনিয়োগ:" : "Total Raw Material Investment:"}</span>
+              <h4 className="fw-bold text-primary mb-0 font-monospace">৳{totalMaterialCost.toFixed(2)}</h4>
             </div>
           </div>
 
-          <div className="row g-3">
+          <div className="row g-3 pt-2 border-top">
             <div className="col-md-6">
-              <label className="form-label small fw-bold">{lang === "bn" ? "আনুমানিক অতিরিক্ত খরচ (ঐচ্ছিক)" : "Upfront Estimated Extra Cost (Optional)"}</label>
-              <div className="input-group input-group-sm">
-                <span className="input-group-text">৳</span>
+              <label className="form-label small fw-bold text-dark">{lang === "bn" ? "আনুমানিক অতিরিক্ত খরচ (ঐচ্ছিক)" : "Upfront Estimated Extra Cost (Optional)"}</label>
+              <div className="input-group input-group-sm mb-1">
+                <span className="input-group-text bg-light text-secondary">৳</span>
                 <input
                   type="number"
                   step="0.01"
@@ -283,20 +286,21 @@ export default function NewProductionBatchPage() {
                   onChange={(e) => setAdditionalCost(e.target.value)}
                 />
               </div>
-              <div className="form-text small">{lang === "bn" ? "মজুরি, বোতল/প্যাকেজিং, বিদ্যুৎ, জ্বালানি ও ওভারহেড খরচ।" : "Labor, packaging bottles, fuel, electricity overheads."}</div>
+              <div className="form-text small text-secondary">{lang === "bn" ? "মজুরি, বোতল/প্যাকেজিং, বিদ্যুৎ, জ্বালানি ও ওভারহেড খরচ।" : "Labor, packaging bottles, fuel, electricity overheads."}</div>
             </div>
             <div className="col-md-6">
-              <label className="form-label small fw-bold">{lang === "bn" ? "অতিরিক্ত খরচের বিবরণ" : "Extra Cost Note"}</label>
+              <label className="form-label small fw-bold text-dark">{lang === "bn" ? "অতিরিক্ত খরচের বিবরণ" : "Extra Cost Note"}</label>
               <input
                 type="text"
-                className="form-control form-control-sm"
+                className="form-control form-control-sm mb-1"
                 placeholder={lang === "bn" ? "যেমন: মজুরি ও প্যাকেজিং বোতল" : "e.g. Labor & Bottles"}
                 value={additionalCostNote}
                 onChange={(e) => setAdditionalCostNote(e.target.value)}
               />
+              <div className="form-text small text-secondary">{lang === "bn" ? "অতিরিক্ত খরচের খাত বা রেফারেন্স লিখুন।" : "Specify what the extra costs cover."}</div>
             </div>
             <div className="col-12">
-              <label className="form-label small fw-bold">{lang === "bn" ? "ব্যাচ নোট / রেসিপি বিবরণ" : "Batch Notes / Recipe Reference"}</label>
+              <label className="form-label small fw-bold text-dark">{lang === "bn" ? "ব্যাচ নোট / রেসিপি বিবরণ (ঐচ্ছিক)" : "Batch Notes / Recipe Reference (Optional)"}</label>
               <textarea
                 className="form-control form-control-sm"
                 rows={2}
@@ -308,16 +312,16 @@ export default function NewProductionBatchPage() {
           </div>
         </div>
 
-        <div className="d-flex align-items-center justify-content-between p-3 rounded-4 bg-body-tertiary border">
+        <div className="d-flex flex-wrap align-items-center justify-content-between p-3 p-md-4 rounded-4 bg-body-tertiary border shadow-sm gap-3">
           <div>
-            <span className="text-secondary small d-block">{lang === "bn" ? "ব্যাচের মোট সম্ভাব্য খরচ:" : "Grand Total Batch Cost:"}</span>
-            <strong className="text-success fs-5">৳{grandTotalEstimatedCost.toFixed(2)}</strong>
+            <span className="text-secondary small d-block mb-1">{lang === "bn" ? "ব্যাচের মোট সম্ভাব্য খরচ:" : "Grand Total Batch Cost:"}</span>
+            <strong className="text-success fs-4 font-monospace">৳{grandTotalEstimatedCost.toFixed(2)}</strong>
           </div>
-          <div className="d-flex gap-2">
+          <div className="d-flex flex-wrap gap-2">
             <Link href="/app/manufacturing" className="btn btn-outline-secondary rounded-pill px-4">
               {lang === "bn" ? "বাতিল" : "Cancel"}
             </Link>
-            <button type="submit" className="btn btn-brand rounded-pill px-5 shadow-sm" disabled={busy || rows.length === 0}>
+            <button type="submit" className="btn btn-brand rounded-pill px-4 px-md-5 shadow-sm" disabled={busy || rows.length === 0}>
               {busy ? (lang === "bn" ? "ব্যাচ শুরু হচ্ছে..." : "Starting Batch...") : (lang === "bn" ? "🚀 ব্যাচ শুরু করুন (কাঁচামাল কর্তন)" : "🚀 Start Batch (Commit Materials)")}
             </button>
           </div>
