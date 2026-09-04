@@ -117,9 +117,9 @@ export default function Nav({
       )}
 
       {showManufacturing && (
-        <NavGroup id="manufacturing" icon="bi-gear-wide-connected" label="Manufacturing" collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
-          <Item href="/app/manufacturing" icon="bi-kanban" label="Production Hub" />
-          <Item href="/app/manufacturing/new" icon="bi-plus-circle" label="Start Batch" />
+        <NavGroup id="manufacturing" icon="bi-gear-wide-connected" label={t("nav_manufacturing")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          <Item href="/app/manufacturing" icon="bi-kanban" label={t("nav_mfg_hub")} />
+          <Item href="/app/manufacturing/new" icon="bi-plus-circle" label={t("nav_mfg_new")} />
         </NavGroup>
       )}
 

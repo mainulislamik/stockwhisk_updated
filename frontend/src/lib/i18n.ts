@@ -8,6 +8,9 @@ type Translations = {
 
 export const translations: Translations = {
   en: {
+    nav_manufacturing: "Manufacturing",
+    nav_mfg_hub: "Production Hub",
+    nav_mfg_new: "Start Batch",
     // Common Universal Actions & Columns
     btn_save: "Save",
     btn_cancel: "Cancel",
@@ -1587,6 +1590,9 @@ export const translations: Translations = {
     plan_free_trial: "Free Trial"
   },
   bn: {
+    nav_manufacturing: "ম্যানুফ্যাকচারিং",
+    nav_mfg_hub: "প্রোডাকশন হাব",
+    nav_mfg_new: "নতুন ব্যাচ শুরু",
     // Common Universal Actions & Columns
     btn_save: "সংরক্ষণ",
     btn_cancel: "বাতিল",

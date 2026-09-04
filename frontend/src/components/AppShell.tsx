@@ -224,7 +224,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               </div>
             )}
             <div className="text-truncate min-vw-0">
-              <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || "My Shop"}</div>
+              <div className="fw-semibold lh-1 text-truncate" style={{ fontSize: "0.9rem", color: "var(--text-main)" }}>{user.shop_name || t("nav_my_shop")}</div>
               <div className="d-flex align-items-center gap-1 mt-1 flex-wrap">
                 {(user.shop_code || user.shop) && (
                   <span className="badge rounded-pill bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.65rem", padding: "0.15rem 0.4rem" }}>
@@ -232,7 +232,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                   </span>
                 )}
                 <span className="small text-truncate" style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
-                  {billing?.plan ? `${billing.plan} plan` : " "}
+                  {billing?.plan ? t("nav_plan", { plan: billing.plan }) : " "}
                 </span>
               </div>
             </div>
@@ -245,7 +245,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           <div className="border-top mt-2 pt-2 small" style={{ borderColor: "var(--line)", color: "var(--text-muted)" }}>
             <div className="text-truncate" style={{ color: "var(--text-main)" }}>{user.email}</div>
             <a onClick={logout} role="button" className="text-danger text-decoration-none">
-              Log out →
+              {t("nav_logout")} →
             </a>
           </div>
         </div>
@@ -346,7 +346,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
                       onMouseLeave={closeQuickSoon}
                     >
                       <div className="small fw-bold text-secondary px-2 pb-2 d-flex align-items-center gap-1">
-                        <i className="bi bi-lightning-charge-fill text-warning"></i> Quick access
+                        <i className="bi bi-lightning-charge-fill text-warning"></i> {t("nav_quick_access")}
                       </div>
                       <div className="d-grid gap-1" style={{ gridTemplateColumns: "1fr 1fr" }}>
                         {quickItems.map((q) => (

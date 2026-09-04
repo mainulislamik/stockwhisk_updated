@@ -562,11 +562,11 @@ export default function PurchaseProductPage() {
                   <input className="form-control form-control-sm" value={newProd.sku} onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })} placeholder="auto-generated" />
                 </div>
                 <div className="col-md-4">
-                  <label className="small fw-medium">Barcode</label>
+                  <label className="small fw-medium">{lang === "bn" ? "বারকোড" : "Barcode"}</label>
                   <input className="form-control form-control-sm" value={newProd.barcode} onChange={(e) => setNewProd({ ...newProd, barcode: e.target.value })} placeholder="optional" />
                 </div>
                 <div className="col-md-4">
-                  <label className="small fw-medium">Sale Unit</label>
+                  <label className="small fw-medium">{lang === "bn" ? "বিক্রয় ইউনিট (Base)" : "Sale Unit"}</label>
                   <select className="form-select form-select-sm" value={newProd.unit} onChange={(e) => setNewProd({ ...newProd, unit: e.target.value, purchase_unit: "" })}>
                     <option value="">-- Select --</option>
                     {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -574,7 +574,7 @@ export default function PurchaseProductPage() {
                 </div>
                 {isSpecialShop && newProd.unit && units.find((u) => String(u.id) === String(newProd.unit))?.measure_type !== "count" && (
                   <div className="col-md-4">
-                    <label className="small fw-medium">Purchase Unit</label>
+                    <label className="small fw-medium">{lang === "bn" ? "ক্রয়/ড্রাম ইউনিট (Bulk)" : "Purchase Unit"}</label>
                     <select className="form-select form-select-sm" value={newProd.purchase_unit} onChange={(e) => setNewProd({ ...newProd, purchase_unit: e.target.value })}>
                       <option value="">-- Select --</option>
                       {units.map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}
@@ -583,7 +583,7 @@ export default function PurchaseProductPage() {
                 )}
                 {isSpecialShop && newProd.unit && units.find((u) => String(u.id) === String(newProd.unit))?.measure_type !== "count" && (
                   <div className="col-md-2">
-                    <label className="small fw-medium" title="Liters/Kg per Drum">Liters/Kg per Drum</label>
+                    <label className="small fw-medium" title={lang === "bn" ? "প্রতি ড্রামে লিটার/কেজি" : "Liters/Kg per Drum"}>{lang === "bn" ? "প্রতি ড্রামে পরিমাণ" : "Liters/Kg per Drum"}</label>
                     <input type="number" step="0.001" min="1" className="form-control form-control-sm" value={newProd.purchase_multiplier}
                       onChange={(e) => {
                         const newMult = e.target.value;
@@ -600,10 +600,10 @@ export default function PurchaseProductPage() {
                 )}
                 {isSpecialShop && Number(newProd.purchase_multiplier) > 1 && (
                   <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
-                    <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
+                    <label className="small text-primary fw-bold mb-1">{lang === "bn" ? "দাম নির্ধারণ পদ্ধতি" : "Pricing Entry Method"}</label>
                     <select className="form-select form-select-sm" value={newPricingMode} onChange={(e) => setNewPricingMode(e.target.value as any)}>
-                      <option value="regular">Regular Option (Enter Per {units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"} Price manually)</option>
-                      <option value="bulk">Bulk Auto-Calculate Option (Enter Full {units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Pack"} Price)</option>
+                      <option value="regular">{lang === "bn" ? `সাধারণ পদ্ধতি (প্রতি ${units.find(u => String(u.id) === String(newProd.unit))?.name || "ইউনিট"} আলাদা ইনপুট)` : `Regular Option (Enter Per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"} Price manually)`}</option>
+                      <option value="bulk">{lang === "bn" ? `বাল্ক অটো-ক্যালকুলেট (সম্পূর্ণ ${units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "ড্রাম/প্যাক"} এর দাম)` : `Bulk Auto-Calculate Option (Enter Full ${units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Pack"} Price)`}</option>
                     </select>
                   </div>
                 )}
@@ -667,7 +667,7 @@ export default function PurchaseProductPage() {
                 {!isSpecialShop && (
                   <>
                     <div className="col-md-2">
-                      <label className="small fw-medium">Warranty (Months)</label>
+                      <label className="small fw-medium">{lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)"}</label>
                       <input type="number" min="0" className="form-control form-control-sm" value={newProd.warranty_months} onChange={(e) => setNewProd({ ...newProd, warranty_months: e.target.value })} placeholder="0" />
                     </div>
                     <div className="col-md-2">
@@ -799,10 +799,10 @@ export default function PurchaseProductPage() {
               {/* Added Pricing Method Dropdown */}
               {isSpecialShop && selected && Number(selected.purchase_multiplier) > 1 && selected.unit_detail?.measure_type !== "count" && (
                 <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
-                  <label className="small text-primary fw-bold mb-1">Pricing Entry Method</label>
+                  <label className="small text-primary fw-bold mb-1">{lang === "bn" ? "দাম নির্ধারণ পদ্ধতি" : "Pricing Entry Method"}</label>
                   <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>
-                    <option value="regular">Regular Option (Manual Per-Unit Price)</option>
-                    <option value="bulk">Bulk Auto-Calculate Option (Enter Full Drum Price)</option>
+                    <option value="regular">{lang === "bn" ? "সাধারণ পদ্ধতি (প্রতি ইউনিটের মূল্য ম্যানুয়াল)" : "Regular Option (Manual Per-Unit Price)"}</option>
+                    <option value="bulk">{lang === "bn" ? "বাল্ক অটো-ক্যালকুলেট পদ্ধতি (সম্পূর্ণ ড্রাম মূল্য)" : "Bulk Auto-Calculate Option (Enter Full Drum Price)"}</option>
                   </select>
                 </div>
               )}

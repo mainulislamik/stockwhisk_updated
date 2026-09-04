@@ -241,7 +241,7 @@ export default function PurchasesPage() {
                               style={{ fontSize: "0.8rem" }}
                               onClick={() => startPay(po)}
                             >
-                              {paying === po.id ? "Close" : "Pay / Settle"}
+                              {paying === po.id ? (lang === "bn" ? "বন্ধ" : "Close") : (lang === "bn" ? "বকেয়া পরিশোধ / সমন্বয়" : "Pay / Settle")}
                             </button>
                           )}
                         </div>
@@ -255,24 +255,24 @@ export default function PurchasesPage() {
                           <form onSubmit={(e) => processPayment(e, po)} className="row g-3 align-items-end">
                             <div className="col-12 mb-1 d-flex justify-content-between align-items-center">
                               <div>
-                                <span className="fw-bold text-success me-2">Clear Due for PO {po.po_number || `#${po.id}`}</span>
+                                <span className="fw-bold text-success me-2">{lang === "bn" ? "বকেয়া পরিশোধ / সমন্বয় PO " : "Clear Due for PO "} {po.po_number || `#${po.id}`}</span>
                                 <span className="text-muted small">({po.supplier_name} · Outstanding: {money(po.due)})</span>
                               </div>
                             </div>
                             <div className="col-md-2">
-                              <label className="small fw-medium">Action Type</label>
+                              <label className="small fw-medium">{lang === "bn" ? "পদ্ধতি" : "Action Type"}</label>
                               <select className="form-select form-select-sm" value={payForm.type} onChange={e => setPayForm({...payForm, type: e.target.value})}>
-                                <option value="payment">Pay Due (Cash Outflow)</option>
-                                <option value="settlement">Settle / Forgive (No Cash)</option>
+                                <option value="payment">{lang === "bn" ? "বকেয়া প্রদান (নগদ খরচ)" : "Pay Due (Cash Outflow)"}</option>
+                                <option value="settlement">{lang === "bn" ? "সমন্বয় / মওকুফ (নগদ ছাড়া)" : "Settle / Forgive (No Cash)"}</option>
                               </select>
                             </div>
                             <div className="col-md-2">
-                              <label className="small fw-medium">Amount</label>
+                              <label className="small fw-medium">{lang === "bn" ? "পরিমাণ" : "Amount"}</label>
                               <input type="number" step="0.01" max={po.due} min="0.01" required className="form-control form-control-sm" value={payForm.amount} onChange={(e) => setPayForm({ ...payForm, amount: e.target.value })} />
                             </div>
                             {payForm.type === "payment" && (
                               <div className="col-md-2">
-                                <label className="small fw-medium">Payment Method</label>
+                                <label className="small fw-medium">{lang === "bn" ? "পেমেন্ট মাধ্যম" : "Payment Method"}</label>
                                 <select className="form-select form-select-sm" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
                                   <option value="cash">Cash</option>
                                   <option value="bkash">bKash</option>

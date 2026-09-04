@@ -207,7 +207,7 @@ export default function SuppliersPage() {
         <input placeholder={t("sup_ph_filter")} className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
           <button onClick={() => { setShowAdd((s) => !s); setEditing(null); setPaying(null); }} className="btn btn-brand btn-sm">
-            + New supplier
+            {lang === "bn" ? "+ নতুন সাপ্লায়ার" : "+ New supplier"}
           </button>
         )}
       </div>
@@ -276,7 +276,7 @@ export default function SuppliersPage() {
                             </div>
                           ) : (
                             <div className="d-flex align-items-center gap-1">
-                              <span className="text-muted small">Not set</span>
+                              <span className="text-muted small">{lang === "bn" ? "নির্ধারিত নয়" : "Not set"}</span>
                               {canManage && (
                                 <button 
                                   className="btn btn-outline-secondary btn-sm py-0 px-1 ms-1 text-xs" 
@@ -324,10 +324,10 @@ export default function SuppliersPage() {
                               <span className="text-muted small">(Outstanding: {money(s.due_balance)})</span>
                             </div>
                             <div className="col-md-2">
-                              <label className="small fw-medium">Action Type</label>
+                              <label className="small fw-medium">{lang === "bn" ? "পদ্ধতি" : "Action Type"}</label>
                               <select className="form-select form-select-sm" value={payForm.type} onChange={e => setPayForm({...payForm, type: e.target.value})}>
-                                <option value="payment">Pay Dues (Cash Outflow)</option>
-                                <option value="settlement">Settle / Adjust (No Cash)</option>
+                                <option value="payment">{lang === "bn" ? "বকেয়া প্রদান (নগদ খরচ)" : "Pay Dues (Cash Outflow)"}</option>
+                                <option value="settlement">{lang === "bn" ? "সমন্বয় / অ্যাডজাস্ট (নগদ ছাড়া)" : "Settle / Adjust (No Cash)"}</option>
                               </select>
                             </div>
                             <div className="col-md-2">
@@ -336,7 +336,7 @@ export default function SuppliersPage() {
                             </div>
                             {payForm.type === "payment" && (
                               <div className="col-md-2">
-                                <label className="small fw-medium">Payment Method</label>
+                                <label className="small fw-medium">{lang === "bn" ? "পেমেন্ট মাধ্যম" : "Payment Method"}</label>
                                 <select className="form-select form-select-sm" value={payForm.method} onChange={e => setPayForm({...payForm, method: e.target.value})}>
                                   <option value="cash">Cash</option>
                                   <option value="bkash">bKash</option>
