@@ -693,26 +693,33 @@ export default function PurchaseProductPage() {
                   </div>
                 )}
 
-                {/* Selected Product Card */}
+                {/* Selected Product Card (High-Contrast Light Mode) */}
                 {selected ? (
-                  <div className="card shadow-sm border-primary mb-3 bg-primary bg-opacity-10">
-                    <div className="card-body p-3">
-                      <div className="d-flex justify-content-between align-items-center mb-2">
+                  <div className="card shadow-sm mb-3 rounded-4 overflow-hidden" style={{ border: "2px solid #3b82f6", background: "linear-gradient(135deg, rgba(59, 130, 246, 0.08) 0%, rgba(59, 130, 246, 0.02) 100%)" }}>
+                    <div className="card-body p-3 p-md-3.5">
+                      <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3 border-bottom pb-2.5" style={{ borderColor: "rgba(59, 130, 246, 0.2)" }}>
                         <div>
-                          <span className="badge bg-primary me-2">{t("pp_badge_selected") || (lang === "bn" ? "নির্বাচিত পণ্য" : "SELECTED")}</span>
-                          <strong className="fs-6 text-dark">{selected.name}</strong>
-                          {selected.sku && <span className="badge bg-secondary ms-2">{selected.sku}</span>}
-                          {selected.barcode && <span className="badge bg-light text-dark ms-1 border">BC: {selected.barcode}</span>}
-                          <div className="text-secondary small mt-1">
-                            {t("pp_current_stock") || (lang === "bn" ? "বর্তমান স্টক" : "In Stock")}: <strong className="text-success">{selected.current_stock} {selected.unit_detail?.name || "Unit"}</strong>
+                          <div className="d-flex align-items-center gap-2 mb-1">
+                            <span className="badge bg-primary px-2.5 py-1 text-white shadow-sm font-monospace" style={{ fontSize: "0.75rem" }}>
+                              ✨ {lang === "bn" ? "নির্বাচিত পণ্য" : "SELECTED PRODUCT"}
+                            </span>
+                            <span className="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25 px-2.5 py-1 font-monospace" style={{ fontSize: "0.75rem" }}>
+                              {lang === "bn" ? "বর্তমান স্টক:" : "In Stock:"} <strong>{selected.current_stock} {selected.unit_detail?.name || "Unit"}</strong>
+                            </span>
                           </div>
+                          <h5 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                            <span>{selected.name}</span>
+                            {selected.sku && <span className="badge bg-dark bg-opacity-75 text-white font-monospace" style={{ fontSize: "0.7rem" }}>{selected.sku}</span>}
+                            {selected.barcode && <span className="badge bg-white text-secondary border font-monospace" style={{ fontSize: "0.7rem" }}>BC: {selected.barcode}</span>}
+                          </h5>
                         </div>
                         <button
                           type="button"
-                          className="btn btn-outline-secondary btn-sm bg-white"
+                          className="btn btn-outline-danger btn-sm bg-white shadow-sm rounded-pill px-3 d-flex align-items-center gap-1"
                           onClick={() => setSelected(null)}
                         >
-                          ✕ {t("pp_btn_clear") || (lang === "bn" ? "মুছুন" : "Clear")}
+                          <i className="bi bi-x-circle"></i>
+                          <span>{lang === "bn" ? "মুছুন / পরিবর্তন" : "Clear / Change"}</span>
                         </button>
                       </div>
 
@@ -1418,10 +1425,20 @@ export default function PurchaseProductPage() {
 
       {/* ── Right Summary Panel ────────────────────────────────────────────── */}
       <div className="col-lg-4">
-        <div className="card shadow-sm" style={{ position: "sticky", top: "1rem" }}>
-          <div className="card-header text-white fw-semibold" style={{ background: "var(--brand-900, #1a2433)" }}>
-            <div>📦 {lang === "bn" ? "গ্রহণের তালিকা" : "To Receive"}</div>
-            <div className="small fw-normal opacity-75">{t("pp_pending_inject") || (lang === "bn" ? "স্টকে যুক্ত হওয়ার অপেক্ষায়" : "Pending injection")}</div>
+        <div className="card shadow-sm rounded-4 overflow-hidden border-0" style={{ position: "sticky", top: "1rem" }}>
+          <div className="card-header text-white py-3 px-3.5 shadow-sm" style={{ background: "linear-gradient(135deg, #1e40af 0%, #3b82f6 100%)" }}>
+            <div className="d-flex align-items-center justify-content-between">
+              <div>
+                <div className="fw-bold fs-6 d-flex align-items-center gap-2">
+                  <i className="bi bi-box-seam-fill"></i>
+                  <span>{lang === "bn" ? "গ্রহণের তালিকা (চালান)" : "To Receive (Inward Cart)"}</span>
+                </div>
+                <div className="small opacity-90" style={{ fontSize: "0.78rem" }}>{t("pp_pending_inject") || (lang === "bn" ? "স্টকে যুক্ত হওয়ার অপেক্ষায়" : "Pending injection")}</div>
+              </div>
+              <span className="badge bg-white text-primary fw-bold font-monospace px-2.5 py-1.5 rounded-pill shadow-sm" style={{ fontSize: "0.75rem" }}>
+                {lines.length} {lang === "bn" ? "আইটেম" : "Items"}
+              </span>
+            </div>
           </div>
 
           <div className="card-body p-0">
