@@ -20,7 +20,11 @@ type Product = {
   current_stock: string;
   full_pack_cost?: string | number;
   full_pack_sell?: string | number;
-  warranty_months: number;
+  warranty_months?: number;
+  replacement_guarantee_days?: number;
+  expiry_date?: string | null;
+  lot_number?: string;
+  mfg_date?: string | null;
   purchase_multiplier?: string | number;
   unit?: number | null;
   purchase_unit?: number | null;
@@ -477,12 +481,24 @@ export default function PurchaseProductPage() {
       if (supplier) poData.supplier = Number(supplier);
       if (branch) poData.branch = Number(branch);
 
-      // Update product selling prices and warranties FIRST
+      // Update product selling prices, warranties, expiry dates, and lot numbers FIRST
       for (const l of lines) {
         const patchData: Record<string, any> = {};
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
         if (l.product.warranty_months !== undefined && l.product.warranty_months !== null) {
           patchData.warranty_months = l.product.warranty_months;
+        }
+        if (l.product.replacement_guarantee_days !== undefined && l.product.replacement_guarantee_days !== null) {
+          patchData.replacement_guarantee_days = l.product.replacement_guarantee_days;
+        }
+        if (l.product.expiry_date !== undefined) {
+          patchData.expiry_date = l.product.expiry_date || null;
+        }
+        if (l.product.lot_number !== undefined) {
+          patchData.lot_number = l.product.lot_number || "";
+        }
+        if (l.product.mfg_date !== undefined) {
+          patchData.mfg_date = l.product.mfg_date || null;
         }
         if (Object.keys(patchData).length > 0) {
           await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData });
@@ -948,30 +964,104 @@ export default function PurchaseProductPage() {
                   </strong>
                 </div>
               </div>
-              <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_warranty")}</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  min="0"
-                  value={selected?.warranty_months ?? ""}
-                  placeholder="0"
-                  disabled={!selected}
-                  onChange={(e) => {
-                    if (!selected) return;
-                    const val = Number(e.target.value);
-                    setSelected({ ...selected, warranty_months: val });
-                    setLines((prev) =>
-                      prev.map((l) =>
-                        l.product.id === selected.id
-                          ? { ...l, product: { ...l.product, warranty_months: val } }
-                          : l
-                      )
-                    );
-                  }}
-                />
-                <div className="small text-muted mt-1">{t("pp_lbl_warranty_hint")}</div>
-              </div>
+              {/* Conditional Shipment Details: Expiry/Batch for Chemicals vs Warranty for Hardware */}
+              {(() => {
+                const selectedUnit = selected?.unit_detail;
+                const isCountUnit = !selectedUnit || selectedUnit.measure_type === "count" || selectedUnit.name?.toLowerCase().includes("piece") || selectedUnit.name?.toLowerCase().includes("pcs") || selectedUnit.short_code?.toLowerCase() === "pcs";
+                const isChemicalBulk = isSpecialShop && !isCountUnit;
+
+                if (isChemicalBulk) {
+                  return (
+                    <>
+                      <div className="col-md-4">
+                        <label className="small fw-semibold text-danger">{lang === "bn" ? "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)" : "Expiry Date"}</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={selected?.expiry_date || ""}
+                          disabled={!selected}
+                          onChange={(e) => {
+                            if (!selected) return;
+                            const val = e.target.value;
+                            setSelected({ ...selected, expiry_date: val });
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.product.id === selected.id ? { ...l, product: { ...l.product, expiry_date: val } } : l
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <label className="small fw-medium">{lang === "bn" ? "লট / ব্যাচ নম্বর (Lot / Batch)" : "Lot / Batch No"}</label>
+                        <input
+                          type="text"
+                          className="form-control"
+                          placeholder={lang === "bn" ? "যেমন: LOT-2026-09" : "e.g. LOT-2026-09"}
+                          value={selected?.lot_number || ""}
+                          disabled={!selected}
+                          onChange={(e) => {
+                            if (!selected) return;
+                            const val = e.target.value;
+                            setSelected({ ...selected, lot_number: val });
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.product.id === selected.id ? { ...l, product: { ...l.product, lot_number: val } } : l
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                      <div className="col-md-4">
+                        <label className="small fw-medium">{lang === "bn" ? "উৎপাদন তারিখ (Mfg Date - ঐচ্ছিক)" : "Mfg Date (Optional)"}</label>
+                        <input
+                          type="date"
+                          className="form-control"
+                          value={selected?.mfg_date || ""}
+                          disabled={!selected}
+                          onChange={(e) => {
+                            if (!selected) return;
+                            const val = e.target.value;
+                            setSelected({ ...selected, mfg_date: val });
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.product.id === selected.id ? { ...l, product: { ...l.product, mfg_date: val } } : l
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                    </>
+                  );
+                }
+
+                return (
+                  <div className="col-md-6">
+                    <label className="small fw-medium">{t("pp_lbl_warranty") || (lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)")}</label>
+                    <input
+                      className="form-control"
+                      type="number"
+                      min="0"
+                      value={selected?.warranty_months ?? ""}
+                      placeholder="0"
+                      disabled={!selected}
+                      onChange={(e) => {
+                        if (!selected) return;
+                        const val = Number(e.target.value);
+                        setSelected({ ...selected, warranty_months: val });
+                        setLines((prev) =>
+                          prev.map((l) =>
+                            l.product.id === selected.id
+                              ? { ...l, product: { ...l.product, warranty_months: val } }
+                              : l
+                          )
+                        );
+                      }}
+                    />
+                    <div className="small text-muted mt-1">{t("pp_lbl_warranty_hint")}</div>
+                  </div>
+                );
+              })()}
               <div className="col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_qty")}</label>
                 <input
