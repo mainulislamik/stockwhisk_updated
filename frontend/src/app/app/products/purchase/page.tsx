@@ -20,7 +20,11 @@ type Product = {
   current_stock: string;
   full_pack_cost?: string | number;
   full_pack_sell?: string | number;
-  warranty_months: number;
+  warranty_months?: number;
+  replacement_guarantee_days?: number;
+  expiry_date?: string | null;
+  lot_number?: string;
+  mfg_date?: string | null;
   purchase_multiplier?: string | number;
   unit?: number | null;
   purchase_unit?: number | null;
@@ -316,9 +320,9 @@ export default function PurchaseProductPage() {
       setSupplier(String(s.id));
       setShowNewVendor(false);
       setNewVendor({ name: "", phone: "", address: "" });
-      toast.success("Vendor added successfully");
+      toast.success(lang === "bn" ? "সরবরাহকারী সফলভাবে যুক্ত হয়েছে!" : "Vendor added successfully");
     } catch (e: any) {
-      toast.error(e?.message || "Could not add vendor");
+      toast.error(e?.message || (lang === "bn" ? "সরবরাহকারী যুক্ত করতে ব্যর্থ হয়েছে।" : "Could not add vendor"));
     } finally {
       setSavingVendor(false);
     }
@@ -348,7 +352,7 @@ export default function PurchaseProductPage() {
       setBulkQty(String(count));
       setQtyTouched(true);
     }
-    toast.success(`${count} টি বারকোড তৈরি হয়েছে`);
+    toast.success(lang === "bn" ? `${count} টি বারকোড তৈরি হয়েছে` : `Generated ${count} barcodes`);
   }
 
   async function addScannedUnits() {
@@ -525,11 +529,11 @@ export default function PurchaseProductPage() {
   // ─── Push to Stock ─────────────────────────────────────────────────────────
   async function pushToStock() {
     if (lines.length === 0) {
-      setError("Add at least one product to receive.");
+      setError(lang === "bn" ? "রিসিভ করার জন্য অন্তত একটি পণ্য তালিকায় যুক্ত করুন।" : "Add at least one product to receive.");
       return;
     }
     if (!supplier) {
-      setError("Please select a vendor (supplier) for this purchase.");
+      setError(lang === "bn" ? "অনুগ্রহ করে এই চালানের জন্য একজন সরবরাহকারী (Vendor) নির্বাচন করুন।" : "Please select a vendor (supplier) for this purchase.");
       return;
     }
     setError("");
@@ -553,12 +557,24 @@ export default function PurchaseProductPage() {
       if (supplier) poData.supplier = Number(supplier);
       if (branch) poData.branch = Number(branch);
 
-      // Update product selling prices and warranties FIRST
+      // Update product selling prices, warranties, expiry dates, and lot numbers FIRST
       for (const l of lines) {
         const patchData: Record<string, any> = {};
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
         if (l.product.warranty_months !== undefined && l.product.warranty_months !== null) {
           patchData.warranty_months = l.product.warranty_months;
+        }
+        if (l.product.replacement_guarantee_days !== undefined && l.product.replacement_guarantee_days !== null) {
+          patchData.replacement_guarantee_days = l.product.replacement_guarantee_days;
+        }
+        if (l.product.expiry_date !== undefined) {
+          patchData.expiry_date = l.product.expiry_date || null;
+        }
+        if (l.product.lot_number !== undefined) {
+          patchData.lot_number = l.product.lot_number || "";
+        }
+        if (l.product.mfg_date !== undefined) {
+          patchData.mfg_date = l.product.mfg_date || null;
         }
         if (Object.keys(patchData).length > 0) {
           await api(`/catalog/products/${l.product.id}/`, { method: "PATCH", body: patchData });
@@ -578,7 +594,7 @@ export default function PurchaseProductPage() {
         },
       });
 
-      toast.success(t("pp_success_receive") || "Products received successfully");
+      toast.success(t("pp_success_receive") || (lang === "bn" ? "পণ্য সফলভাবে স্টকে যুক্ত হয়েছে!" : "Products received successfully"));
       router.push("/app/products");
     } catch (e: any) {
       setError(e?.data?.detail || e?.message || "Failed to push to stock.");
@@ -590,36 +606,41 @@ export default function PurchaseProductPage() {
   return (
     <div className="row g-3 align-items-start">
       {/* ── Left panel ────────────────────────────────────────────────────── */}
-      <div className="col-lg-8">
+      <div className="col-12 col-lg-8">
         {/* Header */}
         <div className="card shadow-sm mb-3">
-          <div className="card-body">
-            <div className="d-flex align-items-start justify-content-between mb-1">
+          <div className="card-body p-3 p-sm-4">
+            <div className="d-flex flex-column flex-sm-row align-items-sm-center justify-content-between gap-2.5">
               <div>
-                <h1 className="h5 fw-bold mb-0">{t("pp_title")}</h1>
-                <div className="text-secondary small">{t("pp_subtitle")}</div>
+                <h1 className="h5 fw-bold mb-0 text-brand d-flex align-items-center gap-2">
+                  <i className="bi bi-box-arrow-in-down"></i>
+                  {t("pp_title") || (lang === "bn" ? "নতুন প্রোডাক্ট পার্চেজ করুন" : "Purchase New Product")}
+                </h1>
+                <div className="text-secondary small mt-0.5">{t("pp_subtitle") || (lang === "bn" ? "নতুন ইনভেন্টরি যুক্ত করুন এবং স্টক আপডেট করুন।" : "Ingest new inventory and update stock levels.")}</div>
               </div>
-              <div className="small fw-semibold d-flex align-items-center gap-1 bg-white px-3 py-1 rounded shadow-sm border border-light">
-                <span
-                  className={`d-inline-block rounded-circle ${scannerConnected ? "bg-success" : "bg-secondary"}`}
-                  style={{ width: 8, height: 8 }}
-                ></span>
-                <span className={scannerConnected ? "text-success" : "text-secondary"}>
-                  {scannerConnected ? "Scanner Connected" : "Scanner Disconnected"}
-                </span>
-              </div>
-              <div className="d-flex gap-2">
-                <button className="btn btn-outline-secondary btn-sm" onClick={() => router.back()}>
-                  {t("pp_btn_cancel")}
-                </button>
+              <div className="d-flex flex-wrap align-items-center gap-2 mt-2 mt-sm-0">
+                <div className="small fw-semibold d-none d-md-flex align-items-center gap-1.5 bg-light px-2.5 py-1 rounded border">
+                  <span
+                    className={`d-inline-block rounded-circle ${scannerConnected ? "bg-success" : "bg-secondary"}`}
+                    style={{ width: 8, height: 8 }}
+                  ></span>
+                  <span className={scannerConnected ? "text-success" : "text-secondary"} style={{ fontSize: "0.75rem" }}>
+                    {scannerConnected ? "Scanner Connected" : "Scanner Disconnected"}
+                  </span>
+                </div>
                 <button
-                  className="btn btn-outline-brand btn-sm"
+                  type="button"
+                  className="btn btn-outline-brand btn-sm rounded-pill px-3 shadow-sm text-nowrap fw-semibold"
                   onClick={() => {
                     setShowNewProduct(true);
                     setSearchResults(null);
                   }}
                 >
+                  <i className="bi bi-plus-circle me-1"></i>
                   + New Product Record
+                </button>
+                <button className="btn btn-outline-secondary btn-sm rounded-pill px-3 text-nowrap" onClick={() => router.back()}>
+                  {t("pp_btn_cancel") || (lang === "bn" ? "বাতিল" : "Cancel")}
                 </button>
               </div>
             </div>
@@ -628,58 +649,62 @@ export default function PurchaseProductPage() {
 
         {/* Advanced Product Search */}
         <div className="card shadow-sm mb-3">
-          <div className="card-body">
-            <h2 className="h6 fw-bold mb-3 text-brand">{t("pp_search_title")}</h2>
-            <div className="row g-3 mb-2">
-              <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_search_name")}</label>
+          <div className="card-body p-3 p-sm-4">
+            <h2 className="h6 fw-bold mb-3 text-brand d-flex align-items-center gap-1.5">
+              <i className="bi bi-search text-primary"></i>
+              {t("pp_search_title") || (lang === "bn" ? "অ্যাডভান্সড প্রোডাক্ট সার্চ" : "Advanced Product Search")}
+            </h2>
+            <div className="row g-2.5 mb-2">
+              <div className="col-12 col-md-6">
+                <label className="small fw-medium">{t("pp_lbl_search_name") || (lang === "bn" ? "প্রোডাক্টের নাম" : "Product Name")}</label>
                 <input
                   className="form-control form-control-sm"
-                  placeholder={lang === "bn" ? "পণ্যের নাম বা মডেল লিখুন…" : "e.g. Wireless Mouse / DVR"}
+                  placeholder={lang === "bn" ? "যেমন: ওয়্যারলেস মাউস / ডিভিআর / শ্যাম্পু" : "e.g. Wireless Mouse / DVR"}
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
                 />
               </div>
-              <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_search_sku")}</label>
+              <div className="col-12 col-md-6">
+                <label className="small fw-medium">{t("pp_lbl_search_sku") || (lang === "bn" ? "বারকোড / এসকিউ (SKU)" : "Barcode / SKU")}</label>
                 <input
                   className="form-control form-control-sm"
-                  placeholder={lang === "bn" ? "SKU বা বারকোড লিখুন…" : "Scan or type SKU…"}
+                  placeholder={lang === "bn" ? "বারকোড স্ক্যান বা SKU লিখুন…" : "Scan or type SKU…"}
                   value={searchBarcode}
                   onChange={(e) => setSearchBarcode(e.target.value)}
                 />
               </div>
             </div>
 
-            {searching && <Spinner label={t("pp_searching")} />}
+            {searching && <Spinner label={t("pp_searching") || (lang === "bn" ? "খোঁজা হচ্ছে..." : "Searching...")} />}
 
             {searchResults && searchResults.length > 0 && (
-              <div className="border rounded p-2 mt-2" style={{ maxHeight: "200px", overflowY: "auto" }}>
-                <div className="small fw-bold text-secondary mb-1">{t("pp_search_results")}</div>
-                <div className="d-flex flex-column gap-1">
+              <div className="border rounded-3 p-2 mt-2 bg-light shadow-sm" style={{ maxHeight: "220px", overflowY: "auto" }}>
+                <div className="small fw-bold text-secondary mb-1.5 px-1">{t("pp_search_results") || (lang === "bn" ? "খুঁজে পাওয়া পণ্যসমূহ" : "Matching Products")}</div>
+                <div className="d-flex flex-column gap-1.5">
                   {searchResults.map((p) => (
                     <div
                       key={p.id}
-                      className="d-flex justify-content-between align-items-center p-2 rounded bg-light border hover-shadow"
+                      className="d-flex flex-wrap justify-content-between align-items-center p-2 rounded-2 bg-white border hover-shadow gap-2"
                       style={{ cursor: "pointer" }}
                       onClick={() => selectProduct(p)}
                     >
                       <div>
-                        <span className="fw-semibold">{p.name}</span>
+                        <span className="fw-semibold text-dark">{p.name}</span>
                         {p.sku && <span className="badge bg-secondary ms-2">{p.sku}</span>}
-                        {p.barcode && <span className="badge bg-light text-dark ms-1">BC: {p.barcode}</span>}
-                        <div className="text-secondary small">
-                          {t("pp_stock")}: {p.current_stock} · {t("pp_cost")}: {money(p.cost_price)} · {t("pp_sell")}: {money(p.selling_price)}
+                        {p.barcode && <span className="badge bg-light text-dark ms-1 border">BC: {p.barcode}</span>}
+                        <div className="text-secondary small mt-0.5">
+                          {t("pp_stock") || (lang === "bn" ? "স্টক" : "Stock")}: <strong className="text-success">{p.current_stock} {p.unit_detail?.name || ""}</strong> · {t("pp_cost") || (lang === "bn" ? "ক্রয়" : "Cost")}: {money(p.cost_price)} · {t("pp_sell") || (lang === "bn" ? "বিক্রয়" : "Sell")}: {money(p.selling_price)}
                         </div>
                       </div>
                       <button
-                        className="btn btn-brand btn-sm"
+                        type="button"
+                        className="btn btn-brand btn-sm px-3 rounded-pill"
                         onClick={(e) => {
                           e.stopPropagation();
                           selectProduct(p);
                         }}
                       >
-                        {t("pp_btn_select")}
+                        {t("pp_btn_select") || (lang === "bn" ? "বাছাই করুন" : "Select")}
                       </button>
                     </div>
                   ))}
@@ -688,23 +713,24 @@ export default function PurchaseProductPage() {
             )}
 
             {searchResults && searchResults.length === 0 && !searching && (
-              <div className="text-secondary small mt-2">{t("pp_no_results")}</div>
+              <div className="text-secondary small mt-2 alert alert-light border py-2">{t("pp_no_results") || (lang === "bn" ? "কোনো পণ্য পাওয়া যায়নি।" : "No matching products found.")}</div>
             )}
 
             {selected && (
-              <div className="mt-3 p-3 bg-light rounded border border-primary border-opacity-25">
+              <div className="mt-3 p-3 bg-light rounded-3 border border-primary border-opacity-25 shadow-sm">
                 <div className="d-flex justify-content-between align-items-center mb-1">
-                  <span className="badge bg-primary me-2">{t("pp_badge_selected")}</span>
+                  <span className="badge bg-primary me-2">{t("pp_badge_selected") || (lang === "bn" ? "নির্বাচিত" : "SELECTED")}</span>
                   <button
+                    type="button"
                     className="btn btn-link btn-sm p-0 text-secondary"
                     onClick={() => setSelected(null)}
                   >
-                    {t("pp_btn_clear")}
+                    {t("pp_btn_clear") || (lang === "bn" ? "মুছুন" : "Clear")}
                   </button>
                 </div>
-                <div className="fw-bold">{selected.name}</div>
+                <div className="fw-bold fs-6 text-dark">{selected.name}</div>
                 <div className="text-secondary small mb-2">
-                  SKU: {selected.sku || "N/A"} · Barcode: {selected.barcode || "N/A"} · {t("pp_stock")}: {selected.current_stock}
+                  SKU: {selected.sku || "N/A"} · Barcode: {selected.barcode || "N/A"} · {t("pp_stock") || (lang === "bn" ? "স্টক" : "Stock")}: {selected.current_stock} {selected.unit_detail?.name || "Unit"}
                 </div>
                 <div className="d-flex flex-wrap gap-2">
                   <span className="badge rounded-pill text-bg-secondary bg-opacity-75">
@@ -726,13 +752,13 @@ export default function PurchaseProductPage() {
 
         {/* Pricing Information */}
         <div className="card shadow-sm mb-3">
-          <div className="card-body">
-            <h2 className="h6 fw-bold mb-3 text-brand">{lang === "bn" ? "💰 মূল্যের তথ্য" : "💰 Pricing Information"}</h2>
-            <div className="row g-3">
+          <div className="card-body p-3 p-sm-4">
+            <h2 className="h6 fw-bold mb-3 text-brand">💰 {lang === "bn" ? "মূল্যের তথ্য" : "Pricing Information"}</h2>
+            <div className="row g-2.5 g-sm-3">
 
               {/* Added Pricing Method Dropdown */}
               {isSpecialShop && selected && Number(selected.purchase_multiplier) > 1 && selected.unit_detail?.measure_type !== "count" && (
-                <div className="col-12 mb-2 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
+                <div className="col-12 mb-1 p-2 rounded" style={{ backgroundColor: "rgba(13,110,253,0.05)", border: "1px solid rgba(13,110,253,0.1)" }}>
                   <label className="small text-primary fw-bold mb-1">{lang === "bn" ? "দাম নির্ধারণ পদ্ধতি" : "Pricing Entry Method"}</label>
                   <select className="form-select form-select-sm" value={pricingMode} onChange={(e) => setPricingMode(e.target.value as any)}>
                     <option value="regular">{lang === "bn" ? "সাধারণ পদ্ধতি (প্রতি ইউনিটের মূল্য ম্যানুয়াল)" : "Regular Option (Manual Per-Unit Price)"}</option>
@@ -743,9 +769,10 @@ export default function PurchaseProductPage() {
 
               {(isSpecialShop && pricingMode === "bulk") && (
                 <>
-                  <div className="col-md-6">
+                  <div className="col-12 col-md-6">
                     <label className="small fw-medium text-primary">{lang === "bn" ? "পুরো ড্রাম/বক্স ক্রয়মূল্য (৳)" : "Full Drum/Box Cost (৳)"}</label>
-                    <div className="input-group">
+                    <div className="input-group input-group-sm">
+                      <span className="input-group-text">৳</span>
                       <input
                         className="form-control"
                         type="number"
@@ -771,9 +798,10 @@ export default function PurchaseProductPage() {
                     </div>
                   </div>
                   
-                  <div className="col-md-6">
+                  <div className="col-12 col-md-6">
                     <label className="small fw-medium text-primary">Full Drum/Box Sell (৳)</label>
-                    <div className="input-group">
+                    <div className="input-group input-group-sm">
+                      <span className="input-group-text">৳</span>
                       <input
                         className="form-control"
                         type="number"
@@ -805,86 +833,170 @@ export default function PurchaseProductPage() {
                   </div>
                 </>
               )}
-              <div className="col-md-6">
-                <label className="small fw-medium">{(isSpecialShop && pricingMode === "bulk") ? "Auto Calculated Cost (Base Unit)" : t("pp_lbl_cost_bdt")}</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  step="0.01"
-                  value={selected ? cost : ""}
-                  placeholder="0"
-                  disabled={!selected || (isSpecialShop && pricingMode === "bulk")}
-                  onChange={(e) => {
-                    if (!selected) return;
-                    setSelected({ ...selected, cost_price: e.target.value });
-                    setLines((prev) =>
-                      prev.map((l) =>
-                        l.product.id === selected.id ? { ...l, unit_cost: Number(e.target.value) || 0 } : l
-                      )
-                    );
-                  }}
-                />
+
+              <div className="col-12 col-md-6">
+                <label className="small fw-medium">{(isSpecialShop && pricingMode === "bulk") ? (lang === "bn" ? "অটো ক্রয় মূল্য (বেস ইউনিট)" : "Auto Calculated Cost (Base Unit)") : (t("pp_lbl_cost_bdt") || (lang === "bn" ? "ক্রয় মূল্য (টাকা)" : "Cost Price (BDT)"))}</label>
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text">৳</span>
+                  <input
+                    className="form-control"
+                    type="number"
+                    step="0.01"
+                    value={selected ? cost : ""}
+                    placeholder="0"
+                    disabled={!selected || (isSpecialShop && pricingMode === "bulk")}
+                    onChange={(e) => {
+                      if (!selected) return;
+                      setSelected({ ...selected, cost_price: e.target.value });
+                      setLines((prev) =>
+                        prev.map((l) =>
+                          l.product.id === selected.id ? { ...l, unit_cost: Number(e.target.value) || 0 } : l
+                        )
+                      );
+                    }}
+                  />
+                </div>
               </div>
-              <div className="col-md-6">
-                <label className="small fw-medium">{(isSpecialShop && pricingMode === "bulk") ? "Auto Calculated Selling Price (Base Unit)" : t("pp_lbl_sell_bdt")}</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  step="0.01"
-                  value={selected ? sell : ""}
-                  placeholder="0"
-                  disabled={!selected || (isSpecialShop && pricingMode === "bulk")}
-                  onChange={(e) => {
-                    if (!selected) return;
-                    setSelected({ ...selected, selling_price: e.target.value });
-                    setLines((prev) =>
-                      prev.map((l) =>
-                        l.product.id === selected.id
-                          ? { ...l, product: { ...l.product, selling_price: e.target.value } }
-                          : l
-                      )
-                    );
-                  }}
-                />
+
+              <div className="col-12 col-md-6">
+                <label className="small fw-medium">{(isSpecialShop && pricingMode === "bulk") ? (lang === "bn" ? "অটো বিক্রয় মূল্য (বেস ইউনিট)" : "Auto Calculated Selling Price (Base Unit)") : (t("pp_lbl_sell_bdt") || (lang === "bn" ? "বিক্রয় মূল্য (টাকা)" : "Selling Price (BDT)"))}</label>
+                <div className="input-group input-group-sm">
+                  <span className="input-group-text">৳</span>
+                  <input
+                    className="form-control"
+                    type="number"
+                    step="0.01"
+                    value={selected ? sell : ""}
+                    placeholder="0"
+                    disabled={!selected || (isSpecialShop && pricingMode === "bulk")}
+                    onChange={(e) => {
+                      if (!selected) return;
+                      setSelected({ ...selected, selling_price: e.target.value });
+                      setLines((prev) =>
+                        prev.map((l) =>
+                          l.product.id === selected.id
+                            ? { ...l, product: { ...l.product, selling_price: e.target.value } }
+                            : l
+                        )
+                      );
+                    }}
+                  />
+                </div>
                 <div className="small text-muted mt-1">
-                  {t("pp_lbl_margin")}: <strong>{margin}%</strong> · {t("pp_lbl_profit")}:{" "}
+                  {t("pp_lbl_margin") || (lang === "bn" ? "মার্জিন" : "Margin")}: <strong>{margin}%</strong> · {t("pp_lbl_profit") || (lang === "bn" ? "লাভ" : "Profit")}:{" "}
                   <strong>
-                    {t("pp_bdt")} {profit}/{t("pp_unit")}
+                    {t("pp_bdt") || "৳"} {profit}/{t("pp_unit") || (lang === "bn" ? "ইউনিট" : "unit")}
                   </strong>
                 </div>
               </div>
-              <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_warranty")}</label>
-                <input
-                  className="form-control"
-                  type="number"
-                  min="0"
-                  value={selected?.warranty_months ?? ""}
-                  placeholder="0"
-                  disabled={!selected}
-                  onChange={(e) => {
-                    if (!selected) return;
-                    const val = Number(e.target.value);
-                    setSelected({ ...selected, warranty_months: val });
-                    setLines((prev) =>
-                      prev.map((l) =>
-                        l.product.id === selected.id
-                          ? { ...l, product: { ...l.product, warranty_months: val } }
-                          : l
-                      )
-                    );
-                  }}
-                />
-                <div className="small text-muted mt-1">{t("pp_lbl_warranty_hint")}</div>
-              </div>
-              <div className="col-md-6">
-                <label className="small fw-medium">{t("pp_lbl_qty")}</label>
+
+              {/* Chemical Expiry / Batch vs Hardware Warranty */}
+              {(() => {
+                const selectedUnit = selected?.unit_detail;
+                const isCountUnit = !selectedUnit || selectedUnit.measure_type === "count" || selectedUnit.name?.toLowerCase().includes("piece") || selectedUnit.name?.toLowerCase().includes("pcs") || selectedUnit.short_code?.toLowerCase() === "pcs";
+                const isChemicalBulk = isSpecialShop && !isCountUnit;
+
+                if (isChemicalBulk) {
+                  return (
+                    <>
+                      <div className="col-12 col-md-4">
+                        <label className="small fw-semibold text-danger">{lang === "bn" ? "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)" : "Expiry Date"}</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={selected?.expiry_date || ""}
+                          disabled={!selected}
+                          onChange={(e) => {
+                            if (!selected) return;
+                            const val = e.target.value;
+                            setSelected({ ...selected, expiry_date: val });
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.product.id === selected.id ? { ...l, product: { ...l.product, expiry_date: val } } : l
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <label className="small fw-medium">{lang === "bn" ? "লট / ব্যাচ নম্বর" : "Lot / Batch No"}</label>
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="e.g. LOT-2026-09"
+                          value={selected?.lot_number || ""}
+                          disabled={!selected}
+                          onChange={(e) => {
+                            if (!selected) return;
+                            const val = e.target.value;
+                            setSelected({ ...selected, lot_number: val });
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.product.id === selected.id ? { ...l, product: { ...l.product, lot_number: val } } : l
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                      <div className="col-12 col-md-4">
+                        <label className="small fw-medium">{lang === "bn" ? "উৎপাদন তারিখ (ঐচ্ছিক)" : "Mfg Date"}</label>
+                        <input
+                          type="date"
+                          className="form-control form-control-sm"
+                          value={selected?.mfg_date || ""}
+                          disabled={!selected}
+                          onChange={(e) => {
+                            if (!selected) return;
+                            const val = e.target.value;
+                            setSelected({ ...selected, mfg_date: val });
+                            setLines((prev) =>
+                              prev.map((l) =>
+                                l.product.id === selected.id ? { ...l, product: { ...l.product, mfg_date: val } } : l
+                              )
+                            );
+                          }}
+                        />
+                      </div>
+                    </>
+                  );
+                }
+
+                return (
+                  <div className="col-12 col-md-6">
+                    <label className="small fw-medium">{t("pp_lbl_warranty") || (lang === "bn" ? "ওয়ারেন্টির সময়কাল (মাস)" : "Warranty duration (months)")}</label>
+                    <input
+                      className="form-control form-control-sm"
+                      type="number"
+                      min="0"
+                      value={selected?.warranty_months ?? ""}
+                      placeholder="0"
+                      disabled={!selected}
+                      onChange={(e) => {
+                        if (!selected) return;
+                        const val = Number(e.target.value);
+                        setSelected({ ...selected, warranty_months: val });
+                        setLines((prev) =>
+                          prev.map((l) =>
+                            l.product.id === selected.id
+                              ? { ...l, product: { ...l.product, warranty_months: val } }
+                              : l
+                          )
+                        );
+                      }}
+                    />
+                    <div className="small text-muted mt-1">{t("pp_lbl_warranty_hint") || (lang === "bn" ? "এই ব্যাচের প্রতিটি ইউনিটে প্রযোজ্য হবে।" : "Applied to every unit received in this batch.")}</div>
+                  </div>
+                );
+              })()}
+
+              <div className="col-12 col-md-6">
+                <label className="small fw-medium">{t("pp_lbl_qty") || (lang === "bn" ? "পরিমাণ (কত ইউনিট রিসিভ করবেন)" : "Quantity (units to receive)")}</label>
                 <input
                   type="number"
                   min={1}
                   step={1}
-                  className={`form-control ${tooManyBarcodes ? "is-invalid" : ""}`}
-                  placeholder={selected ? "e.g. 10" : "Select a product first"}
+                  className={`form-control form-control-sm ${tooManyBarcodes ? "is-invalid" : ""}`}
+                  placeholder={selected ? (lang === "bn" ? "যেমন: ১০" : "e.g. 10") : (lang === "bn" ? "আগে পণ্য নির্বাচন করুন" : "Select a product first")}
                   value={qtyDisplay}
                   disabled={!selected}
                   onChange={(e) => {
@@ -919,9 +1031,9 @@ export default function PurchaseProductPage() {
 
         {/* ── Bulk Barcode Scan Card ───────────────────────────────────────── */}
         <div className="card shadow-sm mb-3">
-          <div className="card-body">
-            <div className="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-3 border-bottom pb-2">
-              <div className="d-flex flex-wrap align-items-center gap-3">
+          <div className="card-body p-3 p-sm-4">
+            <div className="d-flex flex-wrap justify-content-between align-items-center gap-2.5 mb-3 border-bottom pb-2.5">
+              <div className="d-flex flex-wrap align-items-center gap-2">
                 <h2 className="h6 fw-bold mb-0 text-brand text-nowrap">▦ {lang === "bn" ? "বাল্ক বারকোড স্ক্যান ও স্টক ইনজেকশন" : "Bulk Barcode Scan & Ingestion"}</h2>
                 
                 {/* Modern Self-Contained Auto-Barcode Toggle Pill */}
@@ -936,7 +1048,7 @@ export default function PurchaseProductPage() {
                       toast.success(`${cnt} টি অটো বারকোড তৈরি হয়েছে`);
                     }
                   }}
-                  className={`d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill border user-select-none ${
+                  className={`d-inline-flex align-items-center gap-2 px-3 py-1 rounded-pill border user-select-none ${
                     autoGenerateBarcodes
                       ? "bg-primary text-white border-primary shadow-sm"
                       : "bg-white text-dark border-secondary-subtle"
@@ -944,11 +1056,11 @@ export default function PurchaseProductPage() {
                   style={{ cursor: "pointer", transition: "all 0.2s ease" }}
                   role="button"
                 >
-                  <span className="small fw-bold">⚡ অটো-বারকোড তৈরি (Auto Barcode)</span>
+                  <span className="small fw-bold" style={{ fontSize: "0.78rem" }}>⚡ অটো-বারকোড তৈরি</span>
                   <div
                     style={{
-                      width: "34px",
-                      height: "18px",
+                      width: "30px",
+                      height: "16px",
                       backgroundColor: autoGenerateBarcodes ? "rgba(255,255,255,0.3)" : "#cbd5e1",
                       borderRadius: "10px",
                       padding: "2px",
@@ -960,21 +1072,21 @@ export default function PurchaseProductPage() {
                   >
                     <div
                       style={{
-                        width: "14px",
-                        height: "14px",
+                        width: "12px",
+                        height: "12px",
                         backgroundColor: autoGenerateBarcodes ? "#ffffff" : "#64748b",
                         borderRadius: "50%",
                         boxShadow: "0 1px 2px rgba(0,0,0,0.2)",
                       }}
                     />
                   </div>
-                  <span className={`badge ${autoGenerateBarcodes ? "bg-white text-primary" : "bg-secondary"}`} style={{ fontSize: "0.65rem" }}>
+                  <span className={`badge ${autoGenerateBarcodes ? "bg-white text-primary" : "bg-secondary"}`} style={{ fontSize: "0.62rem" }}>
                     {autoGenerateBarcodes ? "ON" : "OFF"}
                   </span>
                 </div>
               </div>
 
-              <div className="d-flex gap-2 align-items-center">
+              <div className="d-flex flex-wrap gap-2 align-items-center">
                 <span className="badge text-bg-primary">{parsedBarcodes.length} BARCODES</span>
                 {selected && (
                   <button
@@ -988,8 +1100,8 @@ export default function PurchaseProductPage() {
               </div>
             </div>
             <div className="row g-3">
-              <div className="col-md-7">
-                <label className="form-label small fw-medium">বারকোড স্ক্যান বা পেস্ট করুন (প্রতি লাইনে একটি):</label>
+              <div className="col-12 col-md-7">
+                <label className="form-label small fw-medium">{lang === "bn" ? "বারকোড স্ক্যান বা পেস্ট করুন (প্রতি লাইনে একটি):" : "Scan or paste barcodes (one per line):"}</label>
                 <textarea
                   className="form-control font-monospace"
                   rows={6}
@@ -998,13 +1110,13 @@ export default function PurchaseProductPage() {
                   onChange={handleBarcodeInput}
                 />
               </div>
-              <div className="col-md-5">
+              <div className="col-12 col-md-5">
                 <div className="border rounded p-3 text-center h-100 d-flex flex-column align-items-center justify-content-center gap-2 bg-light">
                   <div className="fs-3">🖨️</div>
-                  <div className="fw-semibold small">{t("pp_scan_mode")}</div>
-                  <div className="text-secondary small">{t("pp_scan_hint")}</div>
+                  <div className="fw-semibold small">{t("pp_scan_mode") || (lang === "bn" ? "কন্টিনিউয়াস স্ক্যান মোড" : "Continuous Scan Mode")}</div>
+                  <div className="text-secondary small">{t("pp_scan_hint") || (lang === "bn" ? "স্ক্যান শুরু করার জন্য এই ফিল্ডে ক্লিক করুন" : "Focus the cursor in the field to start scanning")}</div>
                   <div className="d-flex align-items-center gap-2 mt-1">
-                    <span className="small text-secondary">{t("pp_digits_code")}:</span>
+                    <span className="small text-secondary">{t("pp_digits_code") || (lang === "bn" ? "ডিজিট/কোড" : "Digits/code")}:</span>
                     <input
                       type="number"
                       className="form-control form-control-sm"
@@ -1031,7 +1143,7 @@ export default function PurchaseProductPage() {
                       setQtyTouched(false);
                     }}
                   >
-                    {t("pp_btn_clear_list")}
+                    {t("pp_btn_clear_list") || (lang === "bn" ? "তালিকা মুছুন" : "Clear List")}
                   </button>
                 </div>
               </div>
@@ -1040,14 +1152,14 @@ export default function PurchaseProductPage() {
             <div className="mt-3">
               <button
                 type="button"
-                className="btn btn-brand btn-lg w-100"
+                className="btn btn-brand btn-lg w-100 shadow-sm py-2.5"
                 disabled={busy || tooManyBarcodes || (!selected && parsedBarcodes.length === 0)}
                 onClick={addScannedUnits}
               >
                 {busy ? (
                   <span className="spinner-border spinner-border-sm me-2" />
                 ) : (
-                  "+ "
+                  <i className="bi bi-cart-plus me-1.5"></i>
                 )}
                 {lang === "bn" ? `+ ${effQty} ইউনিট তালিকায় যুক্ত করুন` : `+ Add ${effQty} unit(s) to receive`}
               </button>
@@ -1057,17 +1169,17 @@ export default function PurchaseProductPage() {
       </div>
 
       {/* ── Right panel ───────────────────────────────────────────────────── */}
-      <div className="col-lg-4">
-        <div className="card shadow-sm" style={{ position: "sticky", top: "1rem" }}>
+      <div className="col-12 col-lg-4">
+        <div className="card shadow-sm sticky-lg-top" style={{ top: "1rem" }}>
           <div className="card-header text-white fw-semibold" style={{ background: "var(--brand-900, #1a2433)" }}>
             <div>📦 {lang === "bn" ? "গ্রহণের তালিকা" : "To Receive"}</div>
-            <div className="small fw-normal opacity-75">{t("pp_pending_inject")}</div>
+            <div className="small fw-normal opacity-75">{t("pp_pending_inject") || (lang === "bn" ? "পেন্ডিং স্টক যুক্তকরণ" : "Pending Stock Injection")}</div>
           </div>
           <div className="card-body p-0">
             {lines.length === 0 ? (
               <div className="text-center text-secondary py-4 px-3">
                 <div className="fs-2 mb-2">📦</div>
-                <div className="small">{t("pp_pending_empty")}</div>
+                <div className="small">{t("pp_pending_empty") || (lang === "bn" ? "স্টক যুক্ত করার জন্য প্রোডাক্ট যোগ করুন।" : "Add products to see them queued for stock injection.")}</div>
               </div>
             ) : (
               <div className="table-responsive" style={{ maxHeight: "300px", overflowY: "auto" }}>
@@ -1081,7 +1193,7 @@ export default function PurchaseProductPage() {
                       return (
                         <tr key={l.product.id}>
                           <td className="ps-3">
-                            <div className="fw-semibold small">{l.product.name}</div>
+                            <div className="fw-semibold small text-dark">{l.product.name}</div>
                             {isBulk && (
                               <div className="text-primary small" style={{ fontSize: "0.68rem" }}>
                                 📦 {l.quantity} {bulkUnit} = {l.quantity * mult} {baseUnit} (@ ৳{mult > 0 ? (l.unit_cost / mult).toFixed(2) : l.unit_cost}/{baseUnit})
@@ -1140,17 +1252,17 @@ export default function PurchaseProductPage() {
 
             <div className="border-top px-3 py-2">
               <div className="d-flex justify-content-between small mb-1">
-                <span className="text-secondary">{t("pp_subtotal")}</span>
+                <span className="text-secondary">{t("pp_subtotal") || (lang === "bn" ? "সাবটোটাল" : "Subtotal")}</span>
                 <span>{money(subtotal)}</span>
               </div>
               <div className="d-flex justify-content-between fw-bold mb-3">
-                <span>{t("pp_total_val")}</span>
+                <span>{t("pp_total_val") || (lang === "bn" ? "মোট মূল্য" : "Total Value")}</span>
                 <span>{money(subtotal)}</span>
               </div>
 
-              <label className="form-label small fw-medium">{t("pp_lbl_paid_now")}</label>
+              <label className="form-label small fw-medium">{t("pp_lbl_paid_now") || (lang === "bn" ? "সাপ্লায়ারকে এখন পরিশোধ করা হলো" : "Paid to supplier now")}</label>
               <div className="input-group input-group-sm mb-1">
-                <span className="input-group-text">{t("pp_bdt")}</span>
+                <span className="input-group-text">{t("pp_bdt") || (lang === "bn" ? "টাকা" : "BDT")}</span>
                 <input
                   type="number"
                   min={0}
@@ -1165,7 +1277,7 @@ export default function PurchaseProductPage() {
                   className="btn btn-outline-secondary"
                   onClick={() => setPayAmount(String(subtotal))}
                 >
-                  {t("pp_btn_pay_full")}
+                  {t("pp_btn_pay_full") || (lang === "bn" ? "সম্পূর্ণ পরিশোধ করুন" : "Pay full")}
                 </button>
               </div>
               <select
@@ -1181,7 +1293,7 @@ export default function PurchaseProductPage() {
               </select>
 
               <div className="d-flex justify-content-between small mb-1">
-                <span className="text-secondary">{t("pp_due_after")}</span>
+                <span className="text-secondary">{t("pp_due_after") || (lang === "bn" ? "পরিশোধের পর সাপ্লায়ারের বকেয়া" : "Supplier due after payment")}</span>
                 <span className={`fw-semibold ${supplierDue > 0 ? "text-danger" : "text-success"}`}>{money(supplierDue)}</span>
               </div>
 
@@ -1208,9 +1320,9 @@ export default function PurchaseProductPage() {
 
             {/* Purchase Summary */}
             <div className="border-top px-3 py-3">
-              <div className="fw-bold small mb-2">{t("pp_summary_title")}</div>
+              <div className="fw-bold small mb-2">{t("pp_summary_title") || (lang === "bn" ? "পার্চেজ সামারি" : "PURCHASE SUMMARY")}</div>
               <div className="mb-2">
-                <label className="small fw-medium">{t("pp_lbl_vendor")}</label>
+                <label className="small fw-medium">{t("pp_lbl_vendor") || (lang === "bn" ? "ভেন্ডর" : "Vendor")}</label>
                 <div className="d-flex gap-2 align-items-center">
                   <select
                     className="form-select form-select-sm"
@@ -1265,7 +1377,7 @@ export default function PurchaseProductPage() {
                       className="btn btn-outline-secondary btn-sm"
                       onClick={() => setShowNewVendor(false)}
                     >
-                      {t("pp_btn_cancel")}
+                      {t("pp_btn_cancel") || (lang === "bn" ? "বাতিল" : "Cancel")}
                     </button>
                     <button className="btn btn-brand btn-sm" disabled={savingVendor}>
                       {savingVendor ? (lang === "bn" ? "যোগ হচ্ছে…" : "Adding…") : (lang === "bn" ? "সাপ্লায়ার সংরক্ষণ" : "Add Vendor")}
@@ -1276,7 +1388,7 @@ export default function PurchaseProductPage() {
 
               {branches.length > 0 && (
                 <div>
-                  <label className="small fw-medium">{t("pp_lbl_warehouse")}</label>
+                  <label className="small fw-medium">{t("pp_lbl_warehouse") || (lang === "bn" ? "গুদাম (Warehouse)" : "Warehouse")}</label>
                   <select
                     className="form-select form-select-sm"
                     value={branch}
@@ -1297,14 +1409,23 @@ export default function PurchaseProductPage() {
               {error && <div className="alert alert-danger py-2 px-3 small mb-2">{error}</div>}
 
               <button
-                className="btn btn-brand w-100 mb-1"
+                className="btn btn-brand btn-lg w-100 mb-1 shadow-sm py-2.5"
                 disabled={busy || lines.length === 0}
                 onClick={pushToStock}
               >
-                {busy ? <span className="spinner-border spinner-border-sm me-2" /> : "↑ "}
-                Push to Stock
+                {busy ? (
+                  <>
+                    <span className="spinner-border spinner-border-sm me-2" />
+                    {t("pp_pushing") || (lang === "bn" ? "স্টকে যুক্ত হচ্ছে…" : "Pushing to Stock…")}
+                  </>
+                ) : (
+                  <>
+                    <i className="bi bi-box-arrow-in-down me-1.5"></i>
+                    {t("pp_btn_push_stock") || "Push to Stock"}
+                  </>
+                )}
               </button>
-              <div className="text-center text-secondary small mb-1">
+              <div className="text-center text-secondary small mb-1" style={{ fontSize: "0.75rem" }}>
                 ⓘ Updates ledger &amp; inventory levels
               </div>
             </div>
@@ -1317,7 +1438,7 @@ export default function PurchaseProductPage() {
         <>
           <div className="modal-backdrop fade show" style={{ zIndex: 1050 }} onClick={() => setShowNewProduct(false)} />
           <div className="modal fade show d-block" tabIndex={-1} style={{ zIndex: 1055 }}>
-            <div className="modal-dialog modal-dialog-centered modal-xl">
+            <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-xl modal-fullscreen-lg-down">
               <div className="modal-content border-0 shadow-2xl rounded-4 overflow-hidden">
                 {/* Modal Header */}
                 <div className="modal-header bg-primary bg-opacity-10 border-bottom border-primary border-opacity-25 py-3 px-4 d-flex align-items-center justify-content-between">
@@ -1338,11 +1459,11 @@ export default function PurchaseProductPage() {
                 </div>
 
                 {/* Modal Body: The Exact Product List Add Form (Image 2) */}
-                <div className="modal-body p-4">
+                <div className="modal-body p-3 p-md-4">
                   <form id="purchaseNewProductForm" onSubmit={createProduct} className="row g-3">
                     {/* 1. Product Name */}
-                    <div className="col-md-4">
-                      <label className="small">{t("prod_list_name")}</label>
+                    <div className="col-12 col-md-4">
+                      <label className="small fw-semibold">{t("prod_list_name") || (lang === "bn" ? "পণ্যের নাম *" : "Product Name *")}</label>
                       <input
                         required
                         className="form-control form-control-sm"
@@ -1354,12 +1475,12 @@ export default function PurchaseProductPage() {
                     </div>
 
                     {/* 2. SKU */}
-                    <div className="col-md-4">
-                      <label className="small">
-                        {t("prod_list_sku")} <span className="text-secondary">{t("prod_list_auto")}</span>
+                    <div className="col-12 col-md-4">
+                      <label className="small fw-medium">
+                        {t("prod_list_sku") || "SKU"} <span className="text-secondary small">({lang === "bn" ? "স্বয়ংক্রিয়" : "Auto"})</span>
                       </label>
                       <input
-                        placeholder={t("prod_list_auto_gen")}
+                        placeholder={t("prod_list_auto_gen") || (lang === "bn" ? "স্বয়ংক্রিয় তৈরি হবে" : "auto-generated")}
                         className="form-control form-control-sm"
                         value={newProd.sku}
                         onChange={(e) => setNewProd({ ...newProd, sku: e.target.value })}
@@ -1367,58 +1488,58 @@ export default function PurchaseProductPage() {
                     </div>
 
                     {/* 3. Category with Quick Add */}
-                    <div className="col-md-4">
-                      <label className="small">{t("prod_list_category")}</label>
+                    <div className="col-12 col-md-4">
+                      <label className="small fw-medium">{t("prod_list_category") || (lang === "bn" ? "ক্যাটাগরি" : "Category")}</label>
                       <select
                         className="form-select form-select-sm mb-1"
                         value={newProd.category}
                         onChange={(e) => setNewProd({ ...newProd, category: e.target.value })}
                       >
-                        <option value="">{t("prod_list_none")}</option>
+                        <option value="">{t("prod_list_none") || (lang === "bn" ? "-- কোনোটি নয় --" : "-- None --")}</option>
                         {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
                       </select>
                       <div className="input-group input-group-sm">
                         <input
                           className="form-control"
-                          placeholder={t("prod_list_new_cat")}
+                          placeholder={t("prod_list_new_cat") || (lang === "bn" ? "নতুন ক্যাটাগরি..." : "+ New category...")}
                           value={newCat}
                           onChange={(e) => setNewCat(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("category"))}
                         />
                         <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("category")}>
-                          {t("prod_list_add")}
+                          {t("prod_list_add") || (lang === "bn" ? "যোগ" : "Add")}
                         </button>
                       </div>
                     </div>
 
                     {/* 4. Brand with Quick Add */}
-                    <div className="col-md-3">
-                      <label className="small">{t("prod_list_brand")}</label>
+                    <div className="col-12 col-md-3">
+                      <label className="small fw-medium">{t("prod_list_brand") || (lang === "bn" ? "ব্র্যান্ড" : "Brand")}</label>
                       <select
                         className="form-select form-select-sm mb-1"
                         value={newProd.brand}
                         onChange={(e) => setNewProd({ ...newProd, brand: e.target.value })}
                       >
-                        <option value="">{t("prod_list_none")}</option>
+                        <option value="">{t("prod_list_none") || (lang === "bn" ? "-- কোনোটি নয় --" : "-- None --")}</option>
                         {brands.map((b) => <option key={b.id} value={b.id}>{b.name}</option>)}
                       </select>
                       <div className="input-group input-group-sm">
                         <input
                           className="form-control"
-                          placeholder={t("prod_list_new_brand")}
+                          placeholder={t("prod_list_new_brand") || (lang === "bn" ? "নতুন ব্র্যান্ড..." : "+ New brand...")}
                           value={newBrand}
                           onChange={(e) => setNewBrand(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("brand"))}
                         />
                         <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("brand")}>
-                          {t("prod_list_add")}
+                          {t("prod_list_add") || (lang === "bn" ? "যোগ" : "Add")}
                         </button>
                       </div>
                     </div>
 
                     {/* 5. Sale Unit with Quick Add */}
                     {isSpecialShop ? (
-                      <div className="col-md-3">
+                      <div className="col-12 col-md-3">
                         <label className="small fw-medium text-primary">{lang === "bn" ? "বিক্রয় ইউনিট (Unit)" : "Sale Unit"}</label>
                         <select
                           className="form-select form-select-sm mb-1"
@@ -1437,12 +1558,12 @@ export default function PurchaseProductPage() {
                             onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("unit"))}
                           />
                           <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("unit")}>
-                            {t("prod_list_add")}
+                            {t("prod_list_add") || (lang === "bn" ? "যোগ" : "Add")}
                           </button>
                         </div>
                       </div>
                     ) : (
-                      <div className="col-md-2">
+                      <div className="col-12 col-md-2">
                         <label className="small fw-medium">{t("prod_list_unit") || "Unit"}</label>
                         <select
                           className="form-select form-select-sm mb-1"
@@ -1462,7 +1583,7 @@ export default function PurchaseProductPage() {
                     {/* 6. Bulk Purchase Unit & Multiplier (for Special / Chemical Shops) */}
                     {isSpecialShop && (
                       <>
-                        <div className="col-md-3">
+                        <div className="col-12 col-md-3">
                           <label className="small fw-medium text-primary">{lang === "bn" ? "পাইকারি/ড্রাম ইউনিট (Purchase Unit)" : "Bulk/Purchase Unit"}</label>
                           <select
                             className="form-select form-select-sm mb-1"
@@ -1473,7 +1594,7 @@ export default function PurchaseProductPage() {
                             {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
                           </select>
                         </div>
-                        <div className="col-md-3">
+                        <div className="col-12 col-md-3">
                           <label className="small fw-semibold text-primary" title="Conversion Multiplier">
                             {lang === "bn" ? "প্রতি ড্রাম/বক্সে পরিমাণ" : "Qty per Drum/Box"}
                           </label>
@@ -1513,7 +1634,7 @@ export default function PurchaseProductPage() {
                     {/* 8. Full Pack Pricing when Bulk mode */}
                     {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) && (
                       <>
-                        <div className="col-md-3">
+                        <div className="col-12 col-md-3">
                           <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Drum/Box"} Cost</label>
                           <div className="input-group input-group-sm mb-1">
                             <span className="input-group-text">৳</span>
@@ -1534,7 +1655,7 @@ export default function PurchaseProductPage() {
                             />
                           </div>
                         </div>
-                        <div className="col-md-3">
+                        <div className="col-12 col-md-3">
                           <label className="small text-primary fw-medium">Full {units.find(u => String(u.id) === String(newProd.purchase_unit))?.name || "Drum/Box"} Sell</label>
                           <div className="input-group input-group-sm mb-1">
                             <span className="input-group-text">৳</span>
@@ -1558,9 +1679,9 @@ export default function PurchaseProductPage() {
                     )}
 
                     {/* 9. Unit Cost */}
-                    <div className="col-md-3">
+                    <div className="col-12 col-md-3">
                       <label className="small text-primary fw-medium">
-                        {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"}` : t("prod_list_cost")}
+                        {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? `Cost per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"}` : (t("prod_list_cost") || "Cost Price")}
                       </label>
                       <div className="input-group input-group-sm mb-1">
                         <span className="input-group-text">৳</span>
@@ -1577,9 +1698,9 @@ export default function PurchaseProductPage() {
                     </div>
 
                     {/* 10. Selling Price & Margin Indicator */}
-                    <div className="col-md-3">
+                    <div className="col-12 col-md-3">
                       <label className="small text-primary fw-medium">
-                        {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"}` : t("prod_list_selling_price")}
+                        {(isSpecialShop && newPricingMode === "bulk" && Number(newProd.purchase_multiplier) > 1) ? `Selling Price per ${units.find(u => String(u.id) === String(newProd.unit))?.name || "Unit"}` : (t("prod_list_selling_price") || "Selling Price")}
                       </label>
                       <div className="input-group input-group-sm mb-1">
                         <span className="input-group-text">৳</span>
@@ -1600,8 +1721,8 @@ export default function PurchaseProductPage() {
                     </div>
 
                     {/* 11. Reorder Level */}
-                    <div className="col-md-3">
-                      <label className="small">{t("prod_list_reorder_level")}</label>
+                    <div className="col-12 col-md-3">
+                      <label className="small">{t("prod_list_reorder_level") || (lang === "bn" ? "রিঅর্ডার লেভেল" : "Reorder Level")}</label>
                       <input
                         type="number"
                         step="1"
@@ -1614,7 +1735,7 @@ export default function PurchaseProductPage() {
                     </div>
 
                     {/* 12. Barcode */}
-                    <div className="col-md-3">
+                    <div className="col-12 col-md-3">
                       <label className="small">{lang === "bn" ? "বারকোড (ঐচ্ছিক)" : "Barcode (Optional)"}</label>
                       <input
                         className="form-control form-control-sm"
@@ -1627,7 +1748,7 @@ export default function PurchaseProductPage() {
                     {/* 13. Warranty / Replacement (Hardware / Non-special shops) */}
                     {!isSpecialShop && (
                       <>
-                        <div className="col-md-2">
+                        <div className="col-12 col-md-2">
                           <label className="small">{t("prod_list_warranty_months") || (lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)")}</label>
                           <input
                             type="number"
@@ -1638,7 +1759,7 @@ export default function PurchaseProductPage() {
                             placeholder="0"
                           />
                         </div>
-                        <div className="col-md-2">
+                        <div className="col-12 col-md-2">
                           <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days") || (lang === "bn" ? "রিপ্লেসমেন্ট (দিন)" : "Replacement (Days)")}</label>
                           <input
                             type="number"
@@ -1657,7 +1778,7 @@ export default function PurchaseProductPage() {
                 {/* Modal Footer */}
                 <div className="modal-footer bg-light p-3 d-flex align-items-center justify-content-between">
                   <button type="button" className="btn btn-secondary btn-sm px-4 rounded-pill" onClick={() => setShowNewProduct(false)}>
-                    {t("pp_btn_cancel")}
+                    {t("pp_btn_cancel") || (lang === "bn" ? "বাতিল" : "Cancel")}
                   </button>
                   <button
                     type="submit"
@@ -1668,12 +1789,12 @@ export default function PurchaseProductPage() {
                     {savingProd ? (
                       <>
                         <span className="spinner-border spinner-border-sm me-1.5" />
-                        {t("prod_list_saving")}
+                        {t("prod_list_saving") || (lang === "bn" ? "সংরক্ষণ হচ্ছে…" : "Saving…")}
                       </>
                     ) : (
                       <>
                         <i className="bi bi-check-circle-fill me-1.5"></i>
-                        {t("prod_list_save")}
+                        {t("prod_list_save") || (lang === "bn" ? "পণ্য সংরক্ষণ করুন" : "Save product")}
                       </>
                     )}
                   </button>
