@@ -355,19 +355,44 @@ export default function ProductsPage() {
                 <label className="small">{t("prod_list_reorder_level")}</label>
                 <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level} onChange={(e) => setForm({ ...form, reorder_level: e.target.value })} placeholder="5" />
               </div>
-              {/* Standard Electronics/Hardware Warranty (Hidden for Chemical & Special Shops) */}
-              {!isSpecialShop && (
-                <>
-                  <div className="col-md-2">
-                    <label className="small">{t("prod_list_warranty_months") || (lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)")}</label>
-                    <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
-                  </div>
-                  <div className="col-md-2">
-                    <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days") || (lang === "bn" ? "রিপ্লেসমেন্ট (দিন)" : "Replacement (Days)")}</label>
-                    <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
-                  </div>
-                </>
-              )}
+              {/* Unit-based Warranty vs Expiry Management */}
+              {(() => {
+                const selectedUnit = units.find((u) => String(u.id) === String(form.unit));
+                const isCountUnit = !selectedUnit || selectedUnit.measure_type === "count" || selectedUnit.name?.toLowerCase().includes("piece") || selectedUnit.name?.toLowerCase().includes("pcs") || selectedUnit.short_code?.toLowerCase() === "pcs";
+                const isChemicalBulk = isSpecialShop && !isCountUnit;
+
+                if (isChemicalBulk) {
+                  return (
+                    <>
+                      <div className="col-md-3">
+                        <label className="small fw-semibold text-danger">{t("prod_lbl_expiry") || (lang === "bn" ? "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)" : "Expiry Date")}</label>
+                        <input type="date" className="form-control form-control-sm" value={form.expiry_date} onChange={(e) => setForm({ ...form, expiry_date: e.target.value })} />
+                      </div>
+                      <div className="col-md-3">
+                        <label className="small fw-medium">{t("prod_lbl_lot") || (lang === "bn" ? "লট / ব্যাচ নম্বর" : "Lot / Batch No")}</label>
+                        <input type="text" className="form-control form-control-sm" value={form.lot_number} onChange={(e) => setForm({ ...form, lot_number: e.target.value })} placeholder="e.g. LOT-2026-09" />
+                      </div>
+                      <div className="col-md-3">
+                        <label className="small fw-medium">{t("prod_lbl_mfg") || (lang === "bn" ? "উৎপাদন তারিখ (ঐচ্ছিক)" : "Mfg Date (Optional)")}</label>
+                        <input type="date" className="form-control form-control-sm" value={form.mfg_date} onChange={(e) => setForm({ ...form, mfg_date: e.target.value })} />
+                      </div>
+                    </>
+                  );
+                }
+
+                return (
+                  <>
+                    <div className="col-md-2">
+                      <label className="small">{t("prod_list_warranty_months") || (lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)")}</label>
+                      <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months} onChange={(e) => setForm({ ...form, warranty_months: e.target.value })} placeholder="0" />
+                    </div>
+                    <div className="col-md-2">
+                      <label className="small" title="Replacement Guarantee (Days)">{t("prod_list_replacement_days") || (lang === "bn" ? "রিপ্লেসমেন্ট (দিন)" : "Replacement (Days)")}</label>
+                      <input type="number" min="0" className="form-control form-control-sm" value={form.replacement_guarantee_days} onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })} placeholder="0" />
+                    </div>
+                  </>
+                );
+              })()}
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
                   {saving ? t("prod_list_saving") : t("prod_list_save")}
