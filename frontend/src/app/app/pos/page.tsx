@@ -18,6 +18,7 @@ type Product = {
   expiry_date?: string | null;
   lot_number?: string;
   size_variants?: Array<{size: string; color: string; stock: number}>;
+  replacement_guarantee_days?: number;
   fabric_material?: string;
   gender_target?: string;
   season?: string;
@@ -587,10 +588,15 @@ export default function PosPage() {
                               </div>
                             )}
 
-                            {!!l.product.warranty_months && l.selectedUnits.length === 0 && (
+                            {!isFashionShop && !!l.product.warranty_months && l.selectedUnits.length === 0 && (
                               <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-1 fw-normal" style={{ fontSize: '.6rem' }}>
                                 <i className="bi bi-shield-check me-1"></i>
                                 {t("pos_months_warranty", { months: l.product.warranty_months })}
+                              </span>
+                            )}
+                            {isFashionShop && !!l.product.replacement_guarantee_days && Number(l.product.replacement_guarantee_days) > 0 && (
+                              <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-1 fw-normal" style={{ fontSize: '.6rem' }}>
+                                🔄 {l.product.replacement_guarantee_days} {lang === "bn" ? "দিন এক্সচেঞ্জ" : "d exchange"}
                               </span>
                             )}
                             {!!l.product.expiry_date && (

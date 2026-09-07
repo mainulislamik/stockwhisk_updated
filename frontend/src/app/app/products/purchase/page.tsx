@@ -266,7 +266,7 @@ export default function PurchaseProductPage() {
             newProd.reorder_level === ""
               ? 5
               : Math.max(0, Math.round(Number(newProd.reorder_level) || 0)),
-          warranty_months: !isSpecialShop && newProd.warranty_months ? Number(newProd.warranty_months) : 0,
+          warranty_months: isFashionShop ? 0 : (!isSpecialShop && newProd.warranty_months ? Number(newProd.warranty_months) : 0),
           replacement_guarantee_days: !isSpecialShop && newProd.replacement_guarantee_days ? Number(newProd.replacement_guarantee_days) : 0,
           expiry_date: newProd.expiry_date || null,
           lot_number: newProd.lot_number || "",
@@ -563,7 +563,7 @@ export default function PurchaseProductPage() {
         const patchData: Record<string, any> = {};
         if (l.product.selling_price) patchData.selling_price = l.product.selling_price;
         if (l.product.warranty_months !== undefined && l.product.warranty_months !== null) {
-          patchData.warranty_months = l.product.warranty_months;
+          patchData.warranty_months = isFashionShop ? 0 : l.product.warranty_months;
         }
         if (l.product.replacement_guarantee_days !== undefined && l.product.replacement_guarantee_days !== null) {
           patchData.replacement_guarantee_days = l.product.replacement_guarantee_days;
@@ -959,6 +959,35 @@ export default function PurchaseProductPage() {
                         />
                       </div>
                     </>
+                  );
+                }
+
+                if (isFashionShop) {
+                  return (
+                    <div className="col-12 col-md-6">
+                      <label className="small fw-medium">{t("fashion_lbl_exchange_days") || (lang === "bn" ? "এক্সচেঞ্জ / রিটার্ন সময় (দিন)" : "Exchange / Return (Days)")}</label>
+                      <input
+                        className="form-control form-control-sm"
+                        type="number"
+                        min="0"
+                        value={selected?.replacement_guarantee_days ?? ""}
+                        placeholder="7"
+                        disabled={!selected}
+                        onChange={(e) => {
+                          if (!selected) return;
+                          const val = Number(e.target.value);
+                          setSelected({ ...selected, replacement_guarantee_days: val });
+                          setLines((prev) =>
+                            prev.map((l) =>
+                              l.product.id === selected.id
+                                ? { ...l, product: { ...l.product, replacement_guarantee_days: val } }
+                                : l
+                            )
+                          );
+                        }}
+                      />
+                      <div className="small text-muted mt-1">{t("fashion_exchange_hint") || (lang === "bn" ? "সাইজ পরিবর্তন বা ত্রুটির ক্ষেত্রে বদলানোর সময়সীমা।" : "Days allowed for size/defect replacement.")}</div>
+                    </div>
                   );
                 }
 
@@ -1746,8 +1775,20 @@ export default function PurchaseProductPage() {
                       />
                     </div>
 
-                    {/* 13. Warranty / Replacement (Hardware / Non-special shops) */}
-                    {!isSpecialShop && (
+                    {/* 13. Warranty / Replacement / Fashion Exchange */}
+                    {isFashionShop ? (
+                      <div className="col-12 col-md-3">
+                        <label className="small" title={t("fashion_exchange_hint") || "Days allowed for size/defect replacement"}>{t("fashion_lbl_exchange_days") || (lang === "bn" ? "রিটার্ন / এক্সচেঞ্জ (দিন)" : "Exchange / Return (Days)")}</label>
+                        <input
+                          type="number"
+                          min="0"
+                          className="form-control form-control-sm"
+                          value={newProd.replacement_guarantee_days}
+                          onChange={(e) => setNewProd({ ...newProd, replacement_guarantee_days: e.target.value })}
+                          placeholder="7"
+                        />
+                      </div>
+                    ) : !isSpecialShop ? (
                       <>
                         <div className="col-12 col-md-2">
                           <label className="small">{t("prod_list_warranty_months") || (lang === "bn" ? "ওয়ারেন্টি (মাস)" : "Warranty (Months)")}</label>
@@ -1772,7 +1813,7 @@ export default function PurchaseProductPage() {
                           />
                         </div>
                       </>
-                    )}
+                    ) : null}
                   </form>
                 </div>
 

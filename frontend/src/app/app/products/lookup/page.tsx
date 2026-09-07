@@ -20,6 +20,10 @@ type Product = {
   category?: { id: number; name: string };
   brand?: { id: number; name: string };
   warranty_months?: number;
+  replacement_guarantee_days?: number;
+  fabric_material?: string;
+  gender_target?: string;
+  size_variants?: Array<{ size: string; color: string; stock: number }>;
 };
 
 export default function ItemLookupPage() {
@@ -204,11 +208,21 @@ export default function ItemLookupPage() {
                               {p.brand?.name && (
                                 <span className="badge bg-light text-secondary border">{p.brand.name}</span>
                               )}
-                              {p.warranty_months ? (
+                              {user?.shop_business_type !== "fashion" && p.warranty_months ? (
                                 <span className="badge bg-info-subtle text-info border border-info-subtle">
                                   🛡️ {p.warranty_months}m
                                 </span>
                               ) : null}
+                              {user?.shop_business_type === "fashion" && p.replacement_guarantee_days ? (
+                                <span className="badge bg-info-subtle text-info border border-info-subtle">
+                                  🔄 {p.replacement_guarantee_days}d exchange
+                                </span>
+                              ) : null}
+                              {p.fabric_material && (
+                                <span className="badge bg-light text-purple border" style={{ color: "#7c3aed" }}>
+                                  🧵 {p.fabric_material}
+                                </span>
+                              )}
                             </div>
                           </td>
                           <td>

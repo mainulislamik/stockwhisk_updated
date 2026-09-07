@@ -391,6 +391,24 @@ export default function ProductsPage() {
                   );
                 }
 
+                if (isFashionShop) {
+                  return (
+                    <div className="col-md-3">
+                      <label className="small fw-medium" title={t("fashion_exchange_hint") || "Days allowed for size/defect replacement"}>
+                        {t("fashion_lbl_exchange_days") || (lang === "bn" ? "রিটার্ন / এক্সচেঞ্জ (দিন)" : "Exchange / Return (Days)")}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        className="form-control form-control-sm"
+                        value={form.replacement_guarantee_days}
+                        onChange={(e) => setForm({ ...form, replacement_guarantee_days: e.target.value })}
+                        placeholder="7"
+                      />
+                    </div>
+                  );
+                }
+
                 return (
                   <>
                     <div className="col-md-2">
@@ -579,9 +597,14 @@ export default function ProductsPage() {
                               Lot: {p.lot_number}
                             </span>
                           )}
-                          {p.warranty_months && p.warranty_months > 0 && (
+                          {!isFashionShop && p.warranty_months && p.warranty_months > 0 && (
                             <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style={{ fontSize: "0.68rem" }}>
                               🛡️ {p.warranty_months} {lang === "bn" ? "মাস ওয়ারেন্টি" : "M Warranty"}
+                            </span>
+                          )}
+                          {isFashionShop && p.replacement_guarantee_days && p.replacement_guarantee_days > 0 && (
+                            <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                              🔄 {p.replacement_guarantee_days} {lang === "bn" ? "দিন এক্সচেঞ্জ" : "D Exchange"}
                             </span>
                           )}
                           {/* Fashion badges */}

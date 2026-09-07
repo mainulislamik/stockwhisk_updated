@@ -85,7 +85,8 @@ export default function ProductEditPage() {
           full_pack_cost: form.full_pack_cost !== "" ? Number(form.full_pack_cost) : 0,
           full_pack_sell: form.full_pack_sell !== "" ? Number(form.full_pack_sell) : 0,
           reorder_level: form.reorder_level === "" || form.reorder_level == null ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
-          warranty_months: form.warranty_months,
+          warranty_months: isFashionShop ? 0 : (form.warranty_months !== "" && form.warranty_months != null ? Number(form.warranty_months) : 0),
+          replacement_guarantee_days: form.replacement_guarantee_days !== "" && form.replacement_guarantee_days != null ? Number(form.replacement_guarantee_days) : 0,
           fabric_material: form.fabric_material || "",
           gender_target: form.gender_target || "",
           season: form.season || "",
@@ -266,10 +267,25 @@ export default function ProductEditPage() {
               <label className="small">{t("pe_lbl_reorder")}</label>
               <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
             </div>
-            {(!isSpecialShop || isFashionShop) && (
+            {!isSpecialShop && !isFashionShop && (
               <div className="col-md-3">
                 <label className="small">{t("pe_lbl_warranty")}</label>
                 <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} placeholder="0" />
+              </div>
+            )}
+            {isFashionShop && (
+              <div className="col-md-3">
+                <label className="small" title={t("fashion_exchange_hint") || "Days allowed for size/defect replacement"}>
+                  {t("fashion_lbl_exchange_days") || (lang === "bn" ? "রিটার্ন / এক্সচেঞ্জ (দিন)" : "Exchange / Return (Days)")}
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control form-control-sm"
+                  value={form.replacement_guarantee_days || ""}
+                  onChange={set("replacement_guarantee_days")}
+                  placeholder="7"
+                />
               </div>
             )}
 

@@ -7,6 +7,7 @@ import { api, unwrap } from "@/lib/api";
 import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/components/AuthProvider";
 
 type Product = {
   id: number;
@@ -20,6 +21,12 @@ type Product = {
   is_low_stock: boolean;
   is_active: boolean;
   description: string;
+  fabric_material?: string;
+  gender_target?: string;
+  season?: string;
+  style_type?: string;
+  size_variants?: Array<{ size: string; color: string; stock: number }>;
+  replacement_guarantee_days?: number;
 };
 type Movement = { id: number; movement_type: string; quantity: string; note: string; created_at: string };
 type ProductUnit = { 
@@ -62,7 +69,9 @@ function repairBadge(status?: string | null) {
 }
 
 export default function ProductProfilePage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
+  const { user } = useAuth();
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [p, setP] = useState<Product | null>(null);
@@ -192,6 +201,67 @@ export default function ProductProfilePage() {
         </div>
       )}
 
+      {(p.fabric_material || p.gender_target || p.season || p.style_type || (p.size_variants && p.size_variants.length > 0) || (p.replacement_guarantee_days && Number(p.replacement_guarantee_days) > 0)) && (
+        <div className="card shadow-sm" style={{ border: "1px solid #c084fc", background: "#faf5ff" }}>
+          <div className="card-body">
+            <h2 className="h6 fw-bold mb-3" style={{ color: "#7c3aed" }}>
+              👗 {lang === "bn" ? "পোশাক ও ফ্যাশন বিবরণ" : "Apparel & Fashion Specifications"}
+            </h2>
+            <div className="row g-3">
+              {p.fabric_material && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "কাপড়ের ধরন" : "Fabric Material"}</div>
+                  <div className="fw-semibold">🧵 {p.fabric_material}</div>
+                </div>
+              )}
+              {p.gender_target && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "টার্গেট গ্রুপ" : "Target Group"}</div>
+                  <div className="fw-semibold">
+                    👤 {p.gender_target === "men" ? (lang === "bn" ? "পুরুষ (Men)" : "Men") : p.gender_target === "women" ? (lang === "bn" ? "নারী (Women)" : "Women") : p.gender_target === "kids" ? (lang === "bn" ? "শিশু (Kids)" : "Kids") : (lang === "bn" ? "সবার জন্য (Unisex)" : "Unisex")}
+                  </div>
+                </div>
+              )}
+              {p.season && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "মৌসুম" : "Season"}</div>
+                  <div className="fw-semibold">
+                    ☀️ {p.season === "summer" ? (lang === "bn" ? "গ্রীষ্ম (Summer)" : "Summer") : p.season === "winter" ? (lang === "bn" ? "শীত (Winter)" : "Winter") : (lang === "bn" ? "সব মৌসুম (All Season)" : "All Season")}
+                  </div>
+                </div>
+              )}
+              {p.style_type && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "স্টাইল" : "Style"}</div>
+                  <div className="fw-semibold">✨ {p.style_type}</div>
+                </div>
+              )}
+              {p.replacement_guarantee_days && Number(p.replacement_guarantee_days) > 0 && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "এক্সচেঞ্জ / রিটার্ন সময়" : "Exchange Window"}</div>
+                  <div className="fw-semibold text-primary">🔄 {p.replacement_guarantee_days} {lang === "bn" ? "দিন" : "Days"}</div>
+                </div>
+              )}
+            </div>
+
+            {p.size_variants && p.size_variants.length > 0 && (
+              <div className="mt-3 pt-3 border-top">
+                <div className="small text-secondary mb-2">{lang === "bn" ? "সাইজ ও রঙের স্টক ভ্যারিয়েন্ট:" : "Size & Color Stock Breakdown:"}</div>
+                <div className="d-flex flex-wrap gap-2">
+                  {p.size_variants.map((v: any, idx: number) => (
+                    <div key={idx} className="badge p-2 d-flex align-items-center gap-2" style={{ background: "#fff", border: "1px solid #d8b4fe", color: "#4b5563" }}>
+                      <span className="fw-bold text-dark" style={{ fontSize: "0.85rem" }}>{v.size}</span>
+                      {v.color && <span className="text-secondary" style={{ fontSize: "0.75rem" }}>• {v.color}</span>}
+                      <span className="badge text-white" style={{ background: "#7c3aed" }}>{v.stock} pcs</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {units.length > 0 && (
         <div className="card shadow-sm">
           <div className="card-body">
@@ -204,7 +274,7 @@ export default function ProductProfilePage() {
                     <th>{t("prd_col_barcode")}</th>
                     <th className="text-end">{t("prd_col_cost")}</th>
                     <th className="text-end">{t("prd_col_sell")}</th>
-                    <th className="text-end">{t("prd_col_warranty")}</th>
+                    {!isFashionShop && <th className="text-end">{t("prd_col_warranty")}</th>}
                     <th className="text-end">{t("prd_col_status")}</th>
                     <th className="text-end">{t("prd_col_actions")}</th>
                   </tr>
@@ -241,6 +311,7 @@ export default function ProductProfilePage() {
                             money(u.effective_selling_price)
                           )}
                         </td>
+                        {!isFashionShop && (
                         <td className="text-end small">
                           {isEditing ? (
                             <input 
@@ -252,6 +323,7 @@ export default function ProductProfilePage() {
                             u.effective_warranty_months || "—"
                           )}
                         </td>
+                        )}
                         <td className="text-end">
                           <span className="badge bg-success-subtle text-success text-capitalize px-2 py-1">
                             {u.status.replace("_", " ")}
