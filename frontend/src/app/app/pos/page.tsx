@@ -17,6 +17,12 @@ type Product = {
   warranty_months?: number;
   expiry_date?: string | null;
   lot_number?: string;
+  size_variants?: Array<{size: string; color: string; stock: number}>;
+  fabric_material?: string;
+  gender_target?: string;
+  season?: string;
+  style_type?: string;
+  _selectedVariant?: {size: string; color: string} | null;
   purchase_multiplier?: string | number;
   full_pack_cost?: string | number;
   full_pack_sell?: string | number;
@@ -40,6 +46,7 @@ export default function PosPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -124,6 +131,8 @@ export default function PosPage() {
 
   // Unit selection modal
   const [unitSelectProduct, setUnitSelectProduct] = useState<Product | null>(null);
+  const [fashionPickProduct, setFashionPickProduct] = useState<Product | null>(null);
+  const [fashionPickVariant, setFashionPickVariant] = useState<{size:string,color:string}|null>(null);
 
   // Product picker modal — shown when one scanned barcode matches several products
   const [pickProducts, setPickProducts] = useState<Product[] | null>(null);
@@ -236,6 +245,11 @@ export default function PosPage() {
     }
     if (p.units && p.units.length > 0) {
       setUnitSelectProduct(p);
+      return;
+    }
+    // Fashion variant picker
+    if (isFashionShop && p.size_variants && p.size_variants.length > 0) {
+      setFashionPickProduct(p);
       return;
     }
     addToCart(p);
@@ -873,6 +887,51 @@ export default function PosPage() {
         </div>
       )}
 
+      {/* ── Fashion Size & Color Picker Modal ── */}
+      {fashionPickProduct && (
+        <div className="modal d-flex align-items-center justify-content-center" style={{display:"flex",position:"fixed",inset:0,background:"rgba(0,0,0,0.45)",zIndex:2000}}>
+          <div className="modal-dialog modal-sm m-0" style={{minWidth:320}}>
+            <div className="modal-content">
+              <div className="modal-header py-2" style={{background:"#7c3aed",color:"#fff"}}>
+                <h6 className="modal-title mb-0">👗 {fashionPickProduct.name}</h6>
+                <button className="btn-close btn-close-white" onClick={()=>{setFashionPickProduct(null);setFashionPickVariant(null);setTimeout(()=>inputRef.current?.focus(),50);}}/>
+              </div>
+              <div className="modal-body">
+                <p className="small text-muted mb-2">{lang==="bn"?"সাইজ ও রঙ বেছুন":"Select Size & Color"}</p>
+                <div className="d-flex flex-wrap gap-2">
+                  {(fashionPickProduct.size_variants||[]).map((v:any,i:number)=>(
+                    <button key={i} type="button"
+                      className={"btn btn-sm " + (fashionPickVariant?.size===v.size && fashionPickVariant?.color===v.color ? "btn-purple" : "btn-outline-secondary")}
+                      style={fashionPickVariant?.size===v.size && fashionPickVariant?.color===v.color ? {background:"#7c3aed",color:"#fff",borderColor:"#7c3aed"} : {}}
+                      onClick={()=>setFashionPickVariant({size:v.size,color:v.color})}
+                    >
+                      {v.size}{v.color ? ` / ${v.color}` : ""} <span className="badge bg-light text-dark ms-1">{v.stock}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="modal-footer py-2">
+                <button className="btn btn-sm btn-outline-secondary" onClick={()=>{setFashionPickProduct(null);setFashionPickVariant(null);setTimeout(()=>inputRef.current?.focus(),50);}}>
+                  {lang==="bn"?"বাতিল":"Cancel"}
+                </button>
+                <button className="btn btn-sm" style={{background:"#7c3aed",color:"#fff"}}
+                  disabled={!fashionPickVariant}
+                  onClick={()=>{
+                    if(fashionPickProduct){
+                      addToCart({...fashionPickProduct,_selectedVariant:fashionPickVariant} as any);
+                      flash(t("pos_added_alert",{name:fashionPickProduct.name + (fashionPickVariant ? ` (${fashionPickVariant.size}/${fashionPickVariant.color})` : "")}),true);
+                      setFashionPickProduct(null);setFashionPickVariant(null);
+                      setQuery("");setTimeout(()=>inputRef.current?.focus(),50);
+                    }
+                  }}
+                >
+                  + {lang==="bn"?"কার্টে যোগ করুন":"Add to Cart"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {/* ── Camera Scanner Modal ── */}
       {showScanner && (
         <ScannerModal

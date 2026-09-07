@@ -65,6 +65,15 @@ def seed_measurement_units(shop, business_type):
             ("Dozen", "dz", "count", True),
             ("Pack / Box", "pkt", "count", False),
         ]
+    elif btype in ["fashion", "footwear", "handcrafts", "jewelry", "apparel"]:
+        units = [
+            ("Piece",  "pcs",  "count", False),
+            ("Dozen",  "dz",   "count", True),
+            ("Set",    "set",  "count", False),
+            ("Pack",   "pack", "count", False),
+            ("Box",    "box",  "count", False),
+            ("Carton", "ctn",  "count", False),
+        ]
     elif btype in ["electronics", "computer", "mobile"]:
         units = [
             ("Piece", "pcs", "count", False),

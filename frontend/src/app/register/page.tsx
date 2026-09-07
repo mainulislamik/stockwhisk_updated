@@ -19,21 +19,21 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
 
 const SHOP_CATEGORIES = [
-  { value: 'fashion', label: 'Fashion & Apparel' },
-  { value: 'beauty', label: 'Beauty & Cosmetics' },
-  { value: 'jewelry', label: 'Jewelry & Accessories' },
-  { value: 'home_decor', label: 'Home Decor & Furniture' },
-  { value: 'food', label: 'Groceries & Organic Food' },
-  { value: 'footwear', label: 'Footwear & Shoes' },
-  { value: 'handcrafts', label: 'Handcrafts & Boutique' },
-  { value: 'electronics', label: 'Electronics & Gadgets' },
-  { value: 'computer', label: 'Computer & IT' },
-  { value: 'mobile', label: 'Mobile & Accessories' },
-  { value: 'general', label: 'General Retail' },
-  { value: 'camical', label: 'Chemical & Lab Supplies' },
-  { value: 'supershop', label: 'Super Shop & Grocery' },
-  { value: 'cosmetics', label: 'Cosmetics & Beauty' },
-  { value: 'other', label: 'Other' }
+  { value: 'fashion', label: '👗 Apparel & Fashion' },
+  { value: 'footwear', label: '👟 Footwear & Shoes' },
+  { value: 'handcrafts', label: '🧵 Handcrafts & Boutique' },
+  { value: 'jewelry', label: '💎 Jewelry & Accessories' },
+  { value: 'beauty', label: '💋 Beauty & Cosmetics' },
+  { value: 'cosmetics', label: '🧪 Cosmetics & Beauty Lab' },
+  { value: 'home_decor', label: '🏠 Home Decor & Furniture' },
+  { value: 'food', label: '🛒 Groceries & Organic Food' },
+  { value: 'electronics', label: '📱 Electronics & Gadgets' },
+  { value: 'computer', label: '💻 Computer & IT' },
+  { value: 'mobile', label: '📲 Mobile & Accessories' },
+  { value: 'general', label: '🛒 General Retail' },
+  { value: 'camical', label: '🧪 Chemical & Lab Supplies' },
+  { value: 'supershop', label: '🏪 Super Shop & Grocery' },
+  { value: 'other', label: '📦 Other' }
 ];
 
 export default function RegisterPage() {

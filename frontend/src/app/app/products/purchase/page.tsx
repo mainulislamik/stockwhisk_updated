@@ -70,6 +70,7 @@ export default function PurchaseProductPage() {
 
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const [fullPackCost, setFullPackCost] = useState("");
   const [fullPackSell, setFullPackSell] = useState("");
   const [pricingMode, setPricingMode] = useState<"regular" | "bulk">("regular");

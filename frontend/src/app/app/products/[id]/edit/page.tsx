@@ -15,6 +15,7 @@ export default function ProductEditPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const { id } = useParams<{ id: string }>();
 
   const router = useRouter();
@@ -85,6 +86,11 @@ export default function ProductEditPage() {
           full_pack_sell: form.full_pack_sell !== "" ? Number(form.full_pack_sell) : 0,
           reorder_level: form.reorder_level === "" || form.reorder_level == null ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
           warranty_months: form.warranty_months,
+          fabric_material: form.fabric_material || "",
+          gender_target: form.gender_target || "",
+          season: form.season || "",
+          style_type: form.style_type || "",
+          size_variants: form.size_variants || [],
           description: form.description,
           is_active: form.is_active,
           track_inventory: form.track_inventory !== false,
@@ -286,6 +292,72 @@ export default function ProductEditPage() {
               <label className="small">{t("pe_lbl_desc")}</label>
               <textarea className="form-control form-control-sm" rows={2} value={form.description || ""} onChange={set("description")} />
             </div>
+            {/* ── Fashion Section in Edit Form ───────────── */}
+            {isFashionShop && (
+              <div className="col-12">
+                <div className="p-2 rounded mb-2" style={{background:"#f8f4ff",border:"1px solid #c084fc"}}>
+                  <div className="fw-semibold mb-2" style={{color:"#7c3aed",fontSize:"0.85rem"}}>
+                    👗 {lang==="bn" ? "পোশাক ও ফ্যাশন বিবরণ" : "Apparel & Fashion Details"}
+                  </div>
+                  <div className="row g-2">
+                    <div className="col-md-3">
+                      <label className="small text-primary fw-medium">{lang==="bn"?"কাপড়ের ধরন":"Fabric"}</label>
+                      <select className="form-select form-select-sm" value={form.fabric_material||""} onChange={e=>setForm({...form,fabric_material:e.target.value})}>
+                        <option value="">--</option>
+                        {["Cotton","Polyester","Silk","Denim","Linen","Wool","Mixed"].map(f=><option key={f} value={f}>{f}</option>)}
+                      </select>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="small text-primary fw-medium">{lang==="bn"?"টার্গেট গ্রুপ":"Gender"}</label>
+                      <select className="form-select form-select-sm" value={form.gender_target||""} onChange={e=>setForm({...form,gender_target:e.target.value})}>
+                        <option value="">--</option>
+                        <option value="men">{lang==="bn"?"পুরুষ (Men)":"Men"}</option>
+                        <option value="women">{lang==="bn"?"নারী (Women)":"Women"}</option>
+                        <option value="kids">{lang==="bn"?"শিশু (Kids)":"Kids"}</option>
+                        <option value="unisex">{lang==="bn"?"সবার জন্য":"Unisex"}</option>
+                      </select>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="small text-primary fw-medium">{lang==="bn"?"মৌসুম":"Season"}</label>
+                      <select className="form-select form-select-sm" value={form.season||""} onChange={e=>setForm({...form,season:e.target.value})}>
+                        <option value="">--</option>
+                        <option value="summer">{lang==="bn"?"গ্রীষ্ম":"Summer"}</option>
+                        <option value="winter">{lang==="bn"?"শীত":"Winter"}</option>
+                        <option value="all_season">{lang==="bn"?"সব মৌসুম":"All Season"}</option>
+                      </select>
+                    </div>
+                    <div className="col-md-3">
+                      <label className="small text-primary fw-medium">{lang==="bn"?"স্টাইল":"Style"}</label>
+                      <select className="form-select form-select-sm" value={form.style_type||""} onChange={e=>setForm({...form,style_type:e.target.value})}>
+                        <option value="">--</option>
+                        <option value="casual">{lang==="bn"?"ক্যাজুয়াল":"Casual"}</option>
+                        <option value="formal">{lang==="bn"?"ফর্মাল":"Formal"}</option>
+                        <option value="party">{lang==="bn"?"পার্টি":"Party"}</option>
+                        <option value="sportswear">{lang==="bn"?"স্পোর্টসওয়ার":"Sportswear"}</option>
+                      </select>
+                    </div>
+                  </div>
+                  {/* Size Variants */}
+                  <div className="mt-2">
+                    <label className="small text-primary fw-medium">{lang==="bn"?"সাইজ ও রঙের স্টক":"Size & Color Stock"}</label>
+                    {(form.size_variants||[]).map((v:any,i:number)=>(
+                      <div key={i} className="row g-1 mb-1 align-items-center">
+                        <div className="col-3"><select className="form-select form-select-sm" value={v.size||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],size:e.target.value};setForm({...form,size_variants:sv})}}>
+                          <option value="">Size</option>
+                          {["XS","S","M","L","XL","XXL","Free Size"].map(s=><option key={s} value={s}>{s}</option>)}
+                        </select></div>
+                        <div className="col-4"><input className="form-control form-control-sm" placeholder="Color" value={v.color||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],color:e.target.value};setForm({...form,size_variants:sv})}}/></div>
+                        <div className="col-3"><input type="number" min="0" className="form-control form-control-sm" placeholder="Qty" value={v.stock||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],stock:Number(e.target.value)};setForm({...form,size_variants:sv})}}/></div>
+                        <div className="col-2"><button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={()=>{const sv=form.size_variants.filter((_:any,j:number)=>j!==i);setForm({...form,size_variants:sv})}}>🗑</button></div>
+                      </div>
+                    ))}
+                    <button type="button" className="btn btn-outline-secondary btn-sm mt-1" onClick={()=>setForm({...form,size_variants:[...(form.size_variants||[]),{size:"M",color:"",stock:0}]})}>
+                      + {lang==="bn"?"ভেরিয়েন্ট যোগ করুন":"Add Variant"}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="col-12 d-flex gap-2">
               <button className="btn btn-brand btn-sm" disabled={saving}>
                 {saving ? t("pe_btn_saving") : t("pe_btn_save")}

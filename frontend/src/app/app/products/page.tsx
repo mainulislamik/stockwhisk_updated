@@ -35,6 +35,11 @@ type Product = {
   expiry_date?: string | null;
   lot_number?: string;
   mfg_date?: string | null;
+  size_variants?: Array<{size: string; color: string; stock: number}>;
+  fabric_material?: string;
+  gender_target?: string;
+  season?: string;
+  style_type?: string;
 };
 type Named = { id: number; name: string; measure_type?: string; short_code?: string };
 
@@ -42,6 +47,7 @@ export default function ProductsPage() {
   const { user, can, isOwner } = useAuth();
   const isCosmetics = user?.shop_business_type === "cosmetics";
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const { t, lang } = useLanguage();
 
   const canManage = isOwner || can("manage_products");
@@ -71,7 +77,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "" });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", size_variants: [] });
   const [saving, setSaving] = useState(false);
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
   const [newCat, setNewCat] = useState("");
@@ -117,9 +123,14 @@ export default function ProductsPage() {
           expiry_date: form.expiry_date || null,
           lot_number: form.lot_number || "",
           mfg_date: form.mfg_date || null,
+          fabric_material: form.fabric_material || "",
+          gender_target: form.gender_target || "",
+          season: form.season || "",
+          style_type: form.style_type || "",
+          size_variants: form.size_variants || [],
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "" });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", size_variants: [] });
       setShowAdd(false);
       mutate();
     } catch (e: any) {
@@ -393,6 +404,88 @@ export default function ProductsPage() {
                   </>
                 );
               })()}
+              {/* ── Apparel & Fashion Section ──────────────────────── */}
+              {isFashionShop && (
+                <>
+                  <div className="col-12 mt-2">
+                    <div className="p-2 rounded" style={{background:"#f8f4ff",border:"1px solid #c084fc"}}>
+                      <div className="fw-semibold text-purple mb-2" style={{color:"#7c3aed",fontSize:"0.85rem"}}>
+                        👗 {t("fashion_section_title") || "পোশাক ও ফ্যাশন বিবরণ"}
+                      </div>
+                      <div className="row g-2">
+                        <div className="col-md-3">
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_fabric") || "কাপড়ের ধরন"}</label>
+                          <select className="form-select form-select-sm" value={form.fabric_material} onChange={e=>setForm({...form,fabric_material:e.target.value})}>
+                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                            <option value="Cotton">{t("fashion_fabric_cotton")||"কটন (Cotton)"}</option>
+                            <option value="Polyester">{t("fashion_fabric_polyester")||"পলিয়েস্টার (Polyester)"}</option>
+                            <option value="Silk">{t("fashion_fabric_silk")||"সিল্ক (Silk)"}</option>
+                            <option value="Denim">{t("fashion_fabric_denim")||"ডেনিম (Denim)"}</option>
+                            <option value="Linen">{t("fashion_fabric_linen")||"লিনেন (Linen)"}</option>
+                            <option value="Wool">{t("fashion_fabric_wool")||"উল (Wool)"}</option>
+                            <option value="Mixed">{t("fashion_fabric_mixed")||"মিশ্রণ (Mixed)"}</option>
+                          </select>
+                        </div>
+                        <div className="col-md-3">
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_gender") || "টার্গেট গ্রুপ"}</label>
+                          <select className="form-select form-select-sm" value={form.gender_target} onChange={e=>setForm({...form,gender_target:e.target.value})}>
+                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                            <option value="men">{t("fashion_opt_men")||"পুরুষ (Men)"}</option>
+                            <option value="women">{t("fashion_opt_women")||"নারী (Women)"}</option>
+                            <option value="kids">{t("fashion_opt_kids")||"শিশু (Kids)"}</option>
+                            <option value="unisex">{t("fashion_opt_unisex")||"সবার জন্য (Unisex)"}</option>
+                          </select>
+                        </div>
+                        <div className="col-md-3">
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_season") || "মৌসুম"}</label>
+                          <select className="form-select form-select-sm" value={form.season} onChange={e=>setForm({...form,season:e.target.value})}>
+                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                            <option value="summer">{t("fashion_opt_summer")||"গ্রীষ্ম (Summer)"}</option>
+                            <option value="winter">{t("fashion_opt_winter")||"শীত (Winter)"}</option>
+                            <option value="all_season">{t("fashion_opt_all_season")||"সব মৌসুম (All Season)"}</option>
+                          </select>
+                        </div>
+                        <div className="col-md-3">
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_style") || "স্টাইল"}</label>
+                          <select className="form-select form-select-sm" value={form.style_type} onChange={e=>setForm({...form,style_type:e.target.value})}>
+                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                            <option value="casual">{t("fashion_opt_casual")||"ক্যাজুয়াল"}</option>
+                            <option value="formal">{t("fashion_opt_formal")||"ফর্মাল"}</option>
+                            <option value="party">{t("fashion_opt_party")||"পার্টি"}</option>
+                            <option value="sportswear">{t("fashion_opt_sportswear")||"স্পোর্টসওয়্যার"}</option>
+                          </select>
+                        </div>
+                      </div>
+                      {/* Size & Color Variant Matrix */}
+                      <div className="mt-2">
+                        <label className="small text-primary fw-medium">{t("fashion_lbl_variants") || "সাইজ ও রঙের স্টক"}</label>
+                        {(form.size_variants||[]).map((v:any,i:number)=>(
+                          <div key={i} className="row g-1 mb-1 align-items-center">
+                            <div className="col-3">
+                              <select className="form-select form-select-sm" value={v.size||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],size:e.target.value};setForm({...form,size_variants:sv})}}>
+                                <option value="">Size</option>
+                                {["XS","S","M","L","XL","XXL","Free Size"].map(s=><option key={s} value={s}>{s}</option>)}
+                              </select>
+                            </div>
+                            <div className="col-4">
+                              <input className="form-control form-control-sm" placeholder={lang==="bn"?"রং (Color)":"Color"} value={v.color||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],color:e.target.value};setForm({...form,size_variants:sv})}} />
+                            </div>
+                            <div className="col-3">
+                              <input type="number" min="0" className="form-control form-control-sm" placeholder={lang==="bn"?"পরিমাণ":"Qty"} value={v.stock||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],stock:Number(e.target.value)};setForm({...form,size_variants:sv})}} />
+                            </div>
+                            <div className="col-2">
+                              <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={()=>{const sv=form.size_variants.filter((_:any,j:number)=>j!==i);setForm({...form,size_variants:sv})}}>🗑</button>
+                            </div>
+                          </div>
+                        ))}
+                        <button type="button" className="btn btn-outline-secondary btn-sm mt-1" onClick={()=>setForm({...form,size_variants:[...(form.size_variants||[]),{size:"M",color:"",stock:0}]})}>
+                          + {t("fashion_btn_add_variant")||"ভেরিয়েন্ট যোগ করুন"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
                   {saving ? t("prod_list_saving") : t("prod_list_save")}
@@ -489,6 +582,22 @@ export default function ProductsPage() {
                           {p.warranty_months && p.warranty_months > 0 && (
                             <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style={{ fontSize: "0.68rem" }}>
                               🛡️ {p.warranty_months} {lang === "bn" ? "মাস ওয়ারেন্টি" : "M Warranty"}
+                            </span>
+                          )}
+                          {/* Fashion badges */}
+                          {isFashionShop && p.fabric_material && (
+                            <span className="badge" style={{fontSize:"0.68rem",background:"#f3e8ff",color:"#7c3aed",border:"1px solid #c084fc"}}>
+                              🧵 {p.fabric_material}
+                            </span>
+                          )}
+                          {isFashionShop && p.gender_target && (
+                            <span className="badge" style={{fontSize:"0.68rem",background:"#fdf4ff",color:"#9333ea",border:"1px solid #d8b4fe"}}>
+                              👤 {p.gender_target === "men" ? (lang==="bn"?"পুরুষ":"Men") : p.gender_target === "women" ? (lang==="bn"?"নারী":"Women") : p.gender_target === "kids" ? (lang==="bn"?"শিশু":"Kids") : lang==="bn"?"সবার জন্য":"Unisex"}
+                            </span>
+                          )}
+                          {isFashionShop && p.size_variants && p.size_variants.length > 0 && (
+                            <span className="badge" style={{fontSize:"0.68rem",background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe"}}>
+                              📐 {p.size_variants.map((v:any)=>v.size).filter(Boolean).join(" / ")}
                             </span>
                           )}
                         </div>

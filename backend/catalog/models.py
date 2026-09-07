@@ -109,6 +109,16 @@ class Product(TenantScopedModel):
     lot_number = models.CharField(max_length=120, blank=True, help_text="Batch or Lot number")
     mfg_date = models.DateField(null=True, blank=True, help_text="Manufacturing date")
 
+    # ── Apparel & Fashion specific fields ────────────────────────────────
+    size_variants   = models.JSONField(default=list, blank=True,
+                          help_text='[{"size":"M","color":"Red","stock":10},...]')
+    fabric_material = models.CharField(max_length=100, blank=True, default="")
+    gender_target   = models.CharField(max_length=20, blank=True, default="",
+                          choices=[("men","Men"),("women","Women"),("kids","Kids"),("unisex","Unisex")])
+    season          = models.CharField(max_length=20, blank=True, default="",
+                          choices=[("summer","Summer"),("winter","Winter"),("all","All Season"),("monsoon","Monsoon")])
+    style_type      = models.CharField(max_length=50, blank=True, default="")
+
     description = models.TextField(blank=True)
     cost_price = models.DecimalField(
         max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)]
