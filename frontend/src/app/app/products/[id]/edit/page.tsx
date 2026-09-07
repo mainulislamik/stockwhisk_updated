@@ -266,10 +266,10 @@ export default function ProductEditPage() {
               <label className="small">{t("pe_lbl_reorder")}</label>
               <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
             </div>
-            {!isSpecialShop && (
+            {(!isSpecialShop || isFashionShop) && (
               <div className="col-md-3">
                 <label className="small">{t("pe_lbl_warranty")}</label>
-                <input type="number" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} />
+                <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} placeholder="0" />
               </div>
             )}
 
