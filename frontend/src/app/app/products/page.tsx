@@ -78,6 +78,17 @@ export default function ProductsPage() {
 
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", size_variants: [] });
+
+  // Smart size presets based on selected category (fashion only)
+  const catName = (categories.find((c: any) => String(c.id) === String(form.category))?.name || "").toLowerCase();
+  const SIZE_PRESETS: string[] = (() => {
+    if (/(pant|jeans|trouser|panjabi|punjabi)/.test(catName)) return ["28","30","32","34","36","38","40","42","44","46","48"];
+    if (/(shirt|polo)/.test(catName)) return ["38","39","40","41","42","43","44","45","46"];
+    if (/(t-shirt|tshirt|tee)/.test(catName)) return ["XS","S","M","L","XL","XXL","XXXL","Free Size"];
+    if (/(kids|baby|child)/.test(catName)) return ["0-6M","6-12M","1-2Y","3-4Y","5-6Y","7-8Y","9-10Y"];
+    if (/(shoe|footwear|sneaker|sandal)/.test(catName)) return ["39","40","41","42","43","44","45"];
+    return ["XS","S","M","L","XL","XXL","Free Size"];
+  })();
   const [saving, setSaving] = useState(false);
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
   const [newCat, setNewCat] = useState("");
@@ -433,8 +444,14 @@ export default function ProductsPage() {
                       <div className="row g-2">
                         <div className="col-md-3">
                           <label className="small text-primary fw-medium">{t("fashion_lbl_fabric") || "কাপড়ের ধরন"}</label>
-                          <select className="form-select form-select-sm" value={form.fabric_material} onChange={e=>setForm({...form,fabric_material:e.target.value})}>
-                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                          <input
+                            className="form-control form-control-sm"
+                            list="fashion-fabric-list"
+                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
+                            value={form.fabric_material||""}
+                            onChange={(e)=>setForm({...form,fabric_material:e.target.value})}
+                          />
+                          <datalist id="fashion-fabric-list">
                             <option value="Cotton">{t("fashion_fabric_cotton")||"কটন (Cotton)"}</option>
                             <option value="Polyester">{t("fashion_fabric_polyester")||"পলিয়েস্টার (Polyester)"}</option>
                             <option value="Silk">{t("fashion_fabric_silk")||"সিল্ক (Silk)"}</option>
@@ -442,36 +459,54 @@ export default function ProductsPage() {
                             <option value="Linen">{t("fashion_fabric_linen")||"লিনেন (Linen)"}</option>
                             <option value="Wool">{t("fashion_fabric_wool")||"উল (Wool)"}</option>
                             <option value="Mixed">{t("fashion_fabric_mixed")||"মিশ্রণ (Mixed)"}</option>
-                          </select>
+                          </datalist>
                         </div>
                         <div className="col-md-3">
                           <label className="small text-primary fw-medium">{t("fashion_lbl_gender") || "টার্গেট গ্রুপ"}</label>
-                          <select className="form-select form-select-sm" value={form.gender_target} onChange={e=>setForm({...form,gender_target:e.target.value})}>
-                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                          <input
+                            className="form-control form-control-sm"
+                            list="fashion-gender-list"
+                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
+                            value={form.gender_target||""}
+                            onChange={(e)=>setForm({...form,gender_target:e.target.value})}
+                          />
+                          <datalist id="fashion-gender-list">
                             <option value="men">{t("fashion_opt_men")||"পুরুষ (Men)"}</option>
                             <option value="women">{t("fashion_opt_women")||"নারী (Women)"}</option>
                             <option value="kids">{t("fashion_opt_kids")||"শিশু (Kids)"}</option>
                             <option value="unisex">{t("fashion_opt_unisex")||"সবার জন্য (Unisex)"}</option>
-                          </select>
+                          </datalist>
                         </div>
                         <div className="col-md-3">
                           <label className="small text-primary fw-medium">{t("fashion_lbl_season") || "মৌসুম"}</label>
-                          <select className="form-select form-select-sm" value={form.season} onChange={e=>setForm({...form,season:e.target.value})}>
-                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                          <input
+                            className="form-control form-control-sm"
+                            list="fashion-season-list"
+                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
+                            value={form.season||""}
+                            onChange={(e)=>setForm({...form,season:e.target.value})}
+                          />
+                          <datalist id="fashion-season-list">
                             <option value="summer">{t("fashion_opt_summer")||"গ্রীষ্ম (Summer)"}</option>
                             <option value="winter">{t("fashion_opt_winter")||"শীত (Winter)"}</option>
                             <option value="all_season">{t("fashion_opt_all_season")||"সব মৌসুম (All Season)"}</option>
-                          </select>
+                          </datalist>
                         </div>
                         <div className="col-md-3">
                           <label className="small text-primary fw-medium">{t("fashion_lbl_style") || "স্টাইল"}</label>
-                          <select className="form-select form-select-sm" value={form.style_type} onChange={e=>setForm({...form,style_type:e.target.value})}>
-                            <option value="">— {lang==="bn"?"বেছে নিন":"Select"} —</option>
+                          <input
+                            className="form-control form-control-sm"
+                            list="fashion-style-list"
+                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
+                            value={form.style_type||""}
+                            onChange={(e)=>setForm({...form,style_type:e.target.value})}
+                          />
+                          <datalist id="fashion-style-list">
                             <option value="casual">{t("fashion_opt_casual")||"ক্যাজুয়াল"}</option>
                             <option value="formal">{t("fashion_opt_formal")||"ফর্মাল"}</option>
                             <option value="party">{t("fashion_opt_party")||"পার্টি"}</option>
                             <option value="sportswear">{t("fashion_opt_sportswear")||"স্পোর্টসওয়্যার"}</option>
-                          </select>
+                          </datalist>
                         </div>
                       </div>
                       {/* Size & Color Variant Matrix */}
@@ -480,10 +515,16 @@ export default function ProductsPage() {
                         {(form.size_variants||[]).map((v:any,i:number)=>(
                           <div key={i} className="row g-1 mb-1 align-items-center">
                             <div className="col-3">
-                              <select className="form-select form-select-sm" value={v.size||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],size:e.target.value};setForm({...form,size_variants:sv})}}>
-                                <option value="">Size</option>
-                                {["XS","S","M","L","XL","XXL","Free Size"].map(s=><option key={s} value={s}>{s}</option>)}
-                              </select>
+                              <input
+                                className="form-control form-control-sm"
+                                list="fashion-size-list"
+                                placeholder={lang==="bn"?"সাইজ (টাইপ করুন)":"Size (type or pick)"}
+                                value={v.size||""}
+                                onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],size:e.target.value};setForm({...form,size_variants:sv})}}
+                              />
+                              <datalist id="fashion-size-list">
+                                {SIZE_PRESETS.map((s:any)=><option key={s} value={s} />)}
+                              </datalist>
                             </div>
                             <div className="col-4">
                               <input className="form-control form-control-sm" placeholder={lang==="bn"?"রং (Color)":"Color"} value={v.color||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],color:e.target.value};setForm({...form,size_variants:sv})}} />
