@@ -95,6 +95,25 @@ export default function ProductsPage() {
   const [newBrand, setNewBrand] = useState("");
   const [newUnit, setNewUnit] = useState("");
 
+  // Fashion custom attributes list & quick-add states
+  const [fabricList, setFabricList] = useState<string[]>([
+    "Cotton", "Polyester", "Silk", "Denim", "Linen", "Wool", "Mixed", "Rayon", "Georgette", "Chiffon", "Viscose", "Khadi"
+  ]);
+  const [genderList, setGenderList] = useState<string[]>([
+    "Men", "Women", "Kids", "Unisex", "Girls", "Boys"
+  ]);
+  const [seasonList, setSeasonList] = useState<string[]>([
+    "Summer", "Winter", "All Season", "Eid Collection", "Puja Collection", "Festive"
+  ]);
+  const [styleList, setStyleList] = useState<string[]>([
+    "Casual", "Formal", "Party / Ethnic", "Sportswear", "Traditional"
+  ]);
+
+  const [newFabric, setNewFabric] = useState("");
+  const [newGender, setNewGender] = useState("");
+  const [newSeason, setNewSeason] = useState("");
+  const [newStyle, setNewStyle] = useState("");
+
   // Load small dictionaries once
   useEffect(() => {
     fetchAll<Named>("/catalog/categories/").then(setCategories).catch(() => {});
@@ -439,74 +458,175 @@ export default function ProductsPage() {
                   <div className="col-12 mt-2">
                     <div className="p-2 rounded" style={{background:"#f8f4ff",border:"1px solid #c084fc"}}>
                       <div className="fw-semibold text-purple mb-2" style={{color:"#7c3aed",fontSize:"0.85rem"}}>
-                        👗 {t("fashion_section_title") || "পোশাক ও ফ্যাশন বিবরণ"}
+                        👗 {t("fashion_section_title") || (lang === "bn" ? "পোশাক ও ফ্যাশন বিবরণ" : "Apparel & Fashion Details")}
                       </div>
                       <div className="row g-2">
+                        {/* 1. Fabric Material */}
                         <div className="col-md-3">
-                          <label className="small text-primary fw-medium">{t("fashion_lbl_fabric") || "কাপড়ের ধরন"}</label>
-                          <input
-                            className="form-control form-control-sm"
-                            list="fashion-fabric-list"
-                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                            value={form.fabric_material||""}
-                            onChange={(e)=>setForm({...form,fabric_material:e.target.value})}
-                          />
-                          <datalist id="fashion-fabric-list">
-                            <option value="Cotton">{t("fashion_fabric_cotton")||"কটন (Cotton)"}</option>
-                            <option value="Polyester">{t("fashion_fabric_polyester")||"পলিয়েস্টার (Polyester)"}</option>
-                            <option value="Silk">{t("fashion_fabric_silk")||"সিল্ক (Silk)"}</option>
-                            <option value="Denim">{t("fashion_fabric_denim")||"ডেনিম (Denim)"}</option>
-                            <option value="Linen">{t("fashion_fabric_linen")||"লিনেন (Linen)"}</option>
-                            <option value="Wool">{t("fashion_fabric_wool")||"উল (Wool)"}</option>
-                            <option value="Mixed">{t("fashion_fabric_mixed")||"মিশ্রণ (Mixed)"}</option>
-                          </datalist>
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_fabric") || (lang === "bn" ? "কাপড়ের ধরন" : "Fabric Material")}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.fabric_material || ""} onChange={(e) => setForm({ ...form, fabric_material: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- ফেব্রিক বেছে নিন --" : "-- Select Fabric --"}</option>
+                            {fabricList.map((f) => <option key={f} value={f}>{f}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন ফেব্রিক..." : "+ New fabric"}
+                              value={newFabric}
+                              onChange={(e) => setNewFabric(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newFabric.trim()) {
+                                    const v = newFabric.trim();
+                                    if (!fabricList.includes(v)) setFabricList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, fabric_material: v }));
+                                    setNewFabric("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newFabric.trim()) {
+                                  const v = newFabric.trim();
+                                  if (!fabricList.includes(v)) setFabricList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, fabric_material: v }));
+                                  setNewFabric("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* 2. Target Group / Gender */}
                         <div className="col-md-3">
-                          <label className="small text-primary fw-medium">{t("fashion_lbl_gender") || "টার্গেট গ্রুপ"}</label>
-                          <input
-                            className="form-control form-control-sm"
-                            list="fashion-gender-list"
-                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                            value={form.gender_target||""}
-                            onChange={(e)=>setForm({...form,gender_target:e.target.value})}
-                          />
-                          <datalist id="fashion-gender-list">
-                            <option value="men">{t("fashion_opt_men")||"পুরুষ (Men)"}</option>
-                            <option value="women">{t("fashion_opt_women")||"নারী (Women)"}</option>
-                            <option value="kids">{t("fashion_opt_kids")||"শিশু (Kids)"}</option>
-                            <option value="unisex">{t("fashion_opt_unisex")||"সবার জন্য (Unisex)"}</option>
-                          </datalist>
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_gender") || (lang === "bn" ? "টার্গেট গ্রুপ" : "Target Group (Gender)")}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.gender_target || ""} onChange={(e) => setForm({ ...form, gender_target: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- টার্গেট বেছে নিন --" : "-- Select Target --"}</option>
+                            {genderList.map((g) => <option key={g} value={g}>{g}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন টার্গেট..." : "+ New target"}
+                              value={newGender}
+                              onChange={(e) => setNewGender(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newGender.trim()) {
+                                    const v = newGender.trim();
+                                    if (!genderList.includes(v)) setGenderList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, gender_target: v }));
+                                    setNewGender("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newGender.trim()) {
+                                  const v = newGender.trim();
+                                  if (!genderList.includes(v)) setGenderList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, gender_target: v }));
+                                  setNewGender("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* 3. Season */}
                         <div className="col-md-3">
-                          <label className="small text-primary fw-medium">{t("fashion_lbl_season") || "মৌসুম"}</label>
-                          <input
-                            className="form-control form-control-sm"
-                            list="fashion-season-list"
-                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                            value={form.season||""}
-                            onChange={(e)=>setForm({...form,season:e.target.value})}
-                          />
-                          <datalist id="fashion-season-list">
-                            <option value="summer">{t("fashion_opt_summer")||"গ্রীষ্ম (Summer)"}</option>
-                            <option value="winter">{t("fashion_opt_winter")||"শীত (Winter)"}</option>
-                            <option value="all_season">{t("fashion_opt_all_season")||"সব মৌসুম (All Season)"}</option>
-                          </datalist>
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_season") || (lang === "bn" ? "মৌসুম" : "Season")}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.season || ""} onChange={(e) => setForm({ ...form, season: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- মৌসুম বেছে নিন --" : "-- Select Season --"}</option>
+                            {seasonList.map((s) => <option key={s} value={s}>{s}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন মৌসুম/উৎসব..." : "+ New season"}
+                              value={newSeason}
+                              onChange={(e) => setNewSeason(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newSeason.trim()) {
+                                    const v = newSeason.trim();
+                                    if (!seasonList.includes(v)) setSeasonList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, season: v }));
+                                    setNewSeason("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newSeason.trim()) {
+                                  const v = newSeason.trim();
+                                  if (!seasonList.includes(v)) setSeasonList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, season: v }));
+                                  setNewSeason("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
                         </div>
+
+                        {/* 4. Style Type */}
                         <div className="col-md-3">
-                          <label className="small text-primary fw-medium">{t("fashion_lbl_style") || "স্টাইল"}</label>
-                          <input
-                            className="form-control form-control-sm"
-                            list="fashion-style-list"
-                            placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                            value={form.style_type||""}
-                            onChange={(e)=>setForm({...form,style_type:e.target.value})}
-                          />
-                          <datalist id="fashion-style-list">
-                            <option value="casual">{t("fashion_opt_casual")||"ক্যাজুয়াল"}</option>
-                            <option value="formal">{t("fashion_opt_formal")||"ফর্মাল"}</option>
-                            <option value="party">{t("fashion_opt_party")||"পার্টি"}</option>
-                            <option value="sportswear">{t("fashion_opt_sportswear")||"স্পোর্টসওয়্যার"}</option>
-                          </datalist>
+                          <label className="small text-primary fw-medium">{t("fashion_lbl_style") || (lang === "bn" ? "স্টাইল" : "Style Type")}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.style_type || ""} onChange={(e) => setForm({ ...form, style_type: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- স্টাইল বেছে নিন --" : "-- Select Style --"}</option>
+                            {styleList.map((st) => <option key={st} value={st}>{st}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন স্টাইল..." : "+ New style"}
+                              value={newStyle}
+                              onChange={(e) => setNewStyle(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newStyle.trim()) {
+                                    const v = newStyle.trim();
+                                    if (!styleList.includes(v)) setStyleList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, style_type: v }));
+                                    setNewStyle("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newStyle.trim()) {
+                                  const v = newStyle.trim();
+                                  if (!styleList.includes(v)) setStyleList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, style_type: v }));
+                                  setNewStyle("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
                         </div>
                       </div>
                       {/* Size & Color Variant Matrix */}

@@ -26,6 +26,25 @@ export default function ProductEditPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Fashion custom attributes list & quick-add states
+  const [fabricList, setFabricList] = useState<string[]>([
+    "Cotton", "Polyester", "Silk", "Denim", "Linen", "Wool", "Mixed", "Rayon", "Georgette", "Chiffon", "Viscose", "Khadi"
+  ]);
+  const [genderList, setGenderList] = useState<string[]>([
+    "Men", "Women", "Kids", "Unisex", "Girls", "Boys"
+  ]);
+  const [seasonList, setSeasonList] = useState<string[]>([
+    "Summer", "Winter", "All Season", "Eid Collection", "Puja Collection", "Festive"
+  ]);
+  const [styleList, setStyleList] = useState<string[]>([
+    "Casual", "Formal", "Party / Ethnic", "Sportswear", "Traditional"
+  ]);
+
+  const [newFabric, setNewFabric] = useState("");
+  const [newGender, setNewGender] = useState("");
+  const [newSeason, setNewSeason] = useState("");
+  const [newStyle, setNewStyle] = useState("");
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
 
   const bulkActive = isSpecialShop && Number(form?.purchase_multiplier || 1) > 1 && pricingMode === "bulk";
@@ -313,74 +332,175 @@ export default function ProductEditPage() {
               <div className="col-12">
                 <div className="p-2 rounded mb-2" style={{background:"#f8f4ff",border:"1px solid #c084fc"}}>
                   <div className="fw-semibold mb-2" style={{color:"#7c3aed",fontSize:"0.85rem"}}>
-                    👗 {lang==="bn" ? "পোশাক ও ফ্যাশন বিবরণ" : "Apparel & Fashion Details"}
+                    👗 {lang === "bn" ? "পোশাক ও ফ্যাশন বিবরণ" : "Apparel & Fashion Details"}
                   </div>
                   <div className="row g-2">
+                    {/* 1. Fabric Material */}
                     <div className="col-md-3">
-                      <label className="small text-primary fw-medium">{lang==="bn"?"কাপড়ের ধরন":"Fabric"}</label>
-                      <input
-                        className="form-control form-control-sm"
-                        list="edit-fashion-fabric-list"
-                        placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                        value={form.fabric_material||""}
-                        onChange={e=>setForm({...form,fabric_material:e.target.value})}
-                      />
-                      <datalist id="edit-fashion-fabric-list">
-                        {["Cotton","Polyester","Silk","Denim","Linen","Wool","Mixed","Rayon","Georgette","Chiffon","Viscose","Khadi"].map(f=><option key={f} value={f}>{f}</option>)}
-                      </datalist>
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "কাপড়ের ধরন" : "Fabric Material"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.fabric_material || ""} onChange={(e) => setForm({ ...form, fabric_material: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- ফেব্রিক বেছে নিন --" : "-- Select Fabric --"}</option>
+                        {fabricList.map((f) => <option key={f} value={f}>{f}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন ফেব্রিক..." : "+ New fabric"}
+                          value={newFabric}
+                          onChange={(e) => setNewFabric(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newFabric.trim()) {
+                                const v = newFabric.trim();
+                                if (!fabricList.includes(v)) setFabricList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, fabric_material: v }));
+                                setNewFabric("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newFabric.trim()) {
+                              const v = newFabric.trim();
+                              if (!fabricList.includes(v)) setFabricList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, fabric_material: v }));
+                              setNewFabric("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* 2. Target Group / Gender */}
                     <div className="col-md-3">
-                      <label className="small text-primary fw-medium">{lang==="bn"?"টার্গেট গ্রুপ":"Gender"}</label>
-                      <input
-                        className="form-control form-control-sm"
-                        list="edit-fashion-gender-list"
-                        placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                        value={form.gender_target||""}
-                        onChange={e=>setForm({...form,gender_target:e.target.value})}
-                      />
-                      <datalist id="edit-fashion-gender-list">
-                        <option value="men">{lang==="bn"?"পুরুষ (Men)":"Men"}</option>
-                        <option value="women">{lang==="bn"?"নারী (Women)":"Women"}</option>
-                        <option value="kids">{lang==="bn"?"শিশু (Kids)":"Kids"}</option>
-                        <option value="unisex">{lang==="bn"?"সবার জন্য (Unisex)":"Unisex"}</option>
-                        <option value="girls">{lang==="bn"?"মেয়েদের (Girls)":"Girls"}</option>
-                        <option value="boys">{lang==="bn"?"ছেলেদের (Boys)":"Boys"}</option>
-                      </datalist>
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "টার্গেট গ্রুপ" : "Target Group (Gender)"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.gender_target || ""} onChange={(e) => setForm({ ...form, gender_target: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- টার্গেট বেছে নিন --" : "-- Select Target --"}</option>
+                        {genderList.map((g) => <option key={g} value={g}>{g}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন টার্গেট..." : "+ New target"}
+                          value={newGender}
+                          onChange={(e) => setNewGender(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newGender.trim()) {
+                                const v = newGender.trim();
+                                if (!genderList.includes(v)) setGenderList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, gender_target: v }));
+                                setNewGender("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newGender.trim()) {
+                              const v = newGender.trim();
+                              if (!genderList.includes(v)) setGenderList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, gender_target: v }));
+                              setNewGender("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* 3. Season */}
                     <div className="col-md-3">
-                      <label className="small text-primary fw-medium">{lang==="bn"?"মৌসুম":"Season"}</label>
-                      <input
-                        className="form-control form-control-sm"
-                        list="edit-fashion-season-list"
-                        placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                        value={form.season||""}
-                        onChange={e=>setForm({...form,season:e.target.value})}
-                      />
-                      <datalist id="edit-fashion-season-list">
-                        <option value="summer">{lang==="bn"?"গ্রীষ্ম (Summer)":"Summer"}</option>
-                        <option value="winter">{lang==="bn"?"শীত (Winter)":"Winter"}</option>
-                        <option value="all_season">{lang==="bn"?"সব মৌসুম (All Season)":"All Season"}</option>
-                        <option value="eid">{lang==="bn"?"ঈদ কালেকশন (Eid)":"Eid Collection"}</option>
-                        <option value="puja">{lang==="bn"?"পূজা কালেকশন (Puja)":"Puja Collection"}</option>
-                        <option value="festive">{lang==="bn"?"উৎসব কালেকশন (Festive)":"Festive"}</option>
-                      </datalist>
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "মৌসুম" : "Season"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.season || ""} onChange={(e) => setForm({ ...form, season: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- মৌসুম বেছে নিন --" : "-- Select Season --"}</option>
+                        {seasonList.map((s) => <option key={s} value={s}>{s}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন মৌসুম/উৎসব..." : "+ New season"}
+                          value={newSeason}
+                          onChange={(e) => setNewSeason(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newSeason.trim()) {
+                                const v = newSeason.trim();
+                                if (!seasonList.includes(v)) setSeasonList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, season: v }));
+                                setNewSeason("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newSeason.trim()) {
+                              const v = newSeason.trim();
+                              if (!seasonList.includes(v)) setSeasonList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, season: v }));
+                              setNewSeason("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
                     </div>
+
+                    {/* 4. Style Type */}
                     <div className="col-md-3">
-                      <label className="small text-primary fw-medium">{lang==="bn"?"স্টাইল":"Style"}</label>
-                      <input
-                        className="form-control form-control-sm"
-                        list="edit-fashion-style-list"
-                        placeholder={lang==="bn"?"বেছে নিন বা লিখুন (type or pick)":"Select or type"}
-                        value={form.style_type||""}
-                        onChange={e=>setForm({...form,style_type:e.target.value})}
-                      />
-                      <datalist id="edit-fashion-style-list">
-                        <option value="casual">{lang==="bn"?"ক্যাজুয়াল (Casual)":"Casual"}</option>
-                        <option value="formal">{lang==="bn"?"ফর্মাল (Formal)":"Formal"}</option>
-                        <option value="party">{lang==="bn"?"পার্টি / এথনিক (Party)":"Party"}</option>
-                        <option value="sportswear">{lang==="bn"?"স্পোর্টসওয়্যার (Sports)":"Sportswear"}</option>
-                        <option value="traditional">{lang==="bn"?"ঐতিহ্যবাহী (Traditional)":"Traditional"}</option>
-                      </datalist>
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "স্টাইল" : "Style Type"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.style_type || ""} onChange={(e) => setForm({ ...form, style_type: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- স্টাইল বেছে নিন --" : "-- Select Style --"}</option>
+                        {styleList.map((st) => <option key={st} value={st}>{st}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন স্টাইল..." : "+ New style"}
+                          value={newStyle}
+                          onChange={(e) => setNewStyle(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newStyle.trim()) {
+                                const v = newStyle.trim();
+                                if (!styleList.includes(v)) setStyleList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, style_type: v }));
+                                setNewStyle("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newStyle.trim()) {
+                              const v = newStyle.trim();
+                              if (!styleList.includes(v)) setStyleList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, style_type: v }));
+                              setNewStyle("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                   {/* Size Variants with Creatable Datalist */}
