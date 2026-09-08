@@ -113,9 +113,9 @@ class Product(TenantScopedModel):
     size_variants   = models.JSONField(default=list, blank=True,
                           help_text='[{"size":"M","color":"Red","stock":10},...]')
     fabric_material = models.CharField(max_length=100, blank=True, default="")
-    gender_target   = models.CharField(max_length=20, blank=True, default="",
+    gender_target   = models.CharField(max_length=60, blank=True, default="",
                           choices=[("men","Men"),("women","Women"),("kids","Kids"),("unisex","Unisex")])
-    season          = models.CharField(max_length=20, blank=True, default="",
+    season          = models.CharField(max_length=60, blank=True, default="",
                           choices=[("summer","Summer"),("winter","Winter"),("all","All Season"),("monsoon","Monsoon")])
     style_type      = models.CharField(max_length=50, blank=True, default="")
 
