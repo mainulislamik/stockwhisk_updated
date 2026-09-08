@@ -1,0 +1,16 @@
+# StockWhisk
+
+> Cloud inventory management and POS software for retail shops in Bangladesh — barcode billing, stock control, warranty tracking, purchase entries, multi-branch reports.
+
+## Key Pages
+- [Homepage — Inventory Management & POS Software](https://stockwhisk.com/): product overview, features, industries
+- [Pricing](https://stockwhisk.com/pricing): plans, free trial details, FAQ
+- [Contact](https://stockwhisk.com/contact): support & sales, phone/WhatsApp 01613511887
+- [Blog](https://stockwhisk.com/blog): retail, inventory & POS guides
+- [Tutorials](https://stockwhisk.com/tutorials): step-by-step StockWhisk guides (Bengali & English)
+- [Download Software](https://stockwhisk.com/software): Android scanner APK & desktop apps
+- [Request Demo](https://stockwhisk.com/demo): book a free live demo
+- [Terms of Service](https://stockwhisk.com/terms): service terms
+
+## About
+StockWhisk is a multi-tenant SaaS for retail businesses: POS billing with barcode scanning, real-time stock control across branches, warranty & exchange tracking, purchase management, customer/supplier records, and sales analytics dashboards. Built for Bangladeshi retail shops with full Bengali-language UI.
