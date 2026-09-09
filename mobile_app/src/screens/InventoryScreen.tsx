@@ -476,7 +476,8 @@ export default function InventoryScreen() {
       {/* Stock Adjustment Modal */}
       <Modal visible={showAdjForm} transparent animationType="slide" onRequestClose={() => setShowAdjForm(false)}>
         <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
+          keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
           style={{ flex: 1 }}
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' }}>
@@ -502,13 +503,15 @@ export default function InventoryScreen() {
                 left={<TextInput.Icon icon="magnify" />}
                 style={{ marginBottom: 4, backgroundColor: theme.colors.surface }}
                 outlineStyle={{ borderRadius: 12 }}
+                contentStyle={{ paddingLeft: 8 }}
+                theme={{ colors: { text: theme.colors.onSurface } }}
               />
               {adjProduct && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#e0e7ff', padding: 10, borderRadius: 10, marginBottom: 8 }}>
-                  <MaterialCommunityIcons name="check-circle" size={16} color="#4338ca" style={{ marginRight: 8 }} />
-                  <Text style={{ color: '#4338ca', fontWeight: '600', flex: 1 }}>{adjProduct.name}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#312e81' : '#e0e7ff', padding: 10, borderRadius: 10, marginBottom: 8 }}>
+                  <MaterialCommunityIcons name="check-circle" size={16} color={isDarkMode ? '#a5b4fc' : '#4338ca'} style={{ marginRight: 8 }} />
+                  <Text style={{ color: isDarkMode ? '#c7d2fe' : '#4338ca', fontWeight: '600', flex: 1 }}>{adjProduct.name}</Text>
                   <TouchableOpacity onPress={() => { setAdjProduct(null); setAdjSearch(''); }}>
-                    <MaterialCommunityIcons name="close-circle" size={18} color="#4338ca" />
+                    <MaterialCommunityIcons name="close-circle" size={18} color={isDarkMode ? '#a5b4fc' : '#4338ca'} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -534,8 +537,8 @@ export default function InventoryScreen() {
                     style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
                       backgroundColor: adjType === type.value ? type.color : (isDarkMode ? '#1e293b' : '#f1f5f9'),
                       borderWidth: 1, borderColor: adjType === type.value ? type.color : 'transparent' }}>
-                    <MaterialCommunityIcons name={type.icon as any} size={14} color={adjType === type.value ? '#fff' : '#64748b'} style={{ marginRight: 4 }} />
-                    <Text style={{ fontSize: 13, fontWeight: '600', color: adjType === type.value ? '#fff' : '#64748b' }}>{type.label}</Text>
+                    <MaterialCommunityIcons name={type.icon as any} size={14} color={adjType === type.value ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b')} style={{ marginRight: 4 }} />
+                    <Text style={{ fontSize: 13, fontWeight: '600', color: adjType === type.value ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b') }}>{type.label}</Text>
                   </TouchableOpacity>
                 ))}
               </View>

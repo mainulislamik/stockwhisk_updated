@@ -375,22 +375,23 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 24}
       >
         <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)' }} activeOpacity={1} onPress={onClose} />
         <View style={{ 
           backgroundColor: theme.colors.background, 
           borderTopLeftRadius: 24, 
           borderTopRightRadius: 24, 
-          position: 'absolute', bottom: 0, alignSelf: 'center',
+          alignSelf: 'center',
           width: '100%', maxWidth: 500,
           height: '90%',
           paddingBottom: 20
         }}>
         {/* Header */}
         <View style={{ backgroundColor: theme.colors.surface, padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#2563eb' }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: isDarkMode ? '#93c5fd' : '#2563eb' }}>
             {isNew ? (isBN ? 'নতুন পণ্য যোগ করুন' : 'Add New Product') : (isBN ? 'পণ্য এডিট করুন' : 'Edit Product')}
           </Text>
           <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
@@ -724,12 +725,12 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           {/* Vendor / Supplier Selection and Push Section */}
           {isNew && Number(form.current_stock || 0) > 0 && (
             <Card style={{ marginBottom: 16, padding: 12, backgroundColor: isDarkMode ? '#1e293b' : '#f0fdf4', borderWidth: 1, borderColor: '#86efac' }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#16a34a' }}>
-                  🚚 {isBN ? 'সরবরাহকারী / ভেন্ডর নির্বাচন (Vendor Push - ঐচ্ছিক):' : 'Supplier / Vendor Push (Optional):'}
+              <View style={{ marginBottom: 8 }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#16a34a', flexShrink: 1 }}>
+                  🚚 {isBN ? 'সরবরাহকারী / ভেন্ডর নির্বাচন (ঐচ্ছিক)' : 'Supplier / Vendor Push (Optional)'}
                 </Text>
-                <TouchableOpacity onPress={() => setShowAddVendor(true)}>
-                  <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 12 }}>+ {isBN ? 'নতুন ভেন্ডর' : 'New Vendor'}</Text>
+                <TouchableOpacity onPress={() => setShowAddVendor(true)} style={{ alignSelf: 'flex-start', marginTop: 6, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: isDarkMode ? '#3b82f6' : '#bfdbfe' }}>
+                  <Text style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', fontWeight: 'bold', fontSize: 12 }}>+ {isBN ? 'নতুন ভেন্ডর যোগ করুন' : 'Add New Vendor'}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -747,7 +748,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   backgroundColor: theme.colors.surface
                 }}
               >
-                <Text style={{ fontSize: 14, color: selectedSupplier ? '#16a34a' : '#64748b', fontWeight: selectedSupplier ? 'bold' : 'normal' }}>
+                <Text style={{ fontSize: 14, color: selectedSupplier ? (isDarkMode ? '#4ade80' : '#16a34a') : '#64748b', fontWeight: selectedSupplier ? 'bold' : 'normal' }} numberOfLines={1} ellipsizeMode="tail">
                   {selectedSupplier ? `✓ ${selectedSupplier.name}` : (isBN ? 'সরবরাহকারী নির্বাচন করুন (ঐচ্ছিক)' : 'Select Supplier (Optional)')}
                 </Text>
                 <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
@@ -775,13 +776,16 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   <Text style={{ fontSize: 11, fontWeight: '600', marginBottom: 4 }}>
                     {isBN ? 'সাপ্লায়ারকে এখন পরিশোধ করা হলো' : 'Paid to Supplier Now'}
                   </Text>
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, alignItems: 'center' }}>
                     <TextInput
                       mode="outlined"
                       dense
                       label={isBN ? 'টাকা' : 'BDT'}
                       value={vendorPaidAmount}
-                      onChangeText={setVendorPaidAmount}
+                      onChangeText={t => {
+                        const digits = t.replace(/[^0-9]/g, '');
+                        setVendorPaidAmount(digits ? Number(digits).toLocaleString('en-US') : '');
+                      }}
                       keyboardType="numeric"
                       placeholder="0"
                       style={{ flex: 1, backgroundColor: theme.colors.surface }}
@@ -789,7 +793,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     <Button
                       mode="outlined"
                       compact
-                      onPress={() => setVendorPaidAmount((Number(form.cost_price || 0) * Number(form.current_stock || 0)).toString())}
+                      onPress={() => setVendorPaidAmount((Number(form.cost_price || 0) * Number(form.current_stock || 0)).toLocaleString('en-US'))}
                       style={{ justifyContent: 'center', borderColor: '#16a34a' }}
                       textColor="#16a34a"
                     >
