@@ -4,6 +4,10 @@ import { Appbar, Text, Card, TextInput, Button, useTheme, Surface, SegmentedButt
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useAuth } from '../contexts/AuthContext';
+import { usePreferences } from '../contexts/PreferencesContext';
+import { api } from '../api';
+
 // expo-print guarded for web
 let Print: any = {
   printAsync: async (options: any) => {
@@ -15,9 +19,7 @@ let Print: any = {
 if (Platform.OS !== 'web') {
   try { Print = require('expo-print'); } catch (e) {}
 }
-import { useAuth } from '../contexts/AuthContext';
-import { usePreferences } from '../contexts/PreferencesContext';
-import { api } from '../api';
+
 
 type ProductUnit = {
   id: number;

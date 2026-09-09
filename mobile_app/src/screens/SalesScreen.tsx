@@ -4,6 +4,11 @@ import { Appbar, Text, Card, Divider, Chip, TextInput, ActivityIndicator, useThe
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { api } from '../api';
+import { usePreferences } from '../contexts/PreferencesContext';
+import { useAuth } from '../contexts/AuthContext';
+import EditInvoiceModal from '../components/EditInvoiceModal';
+
 // expo-print guarded for web
 let Print: any = {
   printAsync: async (options: any) => {
@@ -15,10 +20,7 @@ let Print: any = {
 if (Platform.OS !== 'web') {
   try { Print = require('expo-print'); } catch (e) {}
 }
-import { api } from '../api';
-import { usePreferences } from '../contexts/PreferencesContext';
-import { useAuth } from '../contexts/AuthContext';
-import EditInvoiceModal from '../components/EditInvoiceModal';
+
 
 type Sale = {
   id: number;

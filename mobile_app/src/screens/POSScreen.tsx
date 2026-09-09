@@ -5,6 +5,12 @@ import PageGuideButton from '../components/PageGuideButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 // expo-camera guarded inside modal
 import { useFocusEffect, useRoute } from '@react-navigation/native';
+import * as SecureStore from '../utils/storage';
+import { api } from '../api';
+import { usePreferences } from '../contexts/PreferencesContext';
+import { useAuth } from '../contexts/AuthContext';
+import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
+
 // expo-print guarded for web
 let Print: any = {
   printAsync: async (options: any) => {
@@ -16,16 +22,13 @@ let Print: any = {
 if (Platform.OS !== 'web') {
   try { Print = require('expo-print'); } catch (e) {}
 }
-import * as SecureStore from '../utils/storage';
-import { api } from '../api';
-import { usePreferences } from '../contexts/PreferencesContext';
-import { useAuth } from '../contexts/AuthContext';
-import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
+
 // DateTimePicker guarded: lazy-loaded on native only (web uses HTML date input)
 let DateTimePicker: any = null;
 if (Platform.OS !== 'web') {
   try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch (e) {}
 }
+
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
