@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../utils/storage';
 import { api, setMemoryToken, setMemoryRefreshToken, setOnSessionExpired } from '../api';
 
 type User = {

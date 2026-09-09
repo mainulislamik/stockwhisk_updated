@@ -1,5 +1,5 @@
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../utils/storage';
 import { Platform } from 'react-native';
 
 const API_BASE = process.env.EXPO_PUBLIC_API_BASE || 'https://stockwhisk.com/api';

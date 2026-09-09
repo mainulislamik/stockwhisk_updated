@@ -6,12 +6,16 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 // expo-camera guarded inside modal
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import * as Print from 'expo-print';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '../utils/storage';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
-import DateTimePicker from '@react-native-community/datetimepicker';
+// DateTimePicker guarded: lazy-loaded on native only (web uses HTML date input)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch (e) {}
+}
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
 type Product = {
