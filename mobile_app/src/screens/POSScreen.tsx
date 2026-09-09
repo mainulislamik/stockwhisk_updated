@@ -5,7 +5,17 @@ import PageGuideButton from '../components/PageGuideButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 // expo-camera guarded inside modal
 import { useFocusEffect, useRoute } from '@react-navigation/native';
-import * as Print from 'expo-print';
+// expo-print guarded for web
+let Print: any = {
+  printAsync: async (options: any) => {
+    if (typeof window !== 'undefined' && options?.uri) {
+      window.open(options.uri, '_blank');
+    }
+  }
+};
+if (Platform.OS !== 'web') {
+  try { Print = require('expo-print'); } catch (e) {}
+}
 import * as SecureStore from '../utils/storage';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
@@ -142,8 +152,10 @@ export default function POSScreen() {
         }
         return false;
       };
-      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => subscription.remove();
+      if (Platform.OS !== 'web' && BackHandler && typeof BackHandler.addEventListener === 'function') {
+        const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => subscription?.remove?.();
+      }
     }, [view])
   );
 

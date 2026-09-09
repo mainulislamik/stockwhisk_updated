@@ -4,7 +4,17 @@ import { Appbar, Text, Card, Divider, Chip, TextInput, ActivityIndicator, useThe
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Print from 'expo-print';
+// expo-print guarded for web
+let Print: any = {
+  printAsync: async (options: any) => {
+    if (typeof window !== 'undefined' && options?.uri) {
+      window.open(options.uri, '_blank');
+    }
+  }
+};
+if (Platform.OS !== 'web') {
+  try { Print = require('expo-print'); } catch (e) {}
+}
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
