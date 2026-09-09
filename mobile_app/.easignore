@@ -7,3 +7,7 @@ ios/
 .git/
 *.apk
 *.aab
+*.py
+bundle.js
+Dockerfile
+*.md

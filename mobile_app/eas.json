@@ -8,13 +8,14 @@
       "android": {
         "buildType": "apk"
       },
-      "ios": {
-        "simulator": true
-      }
-    },
-    "preview-device": {
-      "ios": {
-        "distribution": "internal"
+      "env": {
+        "EAS_SKIP_AUTO_FINGERPRINT": "1"
+      },
+      "cache": {
+        "key": "v1-dependencies",
+        "paths": [
+          "node_modules"
+        ]
       }
     },
     "production": {}
