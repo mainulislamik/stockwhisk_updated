@@ -90,8 +90,6 @@ export default function POSScreen() {
   const [dueDate, setDueDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bkash' | 'card' | 'nagad' | 'bank_transfer'>('cash');
-  const shopType = (user as any)?.shop_business_type || '';
-  const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
   const [alterationNotes, setAlterationNotes] = useState('');
   const [alterationStatus, setAlterationStatus] = useState('none');
   const [selectedVariantSize, setSelectedVariantSize] = useState('');
@@ -100,6 +98,8 @@ export default function POSScreen() {
 
   // Missing web features
   const { user, loadUser } = useAuth();
+  const shopType = (user as any)?.shop_business_type || '';
+  const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
   const [deliveryCharge, setDeliveryCharge] = useState('');
   const [isEmi, setIsEmi] = useState(false);
   const [emiMonths, setEmiMonths] = useState(3);
