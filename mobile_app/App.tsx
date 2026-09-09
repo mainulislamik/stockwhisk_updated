@@ -1,7 +1,7 @@
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
-import { MD3LightTheme, MD3DarkTheme, PaperProvider } from 'react-native-paper';
+import { MD3LightTheme, MD3DarkTheme, PaperProvider, Button } from 'react-native-paper';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -30,7 +30,7 @@ import BarcodesScreen from './src/screens/BarcodesScreen';
 import ManufacturingScreen from './src/screens/ManufacturingScreen';
 import NewBatchScreen from './src/screens/NewBatchScreen';
 import GlobalHeader from './src/components/GlobalHeader';
-import { View, LogBox, Platform } from 'react-native';
+import { View, Text, ScrollView, LogBox, Platform } from 'react-native';
 
 LogBox.ignoreLogs([
   'Invalid DOM property',
@@ -141,16 +141,80 @@ function ThemedApp() {
               elevation: Platform.OS === 'web' ? 12 : 0,
             }}
           >
-            <NavigationContainer>
+            <ErrorBoundary>
+          <NavigationContainer>
               <AuthProvider>
                 <RootNavigator />
               </AuthProvider>
             </NavigationContainer>
+        </ErrorBoundary>
           </View>
         </View>
       </PaperProvider>
     </SafeAreaProvider>
   );
+}
+
+
+interface ErrorBoundaryProps {
+  children: React.ReactNode;
+}
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: React.ErrorInfo | null;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props);
+    this.state = { hasError: false, error: null, errorInfo: null };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, error };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("Global Error Caught:", error, errorInfo);
+    this.setState({ errorInfo });
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, backgroundColor: '#0f172a', padding: 24, justifyContent: 'center', alignItems: 'center' }}>
+          <Text style={{ color: '#ef4444', fontSize: 20, fontWeight: 'bold', marginBottom: 12 }}>
+            ⚠️ Application Error Encountered
+          </Text>
+          <Text style={{ color: '#f8fafc', fontSize: 14, textAlign: 'center', marginBottom: 16 }}>
+            {this.state.error?.message || "An unexpected error occurred."}
+          </Text>
+          <View style={{ backgroundColor: '#1e293b', padding: 12, borderRadius: 8, width: '100%', maxHeight: 200, marginBottom: 20 }}>
+            <ScrollView>
+              <Text style={{ color: '#94a3b8', fontSize: 11, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                {this.state.error?.stack || JSON.stringify(this.state.errorInfo)}
+              </Text>
+            </ScrollView>
+          </View>
+          <Button
+            mode="contained"
+            buttonColor="#4f46e5"
+            onPress={() => {
+              if (Platform.OS === 'web') {
+                window.location.reload();
+              } else {
+                this.setState({ hasError: false, error: null, errorInfo: null });
+              }
+            }}
+          >
+            🔄 Reload Screen
+          </Button>
+        </View>
+      );
+    }
+    return this.props.children;
+  }
 }
 
 export default function App() {
