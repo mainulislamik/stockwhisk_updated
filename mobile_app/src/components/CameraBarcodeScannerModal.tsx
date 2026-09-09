@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Modal, StyleSheet, Platform, Alert, Dimensions, Vibration, Linking } from 'react-native';
 import { Text, IconButton, Button } from 'react-native-paper';
-import { CameraView, useCameraPermissions } from 'expo-camera';
 import { usePreferences } from '../contexts/PreferencesContext';
 
 interface Props {
@@ -13,11 +12,23 @@ interface Props {
 export default function CameraBarcodeScannerModal({ visible, onClose, onScanned }: Props) {
   const { language } = usePreferences();
   const isBN = language === 'BN';
-  const [permission, requestPermission] = useCameraPermissions();
   const [scanned, setScanned] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
 
-  // Reset scanned state whenever modal opens
+  // Lazy load camera on native platform only to prevent web React crashes
+  let CameraView: any = null;
+  let useCameraPermissions: any = () => [null, () => {}];
+  
+  if (Platform.OS !== 'web') {
+    try {
+      const CameraModule = require('expo-camera');
+      CameraView = CameraModule.CameraView;
+      useCameraPermissions = CameraModule.useCameraPermissions;
+    } catch (e) {}
+  }
+
+  const [permission, requestPermission] = useCameraPermissions();
+
   React.useEffect(() => {
     if (visible) {
       setScanned(false);
@@ -47,18 +58,20 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
               {isBN ? '📷 বারকোড স্ক্যানার' : '📷 Barcode Scanner'}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <IconButton
-                icon={torchOn ? 'flashlight' : 'flashlight-off'}
-                size={24}
-                iconColor={torchOn ? '#fbbf24' : '#ffffff'}
-                onPress={() => setTorchOn(!torchOn)}
-              />
+              {Platform.OS !== 'web' && (
+                <IconButton
+                  icon={torchOn ? 'flashlight' : 'flashlight-off'}
+                  size={24}
+                  iconColor={torchOn ? '#fbbf24' : '#ffffff'}
+                  onPress={() => setTorchOn(!torchOn)}
+                />
+              )}
               <IconButton icon="close" size={26} iconColor="#ffffff" onPress={onClose} />
             </View>
           </View>
 
-          {/* Camera View */}
-          {permission && permission.granted ? (
+          {/* Camera View for Native */}
+          {Platform.OS !== 'web' && CameraView && permission && permission.granted ? (
             <View style={{ flex: 1 }}>
               <CameraView
                 style={StyleSheet.absoluteFill}
@@ -100,6 +113,22 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
                   </Text>
                 </View>
               </View>
+            </View>
+          ) : Platform.OS === 'web' ? (
+            <View style={styles.permissionBox}>
+              <Text style={styles.permissionText}>
+                {isBN
+                  ? '🌐 ব্রাউজারে বারকোড স্ক্যান করতে ইউএসবি/ওয়্যারলেস বারকোড স্ক্যানার দিয়ে স্ক্যান করুন অথবা সরাসরি টাইপ করুন। ফোনে ক্যামেরা স্ক্যানার স্বয়ংক্রিয়ভাবে কাজ করবে।'
+                  : '🌐 On web browser, use USB/Wireless barcode scanner or type code. On mobile APK, camera scanner will open automatically.'}
+              </Text>
+              <Button
+                mode="contained"
+                buttonColor="#4f46e5"
+                onPress={onClose}
+                style={{ marginTop: 20 }}
+              >
+                {isBN ? 'ঠিক আছে' : 'OK'}
+              </Button>
             </View>
           ) : (
             <View style={styles.permissionBox}>

@@ -3,7 +3,7 @@ import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert,
 import { Text, Appbar, useTheme, Surface, IconButton, TextInput, Button, Divider, ActivityIndicator, Badge, Chip, Checkbox } from 'react-native-paper';
 import PageGuideButton from '../components/PageGuideButton';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+// expo-camera guarded inside modal
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import * as Print from 'expo-print';
 import * as SecureStore from 'expo-secure-store';
@@ -44,7 +44,7 @@ export default function POSScreen() {
   
   // Camera Scanner
   const [showScanner, setShowScanner] = useState(false);
-  const [permission, requestPermission] = useCameraPermissions();
+  // camera permission handled inside scanner modal
 
   // Unit Modal
   const [unitModalVisible, setUnitModalVisible] = useState(false);
