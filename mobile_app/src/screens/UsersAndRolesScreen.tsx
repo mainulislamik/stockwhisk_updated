@@ -41,8 +41,15 @@ export default function UsersAndRolesScreen() {
   // Add User State
   const [showAddModal, setShowAddModal] = useState(false);
   const [addingUser, setAddingUser] = useState(false);
-  const [newUser, setNewUser] = useState({ email: '', first_name: '', last_name: '', phone: '', role: 'cashier', password: '' });
+  const [branches, setBranches] = useState<any[]>([]);
+  const [newUser, setNewUser] = useState({ email: '', first_name: '', last_name: '', phone: '', role: 'cashier', branch: null as number | null, password: '' });
   const [tempPassword, setTempPassword] = useState('');
+
+  // Edit User State
+  const [showEditUserModal, setShowEditUserModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [editUserForm, setEditUserForm] = useState({ first_name: '', last_name: '', phone: '', role: 'cashier', branch: null as number | null });
+  const [savingEditUser, setSavingEditUser] = useState(false);
 
   // Role Edit State
   const [editingRole, setEditingRole] = useState<any>(null);
@@ -56,11 +63,13 @@ export default function UsersAndRolesScreen() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [usersRes, rolesRes, permsRes] = await Promise.all([
+      const [usersRes, rolesRes, permsRes, branchesRes] = await Promise.all([
         api.get('/users/').catch(() => api.get('/auth/shop-users/')),
         api.get('/roles/').catch(() => ({ data: { results: [] } })),
-        api.get('/permissions/').catch(() => ({ data: [] }))
+        api.get('/permissions/').catch(() => ({ data: [] })),
+        api.get('/branches/').catch(() => ({ data: { results: [] } })),
       ]);
+      setBranches(branchesRes.data?.results || branchesRes.data || []);
       setUsers(usersRes.data?.results || usersRes.data || []);
       setRoles(rolesRes.data?.results || rolesRes.data || []);
       setAllPermissions(permsRes.data?.results || permsRes.data || []);
@@ -92,6 +101,73 @@ export default function UsersAndRolesScreen() {
       Alert.alert('Error', e.response?.data?.detail || 'Failed to add user.');
     } finally {
       setAddingUser(false);
+    }
+  };
+
+  const handleResetPassword = (u: any) => {
+    if (u.role?.toLowerCase() === 'owner') {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'প্রধান মালিকের পাসওয়ার্ড এখান থেকে রিসেট করা যাবে না।' : 'Owner password cannot be reset from here.');
+      return;
+    }
+    Alert.alert(
+      isBN ? 'পাসওয়ার্ড রিসেট' : 'Reset Password',
+      isBN ? `${u.first_name || u.email}-এর জন্য নতুন পাসওয়ার্ড তৈরি করবেন?` : `Generate a new password for ${u.first_name || u.email}?`,
+      [
+        { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+        {
+          text: isBN ? 'রিসেট করুন' : 'Reset',
+          onPress: async () => {
+            try {
+              const res = await api.post(`/users/${u.id}/reset_password/`);
+              const pass = res.data?.temporary_password || '';
+              Alert.alert(
+                isBN ? 'সফল!' : 'Success!',
+                isBN ? `পাসওয়ার্ড সফলভাবে রিসেট হয়েছে!
+নতুন পাসওয়ার্ড: ${pass}` : `Password reset successfully!
+Temporary Password: ${pass}`
+              );
+            } catch (e: any) {
+              Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || 'Failed to reset password');
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const startEditUser = (u: any) => {
+    setEditingUser(u);
+    setEditUserForm({
+      first_name: u.first_name || '',
+      last_name: u.last_name || '',
+      phone: u.phone || '',
+      role: u.role || 'cashier',
+      branch: u.branch || null,
+    });
+    setShowEditUserModal(true);
+  };
+
+  const handleSaveEditUser = async () => {
+    if (!editingUser) return;
+    setSavingEditUser(true);
+    try {
+      const payload: any = {
+        first_name: editUserForm.first_name.trim(),
+        last_name: editUserForm.last_name.trim(),
+        phone: editUserForm.phone.trim(),
+        branch: editUserForm.branch,
+      };
+      if (editingUser.role?.toLowerCase() !== 'owner') {
+        payload.role = editUserForm.role;
+      }
+      await api.patch(`/users/${editingUser.id}/`, payload);
+      setShowEditUserModal(false);
+      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'ইউজার তথ্য আপডেট হয়েছে।' : 'User updated successfully.');
+      fetchData();
+    } catch (e: any) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || 'Failed to update user');
+    } finally {
+      setSavingEditUser(false);
     }
   };
 
@@ -356,6 +432,45 @@ export default function UsersAndRolesScreen() {
             <Button onPress={() => setShowAddModal(false)} textColor={subColor}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
             <Button mode="contained" onPress={handleAddUser} loading={addingUser} disabled={addingUser} buttonColor="#4f46e5" style={{ borderRadius: 8 }}>
               {isBN ? 'যুক্ত করুন' : 'Add User'}
+            </Button>
+          </Dialog.Actions>
+        </Dialog>
+      </Portal>
+
+          {/* Edit User Modal */}
+      <Portal>
+        <Dialog visible={showEditUserModal} onDismiss={() => setShowEditUserModal(false)} style={{ backgroundColor: cardColor, borderRadius: 16 }}>
+          <Dialog.Title style={{ color: textColor }}>{isBN ? 'ইউজার তথ্য এডিট করুন' : 'Edit User'}</Dialog.Title>
+          <Dialog.Content>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <TextInput label={isBN ? 'প্রথম নাম' : 'First Name'} value={editUserForm.first_name} onChangeText={(t) => setEditUserForm({...editUserForm, first_name: t})} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} activeOutlineColor="#4f46e5" textColor={textColor} />
+              <TextInput label={isBN ? 'শেষ নাম' : 'Last Name'} value={editUserForm.last_name} onChangeText={(t) => setEditUserForm({...editUserForm, last_name: t})} mode="outlined" style={{ marginBottom: 12, backgroundColor: cardColor }} activeOutlineColor="#4f46e5" textColor={textColor} />
+              <TextInput label={isBN ? 'ফোন' : 'Phone'} value={editUserForm.phone} onChangeText={(t) => setEditUserForm({...editUserForm, phone: t})} mode="outlined" keyboardType="phone-pad" style={{ marginBottom: 12, backgroundColor: cardColor }} activeOutlineColor="#4f46e5" textColor={textColor} />
+              {editingUser?.role?.toLowerCase() !== 'owner' && (
+                <View style={{ marginBottom: 12 }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: textColor, marginBottom: 6 }}>{isBN ? 'রোল নির্বাচন করুন:' : 'Select Role:'}</Text>
+                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6 }}>
+                    {['cashier', 'manager', 'accountant', 'inventory_manager'].map((r) => (
+                      <Chip
+                        key={r}
+                        selected={editUserForm.role === r}
+                        onPress={() => setEditUserForm({...editUserForm, role: r})}
+                        compact
+                        style={{ backgroundColor: editUserForm.role === r ? '#4f46e5' : (isDark ? '#334155' : '#f1f5f9') }}
+                        textStyle={{ color: editUserForm.role === r ? '#fff' : textColor, fontSize: 11 }}
+                      >
+                        {r}
+                      </Chip>
+                    ))}
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+          </Dialog.Content>
+          <Dialog.Actions>
+            <Button onPress={() => setShowEditUserModal(false)} textColor={subColor}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
+            <Button mode="contained" onPress={handleSaveEditUser} loading={savingEditUser} disabled={savingEditUser} buttonColor="#4f46e5" style={{ borderRadius: 8 }}>
+              {isBN ? 'আপডেট করুন' : 'Save Changes'}
             </Button>
           </Dialog.Actions>
         </Dialog>

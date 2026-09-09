@@ -73,6 +73,12 @@ export default function POSScreen() {
   const [dueDate, setDueDate] = useState('');
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bkash' | 'card' | 'nagad' | 'bank_transfer'>('cash');
+  const shopType = (user as any)?.shop_business_type || '';
+  const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
+  const [alterationNotes, setAlterationNotes] = useState('');
+  const [alterationStatus, setAlterationStatus] = useState('none');
+  const [selectedVariantSize, setSelectedVariantSize] = useState('');
+  const [selectedVariantColor, setSelectedVariantColor] = useState('');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
 
   // Missing web features
@@ -551,6 +557,8 @@ export default function POSScreen() {
         emi_interest_percent: (isEmi && !asQuotation) ? emiInterestNum : 0,
         is_quotation: asQuotation,
         due_date: (!asQuotation && !isEmi && paidAmount !== "" && paidNum < total && dueDate) ? dueDate : undefined,
+        alteration_notes: alterationNotes.trim(),
+        alteration_status: alterationNotes.trim() ? (alterationStatus === 'none' ? 'pending' : alterationStatus) : "",
       };
       const res = await api.post('/pos/checkout/', payload);
       
@@ -568,6 +576,8 @@ export default function POSScreen() {
       setCart([]);
       setSelectedCustomer(null);
       setDiscountInput('');
+      setAlterationNotes('');
+      setAlterationStatus('none');
       setDeliveryCharge('');
       setWalkName('');
       setWalkPhone('');
@@ -1032,6 +1042,37 @@ export default function POSScreen() {
                     </View>
                   </View>
                 )}
+              </Surface>
+            )}
+
+            {/* Fashion Garment Alteration & Fitting Tracker */}
+            {isFashionShop && (
+              <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 24, backgroundColor: isDarkMode ? '#1e1b4b' : '#f5f3ff', borderWidth: 1, borderColor: '#c084fc' }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#7c3aed', marginBottom: 6 }}>
+                  ✂️ {isBN ? 'পোশাক অল্টারেশন / ফিটিং ট্র্যাকিং (ঐচ্ছিক):' : 'Garment Alteration & Fitting (Optional):'}
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  placeholder={isBN ? 'যেমন: ঝুল ২ ইঞ্চি ছোট করা, হাতা ফিটিং...' : 'e.g. Shorten length 2 inch...'}
+                  value={alterationNotes}
+                  onChangeText={setAlterationNotes}
+                  style={{ marginBottom: 8, backgroundColor: theme.colors.surface }}
+                />
+                <View style={{ flexDirection: 'row', gap: 6 }}>
+                  {['pending', 'ready', 'delivered'].map((st) => (
+                    <Chip
+                      key={st}
+                      selected={alterationStatus === st}
+                      compact
+                      onPress={() => setAlterationStatus(alterationStatus === st ? 'none' : st)}
+                      style={{ backgroundColor: alterationStatus === st ? '#7c3aed' : (isDarkMode ? '#312e81' : '#ede9fe') }}
+                      textStyle={{ color: alterationStatus === st ? '#fff' : '#6b21a8', fontSize: 11 }}
+                    >
+                      {st === 'pending' ? (isBN ? 'পেন্ডিং' : 'Pending') : st === 'ready' ? (isBN ? 'রেডি' : 'Ready') : (isBN ? 'ডেলিভার্ড' : 'Delivered')}
+                    </Chip>
+                  ))}
+                </View>
               </Surface>
             )}
 

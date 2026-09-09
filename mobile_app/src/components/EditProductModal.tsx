@@ -4,6 +4,7 @@ import { Text, useTheme, TextInput, Button, Card, Divider, Chip } from 'react-na
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
+import { useAuth } from '../contexts/AuthContext';
 import CameraBarcodeScannerModal from './CameraBarcodeScannerModal';
 
 type Supplier = {
@@ -14,8 +15,21 @@ type Supplier = {
 
 export default function EditProductModal({ visible, product, onClose, onSaved }: { visible: boolean, product: any, onClose: () => void, onSaved: () => void }) {
   const theme = useTheme();
+  const { user } = useAuth();
   const { language, isDarkMode } = usePreferences();
   const isBN = language === 'BN';
+
+  const shopType = (user as any)?.shop_business_type || '';
+  const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
+  const isSpecialShop = shopType === 'camical' || shopType === 'supershop' || shopType === 'cosmetics' || shopType === 'beauty';
+
+  // Fashion Presets
+  const FABRIC_PRESETS = ['Cotton', 'Denim', 'Silk', 'Linen', 'Polyester', 'Wool', 'Rayon', 'Georgette', 'Viscose'];
+  const FIT_PRESETS = ['Slim Fit', 'Regular Fit', 'Oversized', 'Relaxed Fit', 'Tailored Fit', 'Loose Fit'];
+  const GENDER_PRESETS = ['Men', 'Women', 'Kids', 'Unisex', 'Boys', 'Girls'];
+  const SEASON_PRESETS = ['Summer', 'Winter', 'All Season', 'Eid 2026', 'Puja Festive'];
+  const STYLE_PRESETS = ['Casual', 'Formal', 'Party / Ethnic', 'Sportswear', 'Traditional'];
+  const CARE_PRESETS = ['Dry Clean Only', 'Machine Wash Cold', 'Hand Wash Only', 'Do Not Bleach', 'Warm Iron'];
   
   const isNew = !product?.id;
   const [form, setForm] = useState<any>({});
@@ -89,6 +103,15 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           lot_number: product.lot_number || '',
           purchase_multiplier: product.purchase_multiplier?.toString() || '1',
           warranty_months: product.warranty_months?.toString() || '',
+          replacement_guarantee_days: product.replacement_guarantee_days?.toString() || (isFashionShop ? '7' : '0'),
+          fabric_material: product.fabric_material || '',
+          gender_target: product.gender_target || '',
+          season: product.season || '',
+          style_type: product.style_type || '',
+          fit_type: product.fit_type || '',
+          collection_name: product.collection_name || '',
+          care_instructions: product.care_instructions || '',
+          size_variants: Array.isArray(product.size_variants) ? product.size_variants : [],
         });
         if (product.barcode) {
           setSerialBarcodes([product.barcode]);
@@ -109,6 +132,15 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           lot_number: '',
           purchase_multiplier: '1',
           warranty_months: '',
+          replacement_guarantee_days: isFashionShop ? '7' : '0',
+          fabric_material: '',
+          gender_target: '',
+          season: '',
+          style_type: '',
+          fit_type: '',
+          collection_name: '',
+          care_instructions: '',
+          size_variants: isFashionShop ? [{ size: 'M', color: '', stock: 0 }] : [],
         });
       }
     }
@@ -265,6 +297,18 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
         selling_price: cleanSell,
         reorder_level: isNaN(Number(cleanReorder)) ? 5 : Number(cleanReorder),
         category: form.category || null,
+        warranty_months: isFashionShop ? 0 : (Number(form.warranty_months) || 0),
+        replacement_guarantee_days: Number(form.replacement_guarantee_days) || 0,
+        fabric_material: form.fabric_material || '',
+        gender_target: form.gender_target || '',
+        season: form.season || '',
+        style_type: form.style_type || '',
+        fit_type: form.fit_type || '',
+        collection_name: form.collection_name || '',
+        care_instructions: form.care_instructions || '',
+        size_variants: form.size_variants || [],
+        expiry_date: !isFashionShop && form.expiry_date ? form.expiry_date : null,
+        lot_number: !isFashionShop ? (form.lot_number || '') : '',
       };
 
       if (isNew) {
@@ -541,6 +585,141 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               style={{ flex: 1, marginLeft: isNew ? 8 : 0, marginBottom: 12, backgroundColor: theme.colors.surface }} 
             />
           </View>
+
+          {/* ── Fashion Section for Apparel / Footwear ── */}
+          {isFashionShop && (
+            <Card style={{ marginBottom: 16, padding: 12, backgroundColor: isDarkMode ? '#1e1b4b' : '#f5f3ff', borderWidth: 1, borderColor: '#c084fc' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#7c3aed', marginBottom: 8 }}>
+                👗 {isBN ? 'পোশাক ও ফ্যাশন বিবরণ (Apparel & Fashion Details):' : 'Apparel & Fashion Details:'}
+              </Text>
+
+              {/* Fabric Material */}
+              <Text style={{ fontSize: 12, fontWeight: '600', color: isDarkMode ? '#e9d5ff' : '#6b21a8', marginBottom: 4 }}>
+                🧵 {isBN ? 'কাপড়ের ধরন (Fabric):' : 'Fabric Material:'}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {FABRIC_PRESETS.map(fab => (
+                  <Chip
+                    key={fab}
+                    selected={form.fabric_material === fab}
+                    onPress={() => setForm({ ...form, fabric_material: form.fabric_material === fab ? '' : fab })}
+                    compact
+                    style={{ backgroundColor: form.fabric_material === fab ? '#7c3aed' : (isDarkMode ? '#312e81' : '#ede9fe') }}
+                    textStyle={{ color: form.fabric_material === fab ? '#fff' : (isDarkMode ? '#ddd6fe' : '#6b21a8'), fontSize: 11 }}
+                  >
+                    {fab}
+                  </Chip>
+                ))}
+              </View>
+
+              {/* Fit Type */}
+              <Text style={{ fontSize: 12, fontWeight: '600', color: isDarkMode ? '#e9d5ff' : '#6b21a8', marginBottom: 4 }}>
+                ✂️ {isBN ? 'ফিট টাইপ (Fit):' : 'Fit Type:'}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                {FIT_PRESETS.map(fit => (
+                  <Chip
+                    key={fit}
+                    selected={form.fit_type === fit}
+                    onPress={() => setForm({ ...form, fit_type: form.fit_type === fit ? '' : fit })}
+                    compact
+                    style={{ backgroundColor: form.fit_type === fit ? '#7c3aed' : (isDarkMode ? '#312e81' : '#ede9fe') }}
+                    textStyle={{ color: form.fit_type === fit ? '#fff' : (isDarkMode ? '#ddd6fe' : '#6b21a8'), fontSize: 11 }}
+                  >
+                    {fit}
+                  </Chip>
+                ))}
+              </View>
+
+              {/* Collection & Care */}
+              <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  label={isBN ? 'কালেকশন (যেমন: Eid 2026)' : 'Collection Name'}
+                  value={form.collection_name}
+                  onChangeText={t => setForm({ ...form, collection_name: t })}
+                  style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                />
+                <TextInput
+                  mode="outlined"
+                  dense
+                  label={isBN ? 'এক্সচেঞ্জ (দিন)' : 'Exchange (Days)'}
+                  value={form.replacement_guarantee_days}
+                  keyboardType="numeric"
+                  onChangeText={t => setForm({ ...form, replacement_guarantee_days: t })}
+                  style={{ width: 110, backgroundColor: theme.colors.surface }}
+                />
+              </View>
+
+              {/* Size & Color Variants */}
+              <View style={{ marginTop: 8 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#7c3aed' }}>
+                    📐 {isBN ? 'সাইজ ও কালার ভেরিয়েন্ট স্টক:' : 'Size & Color Variants:'}
+                  </Text>
+                  <Button
+                    mode="text"
+                    compact
+                    textColor="#7c3aed"
+                    onPress={() => setForm({ ...form, size_variants: [...(form.size_variants || []), { size: 'L', color: '', stock: 0 }] })}
+                  >
+                    + {isBN ? 'ভেরিয়েন্ট যোগ' : 'Add Variant'}
+                  </Button>
+                </View>
+
+                {(form.size_variants || []).map((v: any, idx: number) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      placeholder={isBN ? 'সাইজ (M, 32)' : 'Size'}
+                      value={v.size}
+                      onChangeText={t => {
+                        const sv = [...(form.size_variants || [])];
+                        sv[idx] = { ...sv[idx], size: t };
+                        setForm({ ...form, size_variants: sv });
+                      }}
+                      style={{ width: 80, backgroundColor: theme.colors.surface }}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      placeholder={isBN ? 'রং (যেমন: Navy)' : 'Color'}
+                      value={v.color}
+                      onChangeText={t => {
+                        const sv = [...(form.size_variants || [])];
+                        sv[idx] = { ...sv[idx], color: t };
+                        setForm({ ...form, size_variants: sv });
+                      }}
+                      style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                    />
+                    <TextInput
+                      mode="outlined"
+                      dense
+                      placeholder={isBN ? 'স্টক' : 'Qty'}
+                      value={String(v.stock || '')}
+                      keyboardType="numeric"
+                      onChangeText={t => {
+                        const sv = [...(form.size_variants || [])];
+                        sv[idx] = { ...sv[idx], stock: Number(t) || 0 };
+                        setForm({ ...form, size_variants: sv });
+                      }}
+                      style={{ width: 65, backgroundColor: theme.colors.surface }}
+                    />
+                    <TouchableOpacity
+                      onPress={() => {
+                        const sv = (form.size_variants || []).filter((_: any, j: number) => j !== idx);
+                        setForm({ ...form, size_variants: sv });
+                      }}
+                    >
+                      <MaterialCommunityIcons name="trash-can-outline" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+              </View>
+            </Card>
+          )}
 
           {/* Vendor / Supplier Selection and Push Section */}
           {isNew && Number(form.current_stock || 0) > 0 && (

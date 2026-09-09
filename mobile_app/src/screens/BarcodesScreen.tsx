@@ -24,6 +24,10 @@ type Product = {
   barcode: string;
   selling_price: string;
   current_stock: string | number;
+  fabric_material?: string;
+  fit_type?: string;
+  collection_name?: string;
+  care_instructions?: string;
   units?: ProductUnit[];
 };
 
@@ -39,6 +43,7 @@ export default function BarcodesScreen() {
   
   const [activeTab, setActiveTab] = useState('products');
   const [searchQuery, setSearchQuery] = useState('');
+  const [labelSize, setLabelSize] = useState<'38x25' | '50x30' | 'fashion_tag'>('38x25');
   
   // Generator State
   const [quantity, setQuantity] = useState<string>('10');
@@ -168,6 +173,25 @@ export default function BarcodesScreen() {
           background: white; color: black;
           overflow: hidden;
           page-break-inside: avoid;
+        }
+        .label-50x30 {
+          width: 50mm; height: 30mm;
+          box-sizing: border-box;
+          padding: 2.5mm;
+          display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+          background: white; color: black;
+          overflow: hidden;
+          page-break-inside: avoid;
+        }
+        .label-fashion-tag {
+          width: 50mm; height: 75mm;
+          box-sizing: border-box;
+          padding: 3mm;
+          display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+          background: white; color: black;
+          border-bottom: 1px dashed #bbb;
+          page-break-inside: avoid;
+          text-align: center;
         }
         .shop-name { font-size: 8px; font-weight: bold; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
         .product-name { font-size: 7px; text-align: center; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
