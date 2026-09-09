@@ -120,24 +120,42 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
 
 class ShopUserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False, min_length=8)
-
-
-    def get_shop_business_type(self, obj):
-        return obj.shop.business_type if obj.shop else ""
+    branch_name = serializers.CharField(source="branch.name", read_only=True, default=None)
 
     class Meta:
         model = User
         fields = [
             "id", "email", "first_name", "last_name", "phone",
-            "role", "is_active", "password", "last_login"
+            "role", "branch", "branch_name", "is_active", "password", "last_login"
         ]
-        read_only_fields = ["id", "last_login"]
+        read_only_fields = ["id", "last_login", "branch_name"]
+
+    def validate_role(self, value):
+        from .models import RoleType
+        if value == RoleType.OWNER or value == "owner":
+            raise serializers.ValidationError("Cannot assign Owner role to staff. A shop only has one owner.")
+        return value
+
+    def validate_branch(self, value):
+        if value:
+            request = self.context.get("request")
+            if request and request.user and request.user.shop_id:
+                if value.shop_id != request.user.shop_id:
+                    raise serializers.ValidationError("Selected branch does not belong to your shop.")
+        return value
 
     def create(self, validated_data):
+        import secrets
+        import string
+        from .models import RoleType
         password = validated_data.pop("password", None)
         if not password:
-            # Fallback to random password if none provided
-            password = User.objects.make_random_password()
+            alphabet = string.ascii_letters + string.digits + "@#$%"
+            password = "".join(secrets.choice(alphabet) for _ in range(10))
+        
+        # Default staff role to cashier if omitted or blank
+        if not validated_data.get("role"):
+            validated_data["role"] = RoleType.CASHIER
         
         user = User.objects.create(**validated_data)
         user.set_password(password)
