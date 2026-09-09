@@ -38,13 +38,25 @@ export default function ProductEditPage() {
     "Summer", "Winter", "All Season", "Eid Collection", "Puja Collection", "Festive"
   ]);
   const [styleList, setStyleList] = useState<string[]>([
-    "Casual", "Formal", "Party / Ethnic", "Sportswear", "Traditional"
+    "Casual", "Formal", "Party / Ethnic", "Sportswear", "Traditional", "Indo-Western"
+  ]);
+  const [fitList, setFitList] = useState<string[]>([
+    "Slim Fit", "Regular Fit", "Oversized", "Relaxed Fit", "Tailored Fit", "Loose Fit", "Comfort Fit"
+  ]);
+  const [collectionList, setCollectionList] = useState<string[]>([
+    "Eid 2026 Collection", "Puja Festive", "Summer Drop", "Winter Warmth", "Boishakh Special", "Daily Wear"
+  ]);
+  const [careList, setCareList] = useState<string[]>([
+    "Dry Clean Only", "Machine Wash Cold", "Hand Wash Only", "Do Not Bleach", "Warm Iron", "Wash with Like Colors"
   ]);
 
   const [newFabric, setNewFabric] = useState("");
   const [newGender, setNewGender] = useState("");
   const [newSeason, setNewSeason] = useState("");
   const [newStyle, setNewStyle] = useState("");
+  const [newFit, setNewFit] = useState("");
+  const [newCollection, setNewCollection] = useState("");
+  const [newCare, setNewCare] = useState("");
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
 
   const bulkActive = isSpecialShop && Number(form?.purchase_multiplier || 1) > 1 && pricingMode === "bulk";
@@ -110,6 +122,9 @@ export default function ProductEditPage() {
           gender_target: form.gender_target || "",
           season: form.season || "",
           style_type: form.style_type || "",
+          fit_type: form.fit_type || "",
+          collection_name: form.collection_name || "",
+          care_instructions: form.care_instructions || "",
           size_variants: form.size_variants || [],
           description: form.description,
           is_active: form.is_active,
@@ -495,6 +510,132 @@ export default function ProductEditPage() {
                               if (!styleList.includes(v)) setStyleList((prev) => [...prev, v]);
                               setForm((f: any) => ({ ...f, style_type: v }));
                               setNewStyle("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 5. Fit Type */}
+                    <div className="col-md-4">
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "ফিট টাইপ (Fit)" : "Fit Type"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.fit_type || ""} onChange={(e) => setForm({ ...form, fit_type: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- ফিট বেছে নিন --" : "-- Select Fit --"}</option>
+                        {fitList.map((ft) => <option key={ft} value={ft}>{ft}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন ফিট..." : "+ New fit"}
+                          value={newFit}
+                          onChange={(e) => setNewFit(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newFit.trim()) {
+                                const v = newFit.trim();
+                                if (!fitList.includes(v)) setFitList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, fit_type: v }));
+                                setNewFit("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newFit.trim()) {
+                              const v = newFit.trim();
+                              if (!fitList.includes(v)) setFitList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, fit_type: v }));
+                              setNewFit("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 6. Collection / Drop */}
+                    <div className="col-md-4">
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "কালেকশন / ড্রপ" : "Collection / Drop"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.collection_name || ""} onChange={(e) => setForm({ ...form, collection_name: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- কালেকশন বেছে নিন --" : "-- Select Collection --"}</option>
+                        {collectionList.map((cl) => <option key={cl} value={cl}>{cl}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন কালেকশন..." : "+ New collection"}
+                          value={newCollection}
+                          onChange={(e) => setNewCollection(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newCollection.trim()) {
+                                const v = newCollection.trim();
+                                if (!collectionList.includes(v)) setCollectionList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, collection_name: v }));
+                                setNewCollection("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newCollection.trim()) {
+                              const v = newCollection.trim();
+                              if (!collectionList.includes(v)) setCollectionList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, collection_name: v }));
+                              setNewCollection("");
+                            }
+                          }}
+                        >
+                          {lang === "bn" ? "যোগ" : "+ Add"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* 7. Care Instructions */}
+                    <div className="col-md-4">
+                      <label className="small text-primary fw-medium">{lang === "bn" ? "কেয়ার / ওয়াশ নির্দেশিকা" : "Care Instructions"}</label>
+                      <select className="form-select form-select-sm mb-1" value={form.care_instructions || ""} onChange={(e) => setForm({ ...form, care_instructions: e.target.value })}>
+                        <option value="">{lang === "bn" ? "-- নির্দেশিকা বেছে নিন --" : "-- Select Care --"}</option>
+                        {careList.map((cr) => <option key={cr} value={cr}>{cr}</option>)}
+                      </select>
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          placeholder={lang === "bn" ? "নতুন নির্দেশিকা..." : "+ New care instruction"}
+                          value={newCare}
+                          onChange={(e) => setNewCare(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              e.preventDefault();
+                              if (newCare.trim()) {
+                                const v = newCare.trim();
+                                if (!careList.includes(v)) setCareList((prev) => [...prev, v]);
+                                setForm((f: any) => ({ ...f, care_instructions: v }));
+                                setNewCare("");
+                              }
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-outline-brand"
+                          onClick={() => {
+                            if (newCare.trim()) {
+                              const v = newCare.trim();
+                              if (!careList.includes(v)) setCareList((prev) => [...prev, v]);
+                              setForm((f: any) => ({ ...f, care_instructions: v }));
+                              setNewCare("");
                             }
                           }}
                         >

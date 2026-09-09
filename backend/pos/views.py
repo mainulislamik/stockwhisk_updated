@@ -146,6 +146,8 @@ class CheckoutView(_POSBase):
                 down_payment=data.get("down_payment", 0),
                 emi_interest_percent=data.get("emi_interest_percent", 0),
                 is_quotation=data.get("is_quotation", False),
+                alteration_notes=str(request.data.get("alteration_notes", "")).strip()[:255],
+                alteration_status=str(request.data.get("alteration_status", "")).strip()[:30],
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)

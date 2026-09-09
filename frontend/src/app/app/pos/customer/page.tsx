@@ -50,6 +50,9 @@ export default function PosCustomerPage() {
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [existingEmail, setExistingEmail] = useState("");
   const [showPrintModal, setShowPrintModal] = useState(false);
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const [alterationNotes, setAlterationNotes] = useState("");
+  const [alterationStatus, setAlterationStatus] = useState("none");
 
   // Sync existing email when customer changes
   useEffect(() => {
@@ -163,6 +166,8 @@ export default function PosCustomerPage() {
           delivery_charge: deliveryCharge,
           tax: 0,
           note: asQuotation ? "Quotation / প্রাক-বিক্রয় কোটেশন" : "",
+          alteration_notes: alterationNotes.trim(),
+          alteration_status: alterationNotes.trim() ? (alterationStatus === "none" ? "pending" : alterationStatus) : "",
           items: cart.map((l) => {
             const mult = Number((l.product as any)?.purchase_multiplier) || 1;
             const isBulk = l.sellMode === "bulk" && mult > 1;

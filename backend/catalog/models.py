@@ -118,6 +118,9 @@ class Product(TenantScopedModel):
     season          = models.CharField(max_length=60, blank=True, default="",
                           choices=[("summer","Summer"),("winter","Winter"),("all","All Season"),("monsoon","Monsoon")])
     style_type      = models.CharField(max_length=50, blank=True, default="")
+    fit_type        = models.CharField(max_length=60, blank=True, default="")
+    collection_name = models.CharField(max_length=100, blank=True, default="")
+    care_instructions = models.CharField(max_length=200, blank=True, default="")
 
     description = models.TextField(blank=True)
     cost_price = models.DecimalField(

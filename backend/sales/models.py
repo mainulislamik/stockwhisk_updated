@@ -42,6 +42,8 @@ class Sale(TenantScopedModel):
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.DUE)
     note = models.CharField(max_length=255, blank=True)
+    alteration_notes = models.CharField(max_length=255, blank=True, default="")
+    alteration_status = models.CharField(max_length=30, blank=True, default="")
     is_corrected = models.BooleanField(default=False)
     correction_reason = models.CharField(max_length=255, blank=True)
     original_total = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
@@ -133,6 +135,8 @@ class Payment(TenantScopedModel):
     method = models.CharField(max_length=20, choices=Method.choices, default=Method.CASH)
     paid_at = models.DateTimeField(auto_now_add=True)
     note = models.CharField(max_length=255, blank=True)
+    alteration_notes = models.CharField(max_length=255, blank=True, default="")
+    alteration_status = models.CharField(max_length=30, blank=True, default="")
 
     class Meta:
         constraints = [

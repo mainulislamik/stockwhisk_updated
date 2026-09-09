@@ -32,6 +32,8 @@ type Sale = {
   due: string;
   status: string;
   note: string;
+  alteration_notes?: string;
+  alteration_status?: string;
   items: SaleItem[];
   payments: Payment[];
   is_corrected?: boolean;
@@ -103,6 +105,18 @@ export default function SaleDetailPage() {
           </div>
           {sale.is_corrected && sale.correction_reason && (
              <div className="text-muted small mt-1 fst-italic">{t("inv_reason")} {sale.correction_reason}</div>
+          )}
+          {sale.alteration_notes && (
+            <div className="alert py-2 px-3 mt-2 mb-0 d-flex justify-content-between align-items-center rounded shadow-sm" style={{ backgroundColor: "#f3e8ff", color: "#6b21a8", border: "1px solid #d8b4fe" }}>
+              <div>
+                <strong>✂️ {lang === "bn" ? "পোশাক ফিটিং / অল্টারেশন নোট:" : "Alteration & Fitting Note:"}</strong> {sale.alteration_notes}
+              </div>
+              {sale.alteration_status && (
+                <span className="badge text-uppercase" style={{ backgroundColor: "#7c3aed", color: "#fff" }}>
+                  {sale.alteration_status}
+                </span>
+              )}
+            </div>
           )}
         </div>
         <div className="d-flex gap-2 align-items-center">

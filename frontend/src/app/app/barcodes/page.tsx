@@ -26,6 +26,14 @@ type Product = {
   current_stock: string | number;
   category?: any;
   brand?: any;
+  fabric_material?: string;
+  gender_target?: string;
+  season?: string;
+  style_type?: string;
+  fit_type?: string;
+  collection_name?: string;
+  care_instructions?: string;
+  size_variants?: { size: string; color?: string; stock?: number }[];
   units?: ProductUnit[];
 };
 
@@ -39,6 +47,12 @@ type PrintLabelItem = {
   warrantyMonths?: number;
   shopName: string;
   isUnit?: boolean;
+  fabric?: string;
+  fit?: string;
+  collection?: string;
+  care?: string;
+  size?: string;
+  color?: string;
 };
 
 export default function BarcodesGeneratorPage() {
@@ -76,7 +90,7 @@ export default function BarcodesGeneratorPage() {
   }
 
   // Label Customization Settings
-  const [labelSize, setLabelSize] = useState<"38x25" | "50x30" | "a4">("38x25");
+  const [labelSize, setLabelSize] = useState<"38x25" | "50x30" | "fashion_tag" | "a4">("38x25");
   const [showShopName, setShowShopName] = useState(true);
   const [showPrice, setShowPrice] = useState(true);
   const [showWarranty, setShowWarranty] = useState(true);
@@ -204,6 +218,10 @@ export default function BarcodesGeneratorPage() {
           price: p.selling_price,
           warrantyMonths: p.warranty_months,
           shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
           isUnit: false,
         });
       }
@@ -241,6 +259,10 @@ export default function BarcodesGeneratorPage() {
           price: u.selling_price || selectedProduct.selling_price,
           warrantyMonths: u.warranty_months ?? selectedProduct.warranty_months,
           shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
           isUnit: true,
         });
       });
@@ -257,6 +279,10 @@ export default function BarcodesGeneratorPage() {
           price: selectedProduct.selling_price,
           warrantyMonths: selectedProduct.warranty_months,
           shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
           isUnit: false,
         });
       }
@@ -311,6 +337,10 @@ export default function BarcodesGeneratorPage() {
               price: u.selling_price || p.selling_price,
               warrantyMonths: u.warranty_months ?? p.warranty_months,
               shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
               isUnit: true,
             });
           });
@@ -326,6 +356,10 @@ export default function BarcodesGeneratorPage() {
               price: p.selling_price,
               warrantyMonths: p.warranty_months,
               shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
               isUnit: false,
             });
           }
@@ -341,6 +375,10 @@ export default function BarcodesGeneratorPage() {
           price: p.selling_price,
           warrantyMonths: p.warranty_months,
           shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
           isUnit: false,
         });
       }
@@ -380,6 +418,10 @@ export default function BarcodesGeneratorPage() {
       sku: "",
       price: "",
       shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
       isUnit: false,
     }));
     setPrintQueue(queue);
@@ -401,6 +443,10 @@ export default function BarcodesGeneratorPage() {
       sku: "",
       price: "",
       shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
       isUnit: false,
     }];
     setPrintQueue(queue);
@@ -411,14 +457,14 @@ export default function BarcodesGeneratorPage() {
     }, 150);
   }
 
-  return (
-    <>
-      {/* ── PRINT STYLES ── */}
-      <style dangerouslySetInnerHTML={{ __html: `
+  const pageSizeStr = labelSize === "38x25" ? "38mm 25mm" : labelSize === "50x30" ? "50mm 30mm" : labelSize === "fashion_tag" ? "50mm 75mm" : "A4 portrait";
+  const pageMarginStr = labelSize === "a4" ? "8mm" : "0";
+
+  const printStyles = `
         @media print {
           @page {
-            size: ${labelSize === "38x25" ? "38mm 25mm" : labelSize === "50x30" ? "50mm 30mm" : "A4 portrait"};
-            margin: ${labelSize === "a4" ? "8mm" : "0"};
+            size: ${pageSizeStr};
+            margin: ${pageMarginStr};
           }
           html, body {
             margin: 0 !important;
@@ -461,6 +507,26 @@ export default function BarcodesGeneratorPage() {
             background: #fff !important;
           }
 
+          /* Fashion Clothing Hang-Tag (50x75mm) */
+          .label-fashion-tag {
+            width: 50mm !important;
+            height: 75mm !important;
+            max-width: 50mm !important;
+            max-height: 75mm !important;
+            page-break-inside: avoid !important;
+            page-break-after: always !important;
+            overflow: hidden !important;
+            display: flex !important;
+            flex-direction: column !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            box-sizing: border-box !important;
+            padding: 2.5mm 3mm !important;
+            text-align: center !important;
+            background: #fff !important;
+            border-bottom: 1px dashed #bbb !important;
+          }
+
           /* Thermal 50x30mm Label */
           .label-50x30 {
             width: 50mm !important;
@@ -499,7 +565,12 @@ export default function BarcodesGeneratorPage() {
             page-break-inside: avoid !important;
           }
         }
-      `}} />
+      `;
+
+  return (
+    <>
+      {/* ── PRINT STYLES ── */}
+      <style dangerouslySetInnerHTML={{ __html: printStyles }} />
 
       {/* ── MAIN SCREEN UI ── */}
       <div className="vstack gap-4 no-print pb-5">
@@ -567,8 +638,9 @@ export default function BarcodesGeneratorPage() {
                         value={labelSize}
                         onChange={(e) => setLabelSize(e.target.value as any)}
                       >
-                        <option value="38x25">38mm × 25mm (Thermal)</option>
-                        <option value="50x30">50mm × 30mm (Thermal)</option>
+                        <option value="38x25">38mm × 25mm (Thermal Standard)</option>
+                        <option value="50x30">50mm × 30mm (Thermal Medium)</option>
+                        <option value="fashion_tag">🏷️ {lang === "bn" ? "গার্মেন্টস হ্যাং-ট্যাগ (Fashion Hang-Tag)" : "Fashion Hang-Tag (50×75mm)"}</option>
                         <option value="a4">{lang === "bn" ? "A4 শিট গ্রিড" : "A4 Sheet Grid"}</option>
                       </select>
                     </div>
@@ -1286,6 +1358,10 @@ export default function BarcodesGeneratorPage() {
                                   price: u.selling_price || viewUnitsProduct.selling_price,
                                   warrantyMonths: u.warranty_months ?? viewUnitsProduct.warranty_months,
                                   shopName,
+        fabric: selectedProduct?.fabric_material,
+        fit: selectedProduct?.fit_type,
+        collection: selectedProduct?.collection_name,
+        care: selectedProduct?.care_instructions,
                                   isUnit: true,
                                 }];
                                 setViewUnitsProduct(null);
@@ -1353,7 +1429,58 @@ export default function BarcodesGeneratorPage() {
               ))}
             </div>
           ) : (
-            printQueue.map((item, idx) => (
+            printQueue.map((item, idx) => {
+              if (labelSize === "fashion_tag") {
+                return (
+                  <div key={`${item.id}-${idx}`} className="label-fashion-tag">
+                    {showShopName && (
+                      <div style={{ fontSize: "11px", fontWeight: "800", color: "#000", letterSpacing: "0.5px" }} className="text-uppercase text-truncate w-100">
+                        {item.shopName}
+                      </div>
+                    )}
+                    {item.collection && (
+                      <div style={{ fontSize: "7.5px", fontWeight: "600", color: "#555" }} className="text-truncate w-100">
+                        ✨ {item.collection}
+                      </div>
+                    )}
+                    <div style={{ fontSize: "9.5px", fontWeight: "700", color: "#000", margin: "1mm 0" }} className="text-truncate w-100">
+                      {item.productName}
+                    </div>
+                    
+                    {/* Fashion Specs Pills */}
+                    <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "2px", fontSize: "7.5px", fontWeight: "600", color: "#222" }}>
+                      {item.size && <span style={{ border: "1px solid #000", padding: "0 2px", borderRadius: "2px" }}>SIZE: {item.size}</span>}
+                      {item.fit && <span style={{ border: "1px solid #666", padding: "0 2px", borderRadius: "2px" }}>{item.fit}</span>}
+                      {item.fabric && <span style={{ border: "1px solid #666", padding: "0 2px", borderRadius: "2px" }}>{item.fabric}</span>}
+                    </div>
+
+                    <div style={{ display: "flex", justifyContent: "center", width: "100%", margin: "1.5mm 0" }}>
+                      <Barcode
+                        value={item.barcode}
+                        width={1.25}
+                        height={28}
+                        fontSize={8}
+                        margin={0}
+                        displayValue={showCodeText}
+                        background="transparent"
+                      />
+                    </div>
+
+                    {showPrice && item.price && (
+                      <div style={{ fontSize: "11px", fontWeight: "800", color: "#000" }}>
+                        MRP: {money(item.price)}
+                      </div>
+                    )}
+
+                    {item.care && (
+                      <div style={{ fontSize: "6.5px", color: "#666", marginTop: "1mm" }} className="text-truncate w-100">
+                        🧼 {item.care}
+                      </div>
+                    )}
+                  </div>
+                );
+              }
+              return (
               <div
                 key={`${item.id}-${idx}`}
                 className={labelSize === "50x30" ? "label-50x30" : "label-38x25"}
@@ -1382,7 +1509,8 @@ export default function BarcodesGeneratorPage() {
                   {showWarranty && item.warrantyMonths ? <span style={{ color: "#000" }}>{item.warrantyMonths}m war.</span> : null}
                 </div>
               </div>
-            ))
+            );
+          })
           )}
         </div>
       )}

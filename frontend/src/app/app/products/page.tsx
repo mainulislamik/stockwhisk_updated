@@ -40,6 +40,9 @@ type Product = {
   gender_target?: string;
   season?: string;
   style_type?: string;
+  fit_type?: string;
+  collection_name?: string;
+  care_instructions?: string;
 };
 type Named = { id: number; name: string; measure_type?: string; short_code?: string };
 
@@ -77,7 +80,7 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
-  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", size_variants: [] });
+  const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", fit_type: "", collection_name: "", care_instructions: "", size_variants: [] });
 
   // Smart size presets based on selected category (fashion only)
   const catName = (categories.find((c: any) => String(c.id) === String(form.category))?.name || "").toLowerCase();
@@ -106,13 +109,25 @@ export default function ProductsPage() {
     "Summer", "Winter", "All Season", "Eid Collection", "Puja Collection", "Festive"
   ]);
   const [styleList, setStyleList] = useState<string[]>([
-    "Casual", "Formal", "Party / Ethnic", "Sportswear", "Traditional"
+    "Casual", "Formal", "Party / Ethnic", "Sportswear", "Traditional", "Indo-Western"
+  ]);
+  const [fitList, setFitList] = useState<string[]>([
+    "Slim Fit", "Regular Fit", "Oversized", "Relaxed Fit", "Tailored Fit", "Loose Fit", "Comfort Fit"
+  ]);
+  const [collectionList, setCollectionList] = useState<string[]>([
+    "Eid 2026 Collection", "Puja Festive", "Summer Drop", "Winter Warmth", "Boishakh Special", "Daily Wear"
+  ]);
+  const [careList, setCareList] = useState<string[]>([
+    "Dry Clean Only", "Machine Wash Cold", "Hand Wash Only", "Do Not Bleach", "Warm Iron", "Wash with Like Colors"
   ]);
 
   const [newFabric, setNewFabric] = useState("");
   const [newGender, setNewGender] = useState("");
   const [newSeason, setNewSeason] = useState("");
   const [newStyle, setNewStyle] = useState("");
+  const [newFit, setNewFit] = useState("");
+  const [newCollection, setNewCollection] = useState("");
+  const [newCare, setNewCare] = useState("");
 
   // Load small dictionaries once
   useEffect(() => {
@@ -160,7 +175,7 @@ export default function ProductsPage() {
           size_variants: form.size_variants || [],
         },
       });
-      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", size_variants: [] });
+      setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", fit_type: "", collection_name: "", care_instructions: "", size_variants: [] });
       setShowAdd(false);
       mutate();
     } catch (e: any) {
@@ -628,6 +643,132 @@ export default function ProductsPage() {
                             </button>
                           </div>
                         </div>
+
+                        {/* 5. Fit Type */}
+                        <div className="col-md-4">
+                          <label className="small text-primary fw-medium">{lang === "bn" ? "ফিট টাইপ (Fit)" : "Fit Type"}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.fit_type || ""} onChange={(e) => setForm({ ...form, fit_type: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- ফিট বেছে নিন --" : "-- Select Fit --"}</option>
+                            {fitList.map((ft) => <option key={ft} value={ft}>{ft}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন ফিট..." : "+ New fit"}
+                              value={newFit}
+                              onChange={(e) => setNewFit(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newFit.trim()) {
+                                    const v = newFit.trim();
+                                    if (!fitList.includes(v)) setFitList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, fit_type: v }));
+                                    setNewFit("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newFit.trim()) {
+                                  const v = newFit.trim();
+                                  if (!fitList.includes(v)) setFitList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, fit_type: v }));
+                                  setNewFit("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 6. Collection / Drop */}
+                        <div className="col-md-4">
+                          <label className="small text-primary fw-medium">{lang === "bn" ? "কালেকশন / ড্রপ" : "Collection / Drop"}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.collection_name || ""} onChange={(e) => setForm({ ...form, collection_name: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- কালেকশন বেছে নিন --" : "-- Select Collection --"}</option>
+                            {collectionList.map((cl) => <option key={cl} value={cl}>{cl}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন কালেকশন..." : "+ New collection"}
+                              value={newCollection}
+                              onChange={(e) => setNewCollection(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newCollection.trim()) {
+                                    const v = newCollection.trim();
+                                    if (!collectionList.includes(v)) setCollectionList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, collection_name: v }));
+                                    setNewCollection("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newCollection.trim()) {
+                                  const v = newCollection.trim();
+                                  if (!collectionList.includes(v)) setCollectionList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, collection_name: v }));
+                                  setNewCollection("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* 7. Care Instructions */}
+                        <div className="col-md-4">
+                          <label className="small text-primary fw-medium">{lang === "bn" ? "কেয়ার / ওয়াশ নির্দেশিকা" : "Care Instructions"}</label>
+                          <select className="form-select form-select-sm mb-1" value={form.care_instructions || ""} onChange={(e) => setForm({ ...form, care_instructions: e.target.value })}>
+                            <option value="">{lang === "bn" ? "-- নির্দেশিকা বেছে নিন --" : "-- Select Care --"}</option>
+                            {careList.map((cr) => <option key={cr} value={cr}>{cr}</option>)}
+                          </select>
+                          <div className="input-group input-group-sm">
+                            <input
+                              className="form-control"
+                              placeholder={lang === "bn" ? "নতুন নির্দেশিকা..." : "+ New care instruction"}
+                              value={newCare}
+                              onChange={(e) => setNewCare(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter") {
+                                  e.preventDefault();
+                                  if (newCare.trim()) {
+                                    const v = newCare.trim();
+                                    if (!careList.includes(v)) setCareList((prev) => [...prev, v]);
+                                    setForm((f: any) => ({ ...f, care_instructions: v }));
+                                    setNewCare("");
+                                  }
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-outline-brand"
+                              onClick={() => {
+                                if (newCare.trim()) {
+                                  const v = newCare.trim();
+                                  if (!careList.includes(v)) setCareList((prev) => [...prev, v]);
+                                  setForm((f: any) => ({ ...f, care_instructions: v }));
+                                  setNewCare("");
+                                }
+                              }}
+                            >
+                              {t("prod_list_add") || (lang === "bn" ? "যোগ" : "+ Add")}
+                            </button>
+                          </div>
+                        </div>
                       </div>
                       {/* Size & Color Variant Matrix */}
                       <div className="mt-2">
@@ -777,6 +918,16 @@ export default function ProductsPage() {
                           {isFashionShop && p.gender_target && (
                             <span className="badge" style={{fontSize:"0.68rem",background:"#fdf4ff",color:"#9333ea",border:"1px solid #d8b4fe"}}>
                               👤 {p.gender_target === "men" ? (lang==="bn"?"পুরুষ":"Men") : p.gender_target === "women" ? (lang==="bn"?"নারী":"Women") : p.gender_target === "kids" ? (lang==="bn"?"শিশু":"Kids") : lang==="bn"?"সবার জন্য":"Unisex"}
+                            </span>
+                          )}
+                          {isFashionShop && p.fit_type && (
+                            <span className="badge" style={{fontSize:"0.68rem",background:"#f0fdf4",color:"#15803d",border:"1px solid #bbf7d0"}}>
+                              ✂️ {p.fit_type}
+                            </span>
+                          )}
+                          {isFashionShop && p.collection_name && (
+                            <span className="badge" style={{fontSize:"0.68rem",background:"#fefce8",color:"#a16207",border:"1px solid #fef08a"}}>
+                              ✨ {p.collection_name}
                             </span>
                           )}
                           {isFashionShop && p.size_variants && p.size_variants.length > 0 && (
