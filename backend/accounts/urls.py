@@ -12,8 +12,25 @@ from .views import (
 app_name = "accounts"
 
 
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework.exceptions import AuthenticationFailed
+
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    default_error_messages = {
+        'no_active_account': 'ব্যবহারকারীর নাম বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।'
+    }
+
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except AuthenticationFailed:
+            raise AuthenticationFailed(
+                'ব্যবহারকারীর নাম বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।',
+                code='no_active_account'
+            )
+
 class ThrottledTokenObtainPairView(TokenObtainPairView):
-    """JWT login, rate-limited per IP (scope 'auth') to blunt brute-force."""
+    serializer_class = CustomTokenObtainPairSerializer
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "auth"
 
