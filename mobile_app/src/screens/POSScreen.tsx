@@ -640,12 +640,29 @@ export default function POSScreen() {
           <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }}>
             <TextInput
               mode="outlined"
-              placeholder={t('বারকোড স্ক্যান করুন বা পণ্যের নাম / SKU টাইপ করুন...', 'Type barcode, product name or SKU...')}
+              placeholder={t('বারকোড স্ক্যান করুন বা পণ্যের নাম / SKU...', 'Type barcode or SKU...')}
               value={query}
               onChangeText={setQuery}
+              onSubmitEditing={() => {
+                if (query.trim()) {
+                  processBarcode(query.trim());
+                }
+              }}
+              returnKeyType="search"
+              autoCapitalize="none"
+              autoCorrect={false}
               style={{ flex: 1, height: 48, backgroundColor: theme.colors.surface }}
               left={<TextInput.Icon icon="magnify" />}
-              right={query ? <TextInput.Icon icon="close" onPress={() => setQuery('')} /> : null}
+              right={
+                query ? (
+                  <TextInput.Icon 
+                    icon="keyboard-return" 
+                    onPress={() => {
+                      if (query.trim()) processBarcode(query.trim());
+                    }} 
+                  />
+                ) : null
+              }
             />
             <Button mode="contained" icon="barcode-scan" style={{ marginLeft: 8, height: 48, justifyContent: 'center' }} onPress={openScanner}>
               {t('স্ক্যান', 'Scan')}
