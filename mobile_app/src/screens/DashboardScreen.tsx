@@ -268,6 +268,53 @@ export default function DashboardScreen() {
 
 
 
+        {/* 2. ⚡ দ্রুত অ্যাক্সেস (Quick Access Grid) */}
+        <View style={styles.sectionHeaderRow}>
+          <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginBottom: 0 }]}>
+            ⚡ {isBN ? 'দ্রুত অ্যাক্সেস' : 'Quick Access'}
+          </Text>
+          <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>
+            {isBN ? 'সব কাজ এক জায়গায়' : 'All actions'}
+          </Text>
+        </View>
+
+        <View style={styles.qaGrid}>
+          {[
+            { icon: 'cash-register',    tint: '#2563eb', bg: '#eff6ff', titleBn: 'নতুন বিক্রয় (POS)',      subBn: 'কার্টে পণ্য যোগ করুন',        go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
+            { icon: 'barcode-scan',     tint: '#7c3aed', bg: '#f5f3ff', titleBn: 'বারকোড স্ক্যান',        subBn: 'স্ক্যান করে পণ্য খুঁজুন',       go: () => setShowScanner(true) },
+            { icon: 'arrow-down-bold-box', tint: '#16a34a', bg: '#f0fdf4', titleBn: 'স্টক ইনওয়ার্ড',     subBn: 'নতুন ক্রয় এন্ট্রি',           go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
+            { icon: 'cash-check',       tint: '#0891b2', bg: '#ecfeff', titleBn: 'দৈনিক ক্যাশ ক্লোজিং',   subBn: 'দিনের হিসাব বন্ধ',            go: () => navigation.navigate('SettlementScreen') },
+            { icon: 'cash-minus',       tint: '#be185d', bg: '#fdf2f8', titleBn: 'খরচ এন্ট্রি',          subBn: 'দৈনিক খরচ লিখুন',             go: () => navigation.navigate('ExpensesScreen') },
+            { icon: 'account-clock',    tint: '#d97706', bg: '#fffbeb', titleBn: 'বকেয়া আদায়',          subBn: 'বাকির টাকা আদায়',            go: () => navigation.navigate('DuesScreen') },
+            { icon: 'view-grid-outline',tint: '#0d9488', bg: '#f0fdfa', titleBn: 'পণ্য তালিকা',          subBn: 'সব পণ্য দেখুন',               go: () => navigation.navigate('ProductsScreen') },
+            { icon: 'file-document-outline', tint: '#475569', bg: '#f1f5f9', titleBn: 'রিপোর্ট',        subBn: 'বিক্রয় ও হিসাব',             go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
+            { icon: 'account-group-outline', tint: '#9333ea', bg: '#faf5ff', titleBn: 'কাস্টমার',      subBn: 'গ্রাহক তালিকা',               go: () => navigation.navigate('CustomersScreen') },
+            { icon: 'alert-box-outline',tint: hasStockAlert ? '#dc2626' : '#64748b', bg: hasStockAlert ? '#fef2f2' : '#f8fafc',
+              titleBn: 'স্টক অ্যালার্ট', subBn: isBN ? `আউট ${outOfStockCount} · লো ${lowStockCount}` : `Out ${outOfStockCount} · Low ${lowStockCount}`,
+              go: () => navigation.navigate('MainTabs', { screen: 'Inventory' }) },
+          ].map((a: { icon: any; tint: string; bg: string; titleBn: string; subBn: string; go: () => void }, i: number) => (
+            <TouchableOpacity
+              key={i}
+              style={[styles.qaCard, { backgroundColor: isDarkMode ? '#1e293b' : a.bg }]}
+              activeOpacity={0.75}
+              onPress={a.go}
+            >
+              <View style={[styles.qaIcon, { backgroundColor: a.tint }]}>
+                <MaterialCommunityIcons name={a.icon} size={22} color="#fff" />
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <Text style={[styles.qaLabel, { color: theme.colors.onSurface }]} numberOfLines={2} ellipsizeMode="tail">
+                  {a.titleBn}
+                </Text>
+                <Text style={styles.qaSub} numberOfLines={1} ellipsizeMode="tail">
+                  {a.subBn}
+                </Text>
+              </View>
+              <MaterialCommunityIcons name="chevron-right" size={18} color={isDarkMode ? '#475569' : '#cbd5e1'} />
+            </TouchableOpacity>
+          ))}
+        </View>
+
         {/* 3. Bento Metric Cards & Filter */}
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginBottom: 0 }]}>
@@ -413,129 +460,6 @@ export default function DashboardScreen() {
             </Surface>
           </View>
         )}
-
-        {/* 4. Sales Trend Chart */}
-        <Surface 
-          style={[styles.chartCard, { backgroundColor: theme.colors.surface }]} 
-          elevation={2}
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0) setMeasuredChartWidth(w - 32);
-          }}
-        >
-          <View style={styles.chartHeader}>
-            <View style={{ flex: 1, paddingRight: 8 }}>
-              <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>
-                📈 {isBN ? 'বিক্রয় ট্রেন্ড (Sales Trends)' : 'Sales Trends'}
-              </Text>
-              <Text style={{ fontSize: 11, color: '#64748b' }}>
-                {isBN ? 'বিগত দিনের বিক্রয়ের চিত্র' : 'Revenue timeline overview'}
-              </Text>
-            </View>
-
-            <View style={styles.filterPillsRow}>
-              {[
-                { days: 7, label: isBN ? '৭ দিন' : '7D' },
-                { days: 30, label: isBN ? '৩০ দিন' : '30D' },
-              ].map(t => (
-                <TouchableOpacity
-                  key={t.days}
-                  onPress={() => setTrendDays(t.days)}
-                  style={[
-                    styles.periodPill,
-                    trendDays === t.days && { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
-                    { borderColor: isDarkMode ? '#334155' : '#cbd5e1' },
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.periodPillText,
-                      trendDays === t.days && { color: '#ffffff', fontWeight: 'bold' },
-                      { color: trendDays === t.days ? '#ffffff' : isDarkMode ? '#94a3b8' : '#64748b' },
-                    ]}
-                  >
-                    {t.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-          </View>
-
-          <LineChart
-            data={getChartData()}
-            width={activeChartWidth}
-            height={190}
-            yAxisLabel="৳"
-            yAxisSuffix=""
-            formatYLabel={(val) => {
-              const n = parseFloat(val);
-              if (isNaN(n) || n === 0) return '0';
-              if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-              if (n >= 1000) return (n / 1000).toFixed(0) + 'k';
-              return n.toFixed(0);
-            }}
-            chartConfig={{
-              backgroundColor: theme.colors.surface,
-              backgroundGradientFrom: theme.colors.surface,
-              backgroundGradientTo: theme.colors.surface,
-              decimalPlaces: 0,
-              color: (opacity = 1) => `rgba(79, 70, 229, ${opacity})`,
-              labelColor: (opacity = 1) => (isDarkMode ? `rgba(203, 213, 225, ${opacity})` : `rgba(100, 116, 139, ${opacity})`),
-              propsForDots: {
-                r: '4',
-                strokeWidth: '2',
-                stroke: '#4f46e5',
-              },
-            }}
-            bezier
-            style={styles.chart}
-          />
-        </Surface>
-
-        {/* 5. Top Selling Products */}
-        <Surface style={[styles.topProductsCard, { backgroundColor: theme.colors.surface }]} elevation={2}>
-          <View style={styles.chartHeader}>
-            <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>
-              🏆 {isBN ? 'বেস্ট সেলিং পণ্য' : 'Top Selling Products'}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Reports' })}>
-              <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: 'bold' }}>
-                {isBN ? 'সব দেখুন' : 'View All'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {topProductsData && topProductsData.length > 0 ? (
-            topProductsData.slice(0, 5).map((prod: any, idx: number) => (
-              <View
-                key={idx}
-                style={[
-                  styles.productItemRow,
-                  { borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9' },
-                ]}
-              >
-                <View style={styles.rankBadge}>
-                  <Text style={styles.rankText}>#{idx + 1}</Text>
-                </View>
-                <View style={{ flex: 1, paddingHorizontal: 10 }}>
-                  <Text style={[styles.productName, { color: theme.colors.onSurface }]} numberOfLines={1}>
-                    {prod.product__name || prod.name || prod.product_name || `Product #${prod.product_id || idx + 1}`}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: '#64748b' }}>
-                    {isBN ? 'বিক্রি হয়েছে:' : 'Sold:'} {Number(prod.qty || prod.quantity || prod.total_sold || 0)} {isBN ? 'টি' : 'units'}
-                  </Text>
-                </View>
-                <Text style={styles.productAmount}>
-                  ৳{Number(prod.revenue || prod.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                </Text>
-              </View>
-            ))
-          ) : (
-            <Text style={{ textAlign: 'center', color: '#94a3b8', paddingVertical: 16 }}>
-              {isBN ? 'কোনো বিক্রয়ের তথ্য নেই' : 'No top products found'}
-            </Text>
-          )}
-        </Surface>
 
         {/* 6. Recent Sales Feed */}
         <Surface style={[styles.topProductsCard, { backgroundColor: theme.colors.surface }]} elevation={2}>
@@ -690,6 +614,40 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 10,
+  },
+  qaGrid: {
+    flexDirection: 'column',
+    gap: 10,
+    marginBottom: 16,
+  },
+  qaCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    padding: 12,
+    // light elevation shadow
+    shadowColor: '#000',
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 2,
+  },
+  qaIcon: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  qaLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    lineHeight: 18,
+  },
+  qaSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 1,
   },
   filterPillsRow: {
     flexDirection: 'row',
