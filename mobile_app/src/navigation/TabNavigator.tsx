@@ -94,16 +94,16 @@ function MoreMenuScreen() {
               {isBn ? sec.titleBn : sec.titleEn}
             </Text>
 
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 6 }}>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10, marginBottom: 6 }}>
               {sec.items.map((item, idx) => (
                 <TouchableOpacity
                   key={idx}
                   activeOpacity={0.7}
                   style={{
-                    flex: 1,
-                    minWidth: 145,
+                    width: '48%',
+                    minHeight: 64,
                     backgroundColor: theme.colors.surface,
-                    padding: 12,
+                    padding: 10,
                     borderRadius: 14,
                     marginBottom: 4,
                     flexDirection: 'row',
@@ -116,19 +116,28 @@ function MoreMenuScreen() {
                 >
                   <View
                     style={{
-                      width: 40,
-                      height: 40,
+                      width: 38,
+                      height: 38,
                       borderRadius: 10,
                       backgroundColor: isDarkMode ? item.color + '25' : item.bg,
                       justifyContent: 'center',
                       alignItems: 'center',
-                      marginRight: 10,
+                      marginRight: 8,
                     }}
                   >
-                    <MaterialCommunityIcons name={item.icon as any} size={22} color={item.color} />
+                    <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} />
                   </View>
-                  <View style={{ flex: 1 }}>
-                    <Text numberOfLines={1} style={{ fontWeight: '700', fontSize: 12, color: theme.colors.onSurface }}>
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
+                    <Text
+                      numberOfLines={2}
+                      ellipsizeMode="tail"
+                      style={{
+                        fontWeight: '700',
+                        fontSize: 12,
+                        lineHeight: 16,
+                        color: theme.colors.onSurface,
+                      }}
+                    >
                       {isBn ? item.labelBn : item.labelEn}
                     </Text>
                   </View>
