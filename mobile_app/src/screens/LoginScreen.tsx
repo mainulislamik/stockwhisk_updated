@@ -315,12 +315,15 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView
       style={[styles.container, { backgroundColor: isDarkMode ? '#090d16' : '#f8fafc' }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'android' ? 24 : 0}
+      enabled={true}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        keyboardDismissMode={Platform.OS === 'android' ? 'interactive' : 'on-drag'}
       >
         {/* Top Floating App Bar */}
         <View style={styles.topBar}>
