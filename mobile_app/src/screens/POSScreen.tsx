@@ -467,14 +467,7 @@ export default function POSScreen() {
     }
   };
 
-  const openScanner = async () => {
-    if (!permission?.granted) {
-      const result = await requestPermission();
-      if (!result.granted) {
-        Alert.alert('Permission Denied', 'Camera permission is required to scan barcodes.');
-        return;
-      }
-    }
+  const openScanner = () => {
     setShowScanner(true);
   };
 

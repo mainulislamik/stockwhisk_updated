@@ -1,7 +1,21 @@
-import React, { useState } from 'react';
-import { View, Modal, StyleSheet, Platform, Alert, Dimensions, Vibration, Linking } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Modal, StyleSheet, Platform, Vibration, Linking } from 'react-native';
 import { Text, IconButton, Button } from 'react-native-paper';
 import { usePreferences } from '../contexts/PreferencesContext';
+
+// Safe import of expo-camera (works on Android APK; safely falls back on web)
+let CameraView: any = null;
+let useCameraPermissionsHook: any = () => [{ granted: false }, async () => {}];
+
+if (Platform.OS !== 'web') {
+  try {
+    const ExpoCamera = require('expo-camera');
+    if (ExpoCamera.CameraView) CameraView = ExpoCamera.CameraView;
+    if (ExpoCamera.useCameraPermissions) useCameraPermissionsHook = ExpoCamera.useCameraPermissions;
+  } catch (e) {
+    console.log('expo-camera not loaded:', e);
+  }
+}
 
 interface Props {
   visible: boolean;
@@ -15,24 +29,17 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
   const [scanned, setScanned] = useState(false);
   const [torchOn, setTorchOn] = useState(false);
 
-  // Lazy load camera on native platform only to prevent web React crashes
-  let CameraView: any = null;
-  let useCameraPermissions: any = () => [null, () => {}];
-  
-  if (Platform.OS !== 'web') {
-    try {
-      const CameraModule = require('expo-camera');
-      CameraView = CameraModule.CameraView;
-      useCameraPermissions = CameraModule.useCameraPermissions;
-    } catch (e) {}
-  }
+  // Hook must be called unconditionally at top-level
+  const [permission, requestPermission] = useCameraPermissionsHook();
 
-  const [permission, requestPermission] = useCameraPermissions();
-
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       setScanned(false);
       setTorchOn(false);
+      // Auto-request permission on native if not yet granted
+      if (Platform.OS !== 'web' && permission && !permission.granted) {
+        requestPermission?.();
+      }
     }
   }, [visible]);
 
@@ -58,7 +65,7 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
               {isBN ? '📷 বারকোড স্ক্যানার' : '📷 Barcode Scanner'}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              {Platform.OS !== 'web' && (
+              {Platform.OS !== 'web' && CameraView && permission?.granted && (
                 <IconButton
                   icon={torchOn ? 'flashlight' : 'flashlight-off'}
                   size={24}
@@ -70,8 +77,8 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
             </View>
           </View>
 
-          {/* Camera View for Native */}
-          {Platform.OS !== 'web' && CameraView && permission && permission.granted ? (
+          {/* Camera View for Native Android/iOS */}
+          {Platform.OS !== 'web' && CameraView && permission?.granted ? (
             <View style={{ flex: 1 }}>
               <CameraView
                 style={StyleSheet.absoluteFill}
@@ -118,14 +125,14 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
             <View style={styles.permissionBox}>
               <Text style={styles.permissionText}>
                 {isBN
-                  ? '🌐 ব্রাউজারে বারকোড স্ক্যান করতে ইউএসবি/ওয়্যারলেস বারকোড স্ক্যানার দিয়ে স্ক্যান করুন অথবা সরাসরি টাইপ করুন। ফোনে ক্যামেরা স্ক্যানার স্বয়ংক্রিয়ভাবে কাজ করবে।'
-                  : '🌐 On web browser, use USB/Wireless barcode scanner or type code. On mobile APK, camera scanner will open automatically.'}
+                  ? '🌐 ব্রাউজারে বারকোড স্ক্যান করতে ইউএসবি/ওয়্যারলেস বারকোড স্ক্যানার দিয়ে স্ক্যান করুন অথবা সরাসরি টাইপ করুন।\n\nমোবাইল অ্যাপে (APK) ক্যামেরা স্ক্যানার স্বয়ংক্রিয়ভাবে কাজ করবে।'
+                  : '🌐 On web browser, use USB/Wireless barcode scanner or type code.\n\nOn mobile APK, camera scanner will open automatically.'}
               </Text>
               <Button
                 mode="contained"
                 buttonColor="#4f46e5"
                 onPress={onClose}
-                style={{ marginTop: 20 }}
+                style={{ marginTop: 24 }}
               >
                 {isBN ? 'ঠিক আছে' : 'OK'}
               </Button>
@@ -140,7 +147,11 @@ export default function CameraBarcodeScannerModal({ visible, onClose, onScanned 
               <Button
                 mode="contained"
                 buttonColor="#4f46e5"
-                onPress={requestPermission}
+                onPress={async () => {
+                  try {
+                    await requestPermission?.();
+                  } catch (e) {}
+                }}
                 style={{ marginTop: 16 }}
               >
                 {isBN ? 'ক্যামেরা চালু করুন' : 'Grant Camera Permission'}
