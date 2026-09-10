@@ -16,9 +16,12 @@
         "paths": [
           "node_modules"
         ]
-      }
+      },
+      "channel": "preview"
     },
-    "production": {}
+    "production": {
+      "channel": "production"
+    }
   },
   "submit": {
     "production": {}
