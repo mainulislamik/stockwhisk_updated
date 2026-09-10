@@ -47,3 +47,13 @@ mail.stockwhisk.com {
 		reverse_proxy roundcube:80
 	}
 }
+
+app.stockwhisk.com {
+	# Mobile app (Expo web build) — updates automatically on every git push
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle {
+		reverse_proxy mobile:3000
+	}
+}

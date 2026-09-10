@@ -175,6 +175,18 @@ services:
         limits:
           memory: 384M
 
+
+  mobile:
+    build: ./mobile_app
+    environment:
+      EXPO_PUBLIC_API_BASE: "https://stockwhisk.com/api"
+      NODE_ENV: production
+    restart: unless-stopped
+    logging: *default-logging
+    deploy:
+      resources:
+        limits:
+          memory: 512M
   caddy:
     build: ./caddy
     restart: unless-stopped
