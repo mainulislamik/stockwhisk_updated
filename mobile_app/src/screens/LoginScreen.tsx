@@ -2,24 +2,22 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   StyleSheet,
+  Image,
+  TouchableOpacity,
   KeyboardAvoidingView,
   Platform,
-  Image,
   ScrollView,
-  TouchableOpacity,
   Alert,
 } from 'react-native';
 import {
-  Text,
   TextInput,
   Button,
+  Text,
   useTheme,
   Surface,
-  Switch,
-  ActivityIndicator,
   Divider,
 } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
 import * as SecureStore from '../utils/storage';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
@@ -43,21 +41,16 @@ export default function LoginScreen() {
   // 1. Login State
   const [loginEmail, setLoginEmail] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [rememberMe, setRememberMe] = useState(true);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
 
-  // Load remembered email on mount
+  // Load saved email on mount
   useEffect(() => {
     const loadRememberedEmail = async () => {
       try {
-        let saved = '';
-        if (Platform.OS === 'web') {
-          saved = localStorage.getItem(REMEMBER_EMAIL_KEY) || '';
-        } else {
-          saved = (await SecureStore.getItemAsync(REMEMBER_EMAIL_KEY)) || '';
-        }
-        if (saved) {
-          setLoginEmail(saved);
+        const savedEmail = await SecureStore.getItemAsync(REMEMBER_EMAIL_KEY);
+        if (savedEmail) {
+          setLoginEmail(savedEmail);
           setRememberMe(true);
         }
       } catch {}
@@ -131,32 +124,31 @@ export default function LoginScreen() {
 
     setLoading(true);
     setError('');
-    setSuccess('');
     try {
       const res = await api.post('/auth/token/', {
         email: loginEmail.trim().toLowerCase(),
         password: loginPassword,
       });
-      try {
-        if (rememberMe) {
-          if (Platform.OS === 'web') localStorage.setItem(REMEMBER_EMAIL_KEY, loginEmail.trim());
-          else await SecureStore.setItemAsync(REMEMBER_EMAIL_KEY, loginEmail.trim());
-        } else {
-          if (Platform.OS === 'web') localStorage.removeItem(REMEMBER_EMAIL_KEY);
-          else await SecureStore.deleteItemAsync(REMEMBER_EMAIL_KEY);
-        }
-      } catch {}
 
-      await login(res.data.access, res.data.refresh);
-    } catch (e: any) {
-      if (e.message === 'Network Error') {
-        setError(isBN ? 'নেটওয়ার্ক ত্রুটি: সার্ভারের সাথে যোগাযোগ করা যাচ্ছে না।' : 'Network error: Cannot reach server.');
+      const { access, refresh } = res.data;
+      if (access && refresh) {
+        if (rememberMe) {
+          await SecureStore.setItemAsync(REMEMBER_EMAIL_KEY, loginEmail.trim().toLowerCase());
+        } else {
+          await SecureStore.deleteItemAsync(REMEMBER_EMAIL_KEY);
+        }
+        await login(access, refresh);
       } else {
-        setError(
-          e.response?.data?.detail ||
-          e.response?.data?.error ||
-          (isBN ? 'ইমেইল অথবা পাসওয়ার্ড ভুল হয়েছে।' : 'Invalid credentials. Please try again.')
-        );
+        setError(isBN ? 'লগইন ব্যর্থ হয়েছে। টোকেন পাওয়া যায়নি।' : 'Login failed: Invalid token received.');
+      }
+    } catch (e: any) {
+      const serverMsg = e.response?.data?.detail || e.response?.data?.error;
+      if (serverMsg) {
+        setError(serverMsg);
+      } else if (e.message?.includes('Network') || e.message?.includes('network')) {
+        setError(isBN ? 'সার্ভারের সাথে সংযোগ স্থাপন করা সম্ভব হয়নি। ইন্টারনেট কানেকশন চেক করুন।' : 'Network connection error. Please check your internet.');
+      } else {
+        setError(isBN ? 'ব্যবহারকারীর নাম বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।' : 'Invalid credentials. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -266,10 +258,10 @@ export default function LoginScreen() {
     }
   };
 
-  // 3. Handle Forgot Password: Step 2 (Verify OTP & Reset Password)
+  // 3. Handle Forgot Password: Step 2 (Submit New Password)
   const handleResetPassword = async () => {
     if (!forgotOtp.trim()) {
-      setError(isBN ? 'ওটিপি কোডটি লিখুন।' : 'Please enter the OTP.');
+      setError(isBN ? 'ওটিপি কোড লিখুন।' : 'Please enter the reset OTP.');
       return;
     }
     if (newPassword.length < 6) {
@@ -277,7 +269,7 @@ export default function LoginScreen() {
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError(isBN ? 'উভয় পাসওয়ার্ড মিলছে না।' : 'Passwords do not match.');
+      setError(isBN ? 'পাসওয়ার্ড দুটি মেলেনি।' : 'Passwords do not match.');
       return;
     }
 
@@ -305,20 +297,19 @@ export default function LoginScreen() {
   };
 
   const BUSINESS_TYPES = [
-    { key: 'camical', label: isBN ? 'কেমিক্যাল ও ল্যাব সাপ্লাই' : 'Chemical & Lab Supplies' },
-    { key: 'supershop', label: isBN ? 'সুপার শপ ও গ্রোসারি' : 'Super Shop & Grocery' },
-    { key: 'cosmetics', label: isBN ? 'কসমেটিকস ও বিউটি' : 'Cosmetics & Beauty' },
-    { key: 'general', label: isBN ? 'সাধারণ রিটেইল শপ' : 'General Retail' },
-    { key: 'electronics', label: isBN ? 'ইলেকট্রনিক্স ও মোবাইল' : 'Electronics & Mobile' },
-    { key: 'grocery', label: isBN ? 'মুদি ও ডিপার্টমেন্টাল' : 'Grocery & Superstore' },
-    { key: 'clothing', label: isBN ? 'গার্মেন্টস ও ফ্যাশন' : 'Clothing & Fashion' },
-    { key: 'pharmacy', label: isBN ? 'ফার্মেসি / ওষুধ' : 'Pharmacy' },
-    { key: 'service', label: isBN ? 'সার্ভিস ও মেরামত শপ' : 'Repair & Service' },
+    { key: 'general', icon: 'storefront-outline', label: isBN ? 'সাধারণ রিটেইল শপ' : 'General Retail' },
+    { key: 'clothing', icon: 'tshirt-crew-outline', label: isBN ? 'গার্মেন্টস ও ফ্যাশন' : 'Clothing & Fashion' },
+    { key: 'electronics', icon: 'cellphone-link', label: isBN ? 'ইলেকট্রনিক্স ও গ্যাজেট' : 'Electronics & Gadgets' },
+    { key: 'grocery', icon: 'cart-outline', label: isBN ? 'মুদি ও সুপারশপ' : 'Grocery & Superstore' },
+    { key: 'cosmetics', icon: 'lipstick', label: isBN ? 'কসমেটিকস ও বিউটি' : 'Cosmetics & Beauty' },
+    { key: 'pharmacy', icon: 'pill', label: isBN ? 'ফার্মেসি ও ড্রাগ' : 'Pharmacy' },
+    { key: 'camical', icon: 'flask-outline', label: isBN ? 'কেমিক্যাল ও ল্যাব' : 'Chemical & Lab' },
+    { key: 'service', icon: 'wrench-outline', label: isBN ? 'মেরামত ও সার্ভিসিং' : 'Repair & Service' },
   ];
 
   return (
     <KeyboardAvoidingView
-      style={[styles.container, { backgroundColor: isDarkMode ? '#090d16' : '#f1f5f9' }]}
+      style={[styles.container, { backgroundColor: isDarkMode ? '#090d16' : '#f8fafc' }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
       <ScrollView
@@ -326,81 +317,77 @@ export default function LoginScreen() {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* Language & Theme Switcher Top Bar */}
+        {/* Top Floating App Bar */}
         <View style={styles.topBar}>
-          <TouchableOpacity
-            onPress={toggleLanguage}
-            style={[styles.topPill, { backgroundColor: theme.colors.surface }]}
-          >
-            <MaterialCommunityIcons name="translate" size={16} color="#2563eb" />
-            <Text style={{ fontSize: 12, fontWeight: 'bold', marginLeft: 4, color: '#2563eb' }}>
-              {isBN ? 'English' : 'বাংলা'}
-            </Text>
-          </TouchableOpacity>
+          {mode !== 'login' ? (
+            <TouchableOpacity
+              onPress={() => switchMode('login')}
+              style={[styles.backButton, { backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' }]}
+            >
+              <MaterialCommunityIcons name="arrow-left" size={18} color="#2563eb" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#2563eb', marginLeft: 4 }}>
+                {isBN ? 'লগইন' : 'Sign In'}
+              </Text>
+            </TouchableOpacity>
+          ) : (
+            <View style={{ flex: 1 }} />
+          )}
 
-          <TouchableOpacity
-            onPress={toggleDarkMode}
-            style={[styles.topPill, { backgroundColor: theme.colors.surface }]}
-          >
-            <MaterialCommunityIcons
-              name={isDarkMode ? 'weather-sunny' : 'weather-night'}
-              size={16}
-              color={isDarkMode ? '#fbbf24' : '#64748b'}
-            />
-          </TouchableOpacity>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <TouchableOpacity
+              onPress={toggleLanguage}
+              style={[styles.topPill, { backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' }]}
+            >
+              <MaterialCommunityIcons name="translate" size={16} color="#2563eb" />
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginLeft: 5, color: '#2563eb' }}>
+                {isBN ? 'English' : 'বাংলা'}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              onPress={toggleDarkMode}
+              style={[styles.topPill, { backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', paddingHorizontal: 10 }]}
+            >
+              <MaterialCommunityIcons
+                name={isDarkMode ? 'weather-sunny' : 'weather-night'}
+                size={16}
+                color={isDarkMode ? '#fbbf24' : '#64748b'}
+              />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Main Card */}
-        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={4}>
-          {/* Top Card Navigation / Back Button */}
-          {mode !== 'login' && (
-            <TouchableOpacity
-              onPress={() => switchMode('login')}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                alignSelf: 'flex-start',
-                marginBottom: 8,
-                paddingVertical: 6,
-                paddingHorizontal: 10,
-                borderRadius: 8,
-                backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9',
-              }}
-            >
-              <MaterialCommunityIcons name="arrow-left" size={18} color="#2563eb" />
-              <Text style={{ fontSize: 13, fontWeight: 'bold', color: '#2563eb', marginLeft: 4 }}>
-                {isBN ? 'লগইনে ফিরে যান' : 'Back to Sign In'}
-              </Text>
-            </TouchableOpacity>
-          )}
-
+        <Surface style={[styles.card, { backgroundColor: theme.colors.surface }]} elevation={2}>
           {/* Brand Header */}
           <View style={styles.header}>
-            <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
-            <Text variant="headlineSmall" style={{ fontWeight: 'bold', color: theme.colors.onSurface, marginTop: 8 }}>
+            <View style={styles.logoBadge}>
+              <Image source={require('../../assets/logo.png')} style={styles.logo} resizeMode="contain" />
+            </View>
+            <Text variant="headlineSmall" style={{ fontWeight: '800', color: theme.colors.onSurface, marginTop: 10, textAlign: 'center' }}>
               {mode === 'login' && (isBN ? 'স্বাগতম' : 'Welcome Back')}
               {mode === 'signup' && (isBN ? 'নতুন দোকান রেজিস্টার' : 'Create Free Account')}
               {mode === 'forgot' && (isBN ? 'পাসওয়ার্ড রিসেট' : 'Reset Password')}
             </Text>
-            <Text variant="bodySmall" style={{ color: '#64748b', marginTop: 3, textAlign: 'center' }}>
-              {mode === 'login' && (isBN ? 'ইনভেন্টরি ও সেলস পরিচালনা করতে লগইন করুন' : 'Sign in to manage your shop & inventory')}
-              {mode === 'signup' && (isBN ? 'কয়েকটি ধাপে আপনার ডিজিটাল শপ শুরু করুন' : 'Get started with your retail POS & inventory')}
+            <Text variant="bodySmall" style={{ color: '#64748b', marginTop: 4, textAlign: 'center', lineHeight: 18 }}>
+              {mode === 'login' && (isBN ? 'ইনভেন্টরি ও সেলস পরিচালনা করতে লগইন করুন' : 'Sign in to manage your retail POS & inventory')}
+              {mode === 'signup' && (isBN ? 'কয়েকটি সহজ ধাপে আপনার ডিজিটাল শপ শুরু করুন' : 'Start your cloud POS & inventory in 2 simple steps')}
               {mode === 'forgot' && (isBN ? 'ইমেইলে ওটিপি কোড দিয়ে নতুন পাসওয়ার্ড সেট করুন' : 'Verify your email with OTP to reset password')}
             </Text>
           </View>
 
           {/* Feedback Messages */}
           {error ? (
-            <Surface style={[styles.alertContainer, { backgroundColor: '#fee2e2' }]} elevation={0}>
-              <MaterialCommunityIcons name="alert-circle" size={18} color="#dc2626" style={{ marginRight: 6 }} />
-              <Text style={{ color: '#b91c1c', fontSize: 12, flex: 1 }}>{error}</Text>
+            <Surface style={[styles.alertContainer, { backgroundColor: isDarkMode ? '#450a0a' : '#fee2e2' }]} elevation={0}>
+              <MaterialCommunityIcons name="alert-circle" size={18} color="#dc2626" style={{ marginRight: 8 }} />
+              <Text style={{ color: isDarkMode ? '#fca5a5' : '#b91c1c', fontSize: 13, flex: 1, fontWeight: '500' }}>{error}</Text>
             </Surface>
           ) : null}
 
           {success ? (
-            <Surface style={[styles.alertContainer, { backgroundColor: '#dcfce7' }]} elevation={0}>
-              <MaterialCommunityIcons name="check-circle" size={18} color="#16a34a" style={{ marginRight: 6 }} />
-              <Text style={{ color: '#15803d', fontSize: 12, flex: 1 }}>{success}</Text>
+            <Surface style={[styles.alertContainer, { backgroundColor: isDarkMode ? '#052e16' : '#dcfce7' }]} elevation={0}>
+              <MaterialCommunityIcons name="check-circle" size={18} color="#16a34a" style={{ marginRight: 8 }} />
+              <Text style={{ color: isDarkMode ? '#86efac' : '#15803d', fontSize: 13, flex: 1, fontWeight: '500' }}>{success}</Text>
             </Surface>
           ) : null}
 
@@ -414,22 +401,24 @@ export default function LoginScreen() {
                 value={loginEmail}
                 onChangeText={setLoginEmail}
                 mode="outlined"
-                style={styles.input}
                 keyboardType="email-address"
                 autoCapitalize="none"
+                style={styles.input}
+                outlineStyle={styles.inputOutline}
                 disabled={loading}
-                left={<TextInput.Icon icon="email-outline" />}
+                left={<TextInput.Icon icon="email-outline" color="#2563eb" />}
               />
 
               <TextInput
-                label={isBN ? 'পাসওয়ার্ড' : 'Password'}
+                label={isBN ? 'পাসওয়ার্ড' : 'Password'}
                 value={loginPassword}
                 onChangeText={setLoginPassword}
                 mode="outlined"
-                style={styles.input}
                 secureTextEntry={!showLoginPassword}
+                style={styles.input}
+                outlineStyle={styles.inputOutline}
                 disabled={loading}
-                left={<TextInput.Icon icon="lock-outline" />}
+                left={<TextInput.Icon icon="lock-outline" color="#2563eb" />}
                 right={
                   <TextInput.Icon
                     icon={showLoginPassword ? 'eye-off' : 'eye'}
@@ -439,16 +428,23 @@ export default function LoginScreen() {
               />
 
               <View style={styles.switchRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <Switch value={rememberMe} onValueChange={setRememberMe} color="#2563eb" />
-                  <Text style={{ fontSize: 12, color: '#64748b', marginLeft: 4 }}>
-                    {isBN ? 'মনে রাখুন' : 'Remember Me'}
+                <TouchableOpacity
+                  onPress={() => setRememberMe(!rememberMe)}
+                  style={{ flexDirection: 'row', alignItems: 'center' }}
+                >
+                  <MaterialCommunityIcons
+                    name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'}
+                    size={20}
+                    color={rememberMe ? '#2563eb' : '#94a3b8'}
+                  />
+                  <Text style={{ fontSize: 13, color: '#64748b', marginLeft: 6 }}>
+                    {isBN ? 'মনে রাখুন' : 'Remember me'}
                   </Text>
-                </View>
+                </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => switchMode('forgot')}>
-                  <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: 'bold' }}>
-                    {isBN ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot Password?'}
+                  <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: '600' }}>
+                    {isBN ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot Password?'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -473,8 +469,8 @@ export default function LoginScreen() {
                   {isBN ? 'কোনো অ্যাকাউন্ট নেই?' : "Don't have an account?"}
                 </Text>
                 <TouchableOpacity onPress={() => switchMode('signup')} style={{ marginTop: 6, paddingVertical: 4 }}>
-                  <Text style={{ fontSize: 14, color: '#16a34a', fontWeight: 'bold' }}>
-                    ✨ {isBN ? 'নতুন অ্যাকাউন্ট তৈরি করুন (Sign Up)' : 'Create New Account (Sign Up)'}
+                  <Text style={{ fontSize: 14, color: '#2563eb', fontWeight: 'bold' }}>
+                    ✨ {isBN ? 'নতুন অ্যাকাউন্ট তৈরি করুন (Sign Up)' : 'Create Free Account (Sign Up)'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -486,14 +482,26 @@ export default function LoginScreen() {
           {/* ========================================================================= */}
           {mode === 'signup' && (
             <View>
-              {/* Step indicator */}
-              <View style={styles.stepHeader}>
-                <View style={[styles.stepDot, { backgroundColor: '#16a34a' }]}>
-                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>1</Text>
+              {/* Modern Step Indicator */}
+              <View style={styles.stepContainer}>
+                <View style={styles.stepItem}>
+                  <View style={[styles.stepCircle, { backgroundColor: '#2563eb' }]}>
+                    <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>1</Text>
+                  </View>
+                  <Text style={[styles.stepLabel, { color: '#2563eb', fontWeight: '700' }]}>
+                    {isBN ? 'দোকানের তথ্য' : 'Shop Details'}
+                  </Text>
                 </View>
-                <View style={[styles.stepLine, { backgroundColor: signupStep === 2 ? '#16a34a' : '#cbd5e1' }]} />
-                <View style={[styles.stepDot, { backgroundColor: signupStep === 2 ? '#16a34a' : '#cbd5e1' }]}>
-                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: 'bold' }}>2</Text>
+
+                <View style={[styles.stepLine, { backgroundColor: signupStep === 2 ? '#2563eb' : '#e2e8f0' }]} />
+
+                <View style={styles.stepItem}>
+                  <View style={[styles.stepCircle, { backgroundColor: signupStep === 2 ? '#2563eb' : (isDarkMode ? '#334155' : '#cbd5e1') }]}>
+                    <Text style={{ color: signupStep === 2 ? '#fff' : '#64748b', fontSize: 12, fontWeight: '800' }}>2</Text>
+                  </View>
+                  <Text style={[styles.stepLabel, { color: signupStep === 2 ? '#2563eb' : '#94a3b8', fontWeight: signupStep === 2 ? '700' : '500' }]}>
+                    {isBN ? 'ওটিপি যাচাই' : 'OTP Verify'}
+                  </Text>
                 </View>
               </View>
 
@@ -506,8 +514,9 @@ export default function LoginScreen() {
                     onChangeText={setShopName}
                     mode="outlined"
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="store-outline" />}
+                    left={<TextInput.Icon icon="store-outline" color="#2563eb" />}
                   />
 
                   <TextInput
@@ -516,8 +525,9 @@ export default function LoginScreen() {
                     onChangeText={setOwnerName}
                     mode="outlined"
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="account-outline" />}
+                    left={<TextInput.Icon icon="account-outline" color="#2563eb" />}
                   />
 
                   <TextInput
@@ -527,8 +537,9 @@ export default function LoginScreen() {
                     mode="outlined"
                     keyboardType="phone-pad"
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="phone-outline" />}
+                    left={<TextInput.Icon icon="phone-outline" color="#2563eb" />}
                   />
 
                   <TextInput
@@ -539,8 +550,9 @@ export default function LoginScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="email-outline" />}
+                    left={<TextInput.Icon icon="email-outline" color="#2563eb" />}
                   />
 
                   <TextInput
@@ -550,8 +562,9 @@ export default function LoginScreen() {
                     mode="outlined"
                     secureTextEntry={!showSignupPassword}
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="lock-outline" />}
+                    left={<TextInput.Icon icon="lock-outline" color="#2563eb" />}
                     right={
                       <TextInput.Icon
                         icon={showSignupPassword ? 'eye-off' : 'eye'}
@@ -560,34 +573,50 @@ export default function LoginScreen() {
                     }
                   />
 
-                  <Text style={{ fontSize: 12, fontWeight: '600', color: '#64748b', marginBottom: 6, marginTop: 4 }}>
-                    {isBN ? 'ব্যবসার ধরন' : 'Business Category'}
-                  </Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                    {BUSINESS_TYPES.map(b => (
-                      <TouchableOpacity
-                        key={b.key}
-                        onPress={() => setBusinessType(b.key)}
-                        style={{
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                          borderRadius: 8,
-                          borderWidth: 1,
-                          borderColor: businessType === b.key ? '#16a34a' : '#cbd5e1',
-                          backgroundColor: businessType === b.key ? '#dcfce7' : theme.colors.surface,
-                        }}
-                      >
-                        <Text
-                          style={{
-                            fontSize: 11,
-                            color: businessType === b.key ? '#15803d' : theme.colors.onSurface,
-                            fontWeight: businessType === b.key ? 'bold' : 'normal',
-                          }}
-                        >
-                          {b.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
+                  {/* Business Type Selector Grid */}
+                  <View style={{ marginTop: 6, marginBottom: 12 }}>
+                    <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.onSurface, marginBottom: 8 }}>
+                      {isBN ? '🏪 ব্যবসার ধরন নির্বাচন করুন' : '🏪 Select Business Category'}
+                    </Text>
+                    <View style={styles.categoryGrid}>
+                      {BUSINESS_TYPES.map(b => {
+                        const isSelected = businessType === b.key;
+                        return (
+                          <TouchableOpacity
+                            key={b.key}
+                            onPress={() => setBusinessType(b.key)}
+                            activeOpacity={0.7}
+                            style={[
+                              styles.categoryCard,
+                              {
+                                borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                                backgroundColor: isSelected
+                                  ? (isDarkMode ? '#1e3a8a' : '#eff6ff')
+                                  : (isDarkMode ? '#1e293b' : '#f8fafc'),
+                              },
+                            ]}
+                          >
+                            <MaterialCommunityIcons
+                              name={b.icon as any}
+                              size={18}
+                              color={isSelected ? '#2563eb' : (isDarkMode ? '#94a3b8' : '#64748b')}
+                            />
+                            <Text
+                              numberOfLines={1}
+                              style={{
+                                fontSize: 12,
+                                fontWeight: isSelected ? '700' : '500',
+                                color: isSelected ? '#2563eb' : theme.colors.onSurface,
+                                marginLeft: 6,
+                                flexShrink: 1,
+                              }}
+                            >
+                              {b.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
                   </View>
 
                   <TextInput
@@ -597,18 +626,19 @@ export default function LoginScreen() {
                     mode="outlined"
                     autoCapitalize="characters"
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="gift-outline" />}
+                    left={<TextInput.Icon icon="gift-outline" color="#2563eb" />}
                   />
 
                   <Button
                     mode="contained"
-                    buttonColor="#16a34a"
+                    buttonColor="#2563eb"
                     onPress={handleInitiateSignup}
                     loading={loading}
                     disabled={loading}
                     style={styles.mainButton}
-                    contentStyle={{ paddingVertical: 6 }}
+                    contentStyle={{ paddingVertical: 8 }}
                     labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                   >
                     {isBN ? 'ওটিপি কোড পাঠান ➜' : 'Send Verification OTP ➜'}
@@ -619,11 +649,11 @@ export default function LoginScreen() {
               {/* Step 2: Verify OTP */}
               {signupStep === 2 && (
                 <View>
-                  <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#f0fdf4', padding: 12, borderRadius: 10, marginBottom: 14 }}>
-                    <Text style={{ fontSize: 12, color: '#16a34a', textAlign: 'center' }}>
+                  <View style={{ backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
+                    <Text style={{ fontSize: 13, color: isDarkMode ? '#bfdbfe' : '#1e40af', textAlign: 'center', lineHeight: 20 }}>
                       {isBN
-                        ? `আমরা ${signupEmail} ঠিকানায় ৬-ডিজিটের একটি কোড পাঠিয়েছি।`
-                        : `We sent a 6-digit verification code to ${signupEmail}.`}
+                        ? `✉️ আমরা ${signupEmail} ঠিকানায় ৬-ডিজিটের একটি ভেরিফিকেশন কোড পাঠিয়েছি।`
+                        : `✉️ We sent a 6-digit verification code to ${signupEmail}.`}
                     </Text>
                   </View>
 
@@ -634,18 +664,19 @@ export default function LoginScreen() {
                     mode="outlined"
                     keyboardType="number-pad"
                     maxLength={6}
-                    style={[styles.input, { textAlign: 'center', fontSize: 20, letterSpacing: 4 }]}
+                    style={[styles.input, { textAlign: 'center', fontSize: 22, letterSpacing: 6 }]}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="shield-key-outline" />}
+                    left={<TextInput.Icon icon="shield-key-outline" color="#2563eb" />}
                   />
 
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <Text style={{ fontSize: 12, color: '#64748b' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                    <Text style={{ fontSize: 13, color: '#64748b' }}>
                       ⏳ {isBN ? 'মেয়াদ বাকি:' : 'Expires in:'} {formatSeconds(signupTimer)}
                     </Text>
                     {signupTimer === 0 ? (
                       <TouchableOpacity onPress={handleInitiateSignup} disabled={loading}>
-                        <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: 'bold' }}>
+                        <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: 'bold' }}>
                           {isBN ? 'পুনরায় কোড পাঠান' : 'Resend Code'}
                         </Text>
                       </TouchableOpacity>
@@ -654,24 +685,24 @@ export default function LoginScreen() {
 
                   <Button
                     mode="contained"
-                    buttonColor="#16a34a"
+                    buttonColor="#2563eb"
                     onPress={handleVerifySignupOtp}
                     loading={loading}
                     disabled={loading}
                     style={styles.mainButton}
-                    contentStyle={{ paddingVertical: 6 }}
+                    contentStyle={{ paddingVertical: 8 }}
                     labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                   >
                     {isBN ? 'যাচাই করুন ও শুরু করুন 🎉' : 'Verify & Launch Shop 🎉'}
                   </Button>
 
-                  <Button mode="text" onPress={() => setSignupStep(1)} style={{ marginTop: 8 }}>
+                  <Button mode="text" textColor="#2563eb" onPress={() => setSignupStep(1)} style={{ marginTop: 8 }}>
                     {isBN ? '← তথ্য পরিবর্তন করুন' : '← Edit Information'}
                   </Button>
                 </View>
               )}
 
-              <Divider style={{ marginVertical: 16 }} />
+              <Divider style={{ marginVertical: 18 }} />
 
               <View style={{ alignItems: 'center' }}>
                 <Text style={{ fontSize: 13, color: '#64748b' }}>
@@ -679,7 +710,7 @@ export default function LoginScreen() {
                 </Text>
                 <TouchableOpacity onPress={() => switchMode('login')} style={{ marginTop: 6, paddingVertical: 4 }}>
                   <Text style={{ fontSize: 14, color: '#2563eb', fontWeight: 'bold' }}>
-                    {isBN ? 'লগইন করুন (Sign In)' : 'Sign In'}
+                    {isBN ? 'লগইন করুন (Sign In)' : 'Sign In to Account'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -702,33 +733,34 @@ export default function LoginScreen() {
                     keyboardType="email-address"
                     autoCapitalize="none"
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="email-outline" />}
+                    left={<TextInput.Icon icon="email-outline" color="#2563eb" />}
                   />
 
                   <Button
                     mode="contained"
-                    buttonColor="#f59e0b"
+                    buttonColor="#2563eb"
                     onPress={handleRequestForgotOtp}
                     loading={loading}
                     disabled={loading}
                     style={styles.mainButton}
-                    contentStyle={{ paddingVertical: 6 }}
+                    contentStyle={{ paddingVertical: 8 }}
                     labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                   >
-                    {isBN ? 'রিসেট ওটিপি কোড পাঠান ➜' : 'Send Reset Code ➜'}
+                    {isBN ? 'রিসেট কোড পাঠান ➜' : 'Send Reset Code ➜'}
                   </Button>
                 </View>
               )}
 
-              {/* Step 2: Enter OTP & New Password */}
+              {/* Step 2: Submit New Password */}
               {forgotStep === 2 && (
                 <View>
-                  <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#fffbeb', padding: 12, borderRadius: 10, marginBottom: 14 }}>
-                    <Text style={{ fontSize: 12, color: '#b45309', textAlign: 'center' }}>
+                  <View style={{ backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
+                    <Text style={{ fontSize: 13, color: isDarkMode ? '#bfdbfe' : '#1e40af', textAlign: 'center', lineHeight: 20 }}>
                       {isBN
-                        ? `আপনার ${forgotEmail} ইমেইলে প্রেরিত ওটিপি কোডটি লিখুন।`
-                        : `Enter the OTP code sent to ${forgotEmail}.`}
+                        ? `✉️ আমরা ${forgotEmail} ঠিকানায় ৬-ডিজিটের একটি পাসওয়ার্ড রিসেট কোড পাঠিয়েছি।`
+                        : `✉️ We sent a 6-digit reset code to ${forgotEmail}.`}
                     </Text>
                   </View>
 
@@ -739,20 +771,35 @@ export default function LoginScreen() {
                     mode="outlined"
                     keyboardType="number-pad"
                     maxLength={6}
-                    style={[styles.input, { textAlign: 'center', fontSize: 18, letterSpacing: 4 }]}
+                    style={[styles.input, { textAlign: 'center', fontSize: 20, letterSpacing: 4 }]}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="shield-key-outline" />}
+                    left={<TextInput.Icon icon="shield-key-outline" color="#2563eb" />}
                   />
 
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                    <Text style={{ fontSize: 13, color: '#64748b' }}>
+                      ⏳ {isBN ? 'মেয়াদ বাকি:' : 'Expires in:'} {formatSeconds(forgotTimer)}
+                    </Text>
+                    {forgotTimer === 0 ? (
+                      <TouchableOpacity onPress={handleRequestForgotOtp} disabled={loading}>
+                        <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: 'bold' }}>
+                          {isBN ? 'পুনরায় কোড পাঠান' : 'Resend Code'}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+
                   <TextInput
-                    label={isBN ? 'নতুন পাসওয়ার্ড (ন্যূনতম ৬ অক্ষর)' : 'New Password (min 6 chars)'}
+                    label={isBN ? 'নতুন পাসওয়ার্ড (ন্যূনতম ৬ অক্ষর)' : 'New Password (min 6 chars)'}
                     value={newPassword}
                     onChangeText={setNewPassword}
                     mode="outlined"
                     secureTextEntry={!showNewPassword}
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="lock-outline" />}
+                    left={<TextInput.Icon icon="lock-outline" color="#2563eb" />}
                     right={
                       <TextInput.Icon
                         icon={showNewPassword ? 'eye-off' : 'eye'}
@@ -762,45 +809,37 @@ export default function LoginScreen() {
                   />
 
                   <TextInput
-                    label={isBN ? 'পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm New Password'}
+                    label={isBN ? 'নতুন পাসওয়ার্ড নিশ্চিত করুন' : 'Confirm New Password'}
                     value={confirmPassword}
                     onChangeText={setConfirmPassword}
                     mode="outlined"
                     secureTextEntry={!showNewPassword}
                     style={styles.input}
+                    outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="lock-check-outline" />}
+                    left={<TextInput.Icon icon="lock-check-outline" color="#2563eb" />}
                   />
-
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                    <Text style={{ fontSize: 12, color: '#64748b' }}>
-                      ⏳ {isBN ? 'মেয়াদ বাকি:' : 'Expires in:'} {formatSeconds(forgotTimer)}
-                    </Text>
-                    {forgotTimer === 0 ? (
-                      <TouchableOpacity onPress={handleRequestForgotOtp} disabled={loading}>
-                        <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: 'bold' }}>
-                          {isBN ? 'পুনরায় কোড পাঠান' : 'Resend Code'}
-                        </Text>
-                      </TouchableOpacity>
-                    ) : null}
-                  </View>
 
                   <Button
                     mode="contained"
-                    buttonColor="#f59e0b"
+                    buttonColor="#2563eb"
                     onPress={handleResetPassword}
                     loading={loading}
                     disabled={loading}
                     style={styles.mainButton}
-                    contentStyle={{ paddingVertical: 6 }}
+                    contentStyle={{ paddingVertical: 8 }}
                     labelStyle={{ fontSize: 16, fontWeight: 'bold' }}
                   >
-                    {isBN ? 'পাসওয়ার্ড পরিবর্তন করুন 🔒' : 'Reset Password & Save 🔒'}
+                    {isBN ? 'পাসওয়ার্ড পরিবর্তন করুন' : 'Update Password'}
+                  </Button>
+
+                  <Button mode="text" textColor="#2563eb" onPress={() => setForgotStep(1)} style={{ marginTop: 8 }}>
+                    {isBN ? '← ইমেইল পরিবর্তন করুন' : '← Change Email'}
                   </Button>
                 </View>
               )}
 
-              <Divider style={{ marginVertical: 16 }} />
+              <Divider style={{ marginVertical: 18 }} />
 
               <View style={{ alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => switchMode('login')} style={{ paddingVertical: 4 }}>
@@ -820,86 +859,137 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
     width: '100%',
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    paddingVertical: 24,
+    paddingVertical: 32,
     paddingHorizontal: 16,
     width: '100%',
   },
   topBar: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 460,
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    gap: 8,
-    marginBottom: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   topPill: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 7,
     borderRadius: 20,
     elevation: 1,
+    shadowColor: '#000',
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
   },
   card: {
     width: '100%',
-    maxWidth: 440,
-    borderRadius: 20,
-    padding: 22,
+    maxWidth: 460,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.06,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 4 },
   },
   header: {
     alignItems: 'center',
-    marginBottom: 18,
+    marginBottom: 20,
+  },
+  logoBadge: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: '#eff6ff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   logo: {
-    width: 68,
-    height: 68,
+    width: 44,
+    height: 44,
   },
   alertContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    padding: 10,
-    borderRadius: 8,
-    marginBottom: 14,
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
   },
   input: {
-    marginBottom: 10,
+    marginBottom: 12,
     backgroundColor: 'transparent',
+    fontSize: 14,
+  },
+  inputOutline: {
+    borderRadius: 12,
   },
   switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 2,
+    marginTop: 4,
     marginBottom: 16,
   },
   mainButton: {
     borderRadius: 12,
-    marginTop: 6,
+    marginTop: 8,
   },
-  stepHeader: {
+  stepContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 20,
+    paddingHorizontal: 12,
   },
-  stepDot: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+  stepItem: {
+    alignItems: 'center',
+  },
+  stepCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 4,
+  },
+  stepLabel: {
+    fontSize: 11,
   },
   stepLine: {
-    width: 40,
+    flex: 1,
     height: 2,
-    marginHorizontal: 6,
+    marginHorizontal: 12,
+    marginBottom: 16,
+  },
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  categoryCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    width: '48.5%',
+    paddingVertical: 10,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    borderWidth: 1.5,
   },
 });
