@@ -266,42 +266,7 @@ export default function DashboardScreen() {
           </View>
         </Surface>
 
-        {/* 2. Quick Action Bar */}
-        <Text style={[styles.sectionTitle, { color: theme.colors.onSurface }]}>
-          ⚡ {isBN ? 'দ্রুত একশন' : 'Quick Actions'}
-        </Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickActionScroll}
-        >
-          {quickActions.map((act, i) => (
-            <TouchableOpacity
-              key={i}
-              activeOpacity={0.7}
-              onPress={act.onPress}
-              style={[
-                styles.quickActionPill,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
-                },
-              ]}
-            >
-              <View
-                style={[
-                  styles.quickActionIcon,
-                  { backgroundColor: isDarkMode ? act.color + '25' : act.bg },
-                ]}
-              >
-                <MaterialCommunityIcons name={act.icon as any} size={20} color={act.color} />
-              </View>
-              <Text style={[styles.quickActionText, { color: theme.colors.onSurface }]}>
-                {isBN ? act.titleBn : act.titleEn}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
+
 
         {/* 3. Bento Metric Cards & Filter */}
         <View style={styles.sectionHeaderRow}>
