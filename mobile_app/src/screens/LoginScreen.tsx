@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  useWindowDimensions,
   Alert,
 } from 'react-native';
 import {
@@ -32,6 +33,8 @@ export default function LoginScreen() {
   const { login } = useAuth();
   const { language, toggleLanguage, isDarkMode, toggleDarkMode } = usePreferences();
   const isBN = language === 'BN';
+  const { width } = useWindowDimensions();
+  const isSmallMobile = width < 420;
 
   const [mode, setMode] = useState<AuthMode>('login');
   const [loading, setLoading] = useState(false);
@@ -589,6 +592,7 @@ export default function LoginScreen() {
                             style={[
                               styles.categoryCard,
                               {
+                                width: isSmallMobile ? '100%' : '48.5%',
                                 borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
                                 backgroundColor: isSelected
                                   ? (isDarkMode ? '#1e3a8a' : '#eff6ff')
@@ -596,23 +600,27 @@ export default function LoginScreen() {
                               },
                             ]}
                           >
-                            <MaterialCommunityIcons
-                              name={b.icon as any}
-                              size={18}
-                              color={isSelected ? '#2563eb' : (isDarkMode ? '#94a3b8' : '#64748b')}
-                            />
+                            <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: isSelected ? '#dbeafe' : (isDarkMode ? '#334155' : '#f1f5f9'), justifyContent: 'center', alignItems: 'center' }}>
+                              <MaterialCommunityIcons
+                                name={b.icon as any}
+                                size={18}
+                                color={isSelected ? '#2563eb' : (isDarkMode ? '#94a3b8' : '#64748b')}
+                              />
+                            </View>
                             <Text
-                              numberOfLines={1}
                               style={{
-                                fontSize: 12,
+                                fontSize: 13,
                                 fontWeight: isSelected ? '700' : '500',
                                 color: isSelected ? '#2563eb' : theme.colors.onSurface,
-                                marginLeft: 6,
-                                flexShrink: 1,
+                                marginLeft: 10,
+                                flex: 1,
                               }}
                             >
                               {b.label}
                             </Text>
+                            {isSelected && (
+                              <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />
+                            )}
                           </TouchableOpacity>
                         );
                       })}
@@ -986,9 +994,8 @@ const styles = StyleSheet.create({
   categoryCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: '48.5%',
-    paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingVertical: 11,
+    paddingHorizontal: 12,
     borderRadius: 12,
     borderWidth: 1.5,
   },
