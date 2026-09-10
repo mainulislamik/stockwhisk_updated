@@ -7,6 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Modal,
   useWindowDimensions,
   Alert,
 } from 'react-native';
@@ -70,6 +71,7 @@ export default function LoginScreen() {
   const [signupPassword, setSignupPassword] = useState('');
   const [showSignupPassword, setShowSignupPassword] = useState(false);
   const [businessType, setBusinessType] = useState('general');
+  const [categoryModalVisible, setCategoryModalVisible] = useState(false);
   const [referralCode, setReferralCode] = useState('');
   const [signupOtp, setSignupOtp] = useState('');
   const [signupTimer, setSignupTimer] = useState(180);
@@ -577,55 +579,162 @@ export default function LoginScreen() {
                   />
 
                   {/* Business Type Selector Grid */}
-                  <View style={{ marginTop: 6, marginBottom: 12 }}>
-                    <Text style={{ fontSize: 13, fontWeight: '700', color: theme.colors.onSurface, marginBottom: 8 }}>
-                      {isBN ? '🏪 ব্যবসার ধরন নির্বাচন করুন' : '🏪 Select Business Category'}
+                  {/* Compact Category Dropdown Box */}
+                  <View style={{ marginBottom: 14 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '600', color: isDarkMode ? '#94a3b8' : '#475569', marginBottom: 6 }}>
+                      {isBN ? 'ব্যবসার ধরন *' : 'Business Category *'}
                     </Text>
-                    <View style={styles.categoryGrid}>
-                      {BUSINESS_TYPES.map(b => {
-                        const isSelected = businessType === b.key;
-                        return (
-                          <TouchableOpacity
-                            key={b.key}
-                            onPress={() => setBusinessType(b.key)}
-                            activeOpacity={0.7}
-                            style={[
-                              styles.categoryCard,
-                              {
-                                width: isSmallMobile ? '100%' : '48.5%',
-                                borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
-                                backgroundColor: isSelected
-                                  ? (isDarkMode ? '#1e3a8a' : '#eff6ff')
-                                  : (isDarkMode ? '#1e293b' : '#f8fafc'),
-                              },
-                            ]}
-                          >
-                            <View style={{ width: 28, height: 28, borderRadius: 8, backgroundColor: isSelected ? '#dbeafe' : (isDarkMode ? '#334155' : '#f1f5f9'), justifyContent: 'center', alignItems: 'center' }}>
-                              <MaterialCommunityIcons
-                                name={b.icon as any}
-                                size={18}
-                                color={isSelected ? '#2563eb' : (isDarkMode ? '#94a3b8' : '#64748b')}
-                              />
-                            </View>
-                            <Text
-                              style={{
-                                fontSize: 13,
-                                fontWeight: isSelected ? '700' : '500',
-                                color: isSelected ? '#2563eb' : theme.colors.onSurface,
-                                marginLeft: 10,
-                                flex: 1,
-                              }}
-                            >
-                              {b.label}
-                            </Text>
-                            {isSelected && (
-                              <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
+                    <TouchableOpacity
+                      onPress={() => setCategoryModalVisible(true)}
+                      activeOpacity={0.8}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: isDarkMode ? '#1e293b' : '#ffffff',
+                        borderWidth: 1.5,
+                        borderColor: isDarkMode ? '#334155' : '#cbd5e1',
+                        borderRadius: 12,
+                        paddingHorizontal: 14,
+                        paddingVertical: 12,
+                        minHeight: 52,
+                      }}
+                    >
+                      <View style={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 8,
+                        backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginRight: 10,
+                      }}>
+                        <MaterialCommunityIcons
+                          name={(BUSINESS_TYPES.find(b => b.key === businessType)?.icon as any) || 'storefront-outline'}
+                          size={20}
+                          color="#2563eb"
+                        />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '700', color: theme.colors.onSurface }}>
+                          {BUSINESS_TYPES.find(b => b.key === businessType)?.label || (isBN ? 'ক্যাটাগরি নির্বাচন করুন' : 'Select Category')}
+                        </Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-down" size={22} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                    </TouchableOpacity>
                   </View>
+
+                  {/* Category Selection Bottom Sheet Modal */}
+                  <Modal
+                    visible={categoryModalVisible}
+                    transparent={true}
+                    animationType="slide"
+                    onRequestClose={() => setCategoryModalVisible(false)}
+                  >
+                    <TouchableOpacity
+                      style={{
+                        flex: 1,
+                        backgroundColor: 'rgba(0,0,0,0.5)',
+                        justifyContent: 'flex-end',
+                      }}
+                      activeOpacity={1}
+                      onPress={() => setCategoryModalVisible(false)}
+                    >
+                      <View
+                        style={{
+                          backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
+                          borderTopLeftRadius: 24,
+                          borderTopRightRadius: 24,
+                          paddingTop: 16,
+                          paddingBottom: Math.max(30, Platform.OS === 'ios' ? 34 : 20),
+                          paddingHorizontal: 20,
+                          maxHeight: '75%',
+                        }}
+                        onStartShouldSetResponder={() => true}
+                      >
+                        {/* Drag indicator & Header */}
+                        <View style={{ alignItems: 'center', marginBottom: 12 }}>
+                          <View style={{ width: 40, height: 4, borderRadius: 2, backgroundColor: isDarkMode ? '#334155' : '#cbd5e1' }} />
+                        </View>
+                        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                          <Text style={{ fontSize: 17, fontWeight: '800', color: isDarkMode ? '#f8fafc' : '#0f172a' }}>
+                            {isBN ? '🏪 ব্যবসার ধরন নির্বাচন করুন' : '🏪 Select Business Category'}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => setCategoryModalVisible(false)}
+                            style={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 16,
+                              backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <MaterialCommunityIcons name="close" size={18} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* List of categories */}
+                        <ScrollView showsVerticalScrollIndicator={false}>
+                          {BUSINESS_TYPES.map(b => {
+                            const isSelected = businessType === b.key;
+                            return (
+                              <TouchableOpacity
+                                key={b.key}
+                                onPress={() => {
+                                  setBusinessType(b.key);
+                                  setCategoryModalVisible(false);
+                                }}
+                                activeOpacity={0.7}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 12,
+                                  paddingHorizontal: 14,
+                                  borderRadius: 12,
+                                  marginBottom: 8,
+                                  backgroundColor: isSelected
+                                    ? (isDarkMode ? '#1e3a8a' : '#eff6ff')
+                                    : (isDarkMode ? '#1e293b' : '#f8fafc'),
+                                  borderWidth: 1.5,
+                                  borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                                }}
+                              >
+                                <View style={{
+                                  width: 34,
+                                  height: 34,
+                                  borderRadius: 10,
+                                  backgroundColor: isSelected ? '#dbeafe' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  marginRight: 12,
+                                }}>
+                                  <MaterialCommunityIcons
+                                    name={b.icon as any}
+                                    size={20}
+                                    color={isSelected ? '#2563eb' : (isDarkMode ? '#94a3b8' : '#64748b')}
+                                  />
+                                </View>
+                                <Text style={{
+                                  fontSize: 14,
+                                  fontWeight: isSelected ? '700' : '500',
+                                  color: isSelected ? '#2563eb' : (isDarkMode ? '#f8fafc' : '#1e293b'),
+                                  flex: 1,
+                                }}>
+                                  {b.label}
+                                </Text>
+                                {isSelected ? (
+                                  <MaterialCommunityIcons name="check-circle" size={22} color="#2563eb" />
+                                ) : (
+                                  <MaterialCommunityIcons name="radiobox-blank" size={20} color={isDarkMode ? '#475569' : '#94a3b8'} />
+                                )}
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </ScrollView>
+                      </View>
+                    </TouchableOpacity>
+                  </Modal>
 
                   <TextInput
                     label={isBN ? 'রেফারেল কোড (ঐচ্ছিক)' : 'Referral Code (Optional)'}
