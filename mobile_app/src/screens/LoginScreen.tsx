@@ -169,8 +169,8 @@ export default function LoginScreen() {
       setError(isBN ? 'মোবাইল নম্বর আবশ্যক।' : 'Phone number is required.');
       return;
     }
-    if (signupPassword.length < 6) {
-      setError(isBN ? 'পাসওয়ার্ড ন্যূনতম ৬ অক্ষরের হতে হবে।' : 'Password must be at least 6 characters.');
+    if (signupPassword.length < 8) {
+      setError(isBN ? 'পাসওয়ার্ড ন্যূনতম ৮ অক্ষরের হতে হবে।' : 'Password must be at least 8 characters.');
       return;
     }
 
@@ -556,7 +556,7 @@ export default function LoginScreen() {
                   />
 
                   <TextInput
-                    label={isBN ? 'পাসওয়ার্ড (ন্যূনতম ৬ অক্ষর) *' : 'Password (min 6 chars) *'}
+                    label={isBN ? 'পাসওয়ার্ড (ন্যূনতম ৮ অক্ষর) *' : 'Password (min 8 chars) *'}
                     value={signupPassword}
                     onChangeText={setSignupPassword}
                     mode="outlined"
