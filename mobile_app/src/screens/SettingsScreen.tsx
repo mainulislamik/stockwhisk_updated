@@ -10,9 +10,31 @@ import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 
 export default function SettingsScreen() {
+  const handleLogout = async () => {
+    if (Platform.OS === 'web') {
+      const confirmText = isBN ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?';
+      if (typeof window !== 'undefined' && window.confirm(confirmText)) {
+        await logout();
+      }
+    } else {
+      Alert.alert(
+        isBN ? 'লগআউট নিশ্চিতকরণ' : 'Confirm Logout',
+        isBN ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?',
+        [
+          { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+          {
+            text: isBN ? 'লগআউট' : 'Logout',
+            style: 'destructive',
+            onPress: () => logout(),
+          },
+        ]
+      );
+    }
+  };
+
   const navigation = useNavigation<any>();
   const theme = useTheme();
-  const { user, loadUser } = useAuth();
+  const { user, loadUser, logout } = useAuth();
   const { language, printerWidth, setPrinterWidth } = usePreferences();
   const isBN = language === 'BN';
   
@@ -407,6 +429,26 @@ export default function SettingsScreen() {
                   </Text>
                 </View>
                 <MaterialCommunityIcons name="download" size={22} color="#2563eb" />
+              </TouchableOpacity>
+
+              {/* Logout Button */}
+              <TouchableOpacity
+                onPress={handleLogout}
+                style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderTopWidth: 1, borderTopColor: borderColor }}
+                activeOpacity={0.7}
+              >
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#fef2f2', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                  <MaterialCommunityIcons name="logout-variant" size={24} color="#dc2626" />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '700', color: '#dc2626', marginBottom: 2 }}>
+                    {isBN ? 'লগআউট করুন' : 'Log Out'}
+                  </Text>
+                  <Text style={{ fontSize: 13, color: subTextColor }}>
+                    {isBN ? 'বর্তমান অ্যাকাউন্ট থেকে সাইন আউট করুন' : 'Sign out from this device'}
+                  </Text>
+                </View>
+                <MaterialCommunityIcons name="chevron-right" size={22} color="#dc2626" />
               </TouchableOpacity>
 
             </View>

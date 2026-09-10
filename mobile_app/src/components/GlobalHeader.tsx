@@ -49,19 +49,26 @@ export default function GlobalHeader() {
     }
   };
 
-  const handleLogout = () => {
-    Alert.alert(
-      isBN ? 'লগআউট নিশ্চিতকরণ' : 'Confirm Logout',
-      isBN ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?',
-      [
-        { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
-        {
-          text: isBN ? 'লগআউট' : 'Logout',
-          style: 'destructive',
-          onPress: logout,
-        },
-      ]
-    );
+  const handleLogout = async () => {
+    if (Platform.OS === 'web') {
+      const confirmText = isBN ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?';
+      if (typeof window !== 'undefined' && window.confirm(confirmText)) {
+        await logout();
+      }
+    } else {
+      Alert.alert(
+        isBN ? 'লগআউট নিশ্চিতকরণ' : 'Confirm Logout',
+        isBN ? 'আপনি কি নিশ্চিত যে লগআউট করতে চান?' : 'Are you sure you want to log out?',
+        [
+          { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+          {
+            text: isBN ? 'লগআউট' : 'Logout',
+            style: 'destructive',
+            onPress: () => logout(),
+          },
+        ]
+      );
+    }
   };
 
   const shopInitial = user?.shop_name ? user.shop_name.charAt(0).toUpperCase() : 'S';
