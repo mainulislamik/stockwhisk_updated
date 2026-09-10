@@ -280,37 +280,46 @@ export default function DashboardScreen() {
 
         <View style={styles.qaGrid}>
           {[
-            { icon: 'cash-register',    tint: '#2563eb', bg: '#eff6ff', titleBn: 'নতুন বিক্রয় (POS)',      subBn: 'কার্টে পণ্য যোগ করুন',        go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
-            { icon: 'barcode-scan',     tint: '#7c3aed', bg: '#f5f3ff', titleBn: 'বারকোড স্ক্যান',        subBn: 'স্ক্যান করে পণ্য খুঁজুন',       go: () => setShowScanner(true) },
-            { icon: 'arrow-down-bold-box', tint: '#16a34a', bg: '#f0fdf4', titleBn: 'স্টক ইনওয়ার্ড',     subBn: 'নতুন ক্রয় এন্ট্রি',           go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
-            { icon: 'cash-check',       tint: '#0891b2', bg: '#ecfeff', titleBn: 'দৈনিক ক্যাশ ক্লোজিং',   subBn: 'দিনের হিসাব বন্ধ',            go: () => navigation.navigate('SettlementScreen') },
-            { icon: 'cash-minus',       tint: '#be185d', bg: '#fdf2f8', titleBn: 'খরচ এন্ট্রি',          subBn: 'দৈনিক খরচ লিখুন',             go: () => navigation.navigate('ExpensesScreen') },
-            { icon: 'account-clock',    tint: '#d97706', bg: '#fffbeb', titleBn: 'বকেয়া আদায়',          subBn: 'বাকির টাকা আদায়',            go: () => navigation.navigate('DuesScreen') },
-            { icon: 'view-grid-outline',tint: '#0d9488', bg: '#f0fdfa', titleBn: 'পণ্য তালিকা',          subBn: 'সব পণ্য দেখুন',               go: () => navigation.navigate('ProductsScreen') },
-            { icon: 'file-document-outline', tint: '#475569', bg: '#f1f5f9', titleBn: 'রিপোর্ট',        subBn: 'বিক্রয় ও হিসাব',             go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
-            { icon: 'account-group-outline', tint: '#9333ea', bg: '#faf5ff', titleBn: 'কাস্টমার',      subBn: 'গ্রাহক তালিকা',               go: () => navigation.navigate('CustomersScreen') },
-            { icon: 'alert-box-outline',tint: hasStockAlert ? '#dc2626' : '#64748b', bg: hasStockAlert ? '#fef2f2' : '#f8fafc',
-              titleBn: 'স্টক অ্যালার্ট', subBn: isBN ? `আউট ${outOfStockCount} · লো ${lowStockCount}` : `Out ${outOfStockCount} · Low ${lowStockCount}`,
+            { icon: 'cash-register',         tint: '#2563eb', bg: '#eff6ff', titleBn: 'নতুন বিক্রয় (POS)',    subBn: 'কার্টে পণ্য যোগ',        go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
+            { icon: 'barcode-scan',          tint: '#7c3aed', bg: '#f5f3ff', titleBn: 'বারকোড স্ক্যান',      subBn: 'ক্যামেরা স্ক্যানার',     go: () => setShowScanner(true) },
+            { icon: 'arrow-down-bold-box',   tint: '#16a34a', bg: '#f0fdf4', titleBn: 'স্টক ইনওয়ার্ড',   subBn: 'নতুন ক্রয় এন্ট্রি',       go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
+            { icon: 'cash-check',            tint: '#0891b2', bg: '#ecfeff', titleBn: 'দৈনিক ক্যাশ ক্লোজিং', subBn: 'দিনের হিসাব বন্ধ',        go: () => navigation.navigate('SettlementScreen') },
+            { icon: 'cash-minus',            tint: '#be185d', bg: '#fdf2f8', titleBn: 'খরচ এন্ট্রি',        subBn: 'দৈনিক খরচ লিখুন',         go: () => navigation.navigate('ExpensesScreen') },
+            { icon: 'account-clock',         tint: '#d97706', bg: '#fffbeb', titleBn: 'বকেয়া আদায়',        subBn: 'বাকির টাকা সংগ্রহ',       go: () => navigation.navigate('DuesScreen') },
+            { icon: 'view-grid-outline',     tint: '#0d9488', bg: '#f0fdfa', titleBn: 'পণ্য তালিকা',        subBn: 'ক্যাটালগ ও স্টক',        go: () => navigation.navigate('ProductsScreen') },
+            { icon: 'file-document-outline', tint: '#475569', bg: '#f1f5f9', titleBn: 'রিপোর্ট ও বিশ্লেষণ', subBn: 'বিক্রয় ও লাভ-ক্ষতি',     go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
+            { icon: 'account-group-outline', tint: '#9333ea', bg: '#faf5ff', titleBn: 'কাস্টমার ডিরেক্টরি', subBn: 'গ্রাহক ও হিস্ট্রি',       go: () => navigation.navigate('CustomersScreen') },
+            { icon: 'alert-box-outline',     tint: hasStockAlert ? '#dc2626' : '#64748b', bg: hasStockAlert ? '#fef2f2' : '#f8fafc',
+              titleBn: 'স্টক অ্যালার্ট',      subBn: isBN ? `আউট ${outOfStockCount} · লো ${lowStockCount}` : `Out ${outOfStockCount} · Low ${lowStockCount}`,
               go: () => navigation.navigate('MainTabs', { screen: 'Inventory' }) },
           ].map((a: { icon: any; tint: string; bg: string; titleBn: string; subBn: string; go: () => void }, i: number) => (
             <TouchableOpacity
               key={i}
-              style={[styles.qaCard, { backgroundColor: isDarkMode ? '#1e293b' : a.bg }]}
+              style={[
+                styles.qaCard,
+                {
+                  backgroundColor: isDarkMode ? '#1e293b' : a.bg,
+                  borderColor: isDarkMode ? '#334155' : 'rgba(0,0,0,0.04)',
+                },
+              ]}
               activeOpacity={0.75}
               onPress={a.go}
             >
               <View style={[styles.qaIcon, { backgroundColor: a.tint }]}>
-                <MaterialCommunityIcons name={a.icon} size={22} color="#fff" />
+                <MaterialCommunityIcons name={a.icon} size={20} color="#fff" />
               </View>
-              <View style={{ flex: 1, marginLeft: 10 }}>
-                <Text style={[styles.qaLabel, { color: theme.colors.onSurface }]} numberOfLines={2} ellipsizeMode="tail">
-                  {a.titleBn}
-                </Text>
-                <Text style={styles.qaSub} numberOfLines={1} ellipsizeMode="tail">
-                  {a.subBn}
-                </Text>
-              </View>
-              <MaterialCommunityIcons name="chevron-right" size={18} color={isDarkMode ? '#475569' : '#cbd5e1'} />
+              <Text
+                style={[styles.qaLabel, { color: theme.colors.onSurface }]}
+                numberOfLines={2}
+              >
+                {a.titleBn}
+              </Text>
+              <Text
+                style={styles.qaSub}
+                numberOfLines={1}
+              >
+                {a.subBn}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -616,38 +625,43 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   qaGrid: {
-    flexDirection: 'column',
-    gap: 10,
-    marginBottom: 16,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 10,
+    marginBottom: 18,
   },
   qaCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: '48.5%',
     borderRadius: 16,
     padding: 12,
-    // light elevation shadow
+    minHeight: 104,
+    justifyContent: 'space-between',
+    borderWidth: 1,
     shadowColor: '#000',
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
-    elevation: 2,
+    elevation: 1.5,
   },
   qaIcon: {
-    width: 42,
-    height: 42,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: 8,
   },
   qaLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    lineHeight: 18,
+    fontSize: 13,
+    fontWeight: '800',
+    lineHeight: 17,
   },
   qaSub: {
-    fontSize: 11,
+    fontSize: 10.5,
     color: '#64748b',
-    marginTop: 1,
+    marginTop: 2,
+    fontWeight: '500',
   },
   filterPillsRow: {
     flexDirection: 'row',
