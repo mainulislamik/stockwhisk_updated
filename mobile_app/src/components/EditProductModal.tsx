@@ -1132,8 +1132,8 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
 
       {/* Brand Selection & Quick Add Modal */}
       <Modal visible={showBrandPicker} transparent animationType="fade" onRequestClose={() => setShowBrandPicker(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowBrandPicker(false)}>
-          <Card style={[styles.pickerCard, { backgroundColor: theme.colors.surface }]} onStartShouldSetResponder={() => true}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setShowBrandPicker(false)}>
+          <Card style={{ width: '100%', maxWidth: 400, padding: 16, backgroundColor: theme.colors.surface }} onStartShouldSetResponder={() => true}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
                 {isBN ? 'ব্র্যান্ড নির্বাচন / যোগ করুন' : 'Select / Add Brand'}
@@ -1205,8 +1205,8 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
 
       {/* Sale Unit Selection & Quick Add Modal */}
       <Modal visible={showUnitPicker} transparent animationType="fade" onRequestClose={() => setShowUnitPicker(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowUnitPicker(false)}>
-          <Card style={[styles.pickerCard, { backgroundColor: theme.colors.surface }]} onStartShouldSetResponder={() => true}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setShowUnitPicker(false)}>
+          <Card style={{ width: '100%', maxWidth: 400, padding: 16, backgroundColor: theme.colors.surface }} onStartShouldSetResponder={() => true}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
                 {isBN ? 'বিক্রয় ইউনিট নির্বাচন / যোগ করুন' : 'Select / Add Sale Unit'}
@@ -1278,8 +1278,8 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
 
       {/* Purchase Unit Selection & Quick Add Modal */}
       <Modal visible={showPurchaseUnitPicker} transparent animationType="fade" onRequestClose={() => setShowPurchaseUnitPicker(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPurchaseUnitPicker(false)}>
-          <Card style={[styles.pickerCard, { backgroundColor: theme.colors.surface }]} onStartShouldSetResponder={() => true}>
+        <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setShowPurchaseUnitPicker(false)}>
+          <Card style={{ width: '100%', maxWidth: 400, padding: 16, backgroundColor: theme.colors.surface }} onStartShouldSetResponder={() => true}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
                 {isBN ? 'পারচেজ ইউনিট নির্বাচন / যোগ করুন' : 'Select / Add Purchase Unit'}
