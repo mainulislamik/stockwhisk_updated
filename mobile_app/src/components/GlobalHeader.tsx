@@ -173,29 +173,32 @@ export default function GlobalHeader() {
             </TouchableOpacity>
 
             {/* Language Switcher Pill */}
-            <TouchableOpacity
-              onPress={toggleLanguage}
-              style={[styles.langPill, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}
-            >
-              <Text
+            <View style={[styles.langPill, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+              <TouchableOpacity
+                onPress={() => { if (language !== 'BN') toggleLanguage(); }}
+                activeOpacity={0.7}
                 style={[
                   styles.langOption,
-                  language === 'BN' && styles.langOptionActive,
-                  language === 'BN' && { backgroundColor: '#4f46e5', color: '#ffffff' },
+                  language === 'BN' && { backgroundColor: '#2563eb' }
                 ]}
               >
-                BN
-              </Text>
-              <Text
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: language === 'BN' ? '#ffffff' : '#64748b' }}>
+                  BN
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => { if (language !== 'EN') toggleLanguage(); }}
+                activeOpacity={0.7}
                 style={[
                   styles.langOption,
-                  language === 'EN' && styles.langOptionActive,
-                  language === 'EN' && { backgroundColor: '#4f46e5', color: '#ffffff' },
+                  language === 'EN' && { backgroundColor: '#2563eb' }
                 ]}
               >
-                EN
-              </Text>
-            </TouchableOpacity>
+                <Text style={{ fontSize: 10, fontWeight: 'bold', color: language === 'EN' ? '#ffffff' : '#64748b' }}>
+                  EN
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Contact Support (hidden on ultra-small screens, accessible via modal) */}
             {!isSmallScreen && (
