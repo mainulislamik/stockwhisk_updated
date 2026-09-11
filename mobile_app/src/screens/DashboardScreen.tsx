@@ -267,7 +267,6 @@ export default function DashboardScreen() {
         </Surface>
 
 
-
         {/* 2. 📊 Key Metrics & Filter */}
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginBottom: 0 }]}>
@@ -470,55 +469,7 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* 6. Recent Sales Feed */}
-        <Surface style={[styles.topProductsCard, { backgroundColor: theme.colors.surface }]} elevation={2}>
-          <View style={styles.chartHeader}>
-            <Text style={[styles.chartTitle, { color: theme.colors.onSurface }]}>
-              🧾 {isBN ? 'সাম্প্রতিক বিক্রয়' : 'Recent Sales'}
-            </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('SalesScreen')}>
-              <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: 'bold' }}>
-                {isBN ? 'সব দেখুন' : 'View All'}
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {metrics?.recent_sales && metrics.recent_sales.length > 0 ? (
-            metrics.recent_sales.map((sale: any, idx: number) => (
-              <View
-                key={idx}
-                style={[
-                  styles.productItemRow,
-                  { borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9' },
-                ]}
-              >
-                <View style={{ flex: 1 }}>
-                  <Text style={[{ fontSize: 13, fontWeight: '700', color: theme.colors.onSurface }]} numberOfLines={1}>
-                    {sale.invoice_no}
-                  </Text>
-                  <Text style={{ fontSize: 11, color: '#64748b' }}>
-                    {sale.customer_name}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.productAmount}>
-                    ৳{Number(sale.total || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </Text>
-                  {Number(sale.due) > 0 && (
-                    <Text style={{ fontSize: 10, color: '#ef4444', fontWeight: '700' }}>
-                      {isBN ? 'বাকি: ' : 'Due: '}৳{Number(sale.due).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                    </Text>
-                  )}
-                </View>
-              </View>
-            ))
-          ) : (
-            <Text style={{ textAlign: 'center', color: '#94a3b8', paddingVertical: 16 }}>
-              {isBN ? 'আজকের কোনো বিক্রয় নেই' : 'No recent sales'}
-            </Text>
-          )}
-        </Surface>
-      </ScrollView>
+              </ScrollView>
 
       {/* Barcode Camera Scanner Modal */}
       <CameraBarcodeScannerModal
