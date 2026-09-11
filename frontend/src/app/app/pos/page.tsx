@@ -434,169 +434,236 @@ export default function PosPage() {
             </div>
           </div>
 
-          {/* Mobile Repair Shop: Fast Brand -> Category Hierarchy */}
-          {isRepairShop && (
-            <div className="card shadow-sm border-0 mb-2 p-3" style={{ background: "rgba(30, 41, 59, 0.4)", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
-              {/* Step 1: Select Brand */}
-              <div className="mb-2">
-                <div className="d-flex align-items-center justify-content-between mb-2">
-                  <span className="small fw-bold text-info text-uppercase" style={{ letterSpacing: "0.5px" }}>
-                    <i className="bi bi-phone me-1"></i> ১. ব্র্যান্ড নির্বাচন (Brand First):
-                  </span>
-                  {selectedBrand && (
-                    <button
-                      type="button"
-                      className="btn btn-link btn-sm text-danger text-decoration-none p-0 fw-medium"
-                      style={{ fontSize: "11px" }}
-                      onClick={() => { setSelectedBrand(null); setSelectedCategory(null); }}
-                    >
-                      ক্লিয়ার ✕
-                    </button>
-                  )}
-                </div>
-                <div className="d-flex flex-wrap gap-2">
+          {/* ══════════════════════════════════════════════════════════════════════
+              REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
+              Step 1: Big Brand Cards -> Step 2: Category Cards -> Step 3: Products
+              ══════════════════════════════════════════════════════════════════════ */}
+          {isRepairShop ? (
+            <div className="d-flex flex-column gap-3">
+              {/* Breadcrumb / Navigation Bar */}
+              <div className="d-flex align-items-center justify-content-between p-2 px-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+                <div className="d-flex align-items-center gap-2 small">
                   <button
                     type="button"
-                    className={`btn btn-sm rounded-3 fw-bold px-3 py-1 ${!selectedBrand ? "btn-primary" : "btn-dark border-secondary text-secondary"}`}
+                    className={`btn btn-sm py-0 px-2 fw-bold ${!selectedBrand ? "btn-primary" : "btn-link text-info text-decoration-none"}`}
                     onClick={() => { setSelectedBrand(null); setSelectedCategory(null); }}
                   >
-                    সব ব্র্যান্ড (All)
+                    <i className="bi bi-phone me-1"></i>১. ব্র্যান্ড (Brands)
                   </button>
-                  {brands.map((b) => (
-                    <button
-                      key={b.id}
-                      type="button"
-                      className={`btn btn-sm rounded-3 fw-bold px-3 py-1 ${selectedBrand === b.id ? "btn-primary shadow" : "btn-dark border-secondary text-light"}`}
-                      onClick={() => { setSelectedBrand(b.id); }}
-                    >
-                      <i className="bi bi-phone me-1 opacity-75"></i>{b.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Step 2: Select Component Category */}
-              {selectedBrand && (
-                <div className="pt-2 border-top border-secondary border-opacity-25 mt-2">
-                  <div className="d-flex align-items-center justify-content-between mb-2">
-                    <span className="small fw-bold text-warning text-uppercase" style={{ letterSpacing: "0.5px" }}>
-                      <i className="bi bi-cpu me-1"></i> ২. ক্যাটাগরি / পার্টস (Parts Category):
-                    </span>
-                    {selectedCategory && (
+                  {selectedBrand && (
+                    <>
+                      <span className="text-secondary">›</span>
                       <button
                         type="button"
-                        className="btn btn-link btn-sm text-secondary text-decoration-none p-0"
-                        style={{ fontSize: "11px" }}
+                        className={`btn btn-sm py-0 px-2 fw-bold ${!selectedCategory ? "btn-warning text-dark" : "btn-link text-warning text-decoration-none"}`}
                         onClick={() => setSelectedCategory(null)}
                       >
-                        সব পার্টস
+                        <i className="bi bi-cpu me-1"></i>{brands.find(b => b.id === selectedBrand)?.name || "ক্যাটাগরি"}
                       </button>
+                    </>
+                  )}
+                  {selectedBrand && selectedCategory && (
+                    <>
+                      <span className="text-secondary">›</span>
+                      <span className="badge bg-success py-1 px-2 fw-bold">
+                        <i className="bi bi-box-seam me-1"></i>{categories.find(c => c.id === selectedCategory)?.name || "প্রোডাক্ট"}
+                      </span>
+                    </>
+                  )}
+                </div>
+                {selectedBrand && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-danger btn-sm py-0 px-2 fw-medium"
+                    style={{ fontSize: "11px" }}
+                    onClick={() => { setSelectedBrand(null); setSelectedCategory(null); }}
+                  >
+                    শুরুতে ফিরুন ↺
+                  </button>
+                )}
+              </div>
+
+              {/* ── STEP 1: Select Brand (Big Touch Cards) ── */}
+              {!selectedBrand && (
+                <div>
+                  <h6 className="fw-bold text-info mb-3">
+                    <i className="bi bi-grid-3x3-gap me-2"></i>ব্র্যান্ড নির্বাচন করুন (Select Device Brand):
+                  </h6>
+                  <div className="row g-3">
+                    {brands.length === 0 ? (
+                      <div className="col-12 text-center py-5 text-secondary">
+                        <div style={{ fontSize: "2.5rem" }}>📱</div>
+                        <div className="mt-2 fw-semibold">কোনো ব্র্যান্ড পাওয়া যায়নি</div>
+                        <div className="small">Product List পেজ থেকে নতুন ব্র্যান্ড তৈরি করুন।</div>
+                      </div>
+                    ) : (
+                      brands.map((b) => (
+                        <div className="col-6 col-md-4" key={b.id}>
+                          <button
+                            type="button"
+                            className="btn btn-dark w-100 p-3 rounded-4 text-center border border-secondary border-opacity-50 shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
+                            style={{ minHeight: "110px", background: "rgba(30, 41, 59, 0.6)", transition: "all 0.2s" }}
+                            onClick={() => setSelectedBrand(b.id)}
+                          >
+                            <div className="p-2 rounded-circle bg-primary bg-opacity-25 text-primary fs-3">
+                              <i className="bi bi-phone"></i>
+                            </div>
+                            <div className="fw-bold text-white fs-6">{b.name}</div>
+                          </button>
+                        </div>
+                      ))
                     )}
-                  </div>
-                  <div className="d-flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={`btn btn-sm rounded-3 px-3 py-1 fw-medium ${!selectedCategory ? "btn-warning text-dark fw-bold" : "btn-dark border-secondary text-secondary"}`}
-                      onClick={() => setSelectedCategory(null)}
-                    >
-                      সব ক্যাটাগরি
-                    </button>
-                    {categories.map((c) => (
-                      <button
-                        key={c.id}
-                        type="button"
-                        className={`btn btn-sm rounded-3 px-3 py-1 fw-medium ${selectedCategory === c.id ? "btn-warning text-dark fw-bold shadow" : "btn-dark border-secondary text-light"}`}
-                        onClick={() => setSelectedCategory(c.id)}
-                      >
-                        {c.name}
-                      </button>
-                    ))}
                   </div>
                 </div>
               )}
-            </div>
-          )}
 
-          {/* ── Product grid ── */}
-          {shown.length === 0 && query && !gridLoading ? (
-            <div className="card shadow-sm">
-              <div className="card-body text-center py-4 text-secondary small">
-                {t("pos_no_barcode_match")} "<strong>{query}</strong>"
-                <div className="mt-2">
-                  {t("pos_press_enter")}
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
-              {shown.map((p) => {
-                const mult = Number(p.purchase_multiplier) || 1;
-                const isBulk = mult > 1;
-                const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
-                const bulkUnit = p.purchase_unit_detail?.name || "Pack";
-                const out = Number(p.current_stock) <= 0;
-                const inCart = cart.some((l) => l.product.id === p.id);
-
-                const exactMatch = query.trim() !== "" && p.barcode === query.trim();
-                const busy = unitLoadingId === p.id;
-                return (
-                  <div className="col-6 col-md-4" key={p.id}>
-                    <button
-                      className={`pos-item w-100 p-2 text-start ${inCart ? "pos-item-active" : ""} ${exactMatch ? "pos-item-exact" : ""}`}
-                      disabled={out || busy}
-                      onClick={() => pickFromGrid(p)}
-                    >
-                      <div className="small fw-semibold text-truncate">{p.name}</div>
-                      <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
-                        {p.barcode || p.sku}
-                      </div>
-                      <div className="d-flex justify-content-between align-items-center mt-1">
-                        <div>
-                          <span className="small fw-bold">{money(p.selling_price)}</span>
-                          {baseUnit ? <span className="text-secondary" style={{ fontSize: "0.68rem" }}>/{baseUnit}</span> : null}
-                        </div>
-                        <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
-                              style={{ fontSize: ".68rem" }}>
-                          {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
-                        </span>
-                      </div>
-                      {isBulk && (
-                        <div className="text-primary mt-1" style={{ fontSize: "0.65rem", lineHeight: "1.1" }}>
-                          📦 {bulkUnit}: ৳{Number(p.full_pack_sell || (Number(p.selling_price) * mult)).toFixed(0)} ({mult} {baseUnit})
-                        </div>
-                      )}
-                      {p.expiry_date && (() => {
-                        const exp = new Date(p.expiry_date);
-                        const today = new Date();
-                        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                        if (diffDays < 0) {
-                          return (
-                            <div className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mt-1" style={{ fontSize: "0.6rem" }}>
-                              ⛔ {lang === "bn" ? `মেয়াদোত্তীর্ণ` : `Expired`}
-                            </div>
-                          );
-                        }
-                        if (diffDays <= 30) {
-                          return (
-                            <div className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50 mt-1" style={{ fontSize: "0.6rem" }}>
-                              ⚠️ {lang === "bn" ? `${diffDays}দ বাকি` : `Exp in ${diffDays}d`}
-                            </div>
-                          );
-                        }
-                        return (
-                          <div className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 mt-1" style={{ fontSize: "0.6rem" }}>
-                            📅 {p.expiry_date}
-                          </div>
-                        );
-                      })()}
+              {/* ── STEP 2: Select Category (Component Cards) ── */}
+              {selectedBrand && !selectedCategory && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h6 className="fw-bold text-warning mb-0">
+                      <i className="bi bi-tools me-2"></i>{brands.find(b => b.id === selectedBrand)?.name} এর ক্যাটাগরি / পার্টস বেছে নিন:
+                    </h6>
+                    <button type="button" className="btn btn-outline-secondary btn-sm py-0" onClick={() => setSelectedBrand(null)}>
+                      ← ব্র্যান্ড পরিবর্তন
                     </button>
                   </div>
-                );
-              })}
-              {gridLoading && (
-                <div className="col-12 text-center text-secondary py-3">
-                  <span className="spinner-border spinner-border-sm me-2" role="status" />
-                  <span className="small">{t("pos_loading_products")}</span>
+                  <div className="row g-3">
+                    {categories.length === 0 ? (
+                      <div className="col-12 text-center py-5 text-secondary">
+                        <div style={{ fontSize: "2.5rem" }}>⚙️</div>
+                        <div className="mt-2 fw-semibold">কোনো ক্যাটাগরি পাওয়া যায়নি</div>
+                      </div>
+                    ) : (
+                      categories.map((c) => (
+                        <div className="col-6 col-md-4" key={c.id}>
+                          <button
+                            type="button"
+                            className="btn btn-dark w-100 p-3 rounded-4 text-center border border-secondary border-opacity-50 shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
+                            style={{ minHeight: "100px", background: "rgba(30, 41, 59, 0.6)", transition: "all 0.2s" }}
+                            onClick={() => setSelectedCategory(c.id)}
+                          >
+                            <div className="p-2 rounded-circle bg-warning bg-opacity-25 text-warning fs-4">
+                              <i className="bi bi-cpu"></i>
+                            </div>
+                            <div className="fw-bold text-white fs-6">{c.name}</div>
+                          </button>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* ── STEP 3: Products / Model Cards ── */}
+              {selectedBrand && selectedCategory && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h6 className="fw-bold text-success mb-0">
+                      <i className="bi bi-box-seam me-2"></i>{brands.find(b => b.id === selectedBrand)?.name} · {categories.find(c => c.id === selectedCategory)?.name} এর পার্টস তালিকা:
+                    </h6>
+                    <button type="button" className="btn btn-outline-secondary btn-sm py-0" onClick={() => setSelectedCategory(null)}>
+                      ← ক্যাটাগরি পরিবর্তন
+                    </button>
+                  </div>
+
+                  {shown.length === 0 && !gridLoading ? (
+                    <div className="card shadow-sm border-0" style={{ background: "rgba(30, 41, 59, 0.4)" }}>
+                      <div className="card-body text-center py-5 text-secondary">
+                        <div style={{ fontSize: "2.5rem" }}>📦</div>
+                        <div className="fw-bold text-white mt-2">এই ক্যাটাগরিতে কোনো প্রোডাক্ট পাওয়া যায়নি</div>
+                        <div className="small mt-1">দয়া করে অন্য ক্যাটাগরি বেছে নিন অথবা নতুন প্রোডাক্ট যোগ করুন।</div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
+                      {shown.map((p) => {
+                        const mult = Number(p.purchase_multiplier) || 1;
+                        const isBulk = mult > 1;
+                        const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                        const out = Number(p.current_stock) <= 0;
+                        const inCart = cart.some((l) => l.product.id === p.id);
+                        const busy = unitLoadingId === p.id;
+                        return (
+                          <div className="col-6 col-md-4" key={p.id}>
+                            <button
+                              type="button"
+                              className={`pos-item w-100 p-3 text-start rounded-3 ${inCart ? "pos-item-active" : ""}`}
+                              disabled={out || busy}
+                              onClick={() => pickFromGrid(p)}
+                            >
+                              <div className="fw-bold text-truncate text-white" style={{ fontSize: "0.95rem" }}>{p.name}</div>
+                              <div style={{ fontSize: ".72rem", fontFamily: "monospace", color: "#94a3b8" }}>
+                                {p.sku || p.barcode}
+                              </div>
+                              <div className="d-flex justify-content-between align-items-center mt-2">
+                                <div>
+                                  <span className="fw-bold text-info" style={{ fontSize: "1rem" }}>{money(p.selling_price)}</span>
+                                  {baseUnit ? <span className="text-secondary" style={{ fontSize: "0.7rem" }}>/{baseUnit}</span> : null}
+                                </div>
+                                <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-light"}`}
+                                      style={{ fontSize: ".72rem" }}>
+                                  {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
+                                </span>
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              {shown.length === 0 && query && !gridLoading ? (
+                <div className="card shadow-sm">
+                  <div className="card-body text-center py-4 text-secondary small">
+                    {t("pos_no_barcode_match")} "<strong>{query}</strong>"
+                    <div className="mt-2">
+                      {t("pos_press_enter")}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
+                  {shown.map((p) => {
+                    const mult = Number(p.purchase_multiplier) || 1;
+                    const isBulk = mult > 1;
+                    const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                    const bulkUnit = p.purchase_unit_detail?.name || "Pack";
+                    const out = Number(p.current_stock) <= 0;
+                    const inCart = cart.some((l) => l.product.id === p.id);
+
+                    const exactMatch = query.trim() !== "" && p.barcode === query.trim();
+                    const busy = unitLoadingId === p.id;
+                    return (
+                      <div className="col-6 col-md-4" key={p.id}>
+                        <button
+                          type="button"
+                          className={`pos-item w-100 p-2 text-start ${inCart ? "pos-item-active" : ""} ${exactMatch ? "pos-item-exact" : ""}`}
+                          disabled={out || busy}
+                          onClick={() => pickFromGrid(p)}
+                        >
+                          <div className="small fw-semibold text-truncate">{p.name}</div>
+                          <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
+                            {p.barcode || p.sku}
+                          </div>
+                          <div className="d-flex justify-content-between align-items-center mt-1">
+                            <div>
+                              <span className="small fw-bold">{money(p.selling_price)}</span>
+                              {baseUnit ? <span className="text-secondary" style={{ fontSize: "0.68rem" }}>/{baseUnit}</span> : null}
+                            </div>
+                            <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
+                                  style={{ fontSize: ".68rem" }}>
+                              {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
+                            </span>
+                          </div>
+                        </button>
+                      </div>
+                    );
+                  })}
                 </div>
               )}
             </div>
