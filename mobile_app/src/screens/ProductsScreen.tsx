@@ -399,10 +399,10 @@ export default function ProductsScreen() {
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={isBN ? 'পণ্য ও স্টক ইনওয়ার্ড' : 'Products & Inward'} titleStyle={{ fontWeight: 'bold' }} />
+        <Appbar.Content title={isBN ? 'নতুন প্রোডাক্ট পার্চেজ করুন' : 'Purchase New Product'} titleStyle={{ fontWeight: 'bold' }} />
         <PageGuideButton pageKey="/app/products" />
         <Button mode="contained" compact buttonColor="#2563eb" style={{ marginRight: 8, borderRadius: 8 }} onPress={() => setProductToEdit({})}>
-          {isBN ? '+ নতুন প্রোডাক্ট' : '+ New Product'}
+          {isBN ? '+ New Product Record' : '+ New Product Record'}
         </Button>
       </Appbar.Header>
 
@@ -421,7 +421,7 @@ export default function ProductsScreen() {
           onPress={() => setActiveTab('purchase')}
         >
           <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', width: '100%', color: activeTab === 'purchase' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
-            🛒 {isBN ? 'প্রোডাক্ট ক্রয় / ইনওয়ার্ড' : 'Purchase / Inward'}
+            🛒 {isBN ? 'প্রোডাক্ট পার্চেজ' : 'Product Purchase'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -619,7 +619,7 @@ export default function ProductsScreen() {
               {isBN ? 'নতুন প্রোডাক্ট পার্চেজ / ইনওয়ার্ড' : 'Purchase / Inward Stock'}
             </Text>
             <Text style={{ color: isDarkMode ? '#cbd5e1' : '#64748b', fontSize: 12, marginBottom: 14 }}>
-              {isBN ? 'স্টক ইনভেন্টরিতে যুক্ত করুন এবং খরচ হিসাব আপডেট করুন।' : 'Add stock to inventory and update purchase ledger.'}
+              {isBN ? 'নতুন ইনভেন্টরি যুক্ত করুন এবং স্টক আপডেট করুন।' : 'Ingest new inventory and update stock levels.'}
             </Text>
 
             {/* Product Search */}
@@ -732,7 +732,7 @@ export default function ProductsScreen() {
             <Card style={{ marginBottom: 14, padding: 12, backgroundColor: theme.colors.surface, borderWidth: 1, borderColor: '#e2e8f0' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 6 }}>
                 <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#4f46e5' }}>
-                  {isBN ? '🔢 প্রতিটি ইউনিটের বারকোড' : '🔢 Unit Serial Barcodes'}
+                  {isBN ? '▦ বাল্ক বারকোড স্ক্যান ও স্টক ইনজেকশন' : '▦ Bulk Barcode Scan & Ingestion'}
                 </Text>
                 
                 {/* Modern Auto-Barcode Generator Toggle Switch */}
@@ -757,7 +757,7 @@ export default function ProductsScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 11, fontWeight: 'bold', color: autoGenerateBarcodes ? '#fff' : isDarkMode ? '#cbd5e1' : '#64748b' }}>
-                    ⚡ {isBN ? 'অটো-বারকোড' : 'Auto Barcode'}
+                    ⚡ {isBN ? 'অটো-বারকোড তৈরি' : 'Auto Barcode'}
                   </Text>
                   <View
                     style={{
@@ -791,7 +791,7 @@ export default function ProductsScreen() {
                   style={{ flex: 1, backgroundColor: theme.colors.surface }}
                 />
                 <Button mode="contained" compact buttonColor="#4f46e5" onPress={() => addPurchaseBarcode(customBarcodeInput)}>
-                  {isBN ? '+ যুক্ত' : '+ Add'}
+                  {isBN ? '+ তালিকায় যুক্ত করুন' : '+ Add to List'}
                 </Button>
               </View>
 
@@ -898,12 +898,12 @@ export default function ProductsScreen() {
 
               {/* Purchase Summary: Vendor Selection */}
               <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, color: theme.colors.onSurface }}>
-                {isBN ? 'পার্চেজ সামারি' : 'Purchase Summary'}
+                {isBN ? 'পার্চেজ ও পেমেন্ট সামারি' : 'Purchase & Payment Summary'}
               </Text>
               <View style={{ marginBottom: 4 }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
                   <Text style={{ fontSize: 12, color: isDarkMode ? '#cbd5e1' : '#64748b' }}>
-                    {isBN ? 'ভেন্ডর' : 'Vendor'}
+                    {isBN ? 'সরবরাহকারী / ভেন্ডর' : 'Supplier / Vendor'}
                   </Text>
                   <TouchableOpacity onPress={() => setShowAddVendorModal(true)}>
                     <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: 'bold' }}>+ {isBN ? 'যোগ করুন' : 'add'}</Text>
@@ -923,7 +923,7 @@ export default function ProductsScreen() {
                   }}
                 >
                   <Text style={{ fontSize: 13, color: selectedSupplier ? '#16a34a' : '#64748b', fontWeight: selectedSupplier ? 'bold' : 'normal' }}>
-                    {selectedSupplier ? `✓ ${selectedSupplier.name}` : '— none —'}
+                    {selectedSupplier ? `✓ ${selectedSupplier.name}` : isBN ? '— কোনোটি নয় —' : '— none —'}
                   </Text>
                   <MaterialCommunityIcons name="chevron-down" size={18} color="#64748b" />
                 </TouchableOpacity>
@@ -939,7 +939,7 @@ export default function ProductsScreen() {
               onPress={handlePushToStock}
               style={{ paddingVertical: 6, borderRadius: 8 }}
             >
-              {isBN ? '↑ স্টকে যুক্ত করুন (Push to Stock)' : '↑ Push to Stock'}
+              {isBN ? 'স্টকে ইনজেক্ট করুন (Push to Stock)' : 'Push to Stock'}
             </Button>
             <Text style={{ fontSize: 11, color: '#64748b', textAlign: 'center', marginTop: 6, marginBottom: 20 }}>
               ⓘ {isBN ? 'লেজার এবং ইনভেন্টরি লেভেল আপডেট হবে' : 'Updates ledger & inventory levels'}

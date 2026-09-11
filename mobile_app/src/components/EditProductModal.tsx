@@ -514,7 +514,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               }}
             >
               <Text style={{ fontSize: 13, color: selectedBrand ? '#16a34a' : '#64748b', fontWeight: selectedBrand ? 'bold' : 'normal' }}>
-                {selectedBrand ? `✓ ${selectedBrand.name}` : (isBN ? '— বেছে নিন —' : '— select —')}
+                {selectedBrand ? `✓ ${selectedBrand.name}` : (isBN ? '-- কোনোটি নয় --' : '-- None --')}
               </Text>
               <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
@@ -524,7 +524,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
             <View style={{ flex: 1 }}>
               <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 4 }}>
-                {isBN ? 'ইউনিট' : 'Unit'}
+                {isBN ? 'বিক্রয় ইউনিট (Unit)' : 'Sale Unit'}
               </Text>
               <TouchableOpacity
                 onPress={() => setShowUnitPicker(true)}
@@ -540,7 +540,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                 }}
               >
                 <Text style={{ fontSize: 13, color: selectedUnit ? '#16a34a' : '#64748b', fontWeight: selectedUnit ? 'bold' : 'normal' }}>
-                  {selectedUnit ? `✓ ${selectedUnit.name}` : (isBN ? '— বেছে নিন —' : '— select —')}
+                  {selectedUnit ? `✓ ${selectedUnit.name}` : (isBN ? '-- কোনোটি নয় --' : '-- None --')}
                 </Text>
                 <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
               </TouchableOpacity>
@@ -563,7 +563,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                 }}
               >
                 <Text style={{ fontSize: 13, color: selectedPurchaseUnit ? '#16a34a' : '#64748b', fontWeight: selectedPurchaseUnit ? 'bold' : 'normal' }}>
-                  {selectedPurchaseUnit ? `✓ ${selectedPurchaseUnit.name}` : (isBN ? '— বেছে নিন —' : '— select —')}
+                  {selectedPurchaseUnit ? `✓ ${selectedPurchaseUnit.name}` : (isBN ? '-- কোনোটি নয় --' : '-- None --')}
                 </Text>
                 <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
               </TouchableOpacity>
