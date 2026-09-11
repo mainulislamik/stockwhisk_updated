@@ -1130,6 +1130,225 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
         </View>
       </Modal>
 
+      {/* Brand Selection & Quick Add Modal */}
+      <Modal visible={showBrandPicker} transparent animationType="fade" onRequestClose={() => setShowBrandPicker(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowBrandPicker(false)}>
+          <Card style={[styles.pickerCard, { backgroundColor: theme.colors.surface }]} onStartShouldSetResponder={() => true}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
+                {isBN ? 'ব্র্যান্ড নির্বাচন / যোগ করুন' : 'Select / Add Brand'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowBrandPicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              mode="outlined"
+              placeholder={isBN ? 'ব্র্যান্ড খুঁজুন...' : 'Search brand...'}
+              value={brandSearch}
+              onChangeText={setBrandSearch}
+              left={<TextInput.Icon icon="magnify" />}
+              style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+            />
+
+            <ScrollView style={{ maxHeight: 200, marginBottom: 12 }}>
+              <TouchableOpacity
+                onPress={() => { setSelectedBrand(null); setForm({ ...form, brand: null }); setShowBrandPicker(false); }}
+                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
+              >
+                <Text style={{ color: '#64748b' }}>{isBN ? '-- কোনোটি নয় (None) --' : '-- None --'}</Text>
+              </TouchableOpacity>
+              {brands.filter(b => b.name.toLowerCase().includes(brandSearch.toLowerCase())).map(b => (
+                <TouchableOpacity
+                  key={b.id}
+                  onPress={() => { setSelectedBrand(b); setForm({ ...form, brand: b.id }); setShowBrandPicker(false); }}
+                  style={{
+                    padding: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9',
+                    backgroundColor: form.brand === b.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ fontWeight: form.brand === b.id ? 'bold' : 'normal', color: form.brand === b.id ? '#2563eb' : theme.colors.onSurface }}>
+                    {b.name}
+                  </Text>
+                  {form.brand === b.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#e2e8f0', paddingTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#2563eb' }}>
+                {isBN ? '+ নতুন ব্র্যান্ড তৈরি করুন' : '+ Quick Add Brand'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  placeholder={isBN ? 'ব্র্যান্ডের নাম...' : 'Brand name...'}
+                  value={newBrandName}
+                  onChangeText={setNewBrandName}
+                  style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                />
+                <Button mode="contained" buttonColor="#2563eb" loading={savingBrand} disabled={savingBrand || !newBrandName.trim()} onPress={handleCreateBrand}>
+                  {isBN ? 'যোগ' : 'Add'}
+                </Button>
+              </View>
+            </View>
+          </Card>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Sale Unit Selection & Quick Add Modal */}
+      <Modal visible={showUnitPicker} transparent animationType="fade" onRequestClose={() => setShowUnitPicker(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowUnitPicker(false)}>
+          <Card style={[styles.pickerCard, { backgroundColor: theme.colors.surface }]} onStartShouldSetResponder={() => true}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
+                {isBN ? 'বিক্রয় ইউনিট নির্বাচন / যোগ করুন' : 'Select / Add Sale Unit'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowUnitPicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              mode="outlined"
+              placeholder={isBN ? 'ইউনিট খুঁজুন (যেমন: Pcs, Kg, Ltr)...' : 'Search unit...'}
+              value={unitSearch}
+              onChangeText={setUnitSearch}
+              left={<TextInput.Icon icon="magnify" />}
+              style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+            />
+
+            <ScrollView style={{ maxHeight: 200, marginBottom: 12 }}>
+              <TouchableOpacity
+                onPress={() => { setSelectedUnit(null); setForm({ ...form, unit: null }); setShowUnitPicker(false); }}
+                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
+              >
+                <Text style={{ color: '#64748b' }}>{isBN ? '-- কোনোটি নয় (None) --' : '-- None --'}</Text>
+              </TouchableOpacity>
+              {units.filter(u => u.name.toLowerCase().includes(unitSearch.toLowerCase())).map(u => (
+                <TouchableOpacity
+                  key={u.id}
+                  onPress={() => { setSelectedUnit(u); setForm({ ...form, unit: u.id }); setShowUnitPicker(false); }}
+                  style={{
+                    padding: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9',
+                    backgroundColor: form.unit === u.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ fontWeight: form.unit === u.id ? 'bold' : 'normal', color: form.unit === u.id ? '#2563eb' : theme.colors.onSurface }}>
+                    {u.name}
+                  </Text>
+                  {form.unit === u.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#e2e8f0', paddingTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#2563eb' }}>
+                {isBN ? '+ নতুন ইউনিট তৈরি করুন (যেমন: Kg, Pcs, Box)' : '+ Quick Add Unit'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  placeholder={isBN ? 'ইউনিটের নাম...' : 'Unit name...'}
+                  value={newUnitName}
+                  onChangeText={setNewUnitName}
+                  style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                />
+                <Button mode="contained" buttonColor="#2563eb" loading={savingUnit} disabled={savingUnit || !newUnitName.trim()} onPress={() => handleCreateUnit('unit')}>
+                  {isBN ? 'যোগ' : 'Add'}
+                </Button>
+              </View>
+            </View>
+          </Card>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* Purchase Unit Selection & Quick Add Modal */}
+      <Modal visible={showPurchaseUnitPicker} transparent animationType="fade" onRequestClose={() => setShowPurchaseUnitPicker(false)}>
+        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setShowPurchaseUnitPicker(false)}>
+          <Card style={[styles.pickerCard, { backgroundColor: theme.colors.surface }]} onStartShouldSetResponder={() => true}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
+                {isBN ? 'পারচেজ ইউনিট নির্বাচন / যোগ করুন' : 'Select / Add Purchase Unit'}
+              </Text>
+              <TouchableOpacity onPress={() => setShowPurchaseUnitPicker(false)}>
+                <MaterialCommunityIcons name="close" size={24} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+
+            <TextInput
+              mode="outlined"
+              placeholder={isBN ? 'ইউনিট খুঁজুন (যেমন: Drum, Carton, Dozen)...' : 'Search bulk unit...'}
+              value={unitSearch}
+              onChangeText={setUnitSearch}
+              left={<TextInput.Icon icon="magnify" />}
+              style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+            />
+
+            <ScrollView style={{ maxHeight: 200, marginBottom: 12 }}>
+              <TouchableOpacity
+                onPress={() => { setSelectedPurchaseUnit(null); setForm({ ...form, purchase_unit: null }); setShowPurchaseUnitPicker(false); }}
+                style={{ padding: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9' }}
+              >
+                <Text style={{ color: '#64748b' }}>{isBN ? '-- কোনোটি নয় (None) --' : '-- None --'}</Text>
+              </TouchableOpacity>
+              {units.filter(u => u.name.toLowerCase().includes(unitSearch.toLowerCase())).map(u => (
+                <TouchableOpacity
+                  key={u.id}
+                  onPress={() => { setSelectedPurchaseUnit(u); setForm({ ...form, purchase_unit: u.id }); setShowPurchaseUnitPicker(false); }}
+                  style={{
+                    padding: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9',
+                    backgroundColor: form.purchase_unit === u.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ fontWeight: form.purchase_unit === u.id ? 'bold' : 'normal', color: form.purchase_unit === u.id ? '#2563eb' : theme.colors.onSurface }}>
+                    {u.name}
+                  </Text>
+                  {form.purchase_unit === u.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />}
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+
+            <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#e2e8f0', paddingTop: 10 }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#2563eb' }}>
+                {isBN ? '+ নতুন পারচেজ ইউনিট (যেমন: Drum, Carton)' : '+ Quick Add Purchase Unit'}
+              </Text>
+              <View style={{ flexDirection: 'row', gap: 8 }}>
+                <TextInput
+                  mode="outlined"
+                  dense
+                  placeholder={isBN ? 'ইউনিটের নাম...' : 'Unit name...'}
+                  value={newUnitName}
+                  onChangeText={setNewUnitName}
+                  style={{ flex: 1, backgroundColor: theme.colors.surface }}
+                />
+                <Button mode="contained" buttonColor="#2563eb" loading={savingUnit} disabled={savingUnit || !newUnitName.trim()} onPress={() => handleCreateUnit('purchase_unit')}>
+                  {isBN ? 'যোগ' : 'Add'}
+                </Button>
+              </View>
+            </View>
+          </Card>
+        </TouchableOpacity>
+      </Modal>
+
       {/* Quick Add Vendor Modal */}
       <Modal visible={showAddVendor} transparent animationType="fade" onRequestClose={() => setShowAddVendor(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
