@@ -88,6 +88,62 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const [newVendor, setNewVendor] = useState({ name: '', phone: '', address: '' });
   const [savingVendor, setSavingVendor] = useState(false);
 
+  // Quick Add Brand & Unit States
+  const [newBrandName, setNewBrandName] = useState('');
+  const [savingBrand, setSavingBrand] = useState(false);
+  const [newUnitName, setNewUnitName] = useState('');
+  const [savingUnit, setSavingUnit] = useState(false);
+
+  const handleCreateBrand = async () => {
+    if (!newBrandName.trim()) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ব্র্যান্ডের নাম আবশ্যক।' : 'Brand name is required.');
+      return;
+    }
+    setSavingBrand(true);
+    try {
+      const res = await api.post('/catalog/brands/', { name: newBrandName.trim() });
+      const created = res.data;
+      setBrands(prev => [...prev, created]);
+      setSelectedBrand(created);
+      setForm((prev: any) => ({ ...prev, brand: created.id }));
+      setShowBrandPicker(false);
+      setNewBrandName('');
+      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'নতুন ব্র্যান্ড তৈরি হয়েছে!' : 'Brand created successfully!');
+    } catch (e: any) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || e.message || 'Failed to create brand');
+    } finally {
+      setSavingBrand(false);
+    }
+  };
+
+  const handleCreateUnit = async (target: 'unit' | 'purchase_unit') => {
+    if (!newUnitName.trim()) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ইউনিটের নাম আবশ্যক।' : 'Unit name is required.');
+      return;
+    }
+    setSavingUnit(true);
+    try {
+      const res = await api.post('/catalog/units/', { name: newUnitName.trim() });
+      const created = res.data;
+      setUnits(prev => [...prev, created]);
+      if (target === 'unit') {
+        setSelectedUnit(created);
+        setForm((prev: any) => ({ ...prev, unit: created.id }));
+        setShowUnitPicker(false);
+      } else {
+        setSelectedPurchaseUnit(created);
+        setForm((prev: any) => ({ ...prev, purchase_unit: created.id }));
+        setShowPurchaseUnitPicker(false);
+      }
+      setNewUnitName('');
+      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'নতুন ইউনিট তৈরি হয়েছে!' : 'Unit created successfully!');
+    } catch (e: any) {
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || e.message || 'Failed to create unit');
+    } finally {
+      setSavingUnit(false);
+    }
+  };
+
   useEffect(() => {
     if (visible) {
       setSuggestions([]);
