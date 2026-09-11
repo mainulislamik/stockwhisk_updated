@@ -180,28 +180,16 @@ export default function ProductsScreen() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  useFocusEffect(
-    useCallback(() => {
-      if (activeTab === 'list') {
-        setPage(1);
-        setProducts([]);
-        setHasMore(true);
-        fetchProducts(1, debouncedSearch, selectedCategory, true);
-      }
-    }, [debouncedSearch, selectedCategory, activeTab])
-  );
-
-  const fetchProducts = async (pageNum: number, searchQuery: string, cat: number | null, isRefresh = false) => {
-    if (loading || (!hasMore && !isRefresh)) return;
+  const fetchProducts = useCallback(async (pageNum: number, searchQuery: string, cat: number | null, brand: number | null, isRefresh = false) => {
     setLoading(true);
     try {
       const res = await api.get('/catalog/products/', {
         params: {
-          search: searchQuery,
+          search: searchQuery || undefined,
           page: pageNum,
           page_size: 30,
           category: cat || undefined,
-          brand: brandFilter || undefined,
+          brand: brand || undefined,
           light: 1
         }
       });
@@ -216,7 +204,17 @@ export default function ProductsScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (activeTab === 'list') {
+        setPage(1);
+        setHasMore(true);
+        fetchProducts(1, debouncedSearch, selectedCategory, brandFilter, true);
+      }
+    }, [debouncedSearch, selectedCategory, brandFilter, activeTab, fetchProducts])
+  );
 
   const deleteProduct = async (id: number) => {
     try {
@@ -378,8 +376,8 @@ export default function ProductsScreen() {
 
   const onScroll = ({ nativeEvent }: any) => {
     const isCloseToBottom = nativeEvent.layoutMeasurement.height + nativeEvent.contentOffset.y >= nativeEvent.contentSize.height - 50;
-    if (isCloseToBottom && activeTab === 'list') {
-      fetchProducts(page, debouncedSearch, selectedCategory);
+    if (isCloseToBottom && activeTab === 'list' && !loading && hasMore) {
+      fetchProducts(page, debouncedSearch, selectedCategory, brandFilter, false);
     }
   };
 
