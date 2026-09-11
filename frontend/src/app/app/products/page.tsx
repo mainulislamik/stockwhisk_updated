@@ -819,6 +819,87 @@ export default function ProductsPage() {
         </div>
       )}
 
+      {/* Mobile Repair Shop: Brand -> Category Hierarchy Header */}
+      {isRepairShop && (
+        <div className="card shadow-sm border-0 mb-3 p-3" style={{ background: "rgba(30, 41, 59, 0.4)", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
+          <div className="mb-2">
+            <div className="d-flex align-items-center justify-content-between mb-2">
+              <span className="small fw-bold text-info text-uppercase" style={{ letterSpacing: "0.5px" }}>
+                <i className="bi bi-phone me-1"></i> ১. ব্র্যান্ড নির্বাচন (Brand First):
+              </span>
+              {selectedBrandFilter && (
+                <button
+                  type="button"
+                  className="btn btn-link btn-sm text-danger text-decoration-none p-0 fw-medium"
+                  style={{ fontSize: "11px" }}
+                  onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
+                >
+                  ক্লিয়ার ✕
+                </button>
+              )}
+            </div>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                type="button"
+                className={`btn btn-sm rounded-3 fw-bold px-3 py-1 ${!selectedBrandFilter ? "btn-primary" : "btn-dark border-secondary text-secondary"}`}
+                onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
+              >
+                সব ব্র্যান্ড (All Brands)
+              </button>
+              {brands.map((b) => (
+                <button
+                  key={b.id}
+                  type="button"
+                  className={`btn btn-sm rounded-3 fw-bold px-3 py-1 ${selectedBrandFilter === b.id ? "btn-primary shadow" : "btn-dark border-secondary text-light"}`}
+                  onClick={() => { setSelectedBrandFilter(b.id); }}
+                >
+                  <i className="bi bi-phone me-1 opacity-75"></i>{b.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {selectedBrandFilter && (
+            <div className="pt-2 border-top border-secondary border-opacity-25 mt-2">
+              <div className="d-flex align-items-center justify-content-between mb-2">
+                <span className="small fw-bold text-warning text-uppercase" style={{ letterSpacing: "0.5px" }}>
+                  <i className="bi bi-cpu me-1"></i> ২. পার্টস ক্যাটাগরি (Component Category):
+                </span>
+                {selectedCategoryFilter && (
+                  <button
+                    type="button"
+                    className="btn btn-link btn-sm text-secondary text-decoration-none p-0"
+                    style={{ fontSize: "11px" }}
+                    onClick={() => setSelectedCategoryFilter(null)}
+                  >
+                    সব ক্যাটাগরি
+                  </button>
+                )}
+              </div>
+              <div className="d-flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  className={`btn btn-sm rounded-3 px-3 py-1 fw-medium ${!selectedCategoryFilter ? "btn-warning text-dark fw-bold" : "btn-dark border-secondary text-secondary"}`}
+                  onClick={() => setSelectedCategoryFilter(null)}
+                >
+                  সব ক্যাটাগরি
+                </button>
+                {categories.map((c: any) => (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`btn btn-sm rounded-3 px-3 py-1 fw-medium ${selectedCategoryFilter === c.id ? "btn-warning text-dark fw-bold shadow" : "btn-dark border-secondary text-light"}`}
+                    onClick={() => setSelectedCategoryFilter(c.id)}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="card shadow-sm">
         <div className="table-responsive">
           <table className="table table-striped table-sm align-middle mb-0">
