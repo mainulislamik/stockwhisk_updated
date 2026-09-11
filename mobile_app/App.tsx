@@ -30,6 +30,9 @@ import BarcodesScreen from './src/screens/BarcodesScreen';
 import ManufacturingScreen from './src/screens/ManufacturingScreen';
 import NewBatchScreen from './src/screens/NewBatchScreen';
 import GlobalHeader from './src/components/GlobalHeader';
+import UpdatingOverlay from './src/components/UpdatingOverlay';
+import { useAutoUpdateChecker } from './src/hooks/useAutoUpdateChecker';
+
 import { View, Text, ScrollView, LogBox, Platform } from 'react-native';
 
 LogBox.ignoreLogs([
@@ -117,6 +120,7 @@ function RootNavigator() {
 
 function ThemedApp() {
   const { isDarkMode } = usePreferences();
+  const { isUpdating, updateStatus } = useAutoUpdateChecker();
   const theme = isDarkMode ? customDarkTheme : customLightTheme;
 
   return (
@@ -141,13 +145,14 @@ function ThemedApp() {
               elevation: Platform.OS === 'web' ? 12 : 0,
             }}
           >
+            {isUpdating && <UpdatingOverlay statusText={updateStatus} />}
             <ErrorBoundary>
-          <NavigationContainer>
-              <AuthProvider>
-                <RootNavigator />
-              </AuthProvider>
-            </NavigationContainer>
-        </ErrorBoundary>
+              <NavigationContainer>
+                <AuthProvider>
+                  <RootNavigator />
+                </AuthProvider>
+              </NavigationContainer>
+            </ErrorBoundary>
           </View>
         </View>
       </PaperProvider>
