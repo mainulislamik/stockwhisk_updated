@@ -64,6 +64,12 @@ export default function PosPage() {
     return () => clearTimeout(timer);
   }, [query]);
 
+  // Fetch Brands and Categories on mount for Repair Drill-down
+  useEffect(() => {
+    api<any>("/catalog/brands/?page_size=100").then((r) => setBrands(r.results || r || [])).catch(() => {});
+    api<any>("/catalog/categories/?page_size=100").then((r) => setCategories(r.results || r || [])).catch(() => {});
+  }, []);
+
   // Main POS product grid: load the first 20 fast (light = no embedded units),
   // then append more on scroll (infinite scroll). Units are fetched on click.
   const GRID_PAGE_SIZE = 20;
