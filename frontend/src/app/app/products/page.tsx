@@ -820,272 +820,313 @@ export default function ProductsPage() {
       )}
 
       {/* Mobile Repair Shop: Brand -> Category Hierarchy Header */}
-      {isRepairShop && (
-        <div className="card shadow-sm border-0 mb-3 p-3" style={{ background: "rgba(30, 41, 59, 0.4)", border: "1px solid rgba(255, 255, 255, 0.08)" }}>
-          <div className="mb-2">
-            <div className="d-flex align-items-center justify-content-between mb-2">
-              <span className="small fw-bold text-info text-uppercase" style={{ letterSpacing: "0.5px" }}>
-                <i className="bi bi-phone me-1"></i> ১. ব্র্যান্ড নির্বাচন (Brand First):
-              </span>
-              {selectedBrandFilter && (
-                <button
-                  type="button"
-                  className="btn btn-link btn-sm text-danger text-decoration-none p-0 fw-medium"
-                  style={{ fontSize: "11px" }}
-                  onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
-                >
-                  ক্লিয়ার ✕
-                </button>
-              )}
-            </div>
-            <div className="d-flex flex-wrap gap-2">
+      {/* ══════════════════════════════════════════════════════════════════════
+          REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
+          Step 1: Big Brand Cards -> Step 2: Category Cards -> Step 3: Products Table
+          ══════════════════════════════════════════════════════════════════════ */}
+      {isRepairShop ? (
+        <div className="d-flex flex-column gap-3 mb-4">
+          {/* Breadcrumb / Navigation Bar */}
+          <div className="d-flex align-items-center justify-content-between p-2 px-3 rounded-3 bg-dark border border-secondary border-opacity-25">
+            <div className="d-flex align-items-center gap-2 small">
               <button
                 type="button"
-                className={`btn btn-sm rounded-3 fw-bold px-3 py-1 ${!selectedBrandFilter ? "btn-primary" : "btn-dark border-secondary text-secondary"}`}
+                className={`btn btn-sm py-0 px-2 fw-bold ${!selectedBrandFilter ? "btn-primary" : "btn-link text-info text-decoration-none"}`}
                 onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
               >
-                সব ব্র্যান্ড (All Brands)
+                <i className="bi bi-phone me-1"></i>১. ব্র্যান্ড (Brands)
               </button>
-              {brands.map((b) => (
-                <button
-                  key={b.id}
-                  type="button"
-                  className={`btn btn-sm rounded-3 fw-bold px-3 py-1 ${selectedBrandFilter === b.id ? "btn-primary shadow" : "btn-dark border-secondary text-light"}`}
-                  onClick={() => { setSelectedBrandFilter(b.id); }}
-                >
-                  <i className="bi bi-phone me-1 opacity-75"></i>{b.name}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {selectedBrandFilter && (
-            <div className="pt-2 border-top border-secondary border-opacity-25 mt-2">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="small fw-bold text-warning text-uppercase" style={{ letterSpacing: "0.5px" }}>
-                  <i className="bi bi-cpu me-1"></i> ২. পার্টস ক্যাটাগরি (Component Category):
-                </span>
-                {selectedCategoryFilter && (
+              {selectedBrandFilter && (
+                <>
+                  <span className="text-secondary">›</span>
                   <button
                     type="button"
-                    className="btn btn-link btn-sm text-secondary text-decoration-none p-0"
-                    style={{ fontSize: "11px" }}
+                    className={`btn btn-sm py-0 px-2 fw-bold ${!selectedCategoryFilter ? "btn-warning text-dark" : "btn-link text-warning text-decoration-none"}`}
                     onClick={() => setSelectedCategoryFilter(null)}
                   >
-                    সব ক্যাটাগরি
+                    <i className="bi bi-cpu me-1"></i>{brands.find(b => b.id === selectedBrandFilter)?.name || "ক্যাটাগরি"}
                   </button>
+                </>
+              )}
+              {selectedBrandFilter && selectedCategoryFilter && (
+                <>
+                  <span className="text-secondary">›</span>
+                  <span className="badge bg-success py-1 px-2 fw-bold">
+                    <i className="bi bi-box-seam me-1"></i>{categories.find((c: any) => c.id === selectedCategoryFilter)?.name || "প্রোডাক্ট তালিকা"}
+                  </span>
+                </>
+              )}
+            </div>
+            {selectedBrandFilter && (
+              <button
+                type="button"
+                className="btn btn-outline-danger btn-sm py-0 px-2 fw-medium"
+                style={{ fontSize: "11px" }}
+                onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
+              >
+                শুরুতে ফিরুন ↺
+              </button>
+            )}
+          </div>
+
+          {/* ── STEP 1: Select Brand (Big Touch Cards) ── */}
+          {!selectedBrandFilter && (
+            <div>
+              <h6 className="fw-bold text-info mb-3">
+                <i className="bi bi-grid-3x3-gap me-2"></i>ব্র্যান্ড নির্বাচন করুন (Select Device Brand):
+              </h6>
+              <div className="row g-3">
+                {brands.length === 0 ? (
+                  <div className="col-12 text-center py-5 text-secondary card shadow-sm border-0" style={{ background: "rgba(30, 41, 59, 0.4)" }}>
+                    <div style={{ fontSize: "2.5rem" }}>📱</div>
+                    <div className="mt-2 fw-semibold text-white">কোনো ব্র্যান্ড পাওয়া যায়নি</div>
+                    <div className="small text-secondary">উপরের "+ New Product Record" থেকে ব্র্যান্ড যোগ করুন।</div>
+                  </div>
+                ) : (
+                  brands.map((b) => (
+                    <div className="col-6 col-md-3" key={b.id}>
+                      <button
+                        type="button"
+                        className="btn btn-dark w-100 p-4 rounded-4 text-center border border-secondary border-opacity-50 shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
+                        style={{ minHeight: "130px", background: "rgba(30, 41, 59, 0.6)", transition: "all 0.2s" }}
+                        onClick={() => setSelectedBrandFilter(b.id)}
+                      >
+                        <div className="p-3 rounded-circle bg-primary bg-opacity-25 text-primary fs-2">
+                          <i className="bi bi-phone"></i>
+                        </div>
+                        <div className="fw-bold text-white fs-5">{b.name}</div>
+                      </button>
+                    </div>
+                  ))
                 )}
               </div>
-              <div className="d-flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={`btn btn-sm rounded-3 px-3 py-1 fw-medium ${!selectedCategoryFilter ? "btn-warning text-dark fw-bold" : "btn-dark border-secondary text-secondary"}`}
-                  onClick={() => setSelectedCategoryFilter(null)}
-                >
-                  সব ক্যাটাগরি
+            </div>
+          )}
+
+          {/* ── STEP 2: Select Category (Component Cards) ── */}
+          {selectedBrandFilter && !selectedCategoryFilter && (
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h6 className="fw-bold text-warning mb-0">
+                  <i className="bi bi-tools me-2"></i>{brands.find(b => b.id === selectedBrandFilter)?.name} এর ক্যাটাগরি / পার্টস বেছে নিন:
+                </h6>
+                <button type="button" className="btn btn-outline-secondary btn-sm py-0" onClick={() => setSelectedBrandFilter(null)}>
+                  ← ব্র্যান্ড পরিবর্তন
                 </button>
-                {categories.map((c: any) => (
-                  <button
-                    key={c.id}
-                    type="button"
-                    className={`btn btn-sm rounded-3 px-3 py-1 fw-medium ${selectedCategoryFilter === c.id ? "btn-warning text-dark fw-bold shadow" : "btn-dark border-secondary text-light"}`}
-                    onClick={() => setSelectedCategoryFilter(c.id)}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+              </div>
+              <div className="row g-3">
+                {categories.length === 0 ? (
+                  <div className="col-12 text-center py-5 text-secondary card shadow-sm border-0" style={{ background: "rgba(30, 41, 59, 0.4)" }}>
+                    <div style={{ fontSize: "2.5rem" }}>⚙️</div>
+                    <div className="mt-2 fw-semibold text-white">কোনো ক্যাটাগরি পাওয়া যায়নি</div>
+                  </div>
+                ) : (
+                  categories.map((c: any) => (
+                    <div className="col-6 col-md-3" key={c.id}>
+                      <button
+                        type="button"
+                        className="btn btn-dark w-100 p-4 rounded-4 text-center border border-secondary border-opacity-50 shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
+                        style={{ minHeight: "120px", background: "rgba(30, 41, 59, 0.6)", transition: "all 0.2s" }}
+                        onClick={() => setSelectedCategoryFilter(c.id)}
+                      >
+                        <div className="p-3 rounded-circle bg-warning bg-opacity-25 text-warning fs-3">
+                          <i className="bi bi-cpu"></i>
+                        </div>
+                        <div className="fw-bold text-white fs-5">{c.name}</div>
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* ── STEP 3: Products Table (Visible ONLY after Category Selection) ── */}
+          {selectedBrandFilter && selectedCategoryFilter && (
+            <div>
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h6 className="fw-bold text-success mb-0">
+                  <i className="bi bi-box-seam me-2"></i>{brands.find(b => b.id === selectedBrandFilter)?.name} · {categories.find((c: any) => c.id === selectedCategoryFilter)?.name} এর পার্টস তালিকা:
+                </h6>
+                <button type="button" className="btn btn-outline-secondary btn-sm py-0" onClick={() => setSelectedCategoryFilter(null)}>
+                  ← ক্যাটাগরি পরিবর্তন
+                </button>
+              </div>
+
+              <div className="card shadow-sm">
+                <div className="table-responsive">
+                  <table className="table table-striped table-sm align-middle mb-0">
+                    <thead className="thead-1">
+                      <tr>
+                        <th>{t("prod_list_col_name")}</th>
+                        <th className="text-end">{t("prod_list_col_cost")}</th>
+                        <th className="text-end">{t("prod_list_col_price")}</th>
+                        <th className="text-end">{t("prod_list_col_stock")}</th>
+                        <th className="text-center">{t("prod_list_col_active")}</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {products.length === 0 ? (
+                        <tr data-empty="">
+                          <td colSpan={6} className="text-center text-secondary py-5">
+                            <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
+                            <div className="fw-semibold mt-2">{t("prod_list_no_products")}</div>
+                            <div className="small mb-3">{t("prod_list_add_first")}</div>
+                            {canManage && (
+                              <button onClick={() => setShowAdd(true)} className="btn btn-brand btn-sm">
+                                {t("prod_list_new")}
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      ) : (
+                        products.map((p) => {
+                          const mult = Number(p.purchase_multiplier) || 1;
+                          const isBulk = mult > 1;
+                          const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                          const bulkUnit = p.purchase_unit_detail?.name || "Pack";
+                          const cost = Number(p.cost_price) || 0;
+                          const sell = Number(p.selling_price) || 0;
+                          const stockNum = Math.max(0, Number(p.current_stock || 0));
+
+                          return (
+                            <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
+                              <td>
+                                <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
+                                  {p.name}
+                                </Link>
+                                <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
+                                  <span>{p.sku || "—"}</span>
+                                  {isBulk && (
+                                    <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                      📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                                    </span>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="text-end">`৳${Number(cost).toFixed(2)}`</td>
+                              <td className="text-end">`৳${Number(sell).toFixed(2)}`</td>
+                              <td className="text-end">
+                                <span className={stockNum <= 0 ? "text-danger fw-bold" : ""}>
+                                  {stockNum} {baseUnit || "pcs"}
+                                </span>
+                              </td>
+                              <td className="text-center">
+                                <span className={`badge ${p.is_active ? "bg-success" : "bg-secondary"}`}>
+                                  {p.is_active ? "Active" : "Inactive"}
+                                </span>
+                              </td>
+                              <td className="text-end">
+                                {canManage && (
+                                  <>
+                                    <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
+                                      {t("prod_list_edit") || "Edit"}
+                                    </Link>
+                                    <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
+                                      {t("prod_list_delete") || "Delete"}
+                                    </button>
+                                  </>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             </div>
           )}
         </div>
-      )}
-
-      <div className="card shadow-sm">
-        <div className="table-responsive">
-          <table className="table table-striped table-sm align-middle mb-0">
-            <thead className="thead-1">
-              <tr>
-                <th>{t("prod_list_col_name")}</th>
-                <th className="text-end">{t("prod_list_col_cost")}</th>
-                <th className="text-end">{t("prod_list_col_price")}</th>
-                <th className="text-end">{t("prod_list_col_stock")}</th>
-                <th className="text-center">{t("prod_list_col_active")}</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {products.length === 0 ? (
-                <tr data-empty="">
-                  <td colSpan={6} className="text-center text-secondary py-5">
-                    <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
-                    <div className="fw-semibold mt-2">{t("prod_list_no_products")}</div>
-                    <div className="small mb-3">{t("prod_list_add_first")}</div>
-                    {canManage && (
-                      <button onClick={() => setShowAdd(true)} className="btn btn-brand btn-sm">
-                        {t("prod_list_new")}
-                      </button>
-                    )}
-                  </td>
+      ) : (
+        /* ── Default Flat Product Table (Non-Repair Shops) ── */
+        <div className="card shadow-sm">
+          <div className="table-responsive">
+            <table className="table table-striped table-sm align-middle mb-0">
+              <thead className="thead-1">
+                <tr>
+                  <th>{t("prod_list_col_name")}</th>
+                  <th className="text-end">{t("prod_list_col_cost")}</th>
+                  <th className="text-end">{t("prod_list_col_price")}</th>
+                  <th className="text-end">{t("prod_list_col_stock")}</th>
+                  <th className="text-center">{t("prod_list_col_active")}</th>
+                  <th></th>
                 </tr>
-              ) : (
-                products.map((p) => {
-                  const mult = Number(p.purchase_multiplier) || 1;
-                  const isBulk = mult > 1;
-                  const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
-                  const bulkUnit = p.purchase_unit_detail?.name || "Pack";
-                  const cost = Number(p.cost_price) || 0;
-                  const sell = Number(p.selling_price) || 0;
-                  const packCost = Number(p.full_pack_cost) || (isBulk && cost > 0 ? Number((cost * mult).toFixed(2)) : 0);
-                  const packSell = Number(p.full_pack_sell) || (isBulk && sell > 0 ? Number((sell * mult).toFixed(2)) : 0);
-                  const stockNum = Math.max(0, Number(p.current_stock || 0));
-                  const fullPacks = isBulk ? Math.floor(stockNum / mult) : 0;
-                  const looseBase = isBulk ? Number((stockNum % mult).toFixed(2)) : 0;
+              </thead>
+              <tbody>
+                {products.length === 0 ? (
+                  <tr data-empty="">
+                    <td colSpan={6} className="text-center text-secondary py-5">
+                      <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
+                      <div className="fw-semibold mt-2">{t("prod_list_no_products")}</div>
+                      <div className="small mb-3">{t("prod_list_add_first")}</div>
+                      {canManage && (
+                        <button onClick={() => setShowAdd(true)} className="btn btn-brand btn-sm">
+                          {t("prod_list_new")}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ) : (
+                  products.map((p) => {
+                    const mult = Number(p.purchase_multiplier) || 1;
+                    const isBulk = mult > 1;
+                    const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                    const bulkUnit = p.purchase_unit_detail?.name || "Pack";
+                    const cost = Number(p.cost_price) || 0;
+                    const sell = Number(p.selling_price) || 0;
+                    const stockNum = Math.max(0, Number(p.current_stock || 0));
 
-                  return (
-                    <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
-                      <td>
-                        <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
-                          {p.name}
-                        </Link>
-                        <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
-                          <span>{p.sku || "—"}</span>
-                          {isBulk && (
-                            <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                              📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
-                            </span>
-                          )}
-                          {p.expiry_date && (() => {
-                            const exp = new Date(p.expiry_date);
-                            const today = new Date();
-                            const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-                            if (diffDays < 0) {
-                              return (
-                                <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                                  ⛔ {lang === "bn" ? `মেয়াদোত্তীর্ণ (${p.expiry_date})` : `Expired (${p.expiry_date})`}
-                                </span>
-                              );
-                            }
-                            if (diffDays <= 30) {
-                              return (
-                                <span className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50" style={{ fontSize: "0.68rem" }}>
-                                  ⚠️ {lang === "bn" ? `${diffDays} দিনে মেয়াদ শেষ (${p.expiry_date})` : `Exp in ${diffDays}d (${p.expiry_date})`}
-                                </span>
-                              );
-                            }
-                            return (
-                              <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                                📅 {lang === "bn" ? `মেয়াদ: ${p.expiry_date}` : `Exp: ${p.expiry_date}`}
-                              </span>
-                            );
-                          })()}
-                          {p.lot_number && (
-                            <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                              Lot: {p.lot_number}
-                            </span>
-                          )}
-                          {!isFashionShop && p.warranty_months && p.warranty_months > 0 && (
-                            <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                              🛡️ {p.warranty_months} {lang === "bn" ? "মাস ওয়ারেন্টি" : "M Warranty"}
-                            </span>
-                          )}
-                          {isFashionShop && p.replacement_guarantee_days && p.replacement_guarantee_days > 0 && (
-                            <span className="badge bg-info bg-opacity-10 text-info border border-info border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                              🔄 {p.replacement_guarantee_days} {lang === "bn" ? "দিন এক্সচেঞ্জ" : "D Exchange"}
-                            </span>
-                          )}
-                          {/* Fashion badges */}
-                          {isFashionShop && p.fabric_material && (
-                            <span className="badge" style={{fontSize:"0.68rem",background:"#f3e8ff",color:"#7c3aed",border:"1px solid #c084fc"}}>
-                              🧵 {p.fabric_material}
-                            </span>
-                          )}
-                          {isFashionShop && p.gender_target && (
-                            <span className="badge" style={{fontSize:"0.68rem",background:"#fdf4ff",color:"#9333ea",border:"1px solid #d8b4fe"}}>
-                              👤 {p.gender_target === "men" ? (lang==="bn"?"পুরুষ":"Men") : p.gender_target === "women" ? (lang==="bn"?"নারী":"Women") : p.gender_target === "kids" ? (lang==="bn"?"শিশু":"Kids") : lang==="bn"?"সবার জন্য":"Unisex"}
-                            </span>
-                          )}
-                          {isFashionShop && p.fit_type && (
-                            <span className="badge" style={{fontSize:"0.68rem",background:"#f0fdf4",color:"#15803d",border:"1px solid #bbf7d0"}}>
-                              ✂️ {p.fit_type}
-                            </span>
-                          )}
-                          {isFashionShop && p.collection_name && (
-                            <span className="badge" style={{fontSize:"0.68rem",background:"#fefce8",color:"#a16207",border:"1px solid #fef08a"}}>
-                              ✨ {p.collection_name}
-                            </span>
-                          )}
-                          {isFashionShop && p.size_variants && p.size_variants.length > 0 && (
-                            <span className="badge" style={{fontSize:"0.68rem",background:"#eff6ff",color:"#1d4ed8",border:"1px solid #bfdbfe"}}>
-                              📐 {p.size_variants.map((v:any)=>v.size).filter(Boolean).join(" / ")}
-                            </span>
-                          )}
-                        </div>
-                      </td>
-                      <td className="text-end">
-                        <div className="fw-semibold">৳{cost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{baseUnit ? ` / ${baseUnit}` : ""}</div>
-                        {isBulk && packCost > 0 && (
-                          <div className="text-secondary small" style={{ fontSize: "0.72rem" }}>
-                            ৳{packCost.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {bulkUnit}
-                          </div>
-                        )}
-                      </td>
-                      <td className="text-end">
-                        <div className="fw-semibold text-brand">৳{sell.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}{baseUnit ? ` / ${baseUnit}` : ""}</div>
-                        {isBulk && packSell > 0 && (
-                          <div className="text-secondary small" style={{ fontSize: "0.72rem" }}>
-                            ৳{packSell.toLocaleString(undefined, { maximumFractionDigits: 2 })} / {bulkUnit}
-                          </div>
-                        )}
-                      </td>
-                      <td className={`text-end ${p.is_low_stock ? "text-danger fw-semibold" : ""}`}>
-                        {p.track_inventory === false ? (
-                          <span className="badge bg-secondary bg-opacity-10 text-secondary border border-secondary border-opacity-25" style={{ fontSize: "0.72rem" }}>
-                            {lang === "bn" ? "সার্ভিস / আনট্র্যাকড" : "Service / Untracked"}
-                          </span>
-                        ) : (
-                          <div>
-                            <span className="fw-bold">{stockNum}</span> {baseUnit}
+                    return (
+                      <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
+                        <td>
+                          <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
+                            {p.name}
+                          </Link>
+                          <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
+                            <span>{p.sku || "—"}</span>
                             {isBulk && (
-                              <div className="text-secondary small" style={{ fontSize: "0.72rem" }}>
-                                ({fullPacks} {bulkUnit}{looseBase > 0 ? ` + ${looseBase} ${baseUnit}` : ""})
-                              </div>
+                              <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                              </span>
                             )}
                           </div>
-                        )}
-                      </td>
-
-                      <td className="text-center">
-                        {canManage ? (
-                          <button onClick={() => toggle(p)} className={`btn btn-sm ${p.is_active ? "btn-success" : "btn-outline-secondary"} py-0 px-2`}>
-                            {p.is_active ? t("prod_list_on") : t("prod_list_off")}
-                          </button>
-                        ) : p.is_active ? (
-                          t("prod_list_yes")
-                        ) : (
-                          t("prod_list_no")
-                        )}
-                      </td>
-                      <td className="text-end text-nowrap">
-                        {canManage && (
-                          <>
-                            <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
-                              {t("prod_list_edit")}
-                            </Link>
-                            <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
-                              {t("prod_list_delete")}
-                            </button>
-                          </>
-                        )}
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
+                        </td>
+                        <td className="text-end">`৳${Number(cost).toFixed(2)}`</td>
+                        <td className="text-end">`৳${Number(sell).toFixed(2)}`</td>
+                        <td className="text-end">
+                          <span className={stockNum <= 0 ? "text-danger fw-bold" : ""}>
+                            {stockNum} {baseUnit || "pcs"}
+                          </span>
+                        </td>
+                        <td className="text-center">
+                          <span className={`badge ${p.is_active ? "bg-success" : "bg-secondary"}`}>
+                            {p.is_active ? "Active" : "Inactive"}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                                {canManage && (
+                                  <>
+                                    <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
+                                      {t("prod_list_edit") || "Edit"}
+                                    </Link>
+                                    <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
+                                      {t("prod_list_delete") || "Delete"}
+                                    </button>
+                                  </>
+                                )}
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-        <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
-      </div>
+      )}
     </div>
   );
 }
