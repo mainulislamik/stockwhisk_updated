@@ -32,7 +32,17 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const CARE_PRESETS = ['Dry Clean Only', 'Machine Wash Cold', 'Hand Wash Only', 'Do Not Bleach', 'Warm Iron'];
   
   const isNew = !product?.id;
-  const [form, setForm] = useState<any>({});
+  const [form, setForm] = useState<any>({
+    brand: '',
+    unit: '',
+    purchase_unit: '',
+    purchase_multiplier: '1',
+    full_pack_cost: '',
+    full_pack_sell: '',
+    expiry_date: '',
+    lot_number: '',
+    mfg_date: '',
+  });
   const [categories, setCategories] = useState<any[]>([]);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [categorySearch, setCategorySearch] = useState('');
@@ -55,6 +65,18 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const [supplierSearch, setSupplierSearch] = useState('');
   const [vendorPaidAmount, setVendorPaidAmount] = useState('');
   const [vendorPayMethod, setVendorPayMethod] = useState('cash');
+
+  // Brands & Units
+  const [brands, setBrands] = useState<any[]>([]);
+  const [units, setUnits] = useState<any[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<any | null>(null);
+  const [selectedUnit, setSelectedUnit] = useState<any | null>(null);
+  const [selectedPurchaseUnit, setSelectedPurchaseUnit] = useState<any | null>(null);
+  const [showBrandPicker, setShowBrandPicker] = useState(false);
+  const [showUnitPicker, setShowUnitPicker] = useState(false);
+  const [showPurchaseUnitPicker, setShowPurchaseUnitPicker] = useState(false);
+  const [brandSearch, setBrandSearch] = useState('');
+  const [unitSearch, setUnitSearch] = useState('');
 
   // Quick Add Category Modal
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -471,6 +493,81 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               </Text>
               <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
+          </View>
+
+          {/* Brand Picker (Web Parity) */}
+          <View style={{ marginBottom: 12 }}>
+            <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 4 }}>
+              {isBN ? 'ব্র্যান্ড (ঐচ্ছিক)' : 'Brand (Optional)'}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setShowBrandPicker(true)}
+              style={{
+                borderWidth: 1,
+                borderColor: selectedBrand ? '#16a34a' : '#cbd5e1',
+                borderRadius: 8,
+                padding: 10,
+                flexDirection: 'row',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                backgroundColor: theme.colors.surface
+              }}
+            >
+              <Text style={{ fontSize: 13, color: selectedBrand ? '#16a34a' : '#64748b', fontWeight: selectedBrand ? 'bold' : 'normal' }}>
+                {selectedBrand ? `✓ ${selectedBrand.name}` : (isBN ? '— বেছে নিন —' : '— select —')}
+              </Text>
+              <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
+            </TouchableOpacity>
+          </View>
+
+          {/* Unit & Purchase Unit Pickers (Web Parity) */}
+          <View style={{ flexDirection: 'row', gap: 10, marginBottom: 12 }}>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 4 }}>
+                {isBN ? 'ইউনিট' : 'Unit'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowUnitPicker(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: selectedUnit ? '#16a34a' : '#cbd5e1',
+                  borderRadius: 8,
+                  padding: 10,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.surface
+                }}
+              >
+                <Text style={{ fontSize: 13, color: selectedUnit ? '#16a34a' : '#64748b', fontWeight: selectedUnit ? 'bold' : 'normal' }}>
+                  {selectedUnit ? `✓ ${selectedUnit.name}` : (isBN ? '— বেছে নিন —' : '— select —')}
+                </Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 4 }}>
+                {isBN ? 'পারচেজ ইউনিট' : 'Purchase Unit'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setShowPurchaseUnitPicker(true)}
+                style={{
+                  borderWidth: 1,
+                  borderColor: selectedPurchaseUnit ? '#16a34a' : '#cbd5e1',
+                  borderRadius: 8,
+                  padding: 10,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: theme.colors.surface
+                }}
+              >
+                <Text style={{ fontSize: 13, color: selectedPurchaseUnit ? '#16a34a' : '#64748b', fontWeight: selectedPurchaseUnit ? 'bold' : 'normal' }}>
+                  {selectedPurchaseUnit ? `✓ ${selectedPurchaseUnit.name}` : (isBN ? '— বেছে নিন —' : '— select —')}
+                </Text>
+                <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* SKU and Single Unified Barcode Field */}

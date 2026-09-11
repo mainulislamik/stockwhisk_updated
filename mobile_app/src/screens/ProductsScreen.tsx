@@ -163,6 +163,16 @@ export default function ProductsScreen() {
         setSuppliers(sups);
       }
     }).catch(() => {});
+    
+    api.get('/catalog/brands/').then((res: any) => {
+      const bs = res.data.results || res.data;
+      if (Array.isArray(bs)) setBrands(bs);
+    }).catch(() => {});
+    
+    api.get('/tenants/branches/').then((res: any) => {
+      const bs = res.data.results || res.data;
+      if (Array.isArray(bs)) setBranches(bs);
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -191,6 +201,7 @@ export default function ProductsScreen() {
           page: pageNum,
           page_size: 30,
           category: cat || undefined,
+          brand: brandFilter || undefined,
           light: 1
         }
       });
@@ -281,61 +292,82 @@ export default function ProductsScreen() {
   };
 
   const handlePushToStock = async () => {
-    if (!selectedPurchaseProduct) {
-      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'অনুগ্রহ করে একটি প্রোডাক্ট নির্বাচন করুন।' : 'Please select a product.');
+    const linesToSubmit = purchaseLines.length > 0 ? purchaseLines : (selectedPurchaseProduct ? [{
+      product: selectedPurchaseProduct,
+      quantity: qtyNum,
+      unit_cost: costNum,
+      barcodes: (() => {
+        let finalBarcodes = [...purchaseBarcodes];
+        if (autoGenerateBarcodes && finalBarcodes.length < qtyNum) {
+          const needed = qtyNum - finalBarcodes.length;
+          finalBarcodes = [...finalBarcodes, ...generateBarcodesHelper(selectedPurchaseProduct, needed)];
+        }
+        return finalBarcodes;
+      })(),
+      warranty_months: Number(warrantyMonths) || 0,
+    }] : []);
+
+    if (linesToSubmit.length === 0) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'অনুগ্রহ করে কমপক্ষে একটি পণ্য যোগ করুন।' : 'Please add at least one product.');
       return;
     }
-    if (qtyNum <= 0) {
-      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ক্রয়ের পরিমাণ ১ বা তার বেশি হতে হবে।' : 'Quantity must be at least 1.');
+    if (!selectedSupplier) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'সরবরাহকারী বেছে নিন।' : 'Please select a supplier.');
       return;
     }
 
     setPushingToStock(true);
     try {
-      let finalBarcodes = [...purchaseBarcodes];
-      if (autoGenerateBarcodes && finalBarcodes.length < qtyNum) {
-        const needed = qtyNum - finalBarcodes.length;
-        finalBarcodes = [...finalBarcodes, ...generateBarcodesHelper(selectedPurchaseProduct, needed)];
+      // Update product prices & warranties for all lines
+      for (const line of linesToSubmit) {
+        await api.patch(`/catalog/products/${line.product.id}/`, {
+          cost_price: line.unit_cost,
+          selling_price: line.product.selling_price,
+          warranty_months: line.warranty_months || 0,
+          expiry_date: line.expiry_date || null,
+          lot_number: line.lot_number || '',
+          mfg_date: line.mfg_date || null,
+        }).catch(() => {});
       }
 
-      // 1. Update product selling price & warranty if changed
-      await api.patch(`/catalog/products/${selectedPurchaseProduct.id}/`, {
-        cost_price: costPrice,
-        selling_price: sellingPrice,
-        warranty_months: Number(warrantyMonths) || 0
-      }).catch(() => {});
-
-      // 2. Create Purchase Order
+      // Create Purchase Order with all lines
       const poRes = await api.post('/purchasing/purchase-orders/', {
-        supplier: selectedSupplier ? selectedSupplier.id : null,
-        items: [{
-          product: selectedPurchaseProduct.id,
-          quantity: qtyNum,
-          unit_cost: costNum,
-          barcodes: finalBarcodes
-        }]
+        supplier: selectedSupplier.id,
+        branch: selectedBranch,
+        promised_date: promisedDate || null,
+        items: linesToSubmit.map(l => ({
+          product: l.product.id,
+          quantity: l.quantity,
+          unit_cost: l.unit_cost,
+          barcodes: l.barcodes,
+        })),
       });
 
       const poId = poRes.data.id;
 
-      // 3. Receive the Purchase Order directly into stock
+      // Receive the Purchase Order
       await api.post(`/purchasing/purchase-orders/${poId}/receive/`, {
         paid: Number(paidAmount) || 0,
-        method: payMethod
+        method: payMethod,
       });
 
       Alert.alert(
         isBN ? 'সফল!' : 'Success!',
-        isBN ? `${selectedPurchaseProduct.name} এর ${qtyNum} ইউনিট স্টকে সফলভাবে যুক্ত হয়েছে!` : `${qtyNum} unit(s) of ${selectedPurchaseProduct.name} received into stock successfully!`
+        isBN ? `${linesToSubmit.length} প্রোডাক্টের স্টক সফলভাবে যুক্ত হয়েছে!` : `${linesToSubmit.length} product(s) received into stock successfully!`
       );
 
-      // Reset
+      // Reset all
+      setPurchaseLines([]);
       setSelectedPurchaseProduct(null);
       setCostPrice('');
       setSellingPrice('');
       setQuantity('1');
+      setWarrantyMonths('');
       setPurchaseBarcodes([]);
+      setCustomBarcodeInput('');
       setPaidAmount('');
+      setPromisedDate('');
+      setSelectedBranch(null);
       setActiveTab('list');
     } catch (e: any) {
       Alert.alert(isBN ? 'ত্রুটি' : 'Error', e.response?.data?.detail || e.message || (isBN ? 'স্টকে যুক্ত করতে সমস্যা হয়েছে।' : 'Failed to push to stock.'));
@@ -358,6 +390,10 @@ export default function ProductsScreen() {
     { key: 'bank', label: isBN ? 'ব্যাংক' : 'Bank' },
     { key: 'card', label: isBN ? 'কার্ড' : 'Card' },
   ];
+
+  const removePurchaseLine = (index: number) => {
+    setPurchaseLines(prev => prev.filter((_, i) => i !== index));
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
