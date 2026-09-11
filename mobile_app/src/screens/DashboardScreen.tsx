@@ -425,19 +425,19 @@ export default function DashboardScreen() {
 
         <View style={styles.qaGrid}>
           {[
-            { icon: 'cash-register',         tint: '#2563eb', bg: '#eff6ff', titleBn: 'নতুন বিক্রয় (POS)',    subBn: 'কার্টে পণ্য যোগ',        go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
-            { icon: 'barcode-scan',          tint: '#7c3aed', bg: '#f5f3ff', titleBn: 'বারকোড স্ক্যান',      subBn: 'ক্যামেরা স্ক্যানার',     go: () => setShowScanner(true) },
-            { icon: 'arrow-down-bold-box',   tint: '#16a34a', bg: '#f0fdf4', titleBn: 'স্টক ইনওয়ার্ড',   subBn: 'নতুন ক্রয় এন্ট্রি',       go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
-            { icon: 'cash-check',            tint: '#0891b2', bg: '#ecfeff', titleBn: 'দৈনিক ক্যাশ ক্লোজিং', subBn: 'দিনের হিসাব বন্ধ',        go: () => navigation.navigate('SettlementScreen') },
-            { icon: 'cash-minus',            tint: '#be185d', bg: '#fdf2f8', titleBn: 'খরচ এন্ট্রি',        subBn: 'দৈনিক খরচ লিখুন',         go: () => navigation.navigate('ExpensesScreen') },
-            { icon: 'account-clock',         tint: '#d97706', bg: '#fffbeb', titleBn: 'বকেয়া আদায়',        subBn: 'বাকির টাকা সংগ্রহ',       go: () => navigation.navigate('DuesScreen') },
-            { icon: 'view-grid-outline',     tint: '#0d9488', bg: '#f0fdfa', titleBn: 'পণ্য তালিকা',        subBn: 'ক্যাটালগ ও স্টক',        go: () => navigation.navigate('ProductsScreen') },
-            { icon: 'file-document-outline', tint: '#475569', bg: '#f1f5f9', titleBn: 'রিপোর্ট ও বিশ্লেষণ', subBn: 'বিক্রয় ও লাভ-ক্ষতি',     go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
-            { icon: 'account-group-outline', tint: '#9333ea', bg: '#faf5ff', titleBn: 'কাস্টমার ডিরেক্টরি', subBn: 'গ্রাহক ও হিস্ট্রি',       go: () => navigation.navigate('CustomersScreen') },
+            { icon: 'cash-register',         tint: '#2563eb', bg: '#eff6ff', titleBn: 'নতুন বিক্রয় (POS)',    titleEn: 'New Sale (POS)',     subBn: 'কার্টে পণ্য যোগ',        subEn: 'Add to cart',          go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
+            { icon: 'barcode-scan',          tint: '#7c3aed', bg: '#f5f3ff', titleBn: 'বারকোড স্ক্যান',      titleEn: 'Barcode Scanner',    subBn: 'ক্যামেরা স্ক্যানার',     subEn: 'Camera scanner',       go: () => setShowScanner(true) },
+            { icon: 'arrow-down-bold-box',   tint: '#16a34a', bg: '#f0fdf4', titleBn: 'স্টক ইনওয়ার্ড',   titleEn: 'Stock Inward',       subBn: 'নতুন ক্রয় এন্ট্রি',       subEn: 'New purchase',         go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
+            { icon: 'cash-check',            tint: '#0891b2', bg: '#ecfeff', titleBn: 'দৈনিক ক্যাশ ক্লোজিং', titleEn: 'Daily Settlement',   subBn: 'দিনের হিসাব বন্ধ',        subEn: 'Day settlement',       go: () => navigation.navigate('SettlementScreen') },
+            { icon: 'cash-minus',            tint: '#be185d', bg: '#fdf2f8', titleBn: 'খরচ এন্ট্রি',        titleEn: 'Add Expense',        subBn: 'দৈনিক খরচ লিখুন',         subEn: 'Record expenses',      go: () => navigation.navigate('ExpensesScreen') },
+            { icon: 'account-clock',         tint: '#d97706', bg: '#fffbeb', titleBn: 'বকেয়া আদায়',        titleEn: 'Customer Dues',      subBn: 'বাকির টাকা সংগ্রহ',       subEn: 'Collect dues',         go: () => navigation.navigate('DuesScreen') },
+            { icon: 'view-grid-outline',     tint: '#0d9488', bg: '#f0fdfa', titleBn: 'পণ্য তালিকা',        titleEn: 'Product List',       subBn: 'ক্যাটালগ ও স্টক',        subEn: 'Catalog & stock',      go: () => navigation.navigate('ProductsScreen') },
+            { icon: 'file-document-outline', tint: '#475569', bg: '#f1f5f9', titleBn: 'রিপোর্ট ও বিশ্লেষণ', titleEn: 'Reports & P&L',      subBn: 'বিক্রয় ও লাভ-ক্ষতি',     subEn: 'Sales & profit',       go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
+            { icon: 'account-group-outline', tint: '#9333ea', bg: '#faf5ff', titleBn: 'কাস্টমার ডিরেক্টরি', titleEn: 'Customers',         subBn: 'গ্রাহক ও হিস্ট্রি',       subEn: 'Customer history',     go: () => navigation.navigate('CustomersScreen') },
             { icon: 'alert-box-outline',     tint: hasStockAlert ? '#dc2626' : '#64748b', bg: hasStockAlert ? '#fef2f2' : '#f8fafc',
-              titleBn: 'স্টক অ্যালার্ট',      subBn: isBN ? `আউট ${outOfStockCount} · লো ${lowStockCount}` : `Out ${outOfStockCount} · Low ${lowStockCount}`,
+              titleBn: 'স্টক অ্যালার্ট',      titleEn: 'Stock Alert',        subBn: isBN ? `আউট ${outOfStockCount} · লো ${lowStockCount}` : `Out ${outOfStockCount} · Low ${lowStockCount}`, subEn: `Out ${outOfStockCount} · Low ${lowStockCount}`,
               go: () => navigation.navigate('MainTabs', { screen: 'Inventory' }) },
-          ].map((a: { icon: any; tint: string; bg: string; titleBn: string; subBn: string; go: () => void }, i: number) => (
+          ].map((a: { icon: any; tint: string; bg: string; titleBn: string; titleEn: string; subBn: string; subEn: string; go: () => void }, i: number) => (
             <TouchableOpacity
               key={i}
               style={[
@@ -457,13 +457,13 @@ export default function DashboardScreen() {
                 style={[styles.qaLabel, { color: theme.colors.onSurface }]}
                 numberOfLines={2}
               >
-                {a.titleBn}
+                {isBN ? a.titleBn : a.titleEn}
               </Text>
               <Text
                 style={styles.qaSub}
                 numberOfLines={1}
               >
-                {a.subBn}
+                {isBN ? a.subBn : a.subEn}
               </Text>
             </TouchableOpacity>
           ))}
