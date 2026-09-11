@@ -511,9 +511,10 @@ export default function POSScreen() {
 
   const rawDiscount = Number(discountInput) || 0;
   const deliveryNum = Number(deliveryCharge) || 0;
+  const serviceChargeNum = Number(serviceCharge) || 0;
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
   const discountNum = Math.min(rawDiscount, subtotal);
-  const total = Math.max(0, subtotal - discountNum + deliveryNum);
+  const total = Math.max(0, subtotal - discountNum + deliveryNum + serviceChargeNum);
   const paidNum = paidAmount ? Number(paidAmount) : 0;
   const changeDue = paidNum > total ? paidNum - total : 0;
   const emiInterestNum = Number(emiInterestPercent) || 0;
@@ -581,8 +582,12 @@ export default function POSScreen() {
         emi_interest_percent: (isEmi && !asQuotation) ? emiInterestNum : 0,
         is_quotation: asQuotation,
         due_date: (!asQuotation && !isEmi && paidAmount !== "" && paidNum < total && dueDate) ? dueDate : undefined,
-        alteration_notes: alterationNotes.trim(),
-        alteration_status: alterationNotes.trim() ? (alterationStatus === 'none' ? 'pending' : alterationStatus) : "",
+        alteration_notes: isFashionShop 
+          ? alterationNotes.trim() 
+          : isRepairShop 
+            ? `[REPAIR] Model: ${deviceModel || 'N/A'} | IMEI: ${deviceImei || 'N/A'} | Service: ৳${serviceCharge || '0'} | Warranty: ${repairWarrantyDays}d | Fault: ${problemDescription || 'N/A'}`
+            : "",
+        alteration_status: isFashionShop ? (alterationNotes.trim() ? (alterationStatus === 'none' ? 'pending' : alterationStatus) : "") : isRepairShop ? "repaired" : "",
       };
       const res = await api.post('/pos/checkout/', payload);
       
@@ -962,6 +967,72 @@ export default function POSScreen() {
                 </View>
               )}
             </Surface>
+
+            {/* Mobile Repair Shop Specialized Info Card */}
+            {isRepairShop && (
+              <Surface style={{ padding: 16, borderRadius: 12, elevation: 2, marginBottom: 16, backgroundColor: isDarkMode ? '#1e293b' : '#fffbeb', borderWidth: 1, borderColor: '#f59e0b' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 15, color: isDarkMode ? '#fde68a' : '#92400e' }}>
+                    🛠️ {isBN ? 'সার্ভিসিং ও ডিভাইস তথ্য' : 'Repair & Device Info'}
+                  </Text>
+                  <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#000' }}>REPAIR</Text>
+                  </View>
+                </View>
+
+                {/* Service Charge Input */}
+                <TextInput
+                  mode="outlined"
+                  label={isBN ? '🛠️ সার্ভিস / লেবার চার্জ (৳)' : '🛠️ Service / Labor Fee (৳)'}
+                  value={serviceCharge}
+                  onChangeText={setServiceCharge}
+                  keyboardType="numeric"
+                  placeholder="0"
+                  style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+                />
+
+                {/* Warranty Days Input */}
+                <TextInput
+                  mode="outlined"
+                  label={isBN ? '🛡️ ওয়ারেন্টি (যেমন: 7, 15, 30 দিন)' : '🛡️ Warranty (e.g. 7, 15, 30 days)'}
+                  value={repairWarrantyDays}
+                  onChangeText={setRepairWarrantyDays}
+                  keyboardType="numeric"
+                  placeholder="30"
+                  style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+                />
+
+                {/* Device Model Input */}
+                <TextInput
+                  mode="outlined"
+                  label={isBN ? '📱 ডিভাইসের ব্র্যান্ড ও মডেল' : '📱 Device Brand & Model'}
+                  value={deviceModel}
+                  onChangeText={setDeviceModel}
+                  placeholder={isBN ? 'যেমন: Samsung Galaxy A12' : 'e.g. Samsung Galaxy A12'}
+                  style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+                />
+
+                {/* Device IMEI Input */}
+                <TextInput
+                  mode="outlined"
+                  label={isBN ? '🔢 IMEI / সিরিয়াল নম্বর (ঐচ্ছিক)' : '🔢 IMEI / Serial No (Optional)'}
+                  value={deviceImei}
+                  onChangeText={setDeviceImei}
+                  placeholder="35894109..."
+                  style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+                />
+
+                {/* Fault Notes Input */}
+                <TextInput
+                  mode="outlined"
+                  label={isBN ? '📝 সমস্যা / ফল্ট বিবরণ' : '📝 Fault / Problem Description'}
+                  value={problemDescription}
+                  onChangeText={setProblemDescription}
+                  placeholder={isBN ? 'যেমন: ডিসপ্লে ভাঙা, চার্জিং সমস্যা' : 'e.g. Display Broken, Charging Issue'}
+                  style={{ backgroundColor: theme.colors.surface }}
+                />
+              </Surface>
+            )}
 
             {/* 4. Payment Method */}
             <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16, color: theme.colors.onSurface }}>{t('পেমেন্ট মাধ্যম', 'Payment Method')}</Text>
