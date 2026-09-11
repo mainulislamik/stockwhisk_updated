@@ -827,116 +827,122 @@ export default function ProductsPage() {
       {isRepairShop ? (
         <div className="d-flex flex-column gap-3 mb-4">
           {/* Breadcrumb / Navigation Bar */}
-          <div className="d-flex align-items-center justify-content-between p-2 px-3 rounded-3 bg-dark border border-secondary border-opacity-25">
-            <div className="d-flex align-items-center gap-2 small">
-              <button
-                type="button"
-                className={`btn btn-sm py-0 px-2 fw-bold ${!selectedBrandFilter ? "btn-primary" : "btn-link text-info text-decoration-none"}`}
-                onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
-              >
-                <i className="bi bi-phone me-1"></i>১. ব্র্যান্ড (Brands)
-              </button>
+          <div className="card shadow-sm border-0 mb-2">
+            <div className="card-body p-2 px-3 d-flex align-items-center justify-content-between">
+              <div className="d-flex align-items-center gap-2 small">
+                <button
+                  type="button"
+                  className={`btn btn-sm py-1 px-3 fw-bold rounded-3 ${!selectedBrandFilter ? "btn-primary shadow-sm" : "btn-outline-primary"}`}
+                  onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
+                >
+                  <i className="bi bi-phone me-1"></i>১. ব্র্যান্ড (Brands)
+                </button>
+                {selectedBrandFilter && (
+                  <>
+                    <span className="text-secondary fw-bold">›</span>
+                    <button
+                      type="button"
+                      className={`btn btn-sm py-1 px-3 fw-bold rounded-3 ${!selectedCategoryFilter ? "btn-warning text-dark shadow-sm" : "btn-outline-warning text-dark"}`}
+                      onClick={() => setSelectedCategoryFilter(null)}
+                    >
+                      <i className="bi bi-cpu me-1"></i>{brands.find(b => b.id === selectedBrandFilter)?.name || "ক্যাটাগরি"}
+                    </button>
+                  </>
+                )}
+                {selectedBrandFilter && selectedCategoryFilter && (
+                  <>
+                    <span className="text-secondary fw-bold">›</span>
+                    <span className="badge bg-success py-2 px-3 fw-bold rounded-3" style={{ fontSize: "0.8rem" }}>
+                      <i className="bi bi-box-seam me-1"></i>{categories.find((c: any) => c.id === selectedCategoryFilter)?.name || "প্রোডাক্ট তালিকা"}
+                    </span>
+                  </>
+                )}
+              </div>
               {selectedBrandFilter && (
-                <>
-                  <span className="text-secondary">›</span>
-                  <button
-                    type="button"
-                    className={`btn btn-sm py-0 px-2 fw-bold ${!selectedCategoryFilter ? "btn-warning text-dark" : "btn-link text-warning text-decoration-none"}`}
-                    onClick={() => setSelectedCategoryFilter(null)}
-                  >
-                    <i className="bi bi-cpu me-1"></i>{brands.find(b => b.id === selectedBrandFilter)?.name || "ক্যাটাগরি"}
-                  </button>
-                </>
-              )}
-              {selectedBrandFilter && selectedCategoryFilter && (
-                <>
-                  <span className="text-secondary">›</span>
-                  <span className="badge bg-success py-1 px-2 fw-bold">
-                    <i className="bi bi-box-seam me-1"></i>{categories.find((c: any) => c.id === selectedCategoryFilter)?.name || "প্রোডাক্ট তালিকা"}
-                  </span>
-                </>
+                <button
+                  type="button"
+                  className="btn btn-outline-danger btn-sm py-1 px-3 fw-bold rounded-3"
+                  style={{ fontSize: "12px" }}
+                  onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
+                >
+                  শুরুতে ফিরুন ↺
+                </button>
               )}
             </div>
-            {selectedBrandFilter && (
-              <button
-                type="button"
-                className="btn btn-outline-danger btn-sm py-0 px-2 fw-medium"
-                style={{ fontSize: "11px" }}
-                onClick={() => { setSelectedBrandFilter(null); setSelectedCategoryFilter(null); }}
-              >
-                শুরুতে ফিরুন ↺
-              </button>
-            )}
           </div>
 
           {/* ── STEP 1: Select Brand (Big Touch Cards) ── */}
           {!selectedBrandFilter && (
-            <div>
-              <h6 className="fw-bold text-info mb-3">
-                <i className="bi bi-grid-3x3-gap me-2"></i>ব্র্যান্ড নির্বাচন করুন (Select Device Brand):
-              </h6>
-              <div className="row g-3">
-                {brands.length === 0 ? (
-                  <div className="col-12 text-center py-5 text-secondary card shadow-sm border-0" style={{ background: "rgba(30, 41, 59, 0.4)" }}>
-                    <div style={{ fontSize: "2.5rem" }}>📱</div>
-                    <div className="mt-2 fw-semibold text-white">কোনো ব্র্যান্ড পাওয়া যায়নি</div>
-                    <div className="small text-secondary">উপরের "+ New Product Record" থেকে ব্র্যান্ড যোগ করুন।</div>
-                  </div>
-                ) : (
-                  brands.map((b) => (
-                    <div className="col-6 col-md-3" key={b.id}>
-                      <button
-                        type="button"
-                        className="btn btn-dark w-100 p-4 rounded-4 text-center border border-secondary border-opacity-50 shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
-                        style={{ minHeight: "130px", background: "rgba(30, 41, 59, 0.6)", transition: "all 0.2s" }}
-                        onClick={() => setSelectedBrandFilter(b.id)}
-                      >
-                        <div className="p-3 rounded-circle bg-primary bg-opacity-25 text-primary fs-2">
-                          <i className="bi bi-phone"></i>
-                        </div>
-                        <div className="fw-bold text-white fs-5">{b.name}</div>
-                      </button>
+            <div className="card shadow-sm border-0">
+              <div className="card-body p-4">
+                <h6 className="fw-bold text-primary mb-3">
+                  <i className="bi bi-grid-3x3-gap me-2"></i>ব্র্যান্ড নির্বাচন করুন (Select Device Brand):
+                </h6>
+                <div className="row g-3">
+                  {brands.length === 0 ? (
+                    <div className="col-12 text-center py-5 text-secondary">
+                      <div style={{ fontSize: "2.5rem" }}>📱</div>
+                      <div className="mt-2 fw-semibold">কোনো ব্র্যান্ড পাওয়া যায়নি</div>
+                      <div className="small">উপরের "+ New Product Record" থেকে ব্র্যান্ড যোগ করুন।</div>
                     </div>
-                  ))
-                )}
+                  ) : (
+                    brands.map((b) => (
+                      <div className="col-6 col-md-3" key={b.id}>
+                        <button
+                          type="button"
+                          className="btn btn-light w-100 p-4 rounded-4 text-center border shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
+                          style={{ minHeight: "130px", transition: "all 0.2s" }}
+                          onClick={() => setSelectedBrandFilter(b.id)}
+                        >
+                          <div className="p-3 rounded-circle bg-primary bg-opacity-10 text-primary fs-2">
+                            <i className="bi bi-phone"></i>
+                          </div>
+                          <div className="fw-bold fs-5 text-dark">{b.name}</div>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           )}
 
           {/* ── STEP 2: Select Category (Component Cards) ── */}
           {selectedBrandFilter && !selectedCategoryFilter && (
-            <div>
-              <div className="d-flex align-items-center justify-content-between mb-3">
-                <h6 className="fw-bold text-warning mb-0">
-                  <i className="bi bi-tools me-2"></i>{brands.find(b => b.id === selectedBrandFilter)?.name} এর ক্যাটাগরি / পার্টস বেছে নিন:
-                </h6>
-                <button type="button" className="btn btn-outline-secondary btn-sm py-0" onClick={() => setSelectedBrandFilter(null)}>
-                  ← ব্র্যান্ড পরিবর্তন
-                </button>
-              </div>
-              <div className="row g-3">
-                {categories.length === 0 ? (
-                  <div className="col-12 text-center py-5 text-secondary card shadow-sm border-0" style={{ background: "rgba(30, 41, 59, 0.4)" }}>
-                    <div style={{ fontSize: "2.5rem" }}>⚙️</div>
-                    <div className="mt-2 fw-semibold text-white">কোনো ক্যাটাগরি পাওয়া যায়নি</div>
-                  </div>
-                ) : (
-                  categories.map((c: any) => (
-                    <div className="col-6 col-md-3" key={c.id}>
-                      <button
-                        type="button"
-                        className="btn btn-dark w-100 p-4 rounded-4 text-center border border-secondary border-opacity-50 shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
-                        style={{ minHeight: "120px", background: "rgba(30, 41, 59, 0.6)", transition: "all 0.2s" }}
-                        onClick={() => setSelectedCategoryFilter(c.id)}
-                      >
-                        <div className="p-3 rounded-circle bg-warning bg-opacity-25 text-warning fs-3">
-                          <i className="bi bi-cpu"></i>
-                        </div>
-                        <div className="fw-bold text-white fs-5">{c.name}</div>
-                      </button>
+            <div className="card shadow-sm border-0">
+              <div className="card-body p-4">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h6 className="fw-bold text-warning text-dark mb-0">
+                    <i className="bi bi-tools me-2 text-warning"></i><strong>{brands.find(b => b.id === selectedBrandFilter)?.name}</strong> এর ক্যাটাগরি / পার্টস বেছে নিন:
+                  </h6>
+                  <button type="button" className="btn btn-outline-secondary btn-sm py-1 px-3" onClick={() => setSelectedBrandFilter(null)}>
+                    ← ব্র্যান্ড পরিবর্তন
+                  </button>
+                </div>
+                <div className="row g-3">
+                  {categories.length === 0 ? (
+                    <div className="col-12 text-center py-5 text-secondary">
+                      <div style={{ fontSize: "2.5rem" }}>⚙️</div>
+                      <div className="mt-2 fw-semibold">কোনো ক্যাটাগরি পাওয়া যায়নি</div>
                     </div>
-                  ))
-                )}
+                  ) : (
+                    categories.map((c: any) => (
+                      <div className="col-6 col-md-3" key={c.id}>
+                        <button
+                          type="button"
+                          className="btn btn-light w-100 p-4 rounded-4 text-center border shadow-sm d-flex flex-column align-items-center justify-content-center gap-2"
+                          style={{ minHeight: "120px", transition: "all 0.2s" }}
+                          onClick={() => setSelectedCategoryFilter(c.id)}
+                        >
+                          <div className="p-3 rounded-circle bg-warning bg-opacity-10 text-warning fs-3">
+                            <i className="bi bi-cpu"></i>
+                          </div>
+                          <div className="fw-bold fs-5 text-dark">{c.name}</div>
+                        </button>
+                      </div>
+                    ))
+                  )}
+                </div>
               </div>
             </div>
           )}
