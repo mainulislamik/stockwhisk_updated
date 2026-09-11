@@ -51,8 +51,16 @@ export default function PosCustomerPage() {
   const [existingEmail, setExistingEmail] = useState("");
   const [showPrintModal, setShowPrintModal] = useState(false);
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
   const [alterationNotes, setAlterationNotes] = useState("");
   const [alterationStatus, setAlterationStatus] = useState("none");
+
+  // Repair Shop Specialized States
+  const [serviceCharge, setServiceCharge] = useState<number>(0);
+  const [deviceModel, setDeviceModel] = useState("");
+  const [deviceImei, setDeviceImei] = useState("");
+  const [problemDescription, setProblemDescription] = useState("");
+  const [repairWarrantyDays, setRepairWarrantyDays] = useState("30");
 
   // Sync existing email when customer changes
   useEffect(() => {
