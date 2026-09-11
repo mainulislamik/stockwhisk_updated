@@ -51,6 +51,9 @@ export default function ProductsPage() {
   const isCosmetics = user?.shop_business_type === "cosmetics";
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [selectedBrandFilter, setSelectedBrandFilter] = useState<number | null>(null);
+  const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | null>(null);
   const { t, lang } = useLanguage();
 
   const canManage = isOwner || can("manage_products");
@@ -74,7 +77,7 @@ export default function ProductsPage() {
   const PAGE_SIZE = 20;
   // light=1 → skip each product's in-stock units in the payload (the list only
   // needs product fields), so a shop with thousands of units still loads fast.
-  const { data, loading, error, mutate } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedFilter, page, page_size: PAGE_SIZE, ordering: "-current_stock", light: 1 });
+  const { data, loading, error, mutate } = useApi<Paginated<Product>>("/catalog/products/", { search: debouncedFilter, page, page_size: PAGE_SIZE, ordering: "-current_stock", light: 1, ...(selectedBrandFilter ? { brand: selectedBrandFilter } : {}), ...(selectedCategoryFilter ? { category: selectedCategoryFilter } : {}) });
   const products = data?.results || [];
   const total = data?.count || 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);

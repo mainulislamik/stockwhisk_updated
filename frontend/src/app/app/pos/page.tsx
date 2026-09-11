@@ -48,6 +48,11 @@ export default function PosPage() {
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [brands, setBrands] = useState<any[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -73,6 +78,8 @@ export default function PosPage() {
     try {
       const qs = new URLSearchParams({ page: String(page), page_size: String(GRID_PAGE_SIZE), in_stock: "1", light: "1" });
       if (debouncedQuery) qs.set("search", debouncedQuery);
+      if (selectedBrand) qs.set("brand", String(selectedBrand));
+      if (selectedCategory) qs.set("category", String(selectedCategory));
       const d = await api<Paginated<Product>>(`/catalog/products/?${qs.toString()}`);
       setShown((prev) => (replace ? d.results : [...prev, ...d.results]));
       setGridPage(page);
@@ -86,7 +93,7 @@ export default function PosPage() {
   }
 
   // Reset to page 1 whenever the search changes.
-  useEffect(() => { fetchGrid(1, true); /* eslint-disable-next-line */ }, [debouncedQuery]);
+  useEffect(() => { fetchGrid(1, true); /* eslint-disable-next-line */ }, [debouncedQuery, selectedBrand, selectedCategory]);
 
   function onGridScroll(e: React.UIEvent<HTMLDivElement>) {
     const el = e.currentTarget;

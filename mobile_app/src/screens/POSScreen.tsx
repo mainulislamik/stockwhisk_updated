@@ -98,6 +98,18 @@ export default function POSScreen() {
 
   // Missing web features
   const { user, loadUser } = useAuth();
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [repairBrands, setRepairBrands] = useState<any[]>([]);
+  const [repairCategories, setRepairCategories] = useState<any[]>([]);
+  const [selectedRepairBrand, setSelectedRepairBrand] = useState<any | null>(null);
+  const [selectedRepairCategory, setSelectedRepairCategory] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (isRepairShop) {
+      api.get('/catalog/brands/').then(r => setRepairBrands(r.data.results || r.data || [])).catch(() => {});
+      api.get('/catalog/categories/').then(r => setRepairCategories(r.data.results || r.data || [])).catch(() => {});
+    }
+  }, [isRepairShop]);
   const shopType = (user as any)?.shop_business_type || '';
   const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
   const [deliveryCharge, setDeliveryCharge] = useState('');
