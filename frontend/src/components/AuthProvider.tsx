@@ -28,6 +28,7 @@ export type User = {
   shop_reports_enabled?: boolean;
   shop_finance_enabled?: boolean;
   shop_manufacturing_enabled?: boolean;
+  shop_mobile_repair_enabled?: boolean;
   branch: number | null;
   is_staff: boolean;
   is_reseller?: boolean;

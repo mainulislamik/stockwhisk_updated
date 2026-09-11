@@ -22,6 +22,7 @@ type Shop = {
   is_test?: boolean;
   is_free?: boolean;
   manufacturing_enabled?: boolean;
+  mobile_repair_enabled?: boolean;
   user_count: number;
   owner_email: string | null;
   owner_full_name: string | null;
@@ -157,6 +158,24 @@ export default function ShopDetailsPage() {
       toast.success(nextVal ? "🏭 Manufacturing & Production module ENABLED for this shop!" : "Manufacturing module disabled.");
     } catch (e: any) {
       toast.error(e?.message || "Failed to update manufacturing feature.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop]);
+
+  const toggleMobileRepair = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const nextVal = !shop.mobile_repair_enabled;
+      await api(`/platform/shops/${shop.id}/`, {
+        method: "PATCH",
+        body: { mobile_repair_enabled: nextVal },
+      });
+      setShop((prev) => prev ? { ...prev, mobile_repair_enabled: nextVal } : null);
+      toast.success(nextVal ? "📱 Mobile Repair Shop module ENABLED for this shop!" : "Mobile Repair module disabled.");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update Mobile Repair feature.");
     } finally {
       setBusy(false);
     }
@@ -323,6 +342,29 @@ export default function ShopDetailsPage() {
                     checked={!!shop.manufacturing_enabled}
                     disabled={busy}
                     onChange={toggleManufacturing}
+                    style={{ cursor: "pointer" }}
+                  />
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3" style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+                <div className="d-flex align-items-center gap-3">
+                  <div className="p-2 rounded-circle bg-info bg-opacity-25 text-info fs-4">
+                    <i className="bi bi-tools"></i>
+                  </div>
+                  <div>
+                    <h6 className="text-white fw-bold mb-0">Mobile Repair Shop Module</h6>
+                    <p className="text-secondary small mb-0">Enable Brand-first hierarchy (Brand → Category → Model), Repair POS speed-mode, Service Labor items, and Job Sheets.</p>
+                  </div>
+                </div>
+                <div className="form-check form-switch fs-4 mb-0">
+                  <input
+                    className="form-check-input"
+                    type="checkbox"
+                    role="switch"
+                    checked={!!shop.mobile_repair_enabled}
+                    disabled={busy}
+                    onChange={toggleMobileRepair}
                     style={{ cursor: "pointer" }}
                   />
                 </div>

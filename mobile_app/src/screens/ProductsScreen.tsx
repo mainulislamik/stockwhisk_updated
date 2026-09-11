@@ -62,6 +62,8 @@ export default function ProductsScreen() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [brandFilter, setBrandFilter] = useState<number | null>(null);
+  const [selectedRepairBrand, setSelectedRepairBrand] = useState<any | null>(null);
+  const [selectedRepairCategory, setSelectedRepairCategory] = useState<any | null>(null);
   const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);

@@ -16,6 +16,7 @@ type User = {
   shop_service_enabled?: boolean;
   shop_reports_enabled?: boolean;
   shop_finance_enabled?: boolean;
+  shop_mobile_repair_enabled?: boolean;
 };
 
 export type BillingStatus = {
