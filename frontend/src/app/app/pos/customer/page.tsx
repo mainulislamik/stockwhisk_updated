@@ -123,7 +123,7 @@ export default function PosCustomerPage() {
   const discountNum = Number(discount) || 0;
   const serviceChargeNum = Number(serviceCharge) || 0;
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
-  const total = Math.max(0, subtotal - discountNum + deliveryCharge + serviceChargeNum + repairServiceCharge);
+  const total = Math.max(0, subtotal - discountNum + deliveryCharge + serviceChargeNum);
   const paidNum = Number(paid) || 0;
   const change = paidNum > total ? paidNum - total : 0;
 
