@@ -349,6 +349,115 @@ export default function PosCustomerPage() {
               </div>
             )}
 
+            {/* ══════════════════════════════════════════════════════════
+                MOBILE REPAIR SHOP SPECIALIZED CHECKOUT SECTION
+                Service/Labor Charge, Device Model, IMEI, Fault Notes, Warranty
+                ══════════════════════════════════════════════════════════ */}
+            {isRepairShop && (
+              <div className="card shadow-sm border-0 rounded-4 p-3 bg-light border-start border-4 border-warning mb-3">
+                <div className="d-flex align-items-center justify-content-between mb-3">
+                  <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                    <span className="p-1 px-2 rounded bg-warning text-dark fs-6">🛠️</span>
+                    <span>{lang === "bn" ? "মোবাইল সার্ভিসিং ও ডিভাইস তথ্য" : "Mobile Repair & Device Info"}</span>
+                  </h6>
+                  <span className="badge bg-warning text-dark px-2 py-1 fw-bold">Repair Mode</span>
+                </div>
+
+                <div className="row g-3">
+                  {/* Service / Labor Charge */}
+                  <div className="col-md-6">
+                    <div className="form-floating">
+                      <input
+                        id="serviceChargeInput"
+                        type="number"
+                        min={0}
+                        className="form-control fw-bold text-warning border-warning shadow-sm"
+                        value={serviceCharge}
+                        onChange={(e) => setServiceCharge(Number(e.target.value) || 0)}
+                        placeholder="0"
+                      />
+                      <label htmlFor="serviceChargeInput" className="fw-bold text-dark">
+                        {lang === "bn" ? "🛠️ সার্ভিস / লেবার চার্জ (৳)" : "🛠️ Service / Labor Fee (৳)"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Warranty Days */}
+                  <div className="col-md-6">
+                    <div className="form-floating">
+                      <select
+                        id="warrantyDaysSelect"
+                        className="form-select shadow-sm"
+                        value={repairWarrantyDays}
+                        onChange={(e) => setRepairWarrantyDays(e.target.value)}
+                      >
+                        <option value="0">{lang === "bn" ? "ওয়ারেন্টি ছাড়া (No Warranty)" : "No Warranty"}</option>
+                        <option value="7">{lang === "bn" ? "৭ দিন টেস্টিং ওয়ারেন্টি (7 Days)" : "7 Days Warranty"}</option>
+                        <option value="15">{lang === "bn" ? "১৫ দিন ওয়ারেন্টি (15 Days)" : "15 Days Warranty"}</option>
+                        <option value="30">{lang === "bn" ? "৩০ দিন / ১ মাস ওয়ারেন্টি (30 Days)" : "30 Days (1 Month)"}</option>
+                        <option value="90">{lang === "bn" ? "৩ মাস ওয়ারেন্টি (90 Days)" : "90 Days (3 Months)"}</option>
+                        <option value="180">{lang === "bn" ? "৬ মাস ওয়ারেন্টি (6 Months)" : "6 Months Warranty"}</option>
+                      </select>
+                      <label htmlFor="warrantyDaysSelect">
+                        {lang === "bn" ? "🛡️ সার্ভিস / পার্টস ওয়ারেন্টি" : "🛡️ Repair Warranty Period"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Device Model & Brand */}
+                  <div className="col-md-6">
+                    <div className="form-floating">
+                      <input
+                        id="deviceModelInput"
+                        type="text"
+                        className="form-control shadow-sm"
+                        value={deviceModel}
+                        onChange={(e) => setDeviceModel(e.target.value)}
+                        placeholder="Samsung Galaxy A12"
+                      />
+                      <label htmlFor="deviceModelInput">
+                        {lang === "bn" ? "📱 ডিভাইসের ব্র্যান্ড ও মডেল" : "📱 Device Brand & Model"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* IMEI / Serial No */}
+                  <div className="col-md-6">
+                    <div className="form-floating">
+                      <input
+                        id="deviceImeiInput"
+                        type="text"
+                        className="form-control shadow-sm font-monospace"
+                        value={deviceImei}
+                        onChange={(e) => setDeviceImei(e.target.value)}
+                        placeholder="35894109..."
+                      />
+                      <label htmlFor="deviceImeiInput">
+                        {lang === "bn" ? "🔢 IMEI / সিরিয়াল নম্বর (ঐচ্ছিক)" : "🔢 IMEI / Serial No (Optional)"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Problem Description / Fault Notes */}
+                  <div className="col-12">
+                    <div className="form-floating">
+                      <input
+                        id="problemDescInput"
+                        type="text"
+                        className="form-control shadow-sm"
+                        value={problemDescription}
+                        onChange={(e) => setProblemDescription(e.target.value)}
+                        placeholder="Display Broken, Touch not working..."
+                      />
+                      <label htmlFor="problemDescInput">
+                        {lang === "bn" ? "📝 সমস্যা / ফল্ট বিবরণ (Customer Fault Report)" : "📝 Fault / Problem Description"}
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             {user?.shop_offline_sale_mode && (
               <div className="p-3 bg-warning bg-opacity-10 border border-warning rounded-3 vstack gap-2 mb-3 shadow-sm">
                 <div className="fw-bold text-warning-emphasis small">
