@@ -56,7 +56,7 @@ export default function PosCustomerPage() {
   const [alterationStatus, setAlterationStatus] = useState("none");
 
   // Repair Shop Specialized States
-  const [serviceCharge, setServiceCharge] = useState<number>(0);
+  const [serviceCharge, setServiceCharge] = useState<string>('');
   const [deviceModel, setDeviceModel] = useState("");
   const [deviceImei, setDeviceImei] = useState("");
   const [problemDescription, setProblemDescription] = useState("");
@@ -121,8 +121,9 @@ export default function PosCustomerPage() {
   }, [router]);
 
   const discountNum = Number(discount) || 0;
+  const serviceChargeNum = Number(serviceCharge) || 0;
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
-  const total = Math.max(0, subtotal - discountNum + deliveryCharge);
+  const total = Math.max(0, subtotal - discountNum + deliveryCharge + serviceChargeNum);
   const paidNum = Number(paid) || 0;
   const change = paidNum > total ? paidNum - total : 0;
 
@@ -373,7 +374,7 @@ export default function PosCustomerPage() {
                         min={0}
                         className="form-control fw-bold text-warning border-warning shadow-sm"
                         value={serviceCharge}
-                        onChange={(e) => setServiceCharge(Number(e.target.value) || 0)}
+                        onChange={(e) => setServiceCharge(e.target.value)}
                         placeholder="0"
                       />
                       <label htmlFor="serviceChargeInput" className="fw-bold text-dark">
@@ -624,10 +625,16 @@ export default function PosCustomerPage() {
             </div>
 
             <div className="border-top border-bottom py-3 my-2 bg-body-tertiary rounded-3 px-3 shadow-sm">
-              <div className="d-flex justify-content-between text-secondary mb-2"><span>{t("pos_checkout_subtotal")}</span><span>{money(subtotal)}</span></div>
+              <div className="d-flex justify-content-between text-secondary mb-2"><span>{t("pos_checkout_subtotal")} (Parts)</span><span>{money(subtotal)}</span></div>
+              {isRepairShop && serviceChargeNum > 0 && (
+                <div className="d-flex justify-content-between text-warning fw-bold mb-2">
+                  <span>🛠️ {lang === "bn" ? "সার্ভিস / লেবার চার্জ" : "Service / Labor Fee"}</span>
+                  <span>+ {money(serviceChargeNum)}</span>
+                </div>
+              )}
               {discountNum > 0 && <div className="d-flex justify-content-between text-success mb-2"><span>{t("pos_checkout_discount").replace(" (৳) *", "")}</span><span>- {money(discountNum)}</span></div>}
               {deliveryCharge > 0 && <div className="d-flex justify-content-between text-info mb-2"><span>{t("pos_checkout_delivery").replace(" (৳)", "")}</span><span>+ {money(deliveryCharge)}</span></div>}
-              <div className="d-flex justify-content-between fw-bold fs-5 mb-2"><span>{t("pos_checkout_total")}</span><span>{money(total)}</span></div>
+              <div className="d-flex justify-content-between fw-bold fs-5 mb-2"><span>{t("pos_checkout_total")}</span><span className="text-primary">{money(total)}</span></div>
               {change > 0 && <div className="d-flex justify-content-between text-info fw-semibold border-top pt-2 mt-2"><span>{t("pos_checkout_change_due")}</span><span>{money(change)}</span></div>}
               {paid !== "" && paidNum < total && <div className="d-flex justify-content-between text-danger fw-semibold border-top pt-2 mt-2"><span>{t("sales_list_col_due") || "Due"}</span><span>{money(total - paidNum)}</span></div>}
             </div>
