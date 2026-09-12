@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/components/AuthProvider";
 
 type InvSummary = {
   stock_value: number;
@@ -23,6 +24,9 @@ type Movement = {
 
 export default function InventoryPage() {
   const { t } = useLanguage();
+  const { user } = useAuth();
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [brandStock, setBrandStock] = useState<any[]>([]);
   const [inv, setInv] = useState<InvSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -34,6 +38,21 @@ export default function InventoryPage() {
   const [movTick, setMovTick] = useState(0);
 
   async function load() {
+    if (isRepairShop) {
+      api<any>("/catalog/products/?light=1&page_size=100").then((res) => {
+        const prods = res.results || res || [];
+        const map: Record<string, { brand: string; count: number; stock: number; value: number }> = {};
+        prods.forEach((p: any) => {
+          const bName = p.brand_name || p.brand_detail?.name || p.brand?.name || (p.name.includes("SAMSUNG") ? "SAMSUNG" : p.name.includes("OPPO") ? "OPPO" : "Other");
+          if (!map[bName]) map[bName] = { brand: bName, count: 0, stock: 0, value: 0 };
+          map[bName].count += 1;
+          const s = Number(p.current_stock) || 0;
+          map[bName].stock += s;
+          map[bName].value += s * (Number(p.cost_price) || 0);
+        });
+        setBrandStock(Object.values(map));
+      }).catch(() => {});
+    }
     setLoading(true);
     try {
       const i = await api<InvSummary>("/analytics/inventory/");

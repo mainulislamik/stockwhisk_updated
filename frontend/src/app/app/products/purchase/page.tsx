@@ -47,12 +47,33 @@ const PAY_METHODS: Record<string, string> = {
 export default function PurchaseProductPage() {
   const { t, lang } = useLanguage();
   const router = useRouter();
+  const { user } = useAuth();
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [repairBrands, setRepairBrands] = useState<Named[]>([]);
+  const [repairCategories, setRepairCategories] = useState<Named[]>([]);
+  const [selectedRepairBrand, setSelectedRepairBrand] = useState<number | null>(null);
+  const [selectedRepairCategory, setSelectedRepairCategory] = useState<number | null>(null);
 
   // Product search
   const [searchName, setSearchName] = useState("");
   const [searchBarcode, setSearchBarcode] = useState("");
   const [searchResults, setSearchResults] = useState<Product[] | null>(null);
   const [searching, setSearching] = useState(false);
+  // Filter products by Brand and Category for Repair Shops
+  const filterByBrandCat = async (brandId: number | null, catId: number | null) => {
+    setSearching(true);
+    try {
+      const params: Record<string, any> = { page_size: 50 };
+      if (brandId) params.brand = brandId;
+      if (catId) params.category = catId;
+      const res = await api<any>("/catalog/products/", { params });
+      setSearchResults(res.results || res || []);
+    } catch {
+      setSearchResults([]);
+    } finally {
+      setSearching(false);
+    }
+  };
 
   // Selected product for pricing panel
   const [selected, setSelected] = useState<Product | null>(null);
@@ -68,7 +89,6 @@ export default function PurchaseProductPage() {
   const [qtyTouched, setQtyTouched] = useState(false);
   const [autoGenerateBarcodes, setAutoGenerateBarcodes] = useState(false);
 
-  const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const [fullPackCost, setFullPackCost] = useState("");

@@ -60,6 +60,8 @@ type Sale = {
   due: string;
   status: string;
   note: string;
+  alteration_notes?: string;
+  alteration_status?: string;
   items: SaleItem[];
   payments: Payment[];
   emi_schedule?: EMISchedule;
@@ -439,6 +441,35 @@ export default function InvoicePage() {
             <div className="inv-customer-name">{sale.bill_name || "Walk-in customer"}</div>
             {sale.bill_phone && <div className="inv-customer-detail">📞 {sale.bill_phone}</div>}
           </div>
+
+          {/* ── MOBILE REPAIR / SERVICE DETAILS BANNER ── */}
+          {sale.alteration_notes && sale.alteration_notes.startsWith('[REPAIR]') && (
+            <div style={{
+              margin: '12px 0 16px 0',
+              padding: '12px 16px',
+              backgroundColor: '#fffbeb',
+              border: '1px solid #f59e0b',
+              borderRadius: '8px',
+              fontSize: '9.5pt',
+              color: '#92400e'
+            }}>
+              <div style={{ fontWeight: 'bold', fontSize: '10.5pt', marginBottom: '6px', color: '#b45309', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <span>🛠️</span>
+                <span>{lang === 'bn' ? 'মোবাইল রিপেয়ার ও সার্ভিসিং বিবরণ (Repair & Device Details)' : 'Mobile Repair & Device Details'}</span>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
+                {sale.alteration_notes.replace('[REPAIR] ', '').split(' | ').map((part, idx) => {
+                  const [k, ...v] = part.split(': ');
+                  return (
+                    <div key={idx} style={{ backgroundColor: '#ffffff', padding: '6px 10px', borderRadius: '4px', border: '1px solid #fef3c7' }}>
+                      <span style={{ fontWeight: 'bold', color: '#78350f' }}>{k}: </span>
+                      <span style={{ color: '#1e293b' }}>{v.join(': ')}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* ── ITEMS TABLE ── */}
           <table className="inv-table">
