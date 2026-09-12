@@ -118,6 +118,34 @@ export default function SaleDetailPage() {
               )}
             </div>
           )}
+          {/* Mobile Repair Shop: Repair & Device Info Banner */}
+          {sale.alteration_notes && sale.alteration_notes.includes('[REPAIR]') && (
+            <div className="alert py-3 px-4 mt-2 mb-0 d-flex flex-column gap-2 rounded shadow-sm" style={{ backgroundColor: "#fffbeb", color: "#92400e", border: "1px solid #f59e0b" }}>
+              <div className="d-flex justify-content-between align-items-center">
+                <strong className="text-warning"><i className="bi bi-phone me-2"></i> {lang === "bn" ? "মোবাইল রিপেয়ার ও সার্ভিসিং তথ্য" : "Mobile Repair & Servicing Details"}</strong>
+                <span className="badge" style={{ backgroundColor: "#f59e0b", color: "#000" }}>REPAIR</span>
+              </div>
+              <div className="row g-2 small" style={{ fontSize: "0.85rem" }}>
+                {(() => {
+                  const notes = sale.alteration_notes || '';
+                  const modelMatch = notes.match(/Model: ([^|]+)/);
+                  const imeiMatch = notes.match(/IMEI: ([^|]+)/);
+                  const serviceMatch = notes.match(/Service: ([^|]+)/);
+                  const warrantyMatch = notes.match(/Warranty: ([^|]+)/);
+                  const faultMatch = notes.match(/Fault: ([^|]+)$/);
+                  return (
+                    <>
+                      {modelMatch && <div className="col-md-6"><span className="text-secondary">{lang === "bn" ? "ডিভাইস মডেল:" : "Device Model:"}</span> <span className="fw-bold ms-2">{modelMatch[1].trim()}</span></div>}
+                      {imeiMatch && <div className="col-md-6"><span className="text-secondary">{lang === "bn" ? "IMEI / সিরিয়াল:" : "IMEI / Serial:"}</span> <span className="fw-bold ms-2 font-monospace">{imeiMatch[1].trim()}</span></div>}
+                      {serviceMatch && <div className="col-md-6"><span className="text-secondary">{lang === "bn" ? "সার্ভিস চার্জ:" : "Service Charge:"}</span> <span className="fw-bold ms-2 text-success">{serviceMatch[1].trim()}</span></div>}
+                      {warrantyMatch && <div className="col-md-6"><span className="text-secondary">{lang === "bn" ? "ওয়ারেন্টি:" : "Warranty:"}</span> <span className="fw-bold ms-2">{warrantyMatch[1].trim()}</span></div>}
+                      {faultMatch && <div className="col-12"><span className="text-secondary">{lang === "bn" ? "সমস্যা / ফল্ট:" : "Fault / Problem:"}</span> <span className="fw-bold ms-2">{faultMatch[1].trim()}</span></div>}
+                    </>
+                  );
+                })()}
+              </div>
+            </div>
+          )}
         </div>
         <div className="d-flex gap-2 align-items-center">
           {isQuotation ? (

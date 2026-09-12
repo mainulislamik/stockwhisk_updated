@@ -92,6 +92,14 @@ export default function POSScreen() {
   const [paymentMethod, setPaymentMethod] = useState<'cash' | 'bkash' | 'card' | 'nagad' | 'bank_transfer'>('cash');
   const [alterationNotes, setAlterationNotes] = useState('');
   const [alterationStatus, setAlterationStatus] = useState('none');
+
+  // Repair Shop Specialized States
+  const [serviceCharge, setServiceCharge] = useState('');
+  const [deviceModel, setDeviceModel] = useState('');
+  const [deviceImei, setDeviceImei] = useState('');
+  const [repairWarrantyDays, setRepairWarrantyDays] = useState('30');
+  const [problemDescription, setProblemDescription] = useState('');
+
   const [selectedVariantSize, setSelectedVariantSize] = useState('');
   const [selectedVariantColor, setSelectedVariantColor] = useState('');
   const [isCheckoutLoading, setIsCheckoutLoading] = useState(false);
@@ -935,6 +943,14 @@ export default function POSScreen() {
                     onChangeText={setDeliveryCharge}
                     style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
                   />
+                </View>
+              )}
+
+              {/* Service Charge Breakdown for Repair Shops */}
+              {isRepairShop && serviceChargeNum > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>{isBN ? '🛠️ সার্ভিস / লেবার চার্জ' : '🛠️ Service / Labor Fee'}</Text>
+                  <Text style={{ color: theme.colors.primary, fontWeight: 'bold', fontSize: 16 }}>+ ৳ {serviceChargeNum.toFixed(2)}</Text>
                 </View>
               )}
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>

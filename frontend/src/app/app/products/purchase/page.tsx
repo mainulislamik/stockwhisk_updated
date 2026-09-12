@@ -675,6 +675,64 @@ export default function PurchaseProductPage() {
               <i className="bi bi-search text-primary"></i>
               {t("pp_search_title") || (lang === "bn" ? "অ্যাডভান্সড প্রোডাক্ট সার্চ" : "Advanced Product Search")}
             </h2>
+
+            {/* Mobile Repair Shop: Brand-First Fast Filtering */}
+            {isRepairShop && (
+              <div className="p-3 rounded-3 mb-3 border" style={{ backgroundColor: "rgba(59, 130, 246, 0.05)", borderColor: "rgba(59, 130, 246, 0.2)" }}>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <span className="small fw-bold text-primary">
+                    <i className="bi bi-phone me-1"></i> {lang === "bn" ? "🛠️ মোবাইল ব্র্যান্ড ও পার্টস ক্যাটাগরি অনুযায়ী ফিল্টার করুন:" : "🛠️ Filter by Mobile Brand & Parts Category:"}
+                  </span>
+                  {(selectedRepairBrand || selectedRepairCategory) && (
+                    <button
+                      type="button"
+                      className="btn btn-link btn-sm text-danger p-0 text-decoration-none"
+                      onClick={() => {
+                        setSelectedRepairBrand(null);
+                        setSelectedRepairCategory(null);
+                        filterByBrandCat(null, null);
+                      }}
+                    >
+                      {lang === "bn" ? "ফিল্টার রিসেট" : "Reset Filter"}
+                    </button>
+                  )}
+                </div>
+                <div className="row g-2">
+                  <div className="col-md-6">
+                    <select
+                      className="form-select form-select-sm shadow-sm"
+                      value={selectedRepairBrand || ""}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        setSelectedRepairBrand(val);
+                        filterByBrandCat(val, selectedRepairCategory);
+                      }}
+                    >
+                      <option value="">-- {lang === "bn" ? "সকল মোবাইল ব্র্যান্ড" : "All Mobile Brands"} --</option>
+                      {repairBrands.map((b) => (
+                        <option key={b.id} value={b.id}>{b.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="col-md-6">
+                    <select
+                      className="form-select form-select-sm shadow-sm"
+                      value={selectedRepairCategory || ""}
+                      onChange={(e) => {
+                        const val = e.target.value ? Number(e.target.value) : null;
+                        setSelectedRepairCategory(val);
+                        filterByBrandCat(selectedRepairBrand, val);
+                      }}
+                    >
+                      <option value="">-- {lang === "bn" ? "সকল পার্টস ক্যাটাগরি (Display/Battery/etc)" : "All Parts Categories"} --</option>
+                      {repairCategories.map((c) => (
+                        <option key={c.id} value={c.id}>{c.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            )}
             <div className="row g-2.5 mb-2">
               <div className="col-12 col-md-6">
                 <label className="small fw-medium">{t("pp_lbl_search_name") || (lang === "bn" ? "প্রোডাক্টের নাম" : "Product Name")}</label>
