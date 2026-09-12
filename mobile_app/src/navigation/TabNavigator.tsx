@@ -54,7 +54,7 @@ function MoreMenuScreen() {
       titleEn: 'Stock & Purchasing',
       titleBn: 'স্টক ও সরবরাহকারী',
       items: [
-        { name: 'ProductsScreen', icon: 'package-variant', labelEn: 'Products & Inward', labelBn: 'পণ্য ও ইনওয়ার্ড' },
+        { name: 'ProductsScreen', icon: 'package-variant', labelEn: 'Products & Stock', labelBn: 'পণ্য ও স্টক' },
         { name: 'LookupScreen', icon: 'line-scan', labelEn: 'Item Lookup', labelBn: 'আইটেম লুকআপ' },
         { name: 'PurchasesScreen', icon: 'shopping', labelEn: 'Purchase History', labelBn: 'ক্রয় ইতিহাস' },
         { name: 'SuppliersScreen', icon: 'truck-delivery', labelEn: 'Suppliers / Vendors', labelBn: 'সরবরাহকারী' },
