@@ -332,8 +332,8 @@ export default function LoginScreen() {
               onPress={() => switchMode('login')}
               style={[styles.backButton, { backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' }]}
             >
-              <MaterialCommunityIcons name="arrow-left" size={18} color="#2563eb" />
-              <Text style={{ fontSize: 13, fontWeight: '700', color: '#2563eb', marginLeft: 4 }}>
+              <MaterialCommunityIcons name="arrow-left" size={18} color="#4f46e5" />
+              <Text style={{ fontSize: 13, fontWeight: '700', color: '#4f46e5', marginLeft: 4 }}>
                 {isBN ? 'লগইন' : 'Sign In'}
               </Text>
             </TouchableOpacity>
@@ -346,8 +346,8 @@ export default function LoginScreen() {
               onPress={toggleLanguage}
               style={[styles.topPill, { backgroundColor: isDarkMode ? '#1e293b' : '#ffffff' }]}
             >
-              <MaterialCommunityIcons name="translate" size={16} color="#2563eb" />
-              <Text style={{ fontSize: 12, fontWeight: 'bold', marginLeft: 5, color: '#2563eb' }}>
+              <MaterialCommunityIcons name="translate" size={16} color="#4f46e5" />
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginLeft: 5, color: '#4f46e5' }}>
                 {isBN ? 'English' : 'বাংলা'}
               </Text>
             </TouchableOpacity>
@@ -414,7 +414,7 @@ export default function LoginScreen() {
                 style={styles.input}
                 outlineStyle={styles.inputOutline}
                 disabled={loading}
-                left={<TextInput.Icon icon="email-outline" color="#2563eb" />}
+                left={<TextInput.Icon icon="email-outline" color="#4f46e5" />}
               />
 
               <TextInput
@@ -426,7 +426,7 @@ export default function LoginScreen() {
                 style={styles.input}
                 outlineStyle={styles.inputOutline}
                 disabled={loading}
-                left={<TextInput.Icon icon="lock-outline" color="#2563eb" />}
+                left={<TextInput.Icon icon="lock-outline" color="#4f46e5" />}
                 right={
                   <TextInput.Icon
                     icon={showLoginPassword ? 'eye-off' : 'eye'}
@@ -443,7 +443,7 @@ export default function LoginScreen() {
                   <MaterialCommunityIcons
                     name={rememberMe ? 'checkbox-marked' : 'checkbox-blank-outline'}
                     size={20}
-                    color={rememberMe ? '#2563eb' : '#94a3b8'}
+                    color={rememberMe ? '#4f46e5' : '#94a3b8'}
                   />
                   <Text style={{ fontSize: 13, color: '#64748b', marginLeft: 6 }}>
                     {isBN ? 'মনে রাখুন' : 'Remember me'}
@@ -451,7 +451,7 @@ export default function LoginScreen() {
                 </TouchableOpacity>
 
                 <TouchableOpacity onPress={() => switchMode('forgot')}>
-                  <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: '600' }}>
+                  <Text style={{ fontSize: 13, color: '#4f46e5', fontWeight: '600' }}>
                     {isBN ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot Password?'}
                   </Text>
                 </TouchableOpacity>
@@ -459,7 +459,7 @@ export default function LoginScreen() {
 
               <Button
                 mode="contained"
-                buttonColor="#2563eb"
+                buttonColor="#4f46e5"
                 onPress={handleLogin}
                 loading={loading}
                 disabled={loading}
@@ -477,7 +477,7 @@ export default function LoginScreen() {
                   {isBN ? 'কোনো অ্যাকাউন্ট নেই?' : "Don't have an account?"}
                 </Text>
                 <TouchableOpacity onPress={() => switchMode('signup')} style={{ marginTop: 6, paddingVertical: 4 }}>
-                  <Text style={{ fontSize: 14, color: '#2563eb', fontWeight: 'bold' }}>
+                  <Text style={{ fontSize: 14, color: '#4f46e5', fontWeight: 'bold' }}>
                     ✨ {isBN ? 'নতুন অ্যাকাউন্ট তৈরি করুন (Sign Up)' : 'Create Free Account (Sign Up)'}
                   </Text>
                 </TouchableOpacity>
@@ -493,21 +493,21 @@ export default function LoginScreen() {
               {/* Modern Step Indicator */}
               <View style={styles.stepContainer}>
                 <View style={styles.stepItem}>
-                  <View style={[styles.stepCircle, { backgroundColor: '#2563eb' }]}>
+                  <View style={[styles.stepCircle, { backgroundColor: '#4f46e5' }]}>
                     <Text style={{ color: '#fff', fontSize: 12, fontWeight: '800' }}>1</Text>
                   </View>
-                  <Text style={[styles.stepLabel, { color: '#2563eb', fontWeight: '700' }]}>
+                  <Text style={[styles.stepLabel, { color: '#4f46e5', fontWeight: '700' }]}>
                     {isBN ? 'দোকানের তথ্য' : 'Shop Details'}
                   </Text>
                 </View>
 
-                <View style={[styles.stepLine, { backgroundColor: signupStep === 2 ? '#2563eb' : '#e2e8f0' }]} />
+                <View style={[styles.stepLine, { backgroundColor: signupStep === 2 ? '#4f46e5' : '#e2e8f0' }]} />
 
                 <View style={styles.stepItem}>
-                  <View style={[styles.stepCircle, { backgroundColor: signupStep === 2 ? '#2563eb' : (isDarkMode ? '#334155' : '#cbd5e1') }]}>
+                  <View style={[styles.stepCircle, { backgroundColor: signupStep === 2 ? '#4f46e5' : (isDarkMode ? '#334155' : '#cbd5e1') }]}>
                     <Text style={{ color: signupStep === 2 ? '#fff' : '#64748b', fontSize: 12, fontWeight: '800' }}>2</Text>
                   </View>
-                  <Text style={[styles.stepLabel, { color: signupStep === 2 ? '#2563eb' : '#94a3b8', fontWeight: signupStep === 2 ? '700' : '500' }]}>
+                  <Text style={[styles.stepLabel, { color: signupStep === 2 ? '#4f46e5' : '#94a3b8', fontWeight: signupStep === 2 ? '700' : '500' }]}>
                     {isBN ? 'ওটিপি যাচাই' : 'OTP Verify'}
                   </Text>
                 </View>
@@ -524,7 +524,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="store-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="store-outline" color="#4f46e5" />}
                   />
 
                   <TextInput
@@ -535,7 +535,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="account-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="account-outline" color="#4f46e5" />}
                   />
 
                   <TextInput
@@ -547,7 +547,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="phone-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="phone-outline" color="#4f46e5" />}
                   />
 
                   <TextInput
@@ -560,7 +560,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="email-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="email-outline" color="#4f46e5" />}
                   />
 
                   <TextInput
@@ -572,7 +572,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="lock-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="lock-outline" color="#4f46e5" />}
                     right={
                       <TextInput.Icon
                         icon={showSignupPassword ? 'eye-off' : 'eye'}
@@ -606,7 +606,7 @@ export default function LoginScreen() {
                         width: 32,
                         height: 32,
                         borderRadius: 8,
-                        backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff',
+                        backgroundColor: isDarkMode ? '#1e3a8a' : '#eef2ff',
                         justifyContent: 'center',
                         alignItems: 'center',
                         marginRight: 10,
@@ -614,7 +614,7 @@ export default function LoginScreen() {
                         <MaterialCommunityIcons
                           name={(BUSINESS_TYPES.find(b => b.key === businessType)?.icon as any) || 'storefront-outline'}
                           size={20}
-                          color="#2563eb"
+                          color="#4f46e5"
                         />
                       </View>
                       <View style={{ flex: 1 }}>
@@ -697,10 +697,10 @@ export default function LoginScreen() {
                                   borderRadius: 12,
                                   marginBottom: 8,
                                   backgroundColor: isSelected
-                                    ? (isDarkMode ? '#1e3a8a' : '#eff6ff')
+                                    ? (isDarkMode ? '#1e3a8a' : '#eef2ff')
                                     : (isDarkMode ? '#1e293b' : '#f8fafc'),
                                   borderWidth: 1.5,
-                                  borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0'),
+                                  borderColor: isSelected ? '#4f46e5' : (isDarkMode ? '#334155' : '#e2e8f0'),
                                 }}
                               >
                                 <View style={{
@@ -715,19 +715,19 @@ export default function LoginScreen() {
                                   <MaterialCommunityIcons
                                     name={b.icon as any}
                                     size={20}
-                                    color={isSelected ? '#2563eb' : (isDarkMode ? '#94a3b8' : '#64748b')}
+                                    color={isSelected ? '#4f46e5' : (isDarkMode ? '#94a3b8' : '#64748b')}
                                   />
                                 </View>
                                 <Text style={{
                                   fontSize: 14,
                                   fontWeight: isSelected ? '700' : '500',
-                                  color: isSelected ? '#2563eb' : (isDarkMode ? '#f8fafc' : '#1e293b'),
+                                  color: isSelected ? '#4f46e5' : (isDarkMode ? '#f8fafc' : '#1e293b'),
                                   flex: 1,
                                 }}>
                                   {b.label}
                                 </Text>
                                 {isSelected ? (
-                                  <MaterialCommunityIcons name="check-circle" size={22} color="#2563eb" />
+                                  <MaterialCommunityIcons name="check-circle" size={22} color="#4f46e5" />
                                 ) : (
                                   <MaterialCommunityIcons name="radiobox-blank" size={20} color={isDarkMode ? '#475569' : '#94a3b8'} />
                                 )}
@@ -748,12 +748,12 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="gift-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="gift-outline" color="#4f46e5" />}
                   />
 
                   <Button
                     mode="contained"
-                    buttonColor="#2563eb"
+                    buttonColor="#4f46e5"
                     onPress={handleInitiateSignup}
                     loading={loading}
                     disabled={loading}
@@ -769,8 +769,8 @@ export default function LoginScreen() {
               {/* Step 2: Verify OTP */}
               {signupStep === 2 && (
                 <View>
-                  <View style={{ backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
-                    <Text style={{ fontSize: 13, color: isDarkMode ? '#bfdbfe' : '#1e40af', textAlign: 'center', lineHeight: 20 }}>
+                  <View style={{ backgroundColor: isDarkMode ? '#1e3a8a' : '#eef2ff', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#4f46e5' }}>
+                    <Text style={{ fontSize: 13, color: isDarkMode ? '#c7d2fe' : '#1e40af', textAlign: 'center', lineHeight: 20 }}>
                       {isBN
                         ? `✉️ আমরা ${signupEmail} ঠিকানায় ৬-ডিজিটের একটি ভেরিফিকেশন কোড পাঠিয়েছি।`
                         : `✉️ We sent a 6-digit verification code to ${signupEmail}.`}
@@ -787,7 +787,7 @@ export default function LoginScreen() {
                     style={[styles.input, { textAlign: 'center', fontSize: 22, letterSpacing: 6 }]}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="shield-key-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="shield-key-outline" color="#4f46e5" />}
                   />
 
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
@@ -796,7 +796,7 @@ export default function LoginScreen() {
                     </Text>
                     {signupTimer === 0 ? (
                       <TouchableOpacity onPress={handleInitiateSignup} disabled={loading}>
-                        <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: 'bold' }}>
+                        <Text style={{ fontSize: 13, color: '#4f46e5', fontWeight: 'bold' }}>
                           {isBN ? 'পুনরায় কোড পাঠান' : 'Resend Code'}
                         </Text>
                       </TouchableOpacity>
@@ -805,7 +805,7 @@ export default function LoginScreen() {
 
                   <Button
                     mode="contained"
-                    buttonColor="#2563eb"
+                    buttonColor="#4f46e5"
                     onPress={handleVerifySignupOtp}
                     loading={loading}
                     disabled={loading}
@@ -816,7 +816,7 @@ export default function LoginScreen() {
                     {isBN ? 'যাচাই করুন ও শুরু করুন 🎉' : 'Verify & Launch Shop 🎉'}
                   </Button>
 
-                  <Button mode="text" textColor="#2563eb" onPress={() => setSignupStep(1)} style={{ marginTop: 8 }}>
+                  <Button mode="text" textColor="#4f46e5" onPress={() => setSignupStep(1)} style={{ marginTop: 8 }}>
                     {isBN ? '← তথ্য পরিবর্তন করুন' : '← Edit Information'}
                   </Button>
                 </View>
@@ -829,7 +829,7 @@ export default function LoginScreen() {
                   {isBN ? 'আগে থেকেই অ্যাকাউন্ট আছে?' : 'Already have an account?'}
                 </Text>
                 <TouchableOpacity onPress={() => switchMode('login')} style={{ marginTop: 6, paddingVertical: 4 }}>
-                  <Text style={{ fontSize: 14, color: '#2563eb', fontWeight: 'bold' }}>
+                  <Text style={{ fontSize: 14, color: '#4f46e5', fontWeight: 'bold' }}>
                     {isBN ? 'লগইন করুন (Sign In)' : 'Sign In to Account'}
                   </Text>
                 </TouchableOpacity>
@@ -855,12 +855,12 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="email-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="email-outline" color="#4f46e5" />}
                   />
 
                   <Button
                     mode="contained"
-                    buttonColor="#2563eb"
+                    buttonColor="#4f46e5"
                     onPress={handleRequestForgotOtp}
                     loading={loading}
                     disabled={loading}
@@ -876,8 +876,8 @@ export default function LoginScreen() {
               {/* Step 2: Submit New Password */}
               {forgotStep === 2 && (
                 <View>
-                  <View style={{ backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#2563eb' }}>
-                    <Text style={{ fontSize: 13, color: isDarkMode ? '#bfdbfe' : '#1e40af', textAlign: 'center', lineHeight: 20 }}>
+                  <View style={{ backgroundColor: isDarkMode ? '#1e3a8a' : '#eef2ff', padding: 14, borderRadius: 12, marginBottom: 16, borderLeftWidth: 4, borderLeftColor: '#4f46e5' }}>
+                    <Text style={{ fontSize: 13, color: isDarkMode ? '#c7d2fe' : '#1e40af', textAlign: 'center', lineHeight: 20 }}>
                       {isBN
                         ? `✉️ আমরা ${forgotEmail} ঠিকানায় ৬-ডিজিটের একটি পাসওয়ার্ড রিসেট কোড পাঠিয়েছি।`
                         : `✉️ We sent a 6-digit reset code to ${forgotEmail}.`}
@@ -894,7 +894,7 @@ export default function LoginScreen() {
                     style={[styles.input, { textAlign: 'center', fontSize: 20, letterSpacing: 4 }]}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="shield-key-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="shield-key-outline" color="#4f46e5" />}
                   />
 
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -903,7 +903,7 @@ export default function LoginScreen() {
                     </Text>
                     {forgotTimer === 0 ? (
                       <TouchableOpacity onPress={handleRequestForgotOtp} disabled={loading}>
-                        <Text style={{ fontSize: 13, color: '#2563eb', fontWeight: 'bold' }}>
+                        <Text style={{ fontSize: 13, color: '#4f46e5', fontWeight: 'bold' }}>
                           {isBN ? 'পুনরায় কোড পাঠান' : 'Resend Code'}
                         </Text>
                       </TouchableOpacity>
@@ -919,7 +919,7 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="lock-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="lock-outline" color="#4f46e5" />}
                     right={
                       <TextInput.Icon
                         icon={showNewPassword ? 'eye-off' : 'eye'}
@@ -937,12 +937,12 @@ export default function LoginScreen() {
                     style={styles.input}
                     outlineStyle={styles.inputOutline}
                     disabled={loading}
-                    left={<TextInput.Icon icon="lock-check-outline" color="#2563eb" />}
+                    left={<TextInput.Icon icon="lock-check-outline" color="#4f46e5" />}
                   />
 
                   <Button
                     mode="contained"
-                    buttonColor="#2563eb"
+                    buttonColor="#4f46e5"
                     onPress={handleResetPassword}
                     loading={loading}
                     disabled={loading}
@@ -953,7 +953,7 @@ export default function LoginScreen() {
                     {isBN ? 'পাসওয়ার্ড পরিবর্তন করুন' : 'Update Password'}
                   </Button>
 
-                  <Button mode="text" textColor="#2563eb" onPress={() => setForgotStep(1)} style={{ marginTop: 8 }}>
+                  <Button mode="text" textColor="#4f46e5" onPress={() => setForgotStep(1)} style={{ marginTop: 8 }}>
                     {isBN ? '← ইমেইল পরিবর্তন করুন' : '← Change Email'}
                   </Button>
                 </View>
@@ -963,7 +963,7 @@ export default function LoginScreen() {
 
               <View style={{ alignItems: 'center' }}>
                 <TouchableOpacity onPress={() => switchMode('login')} style={{ paddingVertical: 4 }}>
-                  <Text style={{ fontSize: 14, color: '#2563eb', fontWeight: 'bold' }}>
+                  <Text style={{ fontSize: 14, color: '#4f46e5', fontWeight: 'bold' }}>
                     {isBN ? '← লগইনে ফিরে যান' : '← Back to Sign In'}
                   </Text>
                 </TouchableOpacity>
@@ -1037,7 +1037,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: '#eff6ff',
+    backgroundColor: '#eef2ff',
     alignItems: 'center',
     justifyContent: 'center',
   },

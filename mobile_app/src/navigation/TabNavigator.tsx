@@ -7,6 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
+import { AppColors } from '../constants/theme';
 
 import DashboardScreen from '../screens/DashboardScreen';
 import POSScreen from '../screens/POSScreen';
@@ -26,15 +27,15 @@ function MoreMenuScreen() {
   const accountsItems: any[] = [];
   if (isFinanceEnabled) {
     accountsItems.push(
-      { name: 'AccountingScreen', icon: 'calculator-variant', color: '#1e3a8a', bg: '#eff6ff', labelEn: 'Accounting & P&L', labelBn: 'একাউন্টিং ও লাভ' },
-      { name: 'SettlementScreen', icon: 'cash-register', color: '#16a34a', bg: '#f0fdf4', labelEn: 'Daily Settlement', labelBn: 'দৈনিক ক্যাশ ক্লোজিং' },
-      { name: 'ExpensesScreen', icon: 'cash-remove', color: '#be185d', bg: '#fdf2f8', labelEn: 'Expenses', labelBn: 'দোকানের খরচ' }
+      { name: 'AccountingScreen', icon: 'calculator-variant', labelEn: 'Accounting & P&L', labelBn: 'একাউন্টিং ও লাভ' },
+      { name: 'SettlementScreen', icon: 'cash-register', labelEn: 'Daily Settlement', labelBn: 'দৈনিক ক্যাশ ক্লোজিং' },
+      { name: 'ExpensesScreen', icon: 'cash-remove', labelEn: 'Expenses', labelBn: 'দোকানের খরচ' }
     );
   }
   if (isServiceEnabled) {
     accountsItems.push(
-      { name: 'ServiceTickets', icon: 'tools', color: '#9333ea', bg: '#faf5ff', labelEn: 'Service & Repair', labelBn: 'সার্ভিস ও মেরামত' },
-      { name: 'WarrantiesScreen', icon: 'shield-check', color: '#0ea5e9', bg: '#e0f2fe', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' }
+      { name: 'ServiceTickets', icon: 'tools', labelEn: 'Service & Repair', labelBn: 'সার্ভিস ও মেরামত' },
+      { name: 'WarrantiesScreen', icon: 'shield-check', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' }
     );
   }
 
@@ -43,22 +44,22 @@ function MoreMenuScreen() {
       titleEn: 'Sales & Billing',
       titleBn: 'বিক্রয় ও কাস্টমার লেনদেন',
       items: [
-        { name: 'SalesScreen', icon: 'receipt', color: '#2563eb', bg: '#eff6ff', labelEn: 'Sales History', labelBn: 'বিক্রয় ইতিহাস' },
-        { name: 'DuesScreen', icon: 'cash-multiple', color: '#dc2626', bg: '#fef2f2', labelEn: 'Customer Dues', labelBn: 'বকেয়া খাতা' },
-        { name: 'EMIScreen', icon: 'calendar-check', color: '#0284c7', bg: '#f0f9ff', labelEn: 'EMI Installments', labelBn: 'ইএমআই ও কিস্তি' },
-        { name: 'ReturnsScreen', icon: 'keyboard-return', color: '#ea580c', bg: '#fff7ed', labelEn: 'Returns & Replace', labelBn: 'পণ্য ফেরত ও বদল' },
+        { name: 'SalesScreen', icon: 'receipt', labelEn: 'Sales History', labelBn: 'বিক্রয় ইতিহাস' },
+        { name: 'DuesScreen', icon: 'cash-multiple', labelEn: 'Customer Dues', labelBn: 'বকেয়া খাতা' },
+        { name: 'EMIScreen', icon: 'calendar-check', labelEn: 'EMI Installments', labelBn: 'ইএমআই ও কিস্তি' },
+        { name: 'ReturnsScreen', icon: 'keyboard-return', labelEn: 'Returns & Replace', labelBn: 'পণ্য ফেরত ও বদল' },
       ],
     },
     {
       titleEn: 'Stock & Purchasing',
       titleBn: 'স্টক ও সরবরাহকারী',
       items: [
-        { name: 'ProductsScreen', icon: 'package-variant', color: '#7c3aed', bg: '#f5f3ff', labelEn: 'Products & Inward', labelBn: 'পণ্য ও ইনওয়ার্ড' },
-        { name: 'LookupScreen', icon: 'line-scan', color: '#f59e0b', bg: '#fef3c7', labelEn: 'Item Lookup', labelBn: 'আইটেম লুকআপ' },
-        { name: 'PurchasesScreen', icon: 'shopping', color: '#0891b2', bg: '#ecfeff', labelEn: 'Purchase History', labelBn: 'ক্রয় ইতিহাস' },
-        { name: 'SuppliersScreen', icon: 'truck-delivery', color: '#d97706', bg: '#fffbeb', labelEn: 'Suppliers / Vendors', labelBn: 'সরবরাহকারী' },
-        { name: 'ManufacturingScreen', icon: 'factory', color: '#f59e0b', bg: '#fffbeb', labelEn: 'Manufacturing Hub', labelBn: 'প্রোডাকশন হাব' },
-        { name: 'BarcodesScreen', icon: 'barcode-scan', color: '#0284c7', bg: '#f0f9ff', labelEn: 'Barcode Generator', labelBn: 'বারকোড জেনারেটর' },
+        { name: 'ProductsScreen', icon: 'package-variant', labelEn: 'Products & Inward', labelBn: 'পণ্য ও ইনওয়ার্ড' },
+        { name: 'LookupScreen', icon: 'line-scan', labelEn: 'Item Lookup', labelBn: 'আইটেম লুকআপ' },
+        { name: 'PurchasesScreen', icon: 'shopping', labelEn: 'Purchase History', labelBn: 'ক্রয় ইতিহাস' },
+        { name: 'SuppliersScreen', icon: 'truck-delivery', labelEn: 'Suppliers / Vendors', labelBn: 'সরবরাহকারী' },
+        { name: 'ManufacturingScreen', icon: 'factory', labelEn: 'Manufacturing Hub', labelBn: 'প্রোডাকশন হাব' },
+        { name: 'BarcodesScreen', icon: 'barcode-scan', labelEn: 'Barcode Generator', labelBn: 'বারকোড জেনারেটর' },
       ],
     },
     ...(accountsItems.length > 0 ? [{
@@ -70,13 +71,16 @@ function MoreMenuScreen() {
       titleEn: 'Directory & Preferences',
       titleBn: 'ডিরেক্টরি ও সেটিংস',
       items: [
-        { name: 'CustomersScreen', icon: 'account-group', color: '#059669', bg: '#ecfdf5', labelEn: 'Customers', labelBn: 'গ্রাহক তালিকা' },
-        { name: 'UsersAndRoles', icon: 'shield-account', color: '#4f46e5', bg: '#eef2ff', labelEn: 'Users & Roles', labelBn: 'ইউজার ও রোল' },
-        { name: 'SettingsScreen', icon: 'cog-outline', color: '#64748b', bg: '#f8fafc', labelEn: 'Shop Settings', labelBn: 'দোকানের সেটিংস' },
-        { name: 'TutorialsScreen', icon: 'play-circle-outline', color: '#e11d48', bg: '#fff1f2', labelEn: 'Video Tutorials', labelBn: 'টিউটোরিয়াল' },
+        { name: 'CustomersScreen', icon: 'account-group', labelEn: 'Customers', labelBn: 'গ্রাহক তালিকা' },
+        { name: 'UsersAndRoles', icon: 'shield-account', labelEn: 'Users & Roles', labelBn: 'ইউজার ও রোল' },
+        { name: 'SettingsScreen', icon: 'cog-outline', labelEn: 'Shop Settings', labelBn: 'দোকানের সেটিংস' },
+        { name: 'TutorialsScreen', icon: 'play-circle-outline', labelEn: 'Video Tutorials', labelBn: 'টিউটোরিয়াল' },
       ],
     },
   ];
+
+  const iconColor = isDarkMode ? AppColors.primaryAccent : AppColors.primary;
+  const iconBg = isDarkMode ? AppColors.primaryBgDark : AppColors.primaryBgLight;
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
@@ -90,7 +94,7 @@ function MoreMenuScreen() {
 
         {sections.map((sec, sIdx) => (
           <View key={sIdx} style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: '#64748b', marginBottom: 10, letterSpacing: 0.2 }}>
+            <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 10, letterSpacing: 0.2 }}>
               {isBn ? sec.titleBn : sec.titleEn}
             </Text>
 
@@ -119,13 +123,13 @@ function MoreMenuScreen() {
                       width: 38,
                       height: 38,
                       borderRadius: 10,
-                      backgroundColor: isDarkMode ? item.color + '25' : item.bg,
+                      backgroundColor: iconBg,
                       justifyContent: 'center',
                       alignItems: 'center',
                       marginRight: 8,
                     }}
                   >
-                    <MaterialCommunityIcons name={item.icon as any} size={20} color={item.color} />
+                    <MaterialCommunityIcons name={item.icon as any} size={20} color={iconColor} />
                   </View>
                   <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text
@@ -163,12 +167,16 @@ export default function TabNavigator() {
   const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 24 : 8);
   const tabHeight = 60 + bottomPadding;
 
+  const activeColor = isDarkMode ? AppColors.primaryAccent : AppColors.primary;
+  const inactiveColor = isDarkMode ? '#64748b' : '#94a3b8';
+  const activePillBg = isDarkMode ? AppColors.primaryBgDark : AppColors.primaryBgLight;
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: isDarkMode ? '#818cf8' : '#4f46e5',
-        tabBarInactiveTintColor: isDarkMode ? '#64748b' : '#94a3b8',
+        tabBarActiveTintColor: activeColor,
+        tabBarInactiveTintColor: inactiveColor,
         tabBarStyle: {
           backgroundColor: theme.colors.surface,
           borderTopWidth: 1,
@@ -199,7 +207,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: isBn ? 'হোম' : 'Home',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
+            <View style={focused ? [styles.activeIconWrap, { backgroundColor: activePillBg }] : null}>
               <MaterialCommunityIcons name={focused ? 'view-dashboard' : 'view-dashboard-outline'} color={color} size={22} />
             </View>
           ),
@@ -211,7 +219,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: isBn ? 'বিক্রয়' : 'POS',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
+            <View style={focused ? [styles.activeIconWrap, { backgroundColor: activePillBg }] : null}>
               <MaterialCommunityIcons name={focused ? 'cash-register' : 'cart-outline'} color={color} size={22} />
             </View>
           ),
@@ -223,7 +231,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: isBn ? 'ইনভেন্টরি' : 'Inventory',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
+            <View style={focused ? [styles.activeIconWrap, { backgroundColor: activePillBg }] : null}>
               <MaterialCommunityIcons name={focused ? 'package-variant-closed' : 'package-variant'} color={color} size={22} />
             </View>
           ),
@@ -236,7 +244,7 @@ export default function TabNavigator() {
           options={{
             tabBarLabel: isBn ? 'রিপোর্ট' : 'Reports',
             tabBarIcon: ({ color, focused }) => (
-              <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
+              <View style={focused ? [styles.activeIconWrap, { backgroundColor: activePillBg }] : null}>
                 <MaterialCommunityIcons name={focused ? 'chart-box' : 'chart-box-outline'} color={color} size={22} />
               </View>
             ),
@@ -249,7 +257,7 @@ export default function TabNavigator() {
         options={{
           tabBarLabel: isBn ? 'মেনু' : 'Menu',
           tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? [styles.activeIconWrap, { backgroundColor: isDarkMode ? '#1e1b4b' : '#eef2ff' }] : null}>
+            <View style={focused ? [styles.activeIconWrap, { backgroundColor: activePillBg }] : null}>
               <MaterialCommunityIcons name={focused ? 'dots-grid' : 'menu'} color={color} size={22} />
             </View>
           ),

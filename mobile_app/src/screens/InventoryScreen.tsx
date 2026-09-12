@@ -77,7 +77,7 @@ export default function InventoryScreen() {
   // Clean Web Parity: No manual adjustment modal
 
   const movBadgeColor: Record<string, string> = {
-    adjust_in: '#10b981', adjust_out: '#f59e0b', sale: '#3b82f6',
+    adjust_in: '#10b981', adjust_out: '#f59e0b', sale: '#6366f1',
     purchase: '#6366f1', damage: '#ef4444', opening: '#8b5cf6', loss: '#dc2626', return: '#0891b2',
   };
 
@@ -349,7 +349,7 @@ export default function InventoryScreen() {
                     </TouchableOpacity>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                       <TouchableOpacity onPress={() => setProductToEdit(item)} style={{ padding: 4, marginRight: 8 }}>
-                        <MaterialCommunityIcons name="pencil" size={20} color="#3b82f6" />
+                        <MaterialCommunityIcons name="pencil" size={20} color="#6366f1" />
                       </TouchableOpacity>
                       <TouchableOpacity onPress={() => confirmDelete(item)} style={{ padding: 4, marginRight: 8 }}>
                         <MaterialCommunityIcons name="delete" size={20} color="#ef4444" />
@@ -385,7 +385,7 @@ export default function InventoryScreen() {
                       <View style={{ width: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
                       <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 10, marginBottom: 2 }}>{isBN ? 'বিক্রয় মূল্য' : 'Selling'}</Text>
-                        <Text style={{ fontWeight: '600', fontSize: 13, color: isDarkMode ? '#60a5fa' : '#3b82f6' }}>৳{Number(item.selling_price).toLocaleString()}</Text>
+                        <Text style={{ fontWeight: '600', fontSize: 13, color: isDarkMode ? '#60a5fa' : '#6366f1' }}>৳{Number(item.selling_price).toLocaleString()}</Text>
                       </View>
                       <View style={{ width: 1, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }} />
                       <View style={{ alignItems: 'center', flex: 1 }}>

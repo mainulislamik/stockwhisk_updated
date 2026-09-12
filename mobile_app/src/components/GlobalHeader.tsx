@@ -18,6 +18,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { api } from '../api';
+import { AppColors } from '../constants/theme';
 
 export default function GlobalHeader() {
   const { user, billing, logout } = useAuth();
@@ -71,7 +72,6 @@ export default function GlobalHeader() {
     }
   };
 
-  const shopInitial = user?.shop_name ? user.shop_name.charAt(0).toUpperCase() : 'S';
   const shopCode = (user as any)?.shop_code || `SW-${1000 + ((user as any)?.shop || 0)}`;
 
   return (
@@ -80,9 +80,9 @@ export default function GlobalHeader() {
         style={[
           styles.headerSurface,
           {
-            backgroundColor: isDarkMode ? '#0f172a' : '#ffffff',
+            backgroundColor: isDarkMode ? AppColors.dark.surface : AppColors.light.surface,
             paddingTop: Math.max(insets.top, 14),
-            borderBottomColor: isDarkMode ? '#1e293b' : '#e2e8f0',
+            borderBottomColor: isDarkMode ? AppColors.dark.border : AppColors.light.border,
           },
         ]}
         elevation={2}
@@ -95,7 +95,7 @@ export default function GlobalHeader() {
             onPress={() => navigation.navigate('MainTabs', { screen: 'Dashboard' })}
           >
             {/* Avatar / Logo */}
-            <View style={[styles.avatarBox, { backgroundColor: isDarkMode ? '#1e293b' : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0' }]}>
+            <View style={[styles.avatarBox, { backgroundColor: isDarkMode ? AppColors.dark.surfaceVariant : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0' }]}>
               {(user as any)?.shop_logo ? (
                 <Image
                   source={{
@@ -122,7 +122,7 @@ export default function GlobalHeader() {
                 ellipsizeMode="tail"
                 style={[
                   styles.shopTitle,
-                  { color: isDarkMode ? '#f8fafc' : '#0f172a', fontSize: isSmallScreen ? 14 : 15 },
+                  { color: isDarkMode ? AppColors.dark.textPrimary : AppColors.light.textPrimary, fontSize: isSmallScreen ? 14 : 15 },
                 ]}
               >
                 {user?.shop_name || (isBN ? 'আমার দোকান' : 'My Shop')}
@@ -133,22 +133,22 @@ export default function GlobalHeader() {
                 <View
                   style={[
                     styles.shopCodeBadge,
-                    { backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff' },
+                    { backgroundColor: isDarkMode ? AppColors.primaryBgDark : AppColors.primaryBgLight },
                   ]}
                 >
-                  <Text style={[styles.shopCodeText, { color: isDarkMode ? '#93c5fd' : '#2563eb' }]}>
+                  <Text style={[styles.shopCodeText, { color: isDarkMode ? AppColors.primaryAccent : AppColors.primary }]}>
                     {shopCode}
                   </Text>
                 </View>
 
                 {/* Plan Badge */}
                 {billing?.state === 'paid' ? (
-                  <View style={[styles.planBadge, { backgroundColor: '#ea580c' }]}>
+                  <View style={[styles.planBadge, { backgroundColor: AppColors.primary }]}>
                     <MaterialCommunityIcons name="check-decagram" size={10} color="#fff" style={{ marginRight: 2 }} />
                     <Text style={styles.planText}>PRO</Text>
                   </View>
                 ) : billing?.state === 'free' ? (
-                  <View style={[styles.planBadge, { backgroundColor: '#10b981' }]}>
+                  <View style={[styles.planBadge, { backgroundColor: AppColors.success }]}>
                     <MaterialCommunityIcons name="gift" size={10} color="#fff" style={{ marginRight: 2 }} />
                     <Text style={styles.planText}>FREE</Text>
                   </View>
@@ -162,7 +162,7 @@ export default function GlobalHeader() {
             {/* Dark/Light Mode */}
             <TouchableOpacity
               onPress={toggleDarkMode}
-              style={[styles.iconButton, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}
+              style={[styles.iconButton, { backgroundColor: isDarkMode ? AppColors.dark.surfaceVariant : AppColors.light.background }]}
               accessibilityLabel="Toggle Theme"
             >
               <MaterialCommunityIcons
@@ -173,13 +173,13 @@ export default function GlobalHeader() {
             </TouchableOpacity>
 
             {/* Language Switcher Pill */}
-            <View style={[styles.langPill, { backgroundColor: isDarkMode ? '#1e293b' : '#f1f5f9' }]}>
+            <View style={[styles.langPill, { backgroundColor: isDarkMode ? AppColors.dark.surfaceVariant : AppColors.light.surfaceVariant }]}>
               <TouchableOpacity
                 onPress={() => { if (language !== 'BN') toggleLanguage(); }}
                 activeOpacity={0.7}
                 style={[
                   styles.langOption,
-                  language === 'BN' && { backgroundColor: '#2563eb' }
+                  language === 'BN' && { backgroundColor: AppColors.primary }
                 ]}
               >
                 <Text style={{ fontSize: 10, fontWeight: 'bold', color: language === 'BN' ? '#ffffff' : '#64748b' }}>
@@ -191,7 +191,7 @@ export default function GlobalHeader() {
                 activeOpacity={0.7}
                 style={[
                   styles.langOption,
-                  language === 'EN' && { backgroundColor: '#2563eb' }
+                  language === 'EN' && { backgroundColor: AppColors.primary }
                 ]}
               >
                 <Text style={{ fontSize: 10, fontWeight: 'bold', color: language === 'EN' ? '#ffffff' : '#64748b' }}>
@@ -200,11 +200,11 @@ export default function GlobalHeader() {
               </TouchableOpacity>
             </View>
 
-            {/* Contact Support (hidden on ultra-small screens, accessible via modal) */}
+            {/* Contact Support */}
             {!isSmallScreen && (
               <TouchableOpacity
                 onPress={() => setContactMenuVisible(true)}
-                style={[styles.iconButton, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}
+                style={[styles.iconButton, { backgroundColor: isDarkMode ? AppColors.dark.surfaceVariant : AppColors.light.background }]}
               >
                 <MaterialCommunityIcons name="headset" size={18} color={isDarkMode ? '#94a3b8' : '#475569'} />
               </TouchableOpacity>
@@ -213,7 +213,7 @@ export default function GlobalHeader() {
             {/* Notifications */}
             <TouchableOpacity
               onPress={() => navigation.navigate('Notifications')}
-              style={[styles.iconButton, { backgroundColor: isDarkMode ? '#1e293b' : '#f8fafc' }]}
+              style={[styles.iconButton, { backgroundColor: isDarkMode ? AppColors.dark.surfaceVariant : AppColors.light.background }]}
             >
               <MaterialCommunityIcons name="bell-outline" size={18} color={isDarkMode ? '#94a3b8' : '#475569'} />
               {unreadCount > 0 && (
@@ -226,9 +226,9 @@ export default function GlobalHeader() {
             {/* Logout */}
             <TouchableOpacity
               onPress={handleLogout}
-              style={[styles.iconButton, { backgroundColor: isDarkMode ? '#2d1515' : '#fef2f2' }]}
+              style={[styles.iconButton, { backgroundColor: isDarkMode ? AppColors.dangerBgDark : AppColors.dangerBgLight }]}
             >
-              <MaterialCommunityIcons name="logout-variant" size={18} color="#ef4444" />
+              <MaterialCommunityIcons name="logout-variant" size={18} color={AppColors.danger} />
             </TouchableOpacity>
           </View>
         </View>
@@ -247,12 +247,12 @@ export default function GlobalHeader() {
           onPress={() => setContactMenuVisible(false)}
         >
           <View
-            style={[styles.modalCard, { backgroundColor: isDarkMode ? '#0f172a' : '#ffffff' }]}
+            style={[styles.modalCard, { backgroundColor: isDarkMode ? AppColors.dark.surface : AppColors.light.surface }]}
             onStartShouldSetResponder={() => true}
           >
             <View style={styles.modalHeader}>
-              <MaterialCommunityIcons name="headset" size={20} color="#3b82f6" style={{ marginRight: 8 }} />
-              <Text style={[styles.modalTitle, { color: isDarkMode ? '#f8fafc' : '#0f172a' }]}>
+              <MaterialCommunityIcons name="headset" size={20} color={AppColors.primary} style={{ marginRight: 8 }} />
+              <Text style={[styles.modalTitle, { color: isDarkMode ? AppColors.dark.textPrimary : AppColors.light.textPrimary }]}>
                 {isBN ? 'সাপোর্ট ও যোগাযোগ' : 'Support & Assistance'}
               </Text>
             </View>
@@ -261,7 +261,7 @@ export default function GlobalHeader() {
             </Text>
 
             <TouchableOpacity
-              style={[styles.contactRow, { backgroundColor: '#064e3b' }]}
+              style={[styles.contactRow, { backgroundColor: isDarkMode ? '#052e16' : '#166534' }]}
               onPress={() => {
                 setContactMenuVisible(false);
                 Linking.openURL('https://wa.me/8801613511887');
@@ -270,20 +270,20 @@ export default function GlobalHeader() {
               <MaterialCommunityIcons name="whatsapp" size={20} color="#34d399" style={{ marginRight: 10 }} />
               <View>
                 <Text style={{ color: '#a7f3d0', fontSize: 10 }}>WhatsApp / Hotline</Text>
-                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>+8801613511887</Text>
+                <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>+880****1887</Text>
               </View>
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.contactRow, { backgroundColor: '#1e3a8a', marginTop: 8 }]}
+              style={[styles.contactRow, { backgroundColor: isDarkMode ? '#1e1b4b' : '#312e81', marginTop: 8 }]}
               onPress={() => {
                 setContactMenuVisible(false);
                 Linking.openURL('mailto:admin@stockwhisk.com');
               }}
             >
-              <MaterialCommunityIcons name="email-outline" size={20} color="#93c5fd" style={{ marginRight: 10 }} />
+              <MaterialCommunityIcons name="email-outline" size={20} color="#c7d2fe" style={{ marginRight: 10 }} />
               <View>
-                <Text style={{ color: '#bfdbfe', fontSize: 10 }}>Email</Text>
+                <Text style={{ color: '#c7d2fe', fontSize: 10 }}>Email</Text>
                 <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>admin@stockwhisk.com</Text>
               </View>
             </TouchableOpacity>

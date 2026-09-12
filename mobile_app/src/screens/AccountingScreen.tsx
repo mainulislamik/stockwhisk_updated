@@ -147,9 +147,9 @@ export default function AccountingScreen() {
                 paddingHorizontal: 14,
                 paddingVertical: 7,
                 borderRadius: 20,
-                backgroundColor: dateFilter === f.key ? '#2563eb' : theme.colors.surface,
+                backgroundColor: dateFilter === f.key ? '#4f46e5' : theme.colors.surface,
                 borderWidth: 1,
-                borderColor: dateFilter === f.key ? '#2563eb' : '#cbd5e1',
+                borderColor: dateFilter === f.key ? '#4f46e5' : '#cbd5e1',
               }}
             >
               <Text
@@ -167,7 +167,7 @@ export default function AccountingScreen() {
 
         {loading && !refreshing ? (
           <View style={{ paddingVertical: 40, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#2563eb" />
+            <ActivityIndicator size="large" color="#4f46e5" />
             <Text style={{ marginTop: 12, color: '#64748b' }}>{isBN ? 'হিসাব লোড হচ্ছে...' : 'Loading accounting records...'}</Text>
           </View>
         ) : (
@@ -178,17 +178,17 @@ export default function AccountingScreen() {
                 borderRadius: 16,
                 padding: 18,
                 marginBottom: 16,
-                backgroundColor: netProfitNum >= 0 ? '#1e3a8a' : '#7f1d1d',
+                backgroundColor: netProfitNum >= 0 ? (isDarkMode ? '#1e1b4b' : '#312e81') : (isDarkMode ? '#450a0a' : '#7f1d1d'),
                 elevation: 3,
               }}
             >
-              <Text style={{ color: '#93c5fd', fontSize: 13, fontWeight: '600' }}>
+              <Text style={{ color: '#a5b4fc', fontSize: 13, fontWeight: '600' }}>
                 💰 {isBN ? 'আসল নিট লাভ (Net Profit)' : 'Actual Net Profit'}
               </Text>
               <Text style={{ color: '#ffffff', fontSize: 28, fontWeight: 'bold', marginVertical: 6 }}>
                 ৳{netProfitNum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
-              <Text style={{ color: '#bfdbfe', fontSize: 11 }}>
+              <Text style={{ color: '#c7d2fe', fontSize: 11 }}>
                 {isBN ? 'মোট বিক্রয় - (কেনা খরচ + রিটার্ন + যাবতীয় দোকান খরচ)' : 'Revenue - (COGS + Returns + Operating Expenses)'}
               </Text>
             </Surface>
@@ -280,7 +280,7 @@ export default function AccountingScreen() {
                 <Text style={{ fontSize: 13, fontWeight: 'bold' }}>
                   {isBN ? 'মোট লাভ (Gross Profit)' : 'Gross Profit'}
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#2563eb' }}>
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: '#4f46e5' }}>
                   ৳{grossProfitNum.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                 </Text>
               </View>

@@ -327,7 +327,7 @@ export default function ProductsScreen() {
     setPushingToStock(true);
     try {
       // Update product prices & warranties for all lines
-      for (const line of linesToSubmit) {
+      for (const line of (linesToSubmit as any[])) {
         await api.patch(`/catalog/products/${line.product.id}/`, {
           cost_price: line.unit_cost,
           selling_price: line.product.selling_price,
@@ -409,7 +409,7 @@ export default function ProductsScreen() {
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'নতুন প্রোডাক্ট পার্চেজ করুন' : 'Purchase New Product'} titleStyle={{ fontWeight: 'bold' }} />
         <PageGuideButton pageKey="/app/products" />
-        <Button mode="contained" compact buttonColor="#2563eb" style={{ marginRight: 8, borderRadius: 8 }} onPress={() => setProductToEdit({})}>
+        <Button mode="contained" compact buttonColor="#4f46e5" style={{ marginRight: 8, borderRadius: 8 }} onPress={() => setProductToEdit({})}>
           {isBN ? '+ New Product Record' : '+ New Product Record'}
         </Button>
       </Appbar.Header>
@@ -417,7 +417,7 @@ export default function ProductsScreen() {
       {/* Top Segmented Navigation */}
       <View style={{ flexDirection: 'row', marginHorizontal: 16, marginTop: 12, marginBottom: 8, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', borderRadius: 10, padding: 4 }}>
         <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'list' ? '#2563eb' : 'transparent', borderRadius: 8, overflow: 'hidden' }}
+          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'list' ? '#4f46e5' : 'transparent', borderRadius: 8, overflow: 'hidden' }}
           onPress={() => setActiveTab('list')}
         >
           <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', width: '100%', color: activeTab === 'list' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
@@ -425,7 +425,7 @@ export default function ProductsScreen() {
           </Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'purchase' ? '#2563eb' : 'transparent', borderRadius: 8, overflow: 'hidden' }}
+          style={{ flex: 1, paddingVertical: 8, paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center', backgroundColor: activeTab === 'purchase' ? '#4f46e5' : 'transparent', borderRadius: 8, overflow: 'hidden' }}
           onPress={() => setActiveTab('purchase')}
         >
           <Text adjustsFontSizeToFit numberOfLines={1} style={{ textAlign: 'center', width: '100%', color: activeTab === 'purchase' ? '#fff' : (isDarkMode ? '#cbd5e1' : '#64748b'), fontWeight: 'bold', fontSize: 13 }}>
@@ -454,9 +454,9 @@ export default function ProductsScreen() {
                   paddingVertical: 7,
                   borderRadius: 20,
                   marginRight: 8,
-                  backgroundColor: selectedCategory === null ? '#2563eb' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                  backgroundColor: selectedCategory === null ? '#4f46e5' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
                   borderWidth: 1,
-                  borderColor: selectedCategory === null ? '#2563eb' : (isDarkMode ? '#334155' : '#cbd5e1'),
+                  borderColor: selectedCategory === null ? '#4f46e5' : (isDarkMode ? '#334155' : '#cbd5e1'),
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -481,9 +481,9 @@ export default function ProductsScreen() {
                       paddingVertical: 7,
                       borderRadius: 20,
                       marginRight: 8,
-                      backgroundColor: isSelected ? '#2563eb' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                      backgroundColor: isSelected ? '#4f46e5' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
                       borderWidth: 1,
-                      borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#cbd5e1'),
+                      borderColor: isSelected ? '#4f46e5' : (isDarkMode ? '#334155' : '#cbd5e1'),
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
@@ -505,16 +505,16 @@ export default function ProductsScreen() {
                   paddingHorizontal: 12,
                   paddingVertical: 7,
                   borderRadius: 20,
-                  backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff',
+                  backgroundColor: isDarkMode ? '#1e293b' : '#eef2ff',
                   borderWidth: 1,
-                  borderColor: '#93c5fd',
+                  borderColor: '#a5b4fc',
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
               >
-                <MaterialCommunityIcons name="plus" size={14} color="#2563eb" style={{ marginRight: 2 }} />
-                <Text style={{ color: '#2563eb', fontWeight: 'bold', fontSize: 12, includeFontPadding: false }}>
+                <MaterialCommunityIcons name="plus" size={14} color="#4f46e5" style={{ marginRight: 2 }} />
+                <Text style={{ color: '#4f46e5', fontWeight: 'bold', fontSize: 12, includeFontPadding: false }}>
                   {isBN ? 'ক্যাটাগরি' : 'Category'}
                 </Text>
               </TouchableOpacity>
@@ -570,7 +570,7 @@ export default function ProductsScreen() {
                             </View>
                           )}
                           <TouchableOpacity onPress={() => setProductToEdit(product)} style={{ padding: 6 }}>
-                            <MaterialCommunityIcons name="pencil" size={18} color="#3b82f6" />
+                            <MaterialCommunityIcons name="pencil" size={18} color="#6366f1" />
                           </TouchableOpacity>
                           <TouchableOpacity onPress={() => confirmDelete(product)} style={{ padding: 6 }}>
                             <MaterialCommunityIcons name="delete" size={18} color="#ef4444" />
@@ -587,7 +587,7 @@ export default function ProductsScreen() {
                         </View>
                         <View>
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'বিক্রি দাম:' : 'Selling:'}</Text>
-                          <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDarkMode ? '#60a5fa' : '#2563eb' }}>৳{Number(product.selling_price || 0).toFixed(2)}</Text>
+                          <Text style={{ fontWeight: 'bold', fontSize: 14, color: isDarkMode ? '#60a5fa' : '#4f46e5' }}>৳{Number(product.selling_price || 0).toFixed(2)}</Text>
                         </View>
                         <View style={{ alignItems: 'flex-end' }}>
                           <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>{isBN ? 'স্টক:' : 'Stock:'}</Text>
@@ -615,7 +615,7 @@ export default function ProductsScreen() {
           <FAB
             icon="plus"
             color="#fff"
-            style={{ position: 'absolute', margin: 16, right: 0, bottom: 20, backgroundColor: '#2563eb' }}
+            style={{ position: 'absolute', margin: 16, right: 0, bottom: 20, backgroundColor: '#4f46e5' }}
             onPress={() => setProductToEdit({})}
           />
         </>
@@ -702,8 +702,8 @@ export default function ProductsScreen() {
             </View>
 
             {/* Margin Calculation Box */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff', padding: 10, borderRadius: 8, marginBottom: 12 }}>
-              <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: 'bold' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: isDarkMode ? '#1e293b' : '#eef2ff', padding: 10, borderRadius: 8, marginBottom: 12 }}>
+              <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: 'bold' }}>
                 {isBN ? 'মার্জিন:' : 'Margin:'} {marginPct}%
               </Text>
               <Text style={{ fontSize: 12, color: '#16a34a', fontWeight: 'bold' }}>
@@ -842,7 +842,7 @@ export default function ProductsScreen() {
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 }}>
                 <Text style={{ fontSize: 16, fontWeight: 'bold', color: theme.colors.onSurface }}>{isBN ? 'মোট মূল্য' : 'Total Amount'}</Text>
-                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#2563eb' }}>৳{totalPurchaseCost}</Text>
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#4f46e5' }}>৳{totalPurchaseCost}</Text>
               </View>
 
               <Divider style={{ marginVertical: 8 }} />
@@ -866,8 +866,8 @@ export default function ProductsScreen() {
                   mode="outlined"
                   compact
                   onPress={() => setPaidAmount(totalPurchaseCost)}
-                  style={{ justifyContent: 'center', borderColor: '#2563eb' }}
-                  textColor="#2563eb"
+                  style={{ justifyContent: 'center', borderColor: '#4f46e5' }}
+                  textColor="#4f46e5"
                 >
                   {isBN ? 'সম্পূর্ণ পরিশোধ করুন' : 'Pay Full'}
                 </Button>
@@ -881,11 +881,11 @@ export default function ProductsScreen() {
                     onPress={() => setPayMethod(m.key)}
                     style={{
                       paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6,
-                      borderWidth: 1, borderColor: payMethod === m.key ? '#2563eb' : '#ccc',
+                      borderWidth: 1, borderColor: payMethod === m.key ? '#4f46e5' : '#ccc',
                       backgroundColor: payMethod === m.key ? '#e0e7ff' : theme.colors.surface
                     }}
                   >
-                    <Text style={{ fontSize: 11, color: payMethod === m.key ? '#2563eb' : theme.colors.onSurface, fontWeight: payMethod === m.key ? 'bold' : 'normal' }}>
+                    <Text style={{ fontSize: 11, color: payMethod === m.key ? '#4f46e5' : theme.colors.onSurface, fontWeight: payMethod === m.key ? 'bold' : 'normal' }}>
                       {m.label}
                     </Text>
                   </TouchableOpacity>
@@ -914,7 +914,7 @@ export default function ProductsScreen() {
                     {isBN ? 'সরবরাহকারী / ভেন্ডর' : 'Supplier / Vendor'}
                   </Text>
                   <TouchableOpacity onPress={() => setShowAddVendorModal(true)}>
-                    <Text style={{ fontSize: 12, color: '#2563eb', fontWeight: 'bold' }}>+ {isBN ? 'যোগ করুন' : 'add'}</Text>
+                    <Text style={{ fontSize: 12, color: '#4f46e5', fontWeight: 'bold' }}>+ {isBN ? 'যোগ করুন' : 'add'}</Text>
                   </TouchableOpacity>
                 </View>
                 <TouchableOpacity
@@ -940,7 +940,7 @@ export default function ProductsScreen() {
 
             <Button
               mode="contained"
-              buttonColor="#2563eb"
+              buttonColor="#4f46e5"
               icon="arrow-up-bold-box"
               loading={pushingToStock}
               disabled={pushingToStock || !selectedPurchaseProduct || qtyNum <= 0}
@@ -960,7 +960,7 @@ export default function ProductsScreen() {
       <Modal visible={showAddVendorModal} transparent animationType="fade" onRequestClose={() => setShowAddVendorModal(false)}>
         <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
           <Card style={{ width: '100%', maxWidth: 400, padding: 16, backgroundColor: theme.colors.surface }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: '#2563eb' }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 16, marginBottom: 12, color: '#4f46e5' }}>
               {isBN ? '✨ নতুন সরবরাহকারী / ভেন্ডর যোগ করুন' : '✨ Quick Add Vendor'}
             </Text>
             <TextInput
@@ -1009,7 +1009,7 @@ export default function ProductsScreen() {
         onClose={() => setProductToEdit(null)} 
         onSaved={() => {
           setProductToEdit(null);
-          fetchProducts(1, debouncedSearch, selectedCategory, true);
+          fetchProducts(1, debouncedSearch, selectedCategory, brandFilter, true);
         }}
       />
 
@@ -1034,11 +1034,11 @@ export default function ProductsScreen() {
                   borderRadius: 8,
                   marginBottom: 6,
                   borderWidth: 1,
-                  borderColor: selectedSupplier === null ? '#2563eb' : '#e2e8f0',
-                  backgroundColor: selectedSupplier === null ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent'
+                  borderColor: selectedSupplier === null ? '#4f46e5' : '#e2e8f0',
+                  backgroundColor: selectedSupplier === null ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent'
                 }}
               >
-                <Text style={{ fontWeight: 'bold', color: selectedSupplier === null ? '#2563eb' : theme.colors.onSurface }}>
+                <Text style={{ fontWeight: 'bold', color: selectedSupplier === null ? '#4f46e5' : theme.colors.onSurface }}>
                   🚫 {isBN ? 'কোনো সরবরাহকারী নয় (None)' : 'None (No Supplier)'}
                 </Text>
               </TouchableOpacity>
@@ -1098,7 +1098,7 @@ export default function ProductsScreen() {
             />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <Button disabled={addingCat} onPress={() => setShowAddCatModal(false)}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
-              <Button mode="contained" buttonColor="#2563eb" loading={addingCat} disabled={addingCat} onPress={handleAddCategory}>
+              <Button mode="contained" buttonColor="#4f46e5" loading={addingCat} disabled={addingCat} onPress={handleAddCategory}>
                 {isBN ? 'যোগ করুন' : 'Add Category'}
               </Button>
             </View>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, ScrollView, Alert, ActivityIndicator, TouchableOpacity } from 'react-native';
-import { Appbar, Text, useTheme, FAB, TextInput, Button, Portal, Dialog, Checkbox } from 'react-native-paper';
+import { Appbar, Chip, Text, useTheme, FAB, TextInput, Button, Portal, Dialog, Checkbox } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { api } from '../api';
@@ -8,7 +8,7 @@ import { usePreferences } from '../contexts/PreferencesContext';
 
 const ROLE_COLORS: Record<string, { bg: string; text: string }> = {
   owner:   { bg: '#ede9fe', text: '#7c3aed' },
-  manager: { bg: '#dbeafe', text: '#1d4ed8' },
+  manager: { bg: '#dbeafe', text: '#4338ca' },
   staff:   { bg: '#d1fae5', text: '#059669' },
   cashier: { bg: '#fef9c3', text: '#b45309' },
   default: { bg: '#f1f5f9', text: '#64748b' },
@@ -95,7 +95,7 @@ export default function UsersAndRolesScreen() {
         Alert.alert('Success', 'User added successfully!');
         setShowAddModal(false);
       }
-      setNewUser({ email: '', first_name: '', last_name: '', phone: '', role: 'cashier', password: '' });
+      setNewUser({ email: '', first_name: '', last_name: '', phone: '', role: 'cashier', branch: null, password: '' });
       fetchData();
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.detail || 'Failed to add user.');

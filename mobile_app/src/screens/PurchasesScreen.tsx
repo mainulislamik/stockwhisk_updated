@@ -67,7 +67,7 @@ export default function PurchasesScreen() {
     switch(status) {
       case 'RECEIVED': return '#22c55e';
       case 'PARTIAL': return '#f59e0b';
-      case 'ORDERED': return '#3b82f6';
+      case 'ORDERED': return '#6366f1';
       default: return '#6b7280';
     }
   };

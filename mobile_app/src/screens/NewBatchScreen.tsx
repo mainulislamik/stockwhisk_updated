@@ -166,7 +166,7 @@ export default function NewBatchScreen() {
 
       <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {/* Helper Note */}
-        <Surface style={{ padding: 12, borderRadius: 14, backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff', marginBottom: 16, borderWidth: 1, borderColor: '#bfdbfe' }}>
+        <Surface style={{ padding: 12, borderRadius: 14, backgroundColor: isDarkMode ? '#1e293b' : '#eef2ff', marginBottom: 16, borderWidth: 1, borderColor: '#c7d2fe' }}>
           <Text style={{ fontSize: 12, color: '#1e40af', lineHeight: 18 }}>
             💡 {isBN ? 'ধাপ ১: কাঁচামাল নির্বাচন করে ব্যাচ শুরু করুন। কাঁচামাল স্বয়ংক্রিয়ভাবে স্টক থেকে কাটা হবে।' : 'Step 1: Commit raw materials. Stock will be deducted automatically upon starting.'}
           </Text>

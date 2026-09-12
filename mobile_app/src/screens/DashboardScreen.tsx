@@ -10,13 +10,12 @@ import {
 } from 'react-native';
 import { Text, useTheme, Surface, ActivityIndicator } from 'react-native-paper';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { LineChart } from 'react-native-chart-kit';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';
 import { usePreferences } from '../contexts/PreferencesContext';
-import Skeleton from '../components/Skeleton';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
+import { AppColors } from '../constants/theme';
 
 const getGreeting = (lang: string, userName: string) => {
   const greetingStr = lang === 'BN' ? 'স্বাগতম, ' : 'Welcome, ';
@@ -37,19 +36,12 @@ export default function DashboardScreen() {
   const [periodDays, setPeriodDays] = useState(1);
   const [topCardsData, setTopCardsData] = useState<any>(null);
 
-  const [topProductsDays, setTopProductsDays] = useState(30);
-  const [topProductsData, setTopProductsData] = useState<any>(null);
-
-  const [trendDays, setTrendDays] = useState(30);
-  const [trendData, setTrendData] = useState<any>(null);
-
   const [showScanner, setShowScanner] = useState(false);
 
   const loadBaseData = async () => {
     try {
       const res = await api.get('/analytics/dashboard/', { params: { days: 30 } });
       setMetrics(res.data);
-      if (!trendData) setTrendData(res.data.sales_trend);
     } catch (e) {
       // ignore
     } finally {
@@ -75,24 +67,6 @@ export default function DashboardScreen() {
     }
   };
 
-  const loadTopProductsData = async () => {
-    try {
-      const res = await api.get('/analytics/dashboard/', { params: { days: topProductsDays } });
-      setTopProductsData(res.data.top_products);
-    } catch (e) {
-      // ignore
-    }
-  };
-
-  const loadTrendData = async () => {
-    try {
-      const res = await api.get('/analytics/dashboard/', { params: { days: trendDays } });
-      setTrendData(res.data.sales_trend);
-    } catch (e) {
-      // ignore
-    }
-  };
-
   useEffect(() => {
     loadBaseData();
   }, []);
@@ -101,21 +75,11 @@ export default function DashboardScreen() {
     loadTopCardsData();
   }, [periodDays]);
 
-  useEffect(() => {
-    loadTopProductsData();
-  }, [topProductsDays]);
-
-  useEffect(() => {
-    loadTrendData();
-  }, [trendDays]);
-
   useFocusEffect(
     useCallback(() => {
       loadBaseData();
       loadTopCardsData();
-      loadTopProductsData();
-      loadTrendData();
-    }, [periodDays, topProductsDays, trendDays])
+    }, [periodDays])
   );
 
   const onRefresh = async () => {
@@ -124,49 +88,10 @@ export default function DashboardScreen() {
       await Promise.all([
         loadBaseData(),
         loadTopCardsData(),
-        loadTopProductsData(),
-        loadTrendData()
       ]);
     } finally {
       setRefreshing(false);
     }
-  };
-
-  const [measuredChartWidth, setMeasuredChartWidth] = useState<number>(0);
-  const activeChartWidth = measuredChartWidth > 100 ? measuredChartWidth : Math.max(280, Dimensions.get('window').width - 64);
-
-  const getChartData = () => {
-    if (Array.isArray(trendData) && trendData.length > 0) {
-      const step = Math.max(1, Math.floor(trendData.length / 5));
-      const labels = trendData.map((item: any, i: number) => {
-        if (i % step === 0 || i === trendData.length - 1) {
-          const raw = String(item.day || item.date || item.label || '');
-          return raw.length >= 10 ? raw.slice(5) : raw;
-        }
-        return '';
-      });
-      const raw = trendData.map((item: any) => Number(item.revenue || item.total || item.amount || 0));
-      // Chart crashes if all values are zero — ensure at least a tiny baseline
-      const data = raw.every((v: number) => v === 0) ? raw.map(() => 0.01) : raw;
-      return {
-        labels,
-        datasets: [{ data: data.length > 0 ? data : [0.01] }],
-      };
-    }
-
-    if (trendData && Array.isArray(trendData.labels) && trendData.labels.length > 0) {
-      const raw = trendData.data.map((d: any) => Number(d) || 0);
-      const data = raw.every((v: number) => v === 0) ? raw.map(() => 0.01) : raw;
-      return {
-        labels: trendData.labels.map((l: string, i: number) => (i % 5 === 0 || i === trendData.labels.length - 1 ? l : '')),
-        datasets: [{ data }],
-      };
-    }
-
-    return {
-      labels: ['D-4', 'D-3', 'D-2', 'Yesterday', 'Today'],
-      datasets: [{ data: [0.01, 0.01, 0.01, 0.01, Number(topCardsData?.revenue || metrics?.today_sales?.total || 0) || 0.01] }],
-    };
   };
 
   const userName = user?.first_name || user?.email?.split('@')[0] || (isBN ? 'ম্যানেজার' : 'Manager');
@@ -175,59 +100,16 @@ export default function DashboardScreen() {
   // Extract metrics
   const salesVal = Number(topCardsData?.revenue ?? metrics?.today_sales?.total ?? metrics?.period?.revenue ?? 0) || 0;
   const profitVal = Number(topCardsData?.gross_profit ?? topCardsData?.profit ?? topCardsData?.net_profit ?? metrics?.period?.gross_profit ?? metrics?.today?.gross_profit ?? 0) || 0;
-  // dues: profit-overview returns "total_receivable"; dashboard returns position.receivables
   const duesVal = Number(
     topCardsData?.total_receivable ?? topCardsData?.dues ??
     metrics?.position?.receivables ?? 0
   ) || 0;
-  // low stock: dashboard returns low_stock_count directly at top level (not nested under inventory)
   const lowStockCount = Number(metrics?.low_stock_count ?? metrics?.inventory?.low_stock_count ?? 0) || 0;
-  // out of stock count (products with zero stock)
   const outOfStockCount = Number(metrics?.out_of_stock_count ?? 0) || 0;
   const hasStockAlert = outOfStockCount > 0 || lowStockCount > 0;
 
-  const quickActions = [
-    {
-      titleEn: 'New Sale',
-      titleBn: 'নতুন বিক্রয়',
-      icon: 'cash-register',
-      color: '#2563eb',
-      bg: '#eff6ff',
-      onPress: () => navigation.navigate('MainTabs', { screen: 'POS' }),
-    },
-    {
-      titleEn: 'Scan Item',
-      titleBn: 'বারকোড স্ক্যান',
-      icon: 'barcode-scan',
-      color: '#7c3aed',
-      bg: '#f5f3ff',
-      onPress: () => setShowScanner(true),
-    },
-    {
-      titleEn: 'Inward Stock',
-      titleBn: 'স্টক ইনওয়ার্ড',
-      icon: 'arrow-down-bold-box',
-      color: '#16a34a',
-      bg: '#f0fdf4',
-      onPress: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }),
-    },
-    {
-      titleEn: 'Daily Cash',
-      titleBn: 'ক্যাশ ক্লোজিং',
-      icon: 'cash-check',
-      color: '#0891b2',
-      bg: '#ecfeff',
-      onPress: () => navigation.navigate('SettlementScreen'),
-    },
-    {
-      titleEn: 'Add Expense',
-      titleBn: 'খরচ এন্ট্রি',
-      icon: 'cash-minus',
-      color: '#be185d',
-      bg: '#fdf2f8',
-      onPress: () => navigation.navigate('ExpensesScreen'),
-    },
-  ];
+  const brandColor = isDarkMode ? AppColors.primaryAccent : AppColors.primary;
+  const brandBg = isDarkMode ? AppColors.primaryBgDark : AppColors.primaryBgLight;
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
@@ -266,7 +148,6 @@ export default function DashboardScreen() {
           </View>
         </Surface>
 
-
         {/* 2. 📊 Key Metrics & Filter */}
         <View style={styles.sectionHeaderRow}>
           <Text style={[styles.sectionTitle, { color: theme.colors.onSurface, marginBottom: 0 }]}>
@@ -285,7 +166,7 @@ export default function DashboardScreen() {
                 onPress={() => setPeriodDays(p.days)}
                 style={[
                   styles.periodPill,
-                  periodDays === p.days && { backgroundColor: '#4f46e5', borderColor: '#4f46e5' },
+                  periodDays === p.days && { backgroundColor: AppColors.primary, borderColor: AppColors.primary },
                   { borderColor: isDarkMode ? '#334155' : '#cbd5e1' },
                 ]}
               >
@@ -305,7 +186,7 @@ export default function DashboardScreen() {
 
         {loading && !refreshing ? (
           <View style={{ paddingVertical: 30, alignItems: 'center' }}>
-            <ActivityIndicator size="large" color="#4f46e5" />
+            <ActivityIndicator size="large" color={AppColors.primary} />
           </View>
         ) : (
           <View style={styles.bentoGrid}>
@@ -313,17 +194,20 @@ export default function DashboardScreen() {
             <Surface
               style={[
                 styles.bentoCard,
-                { backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff', borderColor: '#bfdbfe' },
+                {
+                  backgroundColor: isDarkMode ? '#1e293b' : '#eef2ff',
+                  borderColor: isDarkMode ? '#3730a3' : '#c7d2fe',
+                },
               ]}
               elevation={1}
             >
               <View style={styles.cardHeaderRow}>
-                <Text style={[styles.cardLabel, { color: '#2563eb' }]}>
+                <Text style={[styles.cardLabel, { color: isDarkMode ? '#a5b4fc' : AppColors.primary }]}>
                   {isBN ? 'মোট বিক্রয়' : 'Total Revenue'}
                 </Text>
-                <MaterialCommunityIcons name="trending-up" size={18} color="#2563eb" />
+                <MaterialCommunityIcons name="trending-up" size={18} color={isDarkMode ? '#a5b4fc' : AppColors.primary} />
               </View>
-              <Text style={[styles.cardValue, { color: '#1d4ed8' }]}>
+              <Text style={[styles.cardValue, { color: isDarkMode ? '#ffffff' : AppColors.primaryDark }]}>
                 ৳{salesVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </Text>
               <Text style={styles.cardSubtext}>
@@ -335,17 +219,20 @@ export default function DashboardScreen() {
             <Surface
               style={[
                 styles.bentoCard,
-                { backgroundColor: isDarkMode ? '#1e293b' : '#f0fdf4', borderColor: '#bbf7d0' },
+                {
+                  backgroundColor: isDarkMode ? '#052e16' : '#f0fdf4',
+                  borderColor: isDarkMode ? '#065f46' : '#bbf7d0',
+                },
               ]}
               elevation={1}
             >
               <View style={styles.cardHeaderRow}>
-                <Text style={[styles.cardLabel, { color: '#16a34a' }]}>
+                <Text style={[styles.cardLabel, { color: isDarkMode ? '#86efac' : AppColors.success }]}>
                   {isBN ? 'নিট লাভ' : 'Net Profit'}
                 </Text>
-                <MaterialCommunityIcons name="cash-multiple" size={18} color="#16a34a" />
+                <MaterialCommunityIcons name="cash-multiple" size={18} color={isDarkMode ? '#86efac' : AppColors.success} />
               </View>
-              <Text style={[styles.cardValue, { color: '#15803d' }]}>
+              <Text style={[styles.cardValue, { color: isDarkMode ? '#ffffff' : AppColors.successText }]}>
                 ৳{profitVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </Text>
               <Text style={styles.cardSubtext}>
@@ -357,21 +244,24 @@ export default function DashboardScreen() {
             <Surface
               style={[
                 styles.bentoCard,
-                { backgroundColor: isDarkMode ? '#1e293b' : '#fffbeb', borderColor: '#fde047' },
+                {
+                  backgroundColor: isDarkMode ? '#451a03' : '#fffbeb',
+                  borderColor: isDarkMode ? '#78350f' : '#fde047',
+                },
               ]}
               elevation={1}
             >
               <View style={styles.cardHeaderRow}>
-                <Text style={[styles.cardLabel, { color: '#b45309' }]}>
+                <Text style={[styles.cardLabel, { color: isDarkMode ? '#fde68a' : AppColors.warningText }]}>
                   {isBN ? 'কাস্টমার বকেয়া' : 'Customer Dues'}
                 </Text>
-                <MaterialCommunityIcons name="account-clock" size={18} color="#b45309" />
+                <MaterialCommunityIcons name="account-clock" size={18} color={isDarkMode ? '#fde68a' : AppColors.warningText} />
               </View>
-              <Text style={[styles.cardValue, { color: '#b45309' }]}>
+              <Text style={[styles.cardValue, { color: isDarkMode ? '#ffffff' : AppColors.warningText }]}>
                 ৳{duesVal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate('DuesScreen')}>
-                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold', marginTop: 4 }}>
+                <Text style={{ fontSize: 11, color: isDarkMode ? '#818cf8' : AppColors.primary, fontWeight: 'bold', marginTop: 4 }}>
                   {isBN ? 'আদায় করুন ➜' : 'Collect ➜'}
                 </Text>
               </TouchableOpacity>
@@ -382,30 +272,34 @@ export default function DashboardScreen() {
               style={[
                 styles.bentoCard,
                 {
-                  backgroundColor: isDarkMode ? '#1e293b' : hasStockAlert ? '#fef2f2' : '#f8fafc',
-                  borderColor: hasStockAlert ? '#fca5a5' : '#e2e8f0',
+                  backgroundColor: isDarkMode
+                    ? (hasStockAlert ? '#450a0a' : '#1e293b')
+                    : (hasStockAlert ? '#fef2f2' : '#f8fafc'),
+                  borderColor: hasStockAlert
+                    ? (isDarkMode ? '#7f1d1d' : '#fca5a5')
+                    : (isDarkMode ? '#334155' : '#e2e8f0'),
                 },
               ]}
               elevation={1}
             >
               <View style={styles.cardHeaderRow}>
-                <Text style={[styles.cardLabel, { color: hasStockAlert ? '#dc2626' : '#64748b' }]}>
+                <Text style={[styles.cardLabel, { color: hasStockAlert ? AppColors.danger : '#64748b' }]}>
                   {isBN ? 'স্টক অ্যালার্ট' : 'Stock Alert'}
                 </Text>
                 <MaterialCommunityIcons
                   name="alert-box-outline"
                   size={18}
-                  color={hasStockAlert ? '#dc2626' : '#64748b'}
+                  color={hasStockAlert ? AppColors.danger : '#64748b'}
                 />
               </View>
-              <Text style={[styles.cardValue, { color: hasStockAlert ? '#b91c1c' : theme.colors.onSurface, fontSize: 20 }]}>
+              <Text style={[styles.cardValue, { color: hasStockAlert ? (isDarkMode ? '#fca5a5' : AppColors.dangerText) : theme.colors.onSurface, fontSize: 20 }]}>
                 {outOfStockCount} / {lowStockCount}
               </Text>
-              <Text style={{ fontSize: 10, color: '#64748b', marginBottom: 2 }}>
-                {isBN ? `আউট: ${outOfStockCount}  লো: ${lowStockCount}` : `Out: ${outOfStockCount}  Low: ${lowStockCount}`}
+              <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : '#64748b', marginBottom: 2 }}>
+                {isBN ? ('আউট ' + outOfStockCount + ' · লো ' + lowStockCount) : ('Out ' + outOfStockCount + ' · Low ' + lowStockCount)}
               </Text>
               <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Inventory' })}>
-                <Text style={{ fontSize: 11, color: '#2563eb', fontWeight: 'bold', marginTop: 2 }}>
+                <Text style={{ fontSize: 11, color: isDarkMode ? '#818cf8' : AppColors.primary, fontWeight: 'bold', marginTop: 2 }}>
                   {isBN ? 'স্টক দেখুন ➜' : 'View Stock ➜'}
                 </Text>
               </TouchableOpacity>
@@ -425,51 +319,57 @@ export default function DashboardScreen() {
 
         <View style={styles.qaGrid}>
           {[
-            { icon: 'cash-register',         tint: '#2563eb', bg: '#eff6ff', titleBn: 'নতুন বিক্রয় (POS)',    titleEn: 'New Sale (POS)',     subBn: 'কার্টে পণ্য যোগ',        subEn: 'Add to cart',          go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
-            { icon: 'barcode-scan',          tint: '#7c3aed', bg: '#f5f3ff', titleBn: 'বারকোড স্ক্যান',      titleEn: 'Barcode Scanner',    subBn: 'ক্যামেরা স্ক্যানার',     subEn: 'Camera scanner',       go: () => setShowScanner(true) },
-            { icon: 'arrow-down-bold-box',   tint: '#16a34a', bg: '#f0fdf4', titleBn: 'স্টক ইনওয়ার্ড',   titleEn: 'Stock Inward',       subBn: 'নতুন ক্রয় এন্ট্রি',       subEn: 'New purchase',         go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
-            { icon: 'cash-check',            tint: '#0891b2', bg: '#ecfeff', titleBn: 'দৈনিক ক্যাশ ক্লোজিং', titleEn: 'Daily Settlement',   subBn: 'দিনের হিসাব বন্ধ',        subEn: 'Day settlement',       go: () => navigation.navigate('SettlementScreen') },
-            { icon: 'cash-minus',            tint: '#be185d', bg: '#fdf2f8', titleBn: 'খরচ এন্ট্রি',        titleEn: 'Add Expense',        subBn: 'দৈনিক খরচ লিখুন',         subEn: 'Record expenses',      go: () => navigation.navigate('ExpensesScreen') },
-            { icon: 'account-clock',         tint: '#d97706', bg: '#fffbeb', titleBn: 'বকেয়া আদায়',        titleEn: 'Customer Dues',      subBn: 'বাকির টাকা সংগ্রহ',       subEn: 'Collect dues',         go: () => navigation.navigate('DuesScreen') },
-            { icon: 'view-grid-outline',     tint: '#0d9488', bg: '#f0fdfa', titleBn: 'পণ্য তালিকা',        titleEn: 'Product List',       subBn: 'ক্যাটালগ ও স্টক',        subEn: 'Catalog & stock',      go: () => navigation.navigate('ProductsScreen') },
-            { icon: 'file-document-outline', tint: '#475569', bg: '#f1f5f9', titleBn: 'রিপোর্ট ও বিশ্লেষণ', titleEn: 'Reports & P&L',      subBn: 'বিক্রয় ও লাভ-ক্ষতি',     subEn: 'Sales & profit',       go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
-            { icon: 'account-group-outline', tint: '#9333ea', bg: '#faf5ff', titleBn: 'কাস্টমার ডিরেক্টরি', titleEn: 'Customers',         subBn: 'গ্রাহক ও হিস্ট্রি',       subEn: 'Customer history',     go: () => navigation.navigate('CustomersScreen') },
-            { icon: 'alert-box-outline',     tint: hasStockAlert ? '#dc2626' : '#64748b', bg: hasStockAlert ? '#fef2f2' : '#f8fafc',
-              titleBn: 'স্টক অ্যালার্ট',      titleEn: 'Stock Alert',        subBn: isBN ? `আউট ${outOfStockCount} · লো ${lowStockCount}` : `Out ${outOfStockCount} · Low ${lowStockCount}`, subEn: `Out ${outOfStockCount} · Low ${lowStockCount}`,
+            { icon: 'cash-register',         titleBn: 'নতুন বিক্রয় (POS)',    titleEn: 'New Sale (POS)',     subBn: 'কার্টে পণ্য যোগ',        subEn: 'Add to cart',          go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
+            { icon: 'barcode-scan',          titleBn: 'বারকোড স্ক্যান',      titleEn: 'Barcode Scanner',    subBn: 'ক্যামেরা স্ক্যানার',     subEn: 'Camera scanner',       go: () => setShowScanner(true) },
+            { icon: 'arrow-down-bold-box',   titleBn: 'স্টক ইনওয়ার্ড',   titleEn: 'Stock Inward',       subBn: 'নতুন ক্রয় এন্ট্রি',       subEn: 'New purchase',         go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
+            { icon: 'cash-check',            titleBn: 'দৈনিক ক্যাশ ক্লোজিং', titleEn: 'Daily Settlement',   subBn: 'দিনের হিসাব বন্ধ',        subEn: 'Day settlement',       go: () => navigation.navigate('SettlementScreen') },
+            { icon: 'cash-minus',            titleBn: 'খরচ এন্ট্রি',        titleEn: 'Add Expense',        subBn: 'দৈনিক খরচ লিখুন',         subEn: 'Record expenses',      go: () => navigation.navigate('ExpensesScreen') },
+            { icon: 'account-clock',         titleBn: 'বকেয়া আদায়',        titleEn: 'Customer Dues',      subBn: 'বাকির টাকা সংগ্রহ',       subEn: 'Collect dues',         go: () => navigation.navigate('DuesScreen') },
+            { icon: 'view-grid-outline',     titleBn: 'পণ্য তালিকা',        titleEn: 'Product List',       subBn: 'ক্যাটালগ ও স্টক',        subEn: 'Catalog & stock',      go: () => navigation.navigate('ProductsScreen') },
+            { icon: 'file-document-outline', titleBn: 'রিপোর্ট ও বিশ্লেষণ', titleEn: 'Reports & P&L',      subBn: 'বিক্রয় ও লাভ-ক্ষতি',     subEn: 'Sales & profit',       go: () => navigation.navigate('MainTabs', { screen: 'Reports' }) },
+            { icon: 'account-group-outline', titleBn: 'কাস্টমার ডিরেক্টরি', titleEn: 'Customers',         subBn: 'গ্রাহক ও হিস্ট্রি',       subEn: 'Customer history',     go: () => navigation.navigate('CustomersScreen') },
+            { icon: 'alert-box-outline',     isAlert: hasStockAlert,
+              titleBn: 'স্টক অ্যালার্ট',      titleEn: 'Stock Alert',        subBn: isBN ? ('আউট ' + outOfStockCount + ' · লো ' + lowStockCount) : ('Out ' + outOfStockCount + ' · Low ' + lowStockCount), subEn: ('Out ' + outOfStockCount + ' · Low ' + lowStockCount),
               go: () => navigation.navigate('MainTabs', { screen: 'Inventory' }) },
-          ].map((a: { icon: any; tint: string; bg: string; titleBn: string; titleEn: string; subBn: string; subEn: string; go: () => void }, i: number) => (
-            <TouchableOpacity
-              key={i}
-              style={[
-                styles.qaCard,
-                {
-                  backgroundColor: isDarkMode ? '#1e293b' : a.bg,
-                  borderColor: isDarkMode ? '#334155' : 'rgba(0,0,0,0.04)',
-                },
-              ]}
-              activeOpacity={0.75}
-              onPress={a.go}
-            >
-              <View style={[styles.qaIcon, { backgroundColor: a.tint }]}>
-                <MaterialCommunityIcons name={a.icon} size={20} color="#fff" />
-              </View>
-              <Text
-                style={[styles.qaLabel, { color: theme.colors.onSurface }]}
-                numberOfLines={2}
-              >
-                {isBN ? a.titleBn : a.titleEn}
-              </Text>
-              <Text
-                style={styles.qaSub}
-                numberOfLines={1}
-              >
-                {isBN ? a.subBn : a.subEn}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+          ].map((a: any, i: number) => {
+            const cardIconColor = a.isAlert ? AppColors.danger : brandColor;
+            const cardIconBg = a.isAlert
+              ? (isDarkMode ? AppColors.dangerBgDark : AppColors.dangerBgLight)
+              : brandBg;
 
-              </ScrollView>
+            return (
+              <TouchableOpacity
+                key={i}
+                style={[
+                  styles.qaCard,
+                  {
+                    backgroundColor: theme.colors.surface,
+                    borderColor: isDarkMode ? '#1e293b' : '#e2e8f0',
+                  },
+                ]}
+                activeOpacity={0.75}
+                onPress={a.go}
+              >
+                <View style={[styles.qaIcon, { backgroundColor: cardIconBg }]}>
+                  <MaterialCommunityIcons name={a.icon} size={20} color={cardIconColor} />
+                </View>
+                <Text
+                  style={[styles.qaLabel, { color: theme.colors.onSurface }]}
+                  numberOfLines={2}
+                >
+                  {isBN ? a.titleBn : a.titleEn}
+                </Text>
+                <Text
+                  style={[styles.qaSub, { color: isDarkMode ? '#94a3b8' : '#64748b' }]}
+                  numberOfLines={1}
+                >
+                  {isBN ? a.subBn : a.subEn}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </ScrollView>
 
       {/* Barcode Camera Scanner Modal */}
       <CameraBarcodeScannerModal
@@ -523,116 +423,51 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
+    gap: 5,
   },
   pulseDot: {
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: '#34d399',
-    marginRight: 4,
+    backgroundColor: '#4ade80',
   },
   liveText: {
-    color: '#34d399',
+    color: '#ffffff',
     fontSize: 9,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  sectionTitle: {
-    fontSize: 14,
     fontWeight: '800',
-    marginBottom: 10,
-    letterSpacing: -0.2,
-  },
-  quickActionScroll: {
-    paddingRight: 10,
-    marginBottom: 18,
-    gap: 8,
-  },
-  quickActionPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 14,
-    borderWidth: 1,
-    elevation: 1,
-  },
-  quickActionIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  quickActionText: {
-    fontSize: 12,
-    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   sectionHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
+    marginTop: 4,
   },
-  qaGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    rowGap: 10,
-    marginBottom: 18,
-  },
-  qaCard: {
-    width: '48.5%',
-    borderRadius: 16,
-    padding: 12,
-    minHeight: 104,
-    justifyContent: 'space-between',
-    borderWidth: 1,
-    shadowColor: '#000',
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 1.5,
-  },
-  qaIcon: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  qaLabel: {
-    fontSize: 13,
+  sectionTitle: {
+    fontSize: 15,
     fontWeight: '800',
-    lineHeight: 17,
-  },
-  qaSub: {
-    fontSize: 10.5,
-    color: '#64748b',
-    marginTop: 2,
-    fontWeight: '500',
+    letterSpacing: -0.2,
   },
   filterPillsRow: {
     flexDirection: 'row',
-    gap: 4,
+    gap: 6,
   },
   periodPill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 14,
     borderWidth: 1,
   },
   periodPillText: {
-    fontSize: 10,
+    fontSize: 11,
+    fontWeight: '600',
   },
   bentoGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-    gap: 8,
+    gap: 10,
+    marginBottom: 18,
   },
   bentoCard: {
     width: '48%',
@@ -649,68 +484,46 @@ const styles = StyleSheet.create({
   cardLabel: {
     fontSize: 11,
     fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
   },
   cardValue: {
     fontSize: 16,
     fontWeight: '800',
-    marginVertical: 2,
+    marginBottom: 2,
   },
   cardSubtext: {
     fontSize: 10,
     color: '#64748b',
   },
-  chartCard: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
-    overflow: 'hidden',
-  },
-  chartHeader: {
+  qaGrid: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  chartTitle: {
-    fontSize: 14,
-    fontWeight: '800',
-  },
-  chart: {
-    borderRadius: 14,
-    marginVertical: 4,
-    alignSelf: 'center',
-  },
-  topProductsCard: {
-    borderRadius: 18,
-    padding: 16,
+    flexWrap: 'wrap',
+    gap: 10,
     marginBottom: 20,
   },
-  productItemRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 10,
-    borderBottomWidth: 1,
+  qaCard: {
+    width: '48%',
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    elevation: 1,
   },
-  rankBadge: {
-    width: 26,
-    height: 26,
-    borderRadius: 8,
-    backgroundColor: '#e0e7ff',
+  qaIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 8,
   },
-  rankText: {
-    color: '#4338ca',
-    fontSize: 11,
-    fontWeight: 'bold',
-  },
-  productName: {
-    fontSize: 13,
+  qaLabel: {
+    fontSize: 12,
     fontWeight: '700',
+    lineHeight: 16,
+    marginBottom: 2,
   },
-  productAmount: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#16a34a',
+  qaSub: {
+    fontSize: 10,
   },
 });

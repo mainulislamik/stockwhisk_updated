@@ -349,8 +349,8 @@ export default function SettingsScreen() {
               
               {/* Thermal Printer Paper Size */}
               <View style={{ flexDirection: 'row', alignItems: 'center', padding: 16, borderBottomWidth: 1, borderBottomColor: borderColor }}>
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
-                  <MaterialCommunityIcons name="printer-pos" size={26} color="#2563eb" />
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                  <MaterialCommunityIcons name="printer-pos" size={26} color="#4f46e5" />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text style={{ fontSize: 16, fontWeight: '600', color: textColor, marginBottom: 2 }}>{isBN ? 'রিসিট প্রিন্টার সাইজ' : 'Thermal Printer Size'}</Text>
@@ -413,11 +413,11 @@ export default function SettingsScreen() {
                 style={{ flexDirection: 'row', alignItems: 'center', padding: 16 }}
                 activeOpacity={0.7}
               >
-                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eff6ff', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 12, backgroundColor: '#eef2ff', justifyContent: 'center', alignItems: 'center', marginRight: 14 }}>
                   {backupDownloading ? (
-                    <ActivityIndicator size="small" color="#2563eb" />
+                    <ActivityIndicator size="small" color="#4f46e5" />
                   ) : (
-                    <MaterialCommunityIcons name="database-arrow-down-outline" size={26} color="#2563eb" />
+                    <MaterialCommunityIcons name="database-arrow-down-outline" size={26} color="#4f46e5" />
                   )}
                 </View>
                 <View style={{ flex: 1 }}>
@@ -428,7 +428,7 @@ export default function SettingsScreen() {
                     {isBN ? 'সব ডাটা JSON ফাইলে ডাউনলোড করুন' : 'Export & download complete JSON backup'}
                   </Text>
                 </View>
-                <MaterialCommunityIcons name="download" size={22} color="#2563eb" />
+                <MaterialCommunityIcons name="download" size={22} color="#4f46e5" />
               </TouchableOpacity>
 
               {/* Logout Button */}

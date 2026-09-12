@@ -476,7 +476,7 @@ export default function SalesScreen() {
                 {selectedSale.customer_phone ? ` (${selectedSale.customer_phone})` : ''}
               </Text>
               {!!(selectedSale as any).courier_name && (
-                <Text style={{ color: isDarkMode ? '#93c5fd' : '#1d4ed8', fontSize: 13, marginBottom: 12, fontWeight: '600' }}>
+                <Text style={{ color: isDarkMode ? '#a5b4fc' : '#4338ca', fontSize: 13, marginBottom: 12, fontWeight: '600' }}>
                   🚚 {isBN ? 'কুরিয়ার:' : 'Courier:'} {(selectedSale as any).courier_name}
                   {!!(selectedSale as any).tracking_code ? ` (Track: ${(selectedSale as any).tracking_code})` : ''}
                 </Text>
@@ -504,7 +504,7 @@ export default function SalesScreen() {
                             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
                               {item.units.map((u: any, uIdx: number) => (
                                 <View key={uIdx} style={{ backgroundColor: isDarkMode ? '#334155' : '#e2e8f0', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 4 }}>
-                                  <Text style={{ fontSize: 10, fontFamily: 'monospace', color: isDarkMode ? '#93c5fd' : '#1e40af' }}>
+                                  <Text style={{ fontSize: 10, fontFamily: 'monospace', color: isDarkMode ? '#a5b4fc' : '#1e40af' }}>
                                     {u.barcode || u.serial_number || String(u)}
                                   </Text>
                                 </View>

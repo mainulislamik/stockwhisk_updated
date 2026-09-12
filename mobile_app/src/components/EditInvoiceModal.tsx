@@ -267,7 +267,7 @@ export default function EditInvoiceModal({
           <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 60 }} keyboardShouldPersistTaps="handled">
             {/* Customer Info Card */}
             <Card style={{ padding: 12, marginBottom: 14, backgroundColor: theme.colors.surface }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#2563eb', marginBottom: 8 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#4f46e5', marginBottom: 8 }}>
                 👤 {isBN ? 'কাস্টমার তথ্য' : 'Customer Information'}
               </Text>
               <TextInput
@@ -391,7 +391,7 @@ export default function EditInvoiceModal({
                   />
                 </View>
                 <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginTop: 4 }}>
-                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#2563eb' }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#4f46e5' }}>
                     {isBN ? 'আইটেম মোট:' : 'Item Total:'} ৳{(item.unit_price * item.quantity - item.discount).toFixed(2)}
                   </Text>
                 </View>
@@ -439,7 +439,7 @@ export default function EditInvoiceModal({
 
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                 <Text style={{ fontSize: 14, fontWeight: 'bold' }}>{isBN ? 'নতুন সর্বমোট মূল্য' : 'New Total'}</Text>
-                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#2563eb' }}>৳{total.toFixed(2)}</Text>
+                <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#4f46e5' }}>৳{total.toFixed(2)}</Text>
               </View>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 }}>
                 <Text style={{ fontSize: 12, color: '#64748b' }}>{isBN ? 'পূর্বে পরিশোধিত' : 'Previously Paid'}</Text>

@@ -420,11 +420,11 @@ export default function BarcodesScreen() {
             </Text>
 
             {!!shopPrefix && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: '#eff6ff', padding: 10, borderRadius: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 14, backgroundColor: '#eef2ff', padding: 10, borderRadius: 8 }}>
                 <Text style={{ fontSize: 13, color: '#1e40af', marginRight: 6 }}>
                   {isBN ? 'শপ প্রিফিক্স:' : 'Shop Prefix:'}
                 </Text>
-                <View style={{ backgroundColor: '#2563eb', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
+                <View style={{ backgroundColor: '#4f46e5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12, alignItems: 'center', justifyContent: 'center' }}>
                   <Text style={{ color: '#fff', fontWeight: 'bold', fontSize: 12, includeFontPadding: false }}>
                     {shopPrefix}
                   </Text>

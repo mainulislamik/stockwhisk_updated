@@ -122,7 +122,7 @@ export default function WarrantiesScreen() {
       case 'active': color = '#10b981'; bgColor = '#d1fae5'; break;
       case 'expiring_soon': color = '#f59e0b'; bgColor = '#fef3c7'; break;
       case 'expired': color = '#6b7280'; bgColor = '#f3f4f6'; break;
-      case 'claimed': color = '#3b82f6'; bgColor = '#dbeafe'; break;
+      case 'claimed': color = '#6366f1'; bgColor = '#dbeafe'; break;
       case 'void': color = '#111827'; bgColor = '#e5e7eb'; break;
     }
 

@@ -469,7 +469,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
         }}>
         {/* Header */}
         <View style={{ backgroundColor: theme.colors.surface, padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Text style={{ fontWeight: 'bold', fontSize: 18, color: isDarkMode ? '#93c5fd' : '#2563eb' }}>
+          <Text style={{ fontWeight: 'bold', fontSize: 18, color: isDarkMode ? '#a5b4fc' : '#4f46e5' }}>
             {isNew ? (isBN ? 'নতুন পণ্য যোগ করুন' : 'Add New Product') : (isBN ? 'পণ্য এডিট করুন' : 'Edit Product')}
           </Text>
           <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
@@ -487,15 +487,15 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               setHideSuggestions(false);
               setForm({...form, name: t});
             }} 
-            right={loadingSuggestions ? <TextInput.Icon icon={() => <ActivityIndicator size="small" color="#2563eb" />} /> : undefined}
+            right={loadingSuggestions ? <TextInput.Icon icon={() => <ActivityIndicator size="small" color="#4f46e5" />} /> : undefined}
             style={{ marginBottom: 4, backgroundColor: theme.colors.surface }} 
           />
 
           {/* Autocomplete Suggestions Dropdown */}
           {suggestions.length > 0 && (
-            <Card style={{ marginBottom: 12, backgroundColor: theme.colors.surface, elevation: 3, borderWidth: 1, borderColor: '#3b82f6', borderRadius: 8 }}>
+            <Card style={{ marginBottom: 12, backgroundColor: theme.colors.surface, elevation: 3, borderWidth: 1, borderColor: '#6366f1', borderRadius: 8 }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingTop: 8, paddingBottom: 4 }}>
-                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#2563eb' }}>
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#4f46e5' }}>
                   {isBN ? '💡 বিদ্যমান পণ্য তালিকা (ট্যাপ করে অটো-ফিল করুন):' : '💡 Matching Products (Tap to autofill):'}
                 </Text>
                 <TouchableOpacity onPress={() => setSuggestions([])} style={{ padding: 2 }}>
@@ -662,9 +662,9 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
 
           {/* Automatically rendered Barcode chips if barcodes are scanned/entered */}
           {serialBarcodes.length > 0 && (
-            <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#eff6ff', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#bfdbfe' }}>
+            <View style={{ backgroundColor: isDarkMode ? '#1e293b' : '#eef2ff', padding: 10, borderRadius: 8, marginBottom: 12, borderWidth: 1, borderColor: '#c7d2fe' }}>
               <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#2563eb' }}>
+                <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#4f46e5' }}>
                   ✓ {isBN ? `মোট ${serialBarcodes.length} টি বারকোড যুক্ত হয়েছে:` : `Total ${serialBarcodes.length} barcode(s) added:`}
                 </Text>
                 <Text style={{ fontSize: 10, color: '#64748b' }}>
@@ -683,10 +683,10 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                       paddingVertical: 5,
                       borderRadius: 14,
                       borderWidth: 1,
-                      borderColor: isDarkMode ? '#475569' : '#bfdbfe',
+                      borderColor: isDarkMode ? '#475569' : '#c7d2fe',
                     }}
                   >
-                    <Text style={{ fontSize: 11, color: isDarkMode ? '#93c5fd' : '#1e40af', fontWeight: '600', marginRight: 6, includeFontPadding: false }}>
+                    <Text style={{ fontSize: 11, color: isDarkMode ? '#a5b4fc' : '#1e40af', fontWeight: '600', marginRight: 6, includeFontPadding: false }}>
                       #{idx + 1}: {code}
                     </Text>
                     <TouchableOpacity onPress={() => removeSerialBarcode(code)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
@@ -882,8 +882,8 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                 <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#16a34a', flexShrink: 1 }}>
                   🚚 {isBN ? 'সরবরাহকারী / ভেন্ডর নির্বাচন (ঐচ্ছিক)' : 'Supplier / Vendor Push (Optional)'}
                 </Text>
-                <TouchableOpacity onPress={() => setShowAddVendor(true)} style={{ alignSelf: 'flex-start', marginTop: 6, backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: isDarkMode ? '#3b82f6' : '#bfdbfe' }}>
-                  <Text style={{ color: isDarkMode ? '#93c5fd' : '#2563eb', fontWeight: 'bold', fontSize: 12 }}>+ {isBN ? 'নতুন ভেন্ডর যোগ করুন' : 'Add New Vendor'}</Text>
+                <TouchableOpacity onPress={() => setShowAddVendor(true)} style={{ alignSelf: 'flex-start', marginTop: 6, backgroundColor: isDarkMode ? '#1e3a8a' : '#eef2ff', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8, borderWidth: 1, borderColor: isDarkMode ? '#6366f1' : '#c7d2fe' }}>
+                  <Text style={{ color: isDarkMode ? '#a5b4fc' : '#4f46e5', fontWeight: 'bold', fontSize: 12 }}>+ {isBN ? 'নতুন ভেন্ডর যোগ করুন' : 'Add New Vendor'}</Text>
                 </TouchableOpacity>
               </View>
 
@@ -989,7 +989,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
             </Card>
           )}
 
-          <Button mode="contained" buttonColor="#2563eb" onPress={saveProduct} loading={saving} disabled={saving} style={{ paddingVertical: 6, marginTop: 4 }}>
+          <Button mode="contained" buttonColor="#4f46e5" onPress={saveProduct} loading={saving} disabled={saving} style={{ paddingVertical: 6, marginTop: 4 }}>
             {isBN ? (isNew ? 'পণ্য ও স্টক যুক্ত করুন' : 'সেভ করুন') : (isNew ? 'Add Product & Push Stock' : 'Save Changes')}
           </Button>
         </ScrollView>
@@ -1027,11 +1027,11 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   borderRadius: 8,
                   marginBottom: 6,
                   borderWidth: 1,
-                  borderColor: selectedSupplier === null ? '#2563eb' : '#e2e8f0',
-                  backgroundColor: selectedSupplier === null ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent'
+                  borderColor: selectedSupplier === null ? '#4f46e5' : '#e2e8f0',
+                  backgroundColor: selectedSupplier === null ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent'
                 }}
               >
-                <Text style={{ fontWeight: 'bold', color: selectedSupplier === null ? '#2563eb' : theme.colors.onSurface }}>
+                <Text style={{ fontWeight: 'bold', color: selectedSupplier === null ? '#4f46e5' : theme.colors.onSurface }}>
                   🚫 {isBN ? 'কোনো সরবরাহকারী নয় (None)' : 'None (No Supplier)'}
                 </Text>
               </TouchableOpacity>
@@ -1089,7 +1089,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
         <TouchableOpacity style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }} activeOpacity={1} onPress={() => setShowCategoryPicker(false)}>
           <Card style={{ width: '100%', maxWidth: 420, maxHeight: '80%', padding: 16, backgroundColor: theme.colors.surface }} onPress={e => e.stopPropagation()}>
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#2563eb' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#4f46e5' }}>
                 {isBN ? 'ক্যাটাগরি নির্বাচন করুন' : 'Select Category'}
               </Text>
               <TouchableOpacity onPress={() => setShowCategoryPicker(false)}>
@@ -1114,11 +1114,11 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   borderRadius: 8,
                   marginBottom: 6,
                   borderWidth: 1,
-                  borderColor: form.category === null ? '#2563eb' : '#e2e8f0',
-                  backgroundColor: form.category === null ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent'
+                  borderColor: form.category === null ? '#4f46e5' : '#e2e8f0',
+                  backgroundColor: form.category === null ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent'
                 }}
               >
-                <Text style={{ fontWeight: 'bold', color: form.category === null ? '#2563eb' : theme.colors.onSurface }}>
+                <Text style={{ fontWeight: 'bold', color: form.category === null ? '#4f46e5' : theme.colors.onSurface }}>
                   🚫 {isBN ? 'ক্যাটাগরি ছাড়া (None)' : 'None'}
                 </Text>
               </TouchableOpacity>
@@ -1132,18 +1132,18 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     borderRadius: 8,
                     marginBottom: 6,
                     borderWidth: 1,
-                    borderColor: form.category === c.id ? '#2563eb' : '#e2e8f0',
-                    backgroundColor: form.category === c.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    borderColor: form.category === c.id ? '#4f46e5' : '#e2e8f0',
+                    backgroundColor: form.category === c.id ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}
                 >
-                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: form.category === c.id ? '#2563eb' : theme.colors.onSurface }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: form.category === c.id ? '#4f46e5' : theme.colors.onSurface }}>
                     {c.name}
                   </Text>
                   {form.category === c.id && (
-                    <MaterialCommunityIcons name="check-circle" size={20} color="#2563eb" />
+                    <MaterialCommunityIcons name="check-circle" size={20} color="#4f46e5" />
                   )}
                 </TouchableOpacity>
               ))}
@@ -1178,7 +1178,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
             />
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <Button disabled={savingCategory} onPress={() => setShowAddCategory(false)}>{isBN ? 'বাতিল' : 'Cancel'}</Button>
-              <Button mode="contained" buttonColor="#2563eb" loading={savingCategory} disabled={savingCategory} onPress={handleCreateCategory}>
+              <Button mode="contained" buttonColor="#4f46e5" loading={savingCategory} disabled={savingCategory} onPress={handleCreateCategory}>
                 {isBN ? 'যোগ করুন' : 'Add Category'}
               </Button>
             </View>
@@ -1223,22 +1223,22 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     padding: 12,
                     borderBottomWidth: 1,
                     borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9',
-                    backgroundColor: form.brand === b.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    backgroundColor: form.brand === b.id ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}
                 >
-                  <Text style={{ fontWeight: form.brand === b.id ? 'bold' : 'normal', color: form.brand === b.id ? '#2563eb' : theme.colors.onSurface }}>
+                  <Text style={{ fontWeight: form.brand === b.id ? 'bold' : 'normal', color: form.brand === b.id ? '#4f46e5' : theme.colors.onSurface }}>
                     {b.name}
                   </Text>
-                  {form.brand === b.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />}
+                  {form.brand === b.id && <MaterialCommunityIcons name="check-circle" size={18} color="#4f46e5" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#e2e8f0', paddingTop: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#2563eb' }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#4f46e5' }}>
                 {isBN ? '+ নতুন ব্র্যান্ড তৈরি করুন' : '+ Quick Add Brand'}
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1250,7 +1250,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   onChangeText={setNewBrandName}
                   style={{ flex: 1, backgroundColor: theme.colors.surface }}
                 />
-                <Button mode="contained" buttonColor="#2563eb" loading={savingBrand} disabled={savingBrand || !newBrandName.trim()} onPress={handleCreateBrand}>
+                <Button mode="contained" buttonColor="#4f46e5" loading={savingBrand} disabled={savingBrand || !newBrandName.trim()} onPress={handleCreateBrand}>
                   {isBN ? 'যোগ' : 'Add'}
                 </Button>
               </View>
@@ -1296,22 +1296,22 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     padding: 12,
                     borderBottomWidth: 1,
                     borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9',
-                    backgroundColor: form.unit === u.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    backgroundColor: form.unit === u.id ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}
                 >
-                  <Text style={{ fontWeight: form.unit === u.id ? 'bold' : 'normal', color: form.unit === u.id ? '#2563eb' : theme.colors.onSurface }}>
+                  <Text style={{ fontWeight: form.unit === u.id ? 'bold' : 'normal', color: form.unit === u.id ? '#4f46e5' : theme.colors.onSurface }}>
                     {u.name}
                   </Text>
-                  {form.unit === u.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />}
+                  {form.unit === u.id && <MaterialCommunityIcons name="check-circle" size={18} color="#4f46e5" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#e2e8f0', paddingTop: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#2563eb' }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#4f46e5' }}>
                 {isBN ? '+ নতুন ইউনিট তৈরি করুন (যেমন: Kg, Pcs, Box)' : '+ Quick Add Unit'}
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1323,7 +1323,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   onChangeText={setNewUnitName}
                   style={{ flex: 1, backgroundColor: theme.colors.surface }}
                 />
-                <Button mode="contained" buttonColor="#2563eb" loading={savingUnit} disabled={savingUnit || !newUnitName.trim()} onPress={() => handleCreateUnit('unit')}>
+                <Button mode="contained" buttonColor="#4f46e5" loading={savingUnit} disabled={savingUnit || !newUnitName.trim()} onPress={() => handleCreateUnit('unit')}>
                   {isBN ? 'যোগ' : 'Add'}
                 </Button>
               </View>
@@ -1369,22 +1369,22 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     padding: 12,
                     borderBottomWidth: 1,
                     borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9',
-                    backgroundColor: form.purchase_unit === u.id ? (isDarkMode ? '#1e293b' : '#eff6ff') : 'transparent',
+                    backgroundColor: form.purchase_unit === u.id ? (isDarkMode ? '#1e293b' : '#eef2ff') : 'transparent',
                     flexDirection: 'row',
                     justifyContent: 'space-between',
                     alignItems: 'center'
                   }}
                 >
-                  <Text style={{ fontWeight: form.purchase_unit === u.id ? 'bold' : 'normal', color: form.purchase_unit === u.id ? '#2563eb' : theme.colors.onSurface }}>
+                  <Text style={{ fontWeight: form.purchase_unit === u.id ? 'bold' : 'normal', color: form.purchase_unit === u.id ? '#4f46e5' : theme.colors.onSurface }}>
                     {u.name}
                   </Text>
-                  {form.purchase_unit === u.id && <MaterialCommunityIcons name="check-circle" size={18} color="#2563eb" />}
+                  {form.purchase_unit === u.id && <MaterialCommunityIcons name="check-circle" size={18} color="#4f46e5" />}
                 </TouchableOpacity>
               ))}
             </ScrollView>
 
             <View style={{ borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#e2e8f0', paddingTop: 10 }}>
-              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#2563eb' }}>
+              <Text style={{ fontSize: 12, fontWeight: 'bold', marginBottom: 6, color: '#4f46e5' }}>
                 {isBN ? '+ নতুন পারচেজ ইউনিট (যেমন: Drum, Carton)' : '+ Quick Add Purchase Unit'}
               </Text>
               <View style={{ flexDirection: 'row', gap: 8 }}>
@@ -1396,7 +1396,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                   onChangeText={setNewUnitName}
                   style={{ flex: 1, backgroundColor: theme.colors.surface }}
                 />
-                <Button mode="contained" buttonColor="#2563eb" loading={savingUnit} disabled={savingUnit || !newUnitName.trim()} onPress={() => handleCreateUnit('purchase_unit')}>
+                <Button mode="contained" buttonColor="#4f46e5" loading={savingUnit} disabled={savingUnit || !newUnitName.trim()} onPress={() => handleCreateUnit('purchase_unit')}>
                   {isBN ? 'যোগ' : 'Add'}
                 </Button>
               </View>

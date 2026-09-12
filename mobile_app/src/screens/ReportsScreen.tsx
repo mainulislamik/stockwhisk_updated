@@ -21,7 +21,7 @@ const RANGES = [
 ];
 
 const CATEGORY_COLORS = [
-  '#2563eb', '#16a34a', '#d97706', '#dc2626', '#8b5cf6',
+  '#4f46e5', '#16a34a', '#d97706', '#dc2626', '#8b5cf6',
   '#0891b2', '#ec4899', '#f97316', '#64748b', '#059669'
 ];
 
@@ -29,7 +29,7 @@ const PAYMENT_COLORS: { [key: string]: string } = {
   cash: '#16a34a',
   bkash: '#e11d48',
   nagad: '#ea580c',
-  card: '#2563eb',
+  card: '#4f46e5',
   bank: '#0891b2',
   other: '#64748b',
 };
@@ -119,7 +119,7 @@ export default function ReportsScreen() {
             onPress={() => setSelectedRange(range)}
             style={[
               styles.chip,
-              { backgroundColor: isSelected ? '#2563eb' : theme.colors.surface, borderColor: isSelected ? '#2563eb' : (isDarkMode ? '#334155' : '#e2e8f0') },
+              { backgroundColor: isSelected ? '#4f46e5' : theme.colors.surface, borderColor: isSelected ? '#4f46e5' : (isDarkMode ? '#334155' : '#e2e8f0') },
             ]}
           >
             <Text style={{ color: isSelected ? '#fff' : theme.colors.onSurface, fontWeight: isSelected ? 'bold' : '600', fontSize: 13 }}>
@@ -182,11 +182,11 @@ export default function ReportsScreen() {
       >
         {renderChips()}
 
-        {loading && <ActivityIndicator style={{ marginVertical: 12 }} color="#2563eb" />}
+        {loading && <ActivityIndicator style={{ marginVertical: 12 }} color="#4f46e5" />}
 
         {/* 1. Sales Overview Header KPI Cards */}
         <View style={styles.sectionHeaderRow}>
-          <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#4f46e5" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
             {isBN ? 'বিক্রয় ওভারভিউ (Sales Overview)' : 'Sales Overview'}
           </Text>
@@ -194,10 +194,10 @@ export default function ReportsScreen() {
         <View style={styles.grid}>
           <Surface style={[styles.cardHalf, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
-              <MaterialCommunityIcons name="cash-multiple" size={16} color="#2563eb" style={{ marginRight: 4 }} />
+              <MaterialCommunityIcons name="cash-multiple" size={16} color="#4f46e5" style={{ marginRight: 4 }} />
               <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12 }}>{isBN ? 'মোট সেলস' : 'Total Sales'}</Text>
             </View>
-            <Text style={[styles.cardValue, { color: '#2563eb' }]}>৳{Number(overview?.total_sales || 0).toLocaleString()}</Text>
+            <Text style={[styles.cardValue, { color: '#4f46e5' }]}>৳{Number(overview?.total_sales || 0).toLocaleString()}</Text>
           </Surface>
           <Surface style={[styles.cardHalf, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
@@ -256,7 +256,7 @@ export default function ReportsScreen() {
           </Surface>
           <Surface style={[styles.cardHalf, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12 }}>{isBN ? 'প্রফিট মার্জিন' : 'Profit Margin'}</Text>
-            <Text style={[styles.cardValue, { color: '#2563eb' }]}>
+            <Text style={[styles.cardValue, { color: '#4f46e5' }]}>
               {profitOverview?.summary?.profit_margin ? Number(profitOverview.summary.profit_margin).toFixed(2) : '0.00'}%
             </Text>
             {renderChangeBadge(profitOverview?.comparison?.profit_margin_change, true)}
@@ -278,7 +278,7 @@ export default function ReportsScreen() {
               <>
                 <View style={{ flexDirection: 'row', justifyContent: 'center', flexWrap: 'wrap', gap: 10, marginBottom: 8 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ width: 10, height: 10, backgroundColor: '#2563eb', marginRight: 4, borderRadius: 5 }} />
+                    <View style={{ width: 10, height: 10, backgroundColor: '#4f46e5', marginRight: 4, borderRadius: 5 }} />
                     <Text style={{ fontSize: 11 }}>{isBN ? 'রেভিনিউ' : 'Revenue'}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -590,7 +590,7 @@ export default function ReportsScreen() {
 
         {/* 11. Most Sold Products */}
         <View style={styles.sectionHeaderRow}>
-          <MaterialCommunityIcons name="star-outline" size={20} color="#2563eb" style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="star-outline" size={20} color="#4f46e5" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
             {isBN ? 'শীর্ষ বিক্রিত পণ্য (Most Sold)' : 'Most Sold Products'}
           </Text>
@@ -606,7 +606,7 @@ export default function ReportsScreen() {
                       {isBN ? 'পরিমাণ' : 'Qty'}: {p.units_sold || p.qty || 0}
                     </Text>
                   </View>
-                  <Text style={{ fontWeight: 'bold', color: '#2563eb' }}>৳{Number(p.revenue || 0).toLocaleString()}</Text>
+                  <Text style={{ fontWeight: 'bold', color: '#4f46e5' }}>৳{Number(p.revenue || 0).toLocaleString()}</Text>
                 </View>
               ))
             ) : (
@@ -787,7 +787,7 @@ export default function ReportsScreen() {
 
         {/* 15. Recent Transactions */}
         <View style={styles.sectionHeaderRow}>
-          <MaterialCommunityIcons name="history" size={20} color="#2563eb" style={{ marginRight: 6 }} />
+          <MaterialCommunityIcons name="history" size={20} color="#4f46e5" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
             {isBN ? 'সাম্প্রতিক লেনদেন' : 'Recent Transactions'}
           </Text>
@@ -806,7 +806,7 @@ export default function ReportsScreen() {
                   }}
                 >
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', color: '#2563eb' }}>{t.invoice_number}</Text>
+                    <Text style={{ fontWeight: 'bold', color: '#4f46e5' }}>{t.invoice_number}</Text>
                     <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : '#64748b' }}>
                       {t.customer_name || 'Walk-in'} • {t.payment_method?.toUpperCase()}
                     </Text>

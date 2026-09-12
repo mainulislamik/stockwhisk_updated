@@ -156,7 +156,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 1,
     borderColor: '#1e293b',
-    shadowColor: '#2563eb',
+    shadowColor: '#4f46e5',
     shadowOffset: { width: 0, height: 12 },
     shadowOpacity: 0.3,
     shadowRadius: 24,
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     borderRadius: 40,
     backgroundColor: 'rgba(30, 41, 59, 0.9)',
     borderWidth: 2,
-    borderColor: '#3b82f6',
+    borderColor: '#6366f1',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
@@ -214,7 +214,7 @@ const styles = StyleSheet.create({
   },
   progressBarFill: {
     height: '100%',
-    backgroundColor: '#3b82f6',
+    backgroundColor: '#6366f1',
     borderRadius: 3,
   },
   footerRow: {

@@ -853,7 +853,7 @@ export default function POSScreen() {
 
               {customerMode === 'walkin' && (
                 <View style={{ marginTop: 8 }}>
-                  <TextInput mode="outlined" label={t('ফোন *', 'Phone *')} value={walkPhone} onChangeText={handleWalkPhoneChange} style={{ marginBottom: 8, backgroundColor: matchedId ? (isDarkMode ? '#1e3a8a' : '#eff6ff') : theme.colors.surface }} keyboardType="phone-pad" />
+                  <TextInput mode="outlined" label={t('ফোন *', 'Phone *')} value={walkPhone} onChangeText={handleWalkPhoneChange} style={{ marginBottom: 8, backgroundColor: matchedId ? (isDarkMode ? '#1e3a8a' : '#eef2ff') : theme.colors.surface }} keyboardType="phone-pad" />
                   {matchedId ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
                       <MaterialCommunityIcons name="check-circle" size={16} color="#10b981" style={{ marginRight: 4 }} />
@@ -1326,7 +1326,7 @@ export default function POSScreen() {
                                 style={{
                                   flexDirection: 'row', alignItems: 'center', padding: 10, borderRadius: 8,
                                   borderWidth: 1, borderColor: isSelected ? '#4f46e5' : isDarkMode ? '#334155' : '#e2e8f0',
-                                  backgroundColor: isSelected ? (isDarkMode ? '#1e1b4b' : '#eff6ff') : theme.colors.surface,
+                                  backgroundColor: isSelected ? (isDarkMode ? '#1e1b4b' : '#eef2ff') : theme.colors.surface,
                                   marginBottom: 6
                                 }}
                               >

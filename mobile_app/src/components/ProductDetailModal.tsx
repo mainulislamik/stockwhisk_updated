@@ -100,7 +100,7 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
         {/* Header */}
         <View style={{ backgroundColor: theme.colors.surface, padding: 20, borderTopLeftRadius: 24, borderTopRightRadius: 24, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#1e293b' : '#f1f5f9', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <View style={{ flex: 1, paddingRight: 16 }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#2563eb' }}>{product.name}</Text>
+            <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#4f46e5' }}>{product.name}</Text>
             <Text style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>SKU {product.sku}</Text>
           </View>
           <TouchableOpacity onPress={onClose} style={{ padding: 4 }}>
@@ -133,8 +133,8 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
                   </View>
                 ) : null}
                 {Number(product.purchase_multiplier) > 1 ? (
-                  <View style={{ backgroundColor: '#eff6ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#2563eb' }}>📦 Multiplier: 1 = {product.purchase_multiplier}</Text>
+                  <View style={{ backgroundColor: '#eef2ff', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '700', color: '#4f46e5' }}>📦 Multiplier: 1 = {product.purchase_multiplier}</Text>
                   </View>
                 ) : null}
                 {product.warranty_months && product.warranty_months > 0 ? (
@@ -173,14 +173,14 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
 
           {/* Units Table */}
           <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 12 }}>
-            <MaterialCommunityIcons name="package-variant" size={20} color="#2563eb" style={{ marginRight: 8 }} />
-            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#2563eb' }}>{isBN ? 'প্রতিটি ইউনিট (স্টকে আছে)' : 'Each Unit (In Stock)'}</Text>
+            <MaterialCommunityIcons name="package-variant" size={20} color="#4f46e5" style={{ marginRight: 8 }} />
+            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#4f46e5' }}>{isBN ? 'প্রতিটি ইউনিট (স্টকে আছে)' : 'Each Unit (In Stock)'}</Text>
           </View>
 
           <Surface style={{ borderRadius: 12, overflow: 'hidden', backgroundColor: theme.colors.surface, elevation: 2 }}>
             {loading ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color="#2563eb" />
+                <ActivityIndicator size="large" color="#4f46e5" />
               </View>
             ) : units.length === 0 ? (
               <View style={{ padding: 20, alignItems: 'center' }}>
@@ -224,7 +224,7 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
                       ) : (
                         <>
                           <Text style={{ width: 100, paddingHorizontal: 12, fontSize: 12, color: '#64748b' }}>৳{Number(u.effective_cost_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
-                          <Text style={{ width: 100, paddingHorizontal: 12, fontSize: 12, fontWeight: 'bold', color: '#2563eb' }}>৳{Number(u.effective_selling_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
+                          <Text style={{ width: 100, paddingHorizontal: 12, fontSize: 12, fontWeight: 'bold', color: '#4f46e5' }}>৳{Number(u.effective_selling_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</Text>
                           <Text style={{ width: 120, paddingHorizontal: 12, fontSize: 12, textAlign: 'center', color: isDarkMode ? '#cbd5e1' : '#334155' }}>{u.effective_warranty_months || '-'}</Text>
                         </>
                       )}
@@ -243,7 +243,7 @@ export default function ProductDetailModal({ visible, product, onClose }: { visi
                            </View>
                         ) : (
                            <TouchableOpacity onPress={() => startEditing(u)}>
-                             <Text style={{ color: '#2563eb', fontSize: 12, fontWeight: 'bold' }}>{isBN ? 'এডিট' : 'Edit'}</Text>
+                             <Text style={{ color: '#4f46e5', fontSize: 12, fontWeight: 'bold' }}>{isBN ? 'এডিট' : 'Edit'}</Text>
                            </TouchableOpacity>
                         )}
                       </View>
