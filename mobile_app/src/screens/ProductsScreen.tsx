@@ -65,6 +65,7 @@ export default function ProductsScreen() {
   const [selectedRepairBrand, setSelectedRepairBrand] = useState<any | null>(null);
   const [selectedRepairCategory, setSelectedRepairCategory] = useState<any | null>(null);
   const [brands, setBrands] = useState<any[]>([]);
+  const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
@@ -117,6 +118,11 @@ export default function ProductsScreen() {
   const [purchaseBarcodes, setPurchaseBarcodes] = useState<string[]>([]);
   const [customBarcodeInput, setCustomBarcodeInput] = useState('');
   const [autoGenerateBarcodes, setAutoGenerateBarcodes] = useState(false);
+  
+  // Multi-line purchase cart state
+  const [purchaseLines, setPurchaseLines] = useState<Array<{product: Product; quantity: number; unit_cost: string; barcodes: string[]; warranty_months: number; expiry_date?: string | null; lot_number?: string; mfg_date?: string | null}>>([]);
+  const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
+  const [promisedDate, setPromisedDate] = useState('');
 
   const generateBarcodesHelper = (p: Product, count: number): string[] => {
     const prefix = p.sku ? p.sku.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'BC';
@@ -393,7 +399,7 @@ export default function ProductsScreen() {
     { key: 'card', label: isBN ? 'কার্ড' : 'Card' },
   ];
 
-  const removePurchaseLine = (index: number) => {
+  const removePurchaseLine = (index: number): void => {
     setPurchaseLines(prev => prev.filter((_, i) => i !== index));
   };
 

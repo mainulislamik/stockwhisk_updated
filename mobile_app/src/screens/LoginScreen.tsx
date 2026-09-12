@@ -19,7 +19,7 @@ import {
   Surface,
   Divider,
 } from 'react-native-paper';
-import MaterialCommunityIcons from 'react-native-vector-icons/MaterialCommunityIcons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import * as SecureStore from '../utils/storage';
 import { api } from '../api';
 import { useAuth } from '../contexts/AuthContext';

@@ -138,7 +138,7 @@ export default function UpdatingOverlay({
 
 const styles = StyleSheet.create({
   container: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: '#090d16',
     zIndex: 999999,
     elevation: 999999,
