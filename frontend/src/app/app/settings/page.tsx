@@ -21,7 +21,8 @@ export default function SettingsPage() {
     vat_enabled: false, vat_percent: 0, emi_enabled: false, 
     delivery_enabled: true, whatsapp_invoice_enabled: true, 
     barcode_prefix: "", offline_sale_mode: false, pos_print_mode: "ask", pos_receipt_enabled: true,
-    service_enabled: true, reports_enabled: true, finance_enabled: true
+    service_enabled: true, reports_enabled: true, finance_enabled: true,
+    mobile_repair_enabled: false
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
@@ -56,6 +57,7 @@ export default function SettingsPage() {
           service_enabled: data.service_enabled !== false,
           reports_enabled: data.reports_enabled !== false,
           finance_enabled: data.finance_enabled !== false,
+          mobile_repair_enabled: data.mobile_repair_enabled === true,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -102,6 +104,7 @@ export default function SettingsPage() {
       formData.append("service_enabled", shopForm.service_enabled.toString());
       formData.append("reports_enabled", shopForm.reports_enabled.toString());
       formData.append("finance_enabled", shopForm.finance_enabled.toString());
+      formData.append("mobile_repair_enabled", shopForm.mobile_repair_enabled.toString());
 
       if (logoFile) {
         formData.append("logo", logoFile);
@@ -319,7 +322,7 @@ export default function SettingsPage() {
                     </div>
 
                     {/* 3. Finance Section Switch */}
-                    <div className="form-check form-switch">
+                    <div className="form-check form-switch mb-3">
                       <input 
                         className="form-check-input" 
                         type="checkbox" 
@@ -335,6 +338,26 @@ export default function SettingsPage() {
                         {t("settings_finance_help")}
                       </div>
                     </div>
+
+                    {/* 4. Mobile Repair Module Switch (superadmin-controlled visibility) */}
+                    {(user?.shop_mobile_repair_enabled !== undefined) && (
+                      <div className="form-check form-switch">
+                        <input 
+                          className="form-check-input" 
+                          type="checkbox" 
+                          role="switch" 
+                          id="mobileRepairSwitch" 
+                          checked={shopForm.mobile_repair_enabled} 
+                          onChange={e => setShopForm({...shopForm, mobile_repair_enabled: e.target.checked})} 
+                        />
+                        <label className="form-check-label small fw-semibold" htmlFor="mobileRepairSwitch">
+                          🔧 {t("settings_repair_en")}
+                        </label>
+                        <div className="form-text" style={{ fontSize: "0.75rem" }}>
+                          {t("settings_repair_help")}
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   <div className="form-check form-switch">
