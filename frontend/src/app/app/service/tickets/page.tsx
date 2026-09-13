@@ -131,12 +131,12 @@ export default function TicketsPage() {
                 </>
               )}
               <div className="col-md-4">
-                <label className="small">{t("tkt_lbl_device")}</label>
-                <input required className="form-control form-control-sm" value={form.device_description} onChange={(e) => setForm({ ...form, device_description: e.target.value })} />
+                <label className="small fw-semibold">📱 {t("pos_checkout_device_model") || "ডিভাইস ব্র্যান্ড ও মডেল"}</label>
+                <input required className="form-control form-control-sm shadow-sm" placeholder="যেমন: Samsung Galaxy A12" value={form.device_description} onChange={(e) => setForm({ ...form, device_description: e.target.value })} />
               </div>
               <div className="col-md-2">
-                <label className="small">{t("tkt_lbl_charge")}</label>
-                <input type="number" step="0.01" className="form-control form-control-sm" value={form.service_charge} onChange={(e) => setForm({ ...form, service_charge: e.target.value })} />
+                <label className="small fw-semibold text-warning-emphasis">🛠️ {t("tkt_lbl_charge")} (৳)</label>
+                <input type="number" step="0.01" min="0" className="form-control form-control-sm shadow-sm border-warning" placeholder="0" value={form.service_charge} onChange={(e) => setForm({ ...form, service_charge: e.target.value })} />
               </div>
               <div className="col-md-2">
                 <label className="small">{t("tkt_lbl_advance")}</label>
@@ -147,8 +147,8 @@ export default function TicketsPage() {
                 <input type="date" className="form-control form-control-sm" value={form.estimated_delivery} onChange={(e) => setForm({ ...form, estimated_delivery: e.target.value })} />
               </div>
               <div className="col-12">
-                <label className="small">{t("tkt_lbl_complaint")}</label>
-                <textarea required className="form-control form-control-sm" rows={2} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} />
+                <label className="small fw-semibold">📝 {t("pos_checkout_problem_desc") || "সমস্যা / ফল্ট বিবরণ (Customer Fault Report)"}</label>
+                <textarea required className="form-control form-control-sm shadow-sm" placeholder="যেমন: ডিসপ্লে ভাঙা, চার্জিং পোর্ট সমস্যা, টাচ কাজ করে না..." rows={2} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} />
               </div>
               <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
