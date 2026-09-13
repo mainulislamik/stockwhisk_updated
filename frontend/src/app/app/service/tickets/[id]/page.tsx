@@ -321,6 +321,43 @@ export default function TicketDetailPage() {
             <button className="btn btn-brand btn-sm" onClick={() => handlePrint("invoice")} disabled={ticket.status !== 'delivered'}>
               <i className="bi bi-printer me-1"></i>{t("tktd_print_invoice")}
             </button>
+
+            {/* Live Tracking Link & WhatsApp Share */}
+            {(() => {
+              const custPhone = (customerInfo?.phone || ticket.customer_phone || "").replace(/[^0-9]/g, "");
+              const intlPhone = custPhone.startsWith("880") ? custPhone : custPhone.startsWith("01") ? `88${custPhone}` : custPhone;
+              const trackingUrl = typeof window !== "undefined" ? `${window.location.origin}/track/${ticket.track_token || ticket.id}` : `https://stockwhisk.com/track/${ticket.track_token || ticket.id}`;
+              const waMsg = `হ্যালো ${customerInfo?.name || ticket.customer_name || 'গ্রাহক'},\n\nআপনার সার্ভিস টিকিট #${ticket.ticket_no} (${ticket.device_description}) এর লাইভ ট্র্যাকিং লিংক:\n🔗 ${trackingUrl}\n\nবর্তমান স্ট্যাটাস: ${ticket.status.toUpperCase()}\nসার্ভিস চার্জ: ৳${ticket.service_charge}\nপরিশোধ: ৳${ticket.paid}\nবাকি: ৳${ticket.due}\n\nধন্যবাদ,\n${shopName}`;
+
+              return (
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm"
+                    onClick={() => {
+                      navigator.clipboard.writeText(trackingUrl);
+                      toast.success(lang === "bn" ? "ট্র্যাকিং লিংক কপি হয়েছে!" : "Tracking link copied!");
+                    }}
+                    title="Copy Live Tracking Link"
+                  >
+                    <i className="bi bi-link-45deg"></i>
+                    <span>{lang === "bn" ? "ট্র্যাকিং লিংক" : "Tracking Link"}</span>
+                  </button>
+
+                  <a
+                    href={`https://wa.me/${intlPhone}?text=${encodeURIComponent(waMsg)}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`btn btn-sm d-flex align-items-center gap-1 shadow-sm ${custPhone ? "btn-success text-white" : "btn-outline-success"}`}
+                    style={custPhone ? { backgroundColor: "#25D366", borderColor: "#25D366" } : {}}
+                    title={custPhone ? "Send WhatsApp Tracking Link" : "Open WhatsApp"}
+                  >
+                    <i className="bi bi-whatsapp"></i>
+                    <span>WhatsApp</span>
+                  </a>
+                </div>
+              );
+            })()}
             <button
               type="button"
               className="btn btn-light btn-sm border"
@@ -354,7 +391,27 @@ export default function TicketDetailPage() {
                       )}
                     </div>
                     {(customerInfo?.phone || ticket.customer_phone) && (
-                      <div className="text-secondary small">📞 {customerInfo?.phone || ticket.customer_phone}</div>
+                      <div className="d-flex align-items-center gap-2 mt-1">
+                        <span className="text-secondary small">📞 {customerInfo?.phone || ticket.customer_phone}</span>
+                        {(() => {
+                          const custPhone = (customerInfo?.phone || ticket.customer_phone || "").replace(/[^0-9]/g, "");
+                          const intlPhone = custPhone.startsWith("880") ? custPhone : custPhone.startsWith("01") ? `88${custPhone}` : custPhone;
+                          const trackingUrl = typeof window !== "undefined" ? `${window.location.origin}/track/${ticket.track_token || ticket.id}` : `https://stockwhisk.com/track/${ticket.track_token || ticket.id}`;
+                          const waMsg = `হ্যালো ${customerInfo?.name || ticket.customer_name || 'গ্রাহক'},\n\nআপনার সার্ভিস টিকিট #${ticket.ticket_no} (${ticket.device_description}) এর লাইভ ট্র্যাকিং লিংক:\n🔗 ${trackingUrl}\n\nবর্তমান স্ট্যাটাস: ${ticket.status.toUpperCase()}\nসার্ভিস চার্জ: ৳${ticket.service_charge}\nপরিশোধ: ৳${ticket.paid}\nবাকি: ৳${ticket.due}\n\nধন্যবাদ,\n${shopName}`;
+
+                          return (
+                            <a
+                              href={`https://wa.me/${intlPhone}?text=${encodeURIComponent(waMsg)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="badge bg-success text-white text-decoration-none px-2 py-1 d-inline-flex align-items-center gap-1 shadow-sm"
+                              style={{ backgroundColor: "#25D366", fontSize: "11px" }}
+                            >
+                              <i className="bi bi-whatsapp"></i> WhatsApp শেয়ার
+                            </a>
+                          );
+                        })()}
+                      </div>
                     )}
                     {customerInfo?.address && (
                       <div className="text-secondary small">📍 {customerInfo.address}</div>
