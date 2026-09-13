@@ -241,7 +241,8 @@ def subscription_status(shop):
     sub = Subscription.objects.filter(shop=shop, is_current=True).select_related("plan").first()
     now = timezone.now()
 
-    if shop.has_free_access:
+    if getattr(shop, "is_demo", False) or shop.has_free_access:
+        state, ends_at = "free", None
         state, ends_at = "free", None
     elif shop.on_trial:
         state, ends_at = "trial", shop.trial_ends_at

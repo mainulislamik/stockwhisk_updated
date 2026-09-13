@@ -42,8 +42,9 @@ type SubStatus = {
 
 function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
   const { t } = useLanguage();
+  const { user } = useAuth();
   const [showPay, setShowPay] = useState(false);
-  if (!sub || sub.state === "none" || sub.state === "free") return null;
+  if (user?.shop_is_demo || !sub || sub.state === "none" || sub.state === "free") return null;
   if (sub.state !== "expired" && sub.days_left > 3) return null;
 
   const d = sub.days_left;
