@@ -47,13 +47,93 @@ export default function PosPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [cart, setCart] = useState<CartLine[]>([]);
+  type HeldCart = {
+    id: string;
+    heldAt: string;
+    items: CartLine[];
+    totalAmount: number;
+    itemCount: number;
+  };
+
+  const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
+  const [showHeldModal, setShowHeldModal] = useState(false);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(`stockwhisk_held_carts_${user?.shop || 'default'}`);
+      if (stored) setHeldCarts(JSON.parse(stored));
+    } catch {}
+  }, [user?.shop]);
+
+  function holdCurrentCart() {
+    if (cart.length === 0) {
+      flash(lang === "bn" ? "কার্ট খালি! হোল্ড করার মতো কোনো পণ্য নেই।" : "Cart is empty!", false);
+      return;
+    }
+    const newHeld: HeldCart = {
+      id: "HOLD-" + Date.now().toString().slice(-4),
+      heldAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      items: [...cart],
+      totalAmount: cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0),
+      itemCount: cart.reduce((s, l) => s + l.qty, 0),
+    };
+    const updated = [newHeld, ...heldCarts];
+    setHeldCarts(updated);
+    try {
+      localStorage.setItem(`stockwhisk_held_carts_${user?.shop || 'default'}`, JSON.stringify(updated));
+    } catch {}
+    setCart([]);
+    sessionStorage.removeItem("pos_cart");
+    flash(lang === "bn" ? `⏸️ কার্ট হোল্ড করা হয়েছে (${newHeld.id})` : `⏸️ Cart held (${newHeld.id})`, true);
+  }
+
+  function recallHeldCart(heldId: string) {
+    const target = heldCarts.find(h => h.id === heldId);
+    if (!target) return;
+    setCart(target.items);
+    const updated = heldCarts.filter(h => h.id !== heldId);
+    setHeldCarts(updated);
+    try {
+      localStorage.setItem(`stockwhisk_held_carts_${user?.shop || 'default'}`, JSON.stringify(updated));
+    } catch {}
+    setShowHeldModal(false);
+    flash(lang === "bn" ? `▶️ কার্ট রিকল করা হয়েছে (${target.id})` : `▶️ Cart recalled (${target.id})`, true);
+  }
+
+  function discardHeldCart(heldId: string) {
+    const updated = heldCarts.filter(h => h.id !== heldId);
+    setHeldCarts(updated);
+    try {
+      localStorage.setItem(`stockwhisk_held_carts_${user?.shop || 'default'}`, JSON.stringify(updated));
+    } catch {}
+  }
+
+  // Keyboard Shortcuts (F2 search, F8 hold cart, F9 held list)
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "F2") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      } else if (e.key === "F8" && isSupershop) {
+        e.preventDefault();
+        holdCurrentCart();
+      } else if (e.key === "F9" && isSupershop) {
+        e.preventDefault();
+        setShowHeldModal(s => !s);
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [cart, heldCarts, isSupershop]);
+
   const [brands, setBrands] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [selectedBrand, setSelectedBrand] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-  const [cart, setCart] = useState<CartLine[]>([]);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const [query, setQuery] = useState("");
@@ -158,7 +238,8 @@ export default function PosPage() {
   }, []);
 
   // ── Cart helpers ────────────────────────────────────────────────────────
-  function addToCart(p: Product, specificUnit?: ProductUnit) {
+  function addToCart(p: Product, specificUnit?: ProductUnit, explicitQty?: number) {
+    const addAmount = explicitQty !== undefined ? explicitQty : 1;
     setCart((c) => {
       const exIndex = c.findIndex((l) => l.product.id === p.id);
       if (exIndex >= 0) {
@@ -168,16 +249,16 @@ export default function PosPage() {
             return c; // already added
           }
           const newC = [...c];
-          newC[exIndex] = { ...ex, qty: ex.qty + 1, selectedUnits: [...ex.selectedUnits, specificUnit] };
+          newC[exIndex] = { ...ex, qty: ex.qty + addAmount, selectedUnits: [...ex.selectedUnits, specificUnit] };
           return newC;
         }
         const newC = [...c];
-        newC[exIndex] = { ...ex, qty: ex.qty + 1 };
+        newC[exIndex] = { ...ex, qty: Math.round((ex.qty + addAmount) * 1000) / 1000 };
         return newC;
       }
       return [...c, { 
         product: p, 
-        qty: 1, 
+        qty: addAmount, 
         price: Number(specificUnit?.effective_selling_price || p.selling_price) || 0, 
         discount: 0, 
         selectedUnits: specificUnit ? [specificUnit] : [],
@@ -275,6 +356,32 @@ export default function PosPage() {
   // ── Process code ────────────────────────────────────────────────────────
   const processCode = useCallback(async (code: string) => {
     if (!code) return;
+
+    // 0. Supershop EAN-13 Weight Scale In-Store Barcode auto-detection (e.g. 20XXXXXWWWWWC)
+    // Scale format: 2-digit prefix (02 or 20-29) + 5-digit PLU/SKU + 5-digit Weight in grams + 1 checksum
+    if (isSupershop && /^(02|2[0-9])(\d{5})(\d{5})\d$/.test(code)) {
+      const match = code.match(/^(02|2[0-9])(\d{5})(\d{5})\d$/);
+      if (match) {
+        const pluCode = match[2];
+        const weightGrams = parseInt(match[3], 10);
+        const weightKg = Math.round((weightGrams / 1000) * 1000) / 1000;
+        
+        // Find product matching PLU code
+        const matchedPlu = shown.find(p => 
+          (p.sku && p.sku.toLowerCase() === pluCode.toLowerCase()) ||
+          (p.sku && p.sku.endsWith(pluCode)) ||
+          (p.barcode && p.barcode.includes(pluCode)) ||
+          String(p.id) === String(parseInt(pluCode, 10))
+        );
+        if (matchedPlu) {
+          addToCart(matchedPlu, undefined, weightKg);
+          flash(lang === "bn" ? `⚖️ ওজনের পণ্য যোগ হয়েছে: ${matchedPlu.name} (${weightKg} কেজি)` : `⚖️ Weighed item added: ${matchedPlu.name} (${weightKg} kg)`, true);
+          setQuery("");
+          setTimeout(() => inputRef.current?.focus(), 50);
+          return;
+        }
+      }
+    }
 
     // 1. Exact barcode match from current search results. A barcode may be
     // shared by several products → let the user pick which one.
@@ -690,9 +797,32 @@ export default function PosPage() {
                 🛒 {t("pos_cart")}
                 {itemCount > 0 && <span className="badge text-bg-secondary ms-2">{itemCount}</span>}
               </span>
-              {cart.length > 0 && (
-                <button className="btn btn-link btn-sm text-danger p-0" onClick={clearCart}>{t("pos_clear")}</button>
-              )}
+              <div className="d-flex align-items-center gap-2">
+                {isSupershop && heldCarts.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-warning btn-xs py-0 px-2 fw-bold rounded-pill text-dark shadow-sm"
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setShowHeldModal(true)}
+                  >
+                    📋 Held ({heldCarts.length}) [F9]
+                  </button>
+                )}
+                {isSupershop && cart.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-outline-warning btn-xs py-0 px-2 fw-semibold rounded-pill"
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={holdCurrentCart}
+                    title="হোল্ড কার্ট (F8)"
+                  >
+                    ⏸️ Hold (F8)
+                  </button>
+                )}
+                {cart.length > 0 && (
+                  <button className="btn btn-link btn-sm text-danger p-0 ms-1" onClick={clearCart}>{t("pos_clear")}</button>
+                )}
+              </div>
             </div>
             <div className="card-body p-0">
               <div style={{ maxHeight: "52vh", overflowY: "auto" }}>

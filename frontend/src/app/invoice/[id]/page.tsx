@@ -354,6 +354,11 @@ export default function InvoicePage() {
                 <span>{fmtDate(sale.due_date)}</span>
               </div>
             )}
+            {totalDiscount > 0 && (
+              <div style={{ textAlign: "center", margin: "6px 0", padding: "4px 2px", backgroundColor: "#f1f5f9", border: "1px dashed #cbd5e1", borderRadius: "4px", fontSize: "8.5pt", fontWeight: "bold", color: "#0f172a" }}>
+                🎉 YOU SAVED: {fmt(totalDiscount)}
+              </div>
+            )}
           </div>
 
           {/* EMI Schedule if present */}
@@ -561,6 +566,11 @@ export default function InvoicePage() {
               {Number(sale.due) > 0 && sale.due_date && (
                 <div className="inv-total-row" style={{ color: "#dc2626", fontWeight: 600, fontSize: "0.9em" }}>
                   <span>Promised Date</span><span>{fmtDate(sale.due_date)}</span>
+                </div>
+              )}
+              {totalDiscount > 0 && (
+                <div style={{ marginTop: "8px", padding: "6px 12px", backgroundColor: "#ecfdf5", border: "1px solid #a7f3d0", borderRadius: "6px", color: "#065f46", fontSize: "12px", fontWeight: "bold", textAlign: "right" }}>
+                  🎉 {lang === "bn" ? `অভিনন্দন! আপনি মোট ${fmt(totalDiscount)} সাশ্রয় করেছেন!` : `Congratulations! You saved ${fmt(totalDiscount)} on this order!`}
                 </div>
               )}
             </div>

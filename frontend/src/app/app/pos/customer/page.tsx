@@ -52,6 +52,7 @@ export default function PosCustomerPage() {
   const [showPrintModal, setShowPrintModal] = useState(false);
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const [alterationNotes, setAlterationNotes] = useState("");
   const [alterationStatus, setAlterationStatus] = useState("none");
 
@@ -555,6 +556,50 @@ export default function PosCustomerPage() {
               </div>
             </div>
 
+            {/* Quick Cash Tender Buttons for Cash Payments (Supershop / Fast Retail) */}
+            {method === "cash" && !isEmi && (
+              <div className="d-flex flex-wrap align-items-center gap-1 mt-2 mb-2 p-2 bg-light rounded-3 border">
+                <span className="small text-secondary fw-semibold me-1">⚡ {lang === "bn" ? "কুইক ক্যাশ:" : "Quick Cash:"}</span>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary fw-bold rounded-pill px-2 py-0 shadow-sm"
+                  style={{ fontSize: "0.78rem" }}
+                  onClick={() => setPaid(String(total))}
+                >
+                  💵 {lang === "bn" ? "সমান টাকা" : "Exact"} ({money(total)})
+                </button>
+                {[50, 100, 500, 1000, 2000].map((amt) => (
+                  <button
+                    key={amt}
+                    type="button"
+                    className="btn btn-sm btn-white border text-dark fw-semibold rounded-pill px-2 py-0 shadow-sm bg-white"
+                    style={{ fontSize: "0.78rem" }}
+                    onClick={() => {
+                      const current = Number(paid) || 0;
+                      if (amt >= total && current === 0) {
+                        setPaid(String(amt));
+                      } else {
+                        setPaid(String(current + amt));
+                      }
+                    }}
+                  >
+                    +৳{amt}
+                  </button>
+                ))}
+                {paid !== "" && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0"
+                    style={{ fontSize: "0.78rem" }}
+                    onClick={() => setPaid("")}
+                    title="রিসেট"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+            )}
+
             {user?.shop_emi_enabled && (
               <div className="form-check form-switch fs-5 mt-2 mb-1">
                 <input className="form-check-input" type="checkbox" role="switch" id="emiSwitch" checked={isEmi} onChange={(e) => setIsEmi(e.target.checked)} />
@@ -677,6 +722,20 @@ export default function PosCustomerPage() {
             </div>
 
             <div className="border-top border-bottom py-3 my-2 bg-body-tertiary rounded-3 px-3 shadow-sm">
+              {/* You Saved celebration badge if total savings > 0 */}
+              {(() => {
+                const itemSavings = cart.reduce((s, l) => s + (Number(l.discount) || 0) * (Number(l.qty) || 1), 0);
+                const totalSavings = discountNum + itemSavings;
+                if (totalSavings > 0) {
+                  return (
+                    <div className="d-flex justify-content-between text-success fw-bold p-2 bg-success bg-opacity-10 rounded-2 mb-2 border border-success-subtle small">
+                      <span>🎉 {lang === "bn" ? "মোট সাশ্রয় (You Saved):" : "Total Savings:"}</span>
+                      <span>{money(totalSavings)}</span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
               <div className="d-flex justify-content-between text-secondary mb-2"><span>{t("pos_checkout_subtotal")} (Parts)</span><span>{money(subtotal)}</span></div>
               {isRepairShop && serviceChargeNum > 0 && (
                 <div className="d-flex justify-content-between text-warning fw-bold mb-2">
