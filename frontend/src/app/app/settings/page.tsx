@@ -22,7 +22,8 @@ export default function SettingsPage() {
     delivery_enabled: true, whatsapp_invoice_enabled: true, 
     barcode_prefix: "", offline_sale_mode: false, pos_print_mode: "ask", pos_receipt_enabled: true,
     service_enabled: true, reports_enabled: true, finance_enabled: true,
-    mobile_repair_enabled: false
+    mobile_repair_enabled: false,
+    mobile_repair_master_enabled: false
   });
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [currentLogo, setCurrentLogo] = useState<string | null>(null);
@@ -58,6 +59,7 @@ export default function SettingsPage() {
           reports_enabled: data.reports_enabled !== false,
           finance_enabled: data.finance_enabled !== false,
           mobile_repair_enabled: data.mobile_repair_enabled === true,
+          mobile_repair_master_enabled: data.mobile_repair_master_enabled === true,
         });
         if (data.logo) {
           setCurrentLogo(data.logo);
@@ -339,8 +341,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
 
-                    {/* 4. Mobile Repair Module Switch (superadmin-controlled visibility) */}
-                    {(user?.shop_mobile_repair_enabled !== undefined) && (
+                    {/* 4. Mobile Repair Module Switch (shown only if superadmin master license is ON) */}
+                    {shopForm.mobile_repair_master_enabled && (
                       <div className="form-check form-switch">
                         <input 
                           className="form-check-input" 

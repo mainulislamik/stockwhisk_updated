@@ -148,7 +148,8 @@ class Shop(TimeStampedModel):
     reports_enabled = models.BooleanField(default=True, help_text="Enable/disable Reports section")
     finance_enabled = models.BooleanField(default=True, help_text="Enable/disable Finance section (Expenses, Accounting)")
     manufacturing_enabled = models.BooleanField(default=False, help_text="Enable/disable Manufacturing & Batch Production section")
-    mobile_repair_enabled = models.BooleanField(default=False, help_text="Enable/disable Mobile Repair Shop module (Brand-first hierarchy, Repair POS, Services, Job Sheets)")
+    mobile_repair_enabled = models.BooleanField(default=False, help_text="Owner-controlled Mobile Repair module switch (repair POS fields, brand-first hierarchy) — effective only when master license is on")
+    mobile_repair_master_enabled = models.BooleanField(default=False, help_text="Superadmin-controlled master license for the Mobile Repair Shop module")
 
     # Short 2–5 char code prefixed to generated barcodes so labels are unique
     # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name

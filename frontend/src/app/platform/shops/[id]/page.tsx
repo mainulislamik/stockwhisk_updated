@@ -23,6 +23,7 @@ type Shop = {
   is_free?: boolean;
   manufacturing_enabled?: boolean;
   mobile_repair_enabled?: boolean;
+  mobile_repair_master_enabled?: boolean;
   user_count: number;
   owner_email: string | null;
   owner_full_name: string | null;
@@ -167,12 +168,12 @@ export default function ShopDetailsPage() {
     if (!shop) return;
     setBusy(true);
     try {
-      const nextVal = !shop.mobile_repair_enabled;
+      const nextVal = !shop.mobile_repair_master_enabled;
       await api(`/platform/shops/${shop.id}/`, {
         method: "PATCH",
-        body: { mobile_repair_enabled: nextVal },
+        body: { mobile_repair_master_enabled: nextVal },
       });
-      setShop((prev) => prev ? { ...prev, mobile_repair_enabled: nextVal } : null);
+      setShop((prev) => prev ? { ...prev, mobile_repair_master_enabled: nextVal } : null);
       toast.success(nextVal ? "📱 Mobile Repair Shop module ENABLED for this shop!" : "Mobile Repair module disabled.");
     } catch (e: any) {
       toast.error(e?.message || "Failed to update Mobile Repair feature.");
@@ -362,7 +363,7 @@ export default function ShopDetailsPage() {
                     className="form-check-input"
                     type="checkbox"
                     role="switch"
-                    checked={!!shop.mobile_repair_enabled}
+                    checked={!!shop.mobile_repair_master_enabled}
                     disabled={busy}
                     onChange={toggleMobileRepair}
                     style={{ cursor: "pointer" }}

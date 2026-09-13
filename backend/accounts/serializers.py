@@ -63,7 +63,14 @@ class UserSerializer(serializers.ModelSerializer):
     shop_reports_enabled = serializers.BooleanField(source="shop.reports_enabled", read_only=True, default=True)
     shop_finance_enabled = serializers.BooleanField(source="shop.finance_enabled", read_only=True, default=True)
     shop_manufacturing_enabled = serializers.BooleanField(source="shop.manufacturing_enabled", read_only=True, default=False)
-    shop_mobile_repair_enabled = serializers.BooleanField(source="shop.mobile_repair_enabled", read_only=True, default=False)
+    shop_mobile_repair_enabled = serializers.SerializerMethodField()
+
+    def get_shop_mobile_repair_enabled(self, obj):
+        shop = getattr(obj, "shop", None)
+        if not shop:
+            return False
+        # Effective only when superadmin master license is ON and owner switch is ON
+        return bool(getattr(shop, "mobile_repair_master_enabled", False)) and bool(getattr(shop, "mobile_repair_enabled", False))
     # True when this user is an approved (active) reseller — lets the normal login
     # panel route them to the reseller portal instead of the (shop-less) app.
     is_reseller = serializers.SerializerMethodField()
@@ -97,6 +104,10 @@ class UserSerializer(serializers.ModelSerializer):
 
 class ShopSettingsSerializer(serializers.ModelSerializer):
     shop_code = serializers.CharField(read_only=True, default=None)
+    mobile_repair_master_enabled = serializers.SerializerMethodField()
+
+    def get_mobile_repair_master_enabled(self, obj):
+        return bool(getattr(obj, "mobile_repair_master_enabled", False))
 
 
     def get_shop_business_type(self, obj):
@@ -108,9 +119,9 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
             "id", "shop_code", "name", "phone", "email", "address", "business_type",
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
             "invoice_settings", "logo", "emi_enabled", "delivery_enabled", "whatsapp_invoice_enabled", "barcode_prefix", "offline_sale_mode",
-            "pos_print_mode", "pos_receipt_enabled", "service_enabled", "reports_enabled", "finance_enabled", "manufacturing_enabled", "mobile_repair_enabled"
+            "pos_print_mode", "pos_receipt_enabled", "service_enabled", "reports_enabled", "finance_enabled", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled"
         ]
-        read_only_fields = ["id", "shop_code"]
+        read_only_fields = ["id", "shop_code", "mobile_repair_master_enabled"]
 
     def validate_barcode_prefix(self, value):
         cleaned = "".join(c for c in (value or "").upper() if c.isalnum())[:5]
