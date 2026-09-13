@@ -28,6 +28,7 @@ import { usePreferences } from '../contexts/PreferencesContext';
 type AuthMode = 'login' | 'signup' | 'forgot';
 
 const REMEMBER_EMAIL_KEY = 'stockwhisk_remembered_email';
+const REMEMBER_PASSWORD_KEY = 'stockwhisk_remembered_password';
 
 export default function LoginScreen() {
   const theme = useTheme();
@@ -48,18 +49,24 @@ export default function LoginScreen() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
 
-  // Load saved email on mount
+  // Load saved credentials on mount
   useEffect(() => {
-    const loadRememberedEmail = async () => {
+    const loadRememberedCredentials = async () => {
       try {
-        const savedEmail = await SecureStore.getItemAsync(REMEMBER_EMAIL_KEY);
+        const [savedEmail, savedPassword] = await Promise.all([
+          SecureStore.getItemAsync(REMEMBER_EMAIL_KEY),
+          SecureStore.getItemAsync(REMEMBER_PASSWORD_KEY),
+        ]);
         if (savedEmail) {
           setLoginEmail(savedEmail);
           setRememberMe(true);
         }
+        if (savedPassword) {
+          setLoginPassword(savedPassword);
+        }
       } catch {}
     };
-    loadRememberedEmail();
+    loadRememberedCredentials();
   }, []);
 
   // 2. Signup State
@@ -138,9 +145,15 @@ export default function LoginScreen() {
       const { access, refresh } = res.data;
       if (access && refresh) {
         if (rememberMe) {
-          await SecureStore.setItemAsync(REMEMBER_EMAIL_KEY, loginEmail.trim().toLowerCase());
+          await Promise.all([
+            SecureStore.setItemAsync(REMEMBER_EMAIL_KEY, loginEmail.trim().toLowerCase()),
+            SecureStore.setItemAsync(REMEMBER_PASSWORD_KEY, loginPassword),
+          ]);
         } else {
-          await SecureStore.deleteItemAsync(REMEMBER_EMAIL_KEY);
+          await Promise.all([
+            SecureStore.deleteItemAsync(REMEMBER_EMAIL_KEY),
+            SecureStore.deleteItemAsync(REMEMBER_PASSWORD_KEY),
+          ]);
         }
         await login(access, refresh);
       } else {
@@ -582,7 +595,6 @@ export default function LoginScreen() {
                   />
 
                   {/* Business Type Selector Grid */}
-                  {/* Compact Category Dropdown Box */}
                   <View style={{ marginBottom: 14 }}>
                     <Text style={{ fontSize: 12, fontWeight: '600', color: isDarkMode ? '#94a3b8' : '#475569', marginBottom: 6 }}>
                       {isBN ? 'ব্যবসার ধরন *' : 'Business Category *'}
