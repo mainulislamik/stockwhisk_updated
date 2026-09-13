@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator, Share } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, Button, Modal, Portal, Divider, useTheme, FAB, Menu } from 'react-native-paper';
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
@@ -24,6 +24,7 @@ type Ticket = {
   received_at: string;
   estimated_delivery?: string;
   technician_notes?: string;
+  track_token?: string;
 };
 
 const STATUS_CONFIG: Record<string, { labelBn: string; labelEn: string; color: string }> = {
@@ -170,10 +171,12 @@ export default function ServiceTicketsScreen() {
     const intl = digits.startsWith('880') ? digits : (digits.startsWith('01') ? `88${digits}` : digits);
     const cfg = STATUS_CONFIG[tkt.status] || { labelBn: tkt.status, labelEn: tkt.status };
     const stLabel = isBN ? cfg.labelBn : cfg.labelEn;
+    const trackLink = tkt.track_token ? `\nলাইভ ট্র্যাকিং লিংক: https://stockwhisk.com/track/${tkt.track_token}` : '';
+    const trackLinkEn = tkt.track_token ? `\nLive Tracking Link: https://stockwhisk.com/track/${tkt.track_token}` : '';
 
     const msg = isBN
-      ? `হ্যালো ${tkt.customer_name || 'গ্রাহক'},\n\nআপনার সার্ভিস টিকিট #${tkt.ticket_no} (${tkt.device_description}) এর বর্তমান স্ট্যাটাস: *${stLabel}*।\nসার্ভিস চার্জ: ৳${tkt.service_charge}।\n\nStockWhisk সার্ভিস সেন্টার।`
-      : `Hello ${tkt.customer_name || 'Customer'},\n\nYour service ticket #${tkt.ticket_no} (${tkt.device_description}) status is now: *${stLabel}*.\nService Charge: ৳${tkt.service_charge}.\n\nStockWhisk Service Center.`;
+      ? `হ্যালো ${tkt.customer_name || 'গ্রাহক'},\n\nআপনার সার্ভিস টিকিট #${tkt.ticket_no} (${tkt.device_description}) এর বর্তমান স্ট্যাটাস: *${stLabel}*।\nসার্ভিস চার্জ: ৳${tkt.service_charge}।${trackLink}\n\nধন্যবাদ!`
+      : `Hello ${tkt.customer_name || 'Customer'},\n\nYour service ticket #${tkt.ticket_no} (${tkt.device_description}) status is now: *${stLabel}*.\nService Charge: ৳${tkt.service_charge}.${trackLinkEn}\n\nThank you!`;
 
     Linking.openURL(`https://wa.me/${intl}?text=${encodeURIComponent(msg)}`);
   };
@@ -378,7 +381,22 @@ export default function ServiceTicketsScreen() {
               <View style={{ marginTop: 20, gap: 8 }}>
                 {selectedTicket.customer_phone && selectedTicket.customer_phone.replace(/\D/g, '').length >= 10 && (
                   <Button mode="contained" buttonColor="#25D366" textColor="#fff" icon="whatsapp" onPress={() => handleSendWhatsApp(selectedTicket)}>
-                    {isBN ? 'হোয়াটসঅ্যাপে আপডেট পাঠান' : 'Send WhatsApp Update'}
+                    {isBN ? 'হোয়াটসঅ্যাপে আপডেট ও ট্র্যাকিং পাঠান' : 'Send WhatsApp Tracking'}
+                  </Button>
+                )}
+                {selectedTicket.track_token && (
+                  <Button
+                    mode="outlined"
+                    icon="share-variant"
+                    onPress={() => {
+                      Share.share({
+                        message: isBN
+                          ? `সার্ভিস টিকিট #${selectedTicket.ticket_no} এর লাইভ ট্র্যাকিং লিংক: https://stockwhisk.com/track/${selectedTicket.track_token}`
+                          : `Live tracking for ticket #${selectedTicket.ticket_no}: https://stockwhisk.com/track/${selectedTicket.track_token}`,
+                      });
+                    }}
+                  >
+                    {isBN ? 'ট্র্যাকিং লিংক শেয়ার করুন' : 'Share Tracking Link'}
                   </Button>
                 )}
                 <Button mode="outlined" onPress={() => setSelectedTicket(null)}>
