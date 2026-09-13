@@ -33,6 +33,8 @@ class Customer(TenantScopedModel):
     # WhatsApp opt-in (9.5). Never message a customer without consent.
     whatsapp_consent = models.BooleanField(default=False)
     whatsapp_opt_in_at = models.DateTimeField(null=True, blank=True)
+    loyalty_points = models.PositiveIntegerField(default=0, help_text="Loyalty club reward points (1 point per ৳100 spent)")
+    membership_id = models.CharField(max_length=50, blank=True, default="", help_text="Club card number / membership barcode")
 
     class Meta:
         ordering = ["name"]

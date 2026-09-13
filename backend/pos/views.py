@@ -54,8 +54,37 @@ class BarcodeLookupView(_POSBase):
 
         product = matches[0] if matches else None
         scanned_unit = None
+        scanned_scale_weight = None
 
         tenant_id = getattr(request.tenant, "id", None)
+
+        # ── Weigh Scale Barcode Parsing (EAN-13 / 12-digit Scale Barcodes e.g. 20XXXXXWWWWWC) ──
+        if product is None and len(code) in (12, 13) and code[:2] in ("02", "20", "21", "22", "23", "24", "25", "26", "27", "28", "29") and code.isdigit():
+            prefix = code[:2]
+            plu_5 = code[2:7]
+            try:
+                raw_weight = int(code[7:12])
+                if raw_weight > 0:
+                    scale_prod = (
+                        Product.objects.filter(is_active=True)
+                        .filter(
+                            Q(barcode__startswith=f"{prefix}{plu_5}") |
+                            Q(barcode__startswith=f"20{plu_5}") |
+                            Q(sku=plu_5) |
+                            Q(sku=f"PLU-{plu_5}")
+                        )
+                        .select_related("category", "brand", "unit")
+                        .first()
+                    )
+                    if scale_prod:
+                        product = scale_prod
+                        if prefix == "21":  # Price-embedded scale
+                            unit_price = float(scale_prod.selling_price) if float(scale_prod.selling_price) > 0 else 1.0
+                            scanned_scale_weight = round((raw_weight / 100.0) / unit_price, 3)
+                        else:  # Standard weight-embedded scale (grams -> kg)
+                            scanned_scale_weight = round(raw_weight / 1000.0, 3)
+            except Exception:
+                pass
 
         if product is None:
             # Check if it matches an in-stock ProductUnit (per-unit serial). Scope
@@ -96,6 +125,9 @@ class BarcodeLookupView(_POSBase):
         data = ProductSerializer(product, context={"request": request}).data
         if scanned_unit:
             data["scanned_unit"] = ProductUnitSerializer(scanned_unit, context={"request": request}).data
+        if scanned_scale_weight is not None:
+            data["scanned_scale_weight"] = scanned_scale_weight
+            data["is_scale_barcode"] = True
 
         return Response(data)
 

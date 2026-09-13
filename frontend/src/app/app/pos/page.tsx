@@ -61,6 +61,7 @@ export default function PosPage() {
 
   const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
   const [showHeldModal, setShowHeldModal] = useState(false);
+  const [fastCheckingOut, setFastCheckingOut] = useState(false);
 
   useEffect(() => {
     try {
@@ -124,6 +125,9 @@ export default function PosPage() {
       } else if (e.key === "F9" && isSupershop) {
         e.preventDefault();
         setShowHeldModal(s => !s);
+      } else if (e.key === "F12") {
+        e.preventDefault();
+        doFastCashCheckout();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
@@ -320,11 +324,13 @@ export default function PosPage() {
     msgTimer.current = setTimeout(() => setScanMsg(null), 3000);
   }
 
-  function tryAdd(p: Product) {
+  function tryAdd(p: Product, forceQty?: number) {
     if (p.track_inventory !== false && Number(p.current_stock) <= 0) {
       flash(t("pos_out_of_stock_alert", { name: p.name }), false);
       return;
     }
+    const scaleWeight = (p as any).scanned_scale_weight ? Number((p as any).scanned_scale_weight) : undefined;
+    const finalQty = forceQty !== undefined ? forceQty : scaleWeight;
     if (p.scanned_unit) {
       const unit = p.scanned_unit;
       const already = cart.some((l) => l.product.id === p.id && l.selectedUnits.some((u) => u.id === unit.id));
@@ -347,15 +353,25 @@ export default function PosPage() {
       setFashionPickProduct(p);
       return;
     }
-    addToCart(p);
-    flash(t("pos_added_alert", { name: p.name }), true);
+    addToCart(p, undefined, finalQty);
+    flash(scaleWeight ? (lang === "bn" ? `⚖️ ওজনের পণ্য যোগ হয়েছে: ${p.name} (${finalQty} কেজি)` : `⚖️ Weighed item: ${p.name} (${finalQty} kg)`) : t("pos_added_alert", { name: p.name }), true);
     setQuery("");
     setTimeout(() => inputRef.current?.focus(), 50);
   }
 
   // ── Process code ────────────────────────────────────────────────────────
-  const processCode = useCallback(async (code: string) => {
-    if (!code) return;
+  const processCode = useCallback(async (rawInput: string) => {
+    if (!rawInput) return;
+    
+    let multiplier = 1;
+    let code = rawInput.trim();
+    if (code.includes("*")) {
+      const parts = code.split("*");
+      if (parts.length === 2 && !isNaN(Number(parts[0])) && Number(parts[0]) > 0 && parts[1].trim()) {
+        multiplier = Number(parts[0]);
+        code = parts[1].trim();
+      }
+    }
 
     // 0. Supershop EAN-13 Weight Scale In-Store Barcode auto-detection (e.g. 20XXXXXWWWWWC)
     // Scale format: 2-digit prefix (02 or 20-29) + 5-digit PLU/SKU + 5-digit Weight in grams + 1 checksum
@@ -477,6 +493,53 @@ export default function PosPage() {
 
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
   const itemCount = cart.reduce((s, l) => s + l.qty, 0);
+
+    async function doFastCashCheckout() {
+    if (cart.length === 0 || fastCheckingOut) return;
+    setFastCheckingOut(true);
+    try {
+      const curSubtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
+      const isVatOn = !!user?.shop_emi_enabled || false; // or shop settings
+      const taxAmt = 0;
+      const totalAmt = curSubtotal + taxAmt;
+
+      const itemsPayload = cart.map((l) => ({
+        product: l.product.id,
+        quantity: l.qty,
+        unit_price: l.price,
+        discount: l.discount,
+        unit_ids: l.selectedUnits.map((u) => u.id),
+      }));
+
+      const res = await api<any>("/pos/checkout/", {
+        method: "POST",
+        body: {
+          items: itemsPayload,
+          sale_date: new Date().toISOString(),
+          tax: taxAmt,
+          discount: 0,
+          payments: [{ method: "cash", amount: totalAmt }],
+        },
+      });
+
+      setCart([]);
+      setQuery("");
+      flash(
+        lang === "bn"
+          ? `⚡ নগদ বিক্রয় সম্পন্ন! চালান #${res.invoice_no || res.id} (৳${totalAmt.toFixed(2)})`
+          : `⚡ Fast Cash Sale Complete! #${res.invoice_no || res.id} (৳${totalAmt.toFixed(2)})`,
+        true
+      );
+      if (res.id) {
+        window.open(`/invoice/${res.id}`, "_blank", "width=420,height=650");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Fast cash checkout failed.");
+    } finally {
+      setFastCheckingOut(false);
+      setTimeout(() => inputRef.current?.focus(), 100);
+    }
+  }
 
   function goToCheckout() {
     sessionStorage.setItem("pos_cart", JSON.stringify(cart));
@@ -987,13 +1050,30 @@ export default function PosPage() {
                   <span>{t("pos_total")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
-                <button
-                  className="btn btn-brand w-100 py-2 fw-semibold"
-                  disabled={cart.length === 0}
-                  onClick={goToCheckout}
-                >
-                  {t("pos_continue")}
-                </button>
+                <div className="d-flex gap-2">
+                  <button
+                    type="button"
+                    className="btn btn-success flex-grow-1 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1"
+                    disabled={cart.length === 0 || fastCheckingOut}
+                    onClick={doFastCashCheckout}
+                    title="Press F12 for instant 1-key cash checkout"
+                  >
+                    {fastCheckingOut ? (
+                      <span className="spinner-border spinner-border-sm me-1" />
+                    ) : (
+                      <span>⚡ {lang === "bn" ? "ক্যাশ পে (F12)" : "Fast Cash (F12)"}</span>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="btn btn-brand flex-grow-1 py-2 fw-semibold shadow-sm"
+                    disabled={cart.length === 0 || fastCheckingOut}
+                    onClick={goToCheckout}
+                  >
+                    {t("pos_continue")} →
+                  </button>
+                </div>
               </div>
             </div>
           </div>

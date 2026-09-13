@@ -1,5 +1,7 @@
 "use client";
 
+import toast from "react-hot-toast";
+
 import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Card, ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
@@ -36,6 +38,63 @@ export default function InventoryPage() {
   const [movePageNo, setMovePageNo] = useState(1);
   const [movLoading, setMovLoading] = useState(true);
   const [movTick, setMovTick] = useState(0);
+  const [showWastageModal, setShowWastageModal] = useState(false);
+  const [wasteProdList, setWasteProdList] = useState<any[]>([]);
+  const [wasteSelectedProd, setWasteSelectedProd] = useState<any>(null);
+  const [wasteQty, setWasteQty] = useState("");
+  const [wasteReason, setWasteReason] = useState("rotten");
+  const [wasteNote, setWasteNote] = useState("");
+  const [wasteSaving, setWasteSaving] = useState(false);
+
+    async function openWastageModal() {
+    setShowWastageModal(true);
+    setWasteQty("");
+    setWasteNote("");
+    try {
+      const res = await api<any>("/catalog/products/?page_size=200&light=1");
+      setWasteProdList(res.results || res || []);
+    } catch {}
+  }
+
+  async function handleWastageSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!wasteSelectedProd) { toast.error("পণ্য নির্বাচন করুন"); return; }
+    const q = Number(wasteQty);
+    if (!q || q <= 0) { toast.error("সঠিক পরিমাণ লিখুন"); return; }
+
+    const reasonLabels: Record<string, string> = {
+      rotten: "পচে যাওয়া / পচনশীল নষ্ট",
+      expired: "মেয়াদোত্তীর্ণ (Expired)",
+      broken: "ভেঙে যাওয়া / ক্ষতিগ্রস্ত (Damaged)",
+      pest: "পোকা বা ইঁদুরে নষ্ট (Pest/Rodent)",
+      other: "অন্যান্য ক্ষতি"
+    };
+
+    setWasteSaving(true);
+    try {
+      await api("/inventory/movements/adjust/", {
+        method: "POST",
+        body: {
+          product: wasteSelectedProd.id,
+          movement_type: "damage_out",
+          quantity: q,
+          unit_cost: Number(wasteSelectedProd.cost_price || 0),
+          note: `[ডেইলি ওয়েস্টেজ: ${reasonLabels[wasteReason] || wasteReason}] ${wasteNote}`.trim(),
+        }
+      });
+      toast.success("ওয়েস্টেজ / নষ্ট পণ্যের হিসাব সংরক্ষিত হয়েছে!");
+      setShowWastageModal(false);
+      setWasteSelectedProd(null);
+      setWasteQty("");
+      setWasteNote("");
+      load();
+      setMovTick(t => t + 1);
+    } catch (err: any) {
+      toast.error(err?.message || "ওয়েস্টেজ এন্ট্রি ব্যর্থ হয়েছে");
+    } finally {
+      setWasteSaving(false);
+    }
+  }
 
   async function load() {
     if (isRepairShop) {
@@ -235,6 +294,106 @@ export default function InventoryPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Wastage / Spoilage Modal ── */}
+      {showWastageModal && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)" }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header bg-danger text-white py-3">
+                <h5 className="modal-title h6 fw-bold d-flex align-items-center gap-2">
+                  <i className="bi bi-trash3-fill"></i>
+                  <span>পচনশীল ও নষ্ট পণ্যের ওয়েস্টেজ এন্ট্রি (Wastage Log)</span>
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setShowWastageModal(false)} />
+              </div>
+              <form onSubmit={handleWastageSubmit}>
+                <div className="modal-body p-4">
+                  <div className="mb-3">
+                    <label className="form-label small fw-bold text-dark">১. নষ্ট হওয়া পণ্য নির্বাচন করুন <span className="text-danger">*</span></label>
+                    <select
+                      className="form-select"
+                      required
+                      value={wasteSelectedProd?.id || ""}
+                      onChange={(e) => {
+                        const found = wasteProdList.find(p => String(p.id) === e.target.value);
+                        setWasteSelectedProd(found || null);
+                      }}
+                    >
+                      <option value="">-- পণ্য নির্বাচন করুন --</option>
+                      {wasteProdList.map(p => (
+                        <option key={p.id} value={p.id}>
+                          {p.name} (বর্তমান স্টক: {p.current_stock} {p.unit_name || p.unit?.name || "একক"})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+
+                  <div className="row g-2 mb-3">
+                    <div className="col-md-6">
+                      <label className="form-label small fw-bold text-dark">২. নষ্টের পরিমাণ <span className="text-danger">*</span></label>
+                      <div className="input-group">
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0.001"
+                          required
+                          className="form-control"
+                          placeholder="যেমন: 2.5 বা 1"
+                          value={wasteQty}
+                          onChange={(e) => setWasteQty(e.target.value)}
+                        />
+                        <span className="input-group-text bg-light text-secondary">
+                          {wasteSelectedProd?.unit_name || wasteSelectedProd?.unit?.name || "Unit"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="col-md-6">
+                      <label className="form-label small fw-bold text-dark">৩. নষ্ট হওয়ার কারণ</label>
+                      <select
+                        className="form-select"
+                        value={wasteReason}
+                        onChange={(e) => setWasteReason(e.target.value)}
+                      >
+                        <option value="rotten">🥦 পচে যাওয়া / পচনশীল নষ্ট</option>
+                        <option value="expired">📅 মেয়াদোত্তীর্ণ (Expired)</option>
+                        <option value="broken">🥚 ভেঙে যাওয়া / ক্ষতিগ্রস্ত</option>
+                        <option value="pest">🐭 ইঁদুর বা পোকায় নষ্ট</option>
+                        <option value="other">📝 অন্যান্য কারণ</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="mb-2">
+                    <label className="form-label small fw-medium text-secondary">অতিরিক্ত নোট (ঐচ্ছিক)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      placeholder="যেমন: ৩ নম্বর বক্সে পচা পাওয়া গেছে"
+                      value={wasteNote}
+                      onChange={(e) => setWasteNote(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="p-2.5 bg-danger bg-opacity-10 border border-danger border-opacity-25 rounded-3 text-danger small mt-3">
+                    <i className="bi bi-exclamation-triangle-fill me-1"></i>
+                    এই এন্ট্রিটি করার সাথে সাথে উক্ত পরিমাণ স্টক থেকে বিয়োগ হবে এবং দিনশেষে ফাইন্যান্সিয়াল লস হিসেবে লগে যুক্ত হবে।
+                  </div>
+                </div>
+                <div className="modal-footer bg-light border-top py-2.5">
+                  <button type="button" className="btn btn-secondary btn-sm" onClick={() => setShowWastageModal(false)}>
+                    বাতিল
+                  </button>
+                  <button type="submit" className="btn btn-danger btn-sm fw-bold px-3" disabled={wasteSaving}>
+                    {wasteSaving ? "সংরক্ষণ হচ্ছে…" : "ওয়েস্টেজ কনফার্ম করুন"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

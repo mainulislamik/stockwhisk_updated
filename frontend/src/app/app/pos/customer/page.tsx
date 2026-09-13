@@ -25,7 +25,7 @@ type CartLine = {
   selectedUnits: ProductUnit[];
   sellMode?: "base" | "bulk";
 };
-type Customer = { id: number; name: string; phone?: string; email?: string; address?: string; };
+type Customer = { id: number; name: string; phone?: string; email?: string; address?: string; loyalty_points?: number; membership_id?: string; };
 
 const PAY_METHODS = [
   { value: "cash", label: "💵 Cash" },
@@ -91,6 +91,7 @@ export default function PosCustomerPage() {
     }
   }
   const [discount, setDiscount] = useState("");
+  const [redeemedPoints, setRedeemedPoints] = useState(0);
   const [saleDate, setSaleDate] = useState("");
   const [deliveryCharge, setDeliveryCharge] = useState(0);
   const [paid, setPaid] = useState("");

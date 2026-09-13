@@ -387,11 +387,16 @@ export default function InvoicePage() {
                 ধন্যবাদ, আবার আসবেন!
               </div>
             )}
+            {/* Return Barcode */}
+            <div className="d-flex flex-column align-items-center justify-content-center my-2">
+              <Barcode value={sale.invoice_no || `INV-${sale.id}`} width={1.2} height={32} displayValue={true} fontSize={8} margin={0} />
+            </div>
+
             <div className="pos-text-muted" style={{ fontSize: "7.5pt" }}>
-              Goods once sold can be exchanged within 7 days with invoice.
+              পচনশীল পণ্য ব্যতীত অন্য পণ্য ৭ দিনের মধ্যে রসিদসহ ফেরতযোগ্য।
             </div>
             <div className="pos-text-muted mt-1" style={{ fontSize: "7pt", opacity: 0.7 }}>
-              Powered by StockWhisk
+              Powered by StockWhisk SuperStore
             </div>
           </div>
         </div>
