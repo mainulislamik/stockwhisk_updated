@@ -61,6 +61,7 @@ export default function PosCustomerPage() {
   const [deviceImei, setDeviceImei] = useState("");
   const [problemDescription, setProblemDescription] = useState("");
   const [repairWarrantyDays, setRepairWarrantyDays] = useState("30");
+  const [estimatedDelivery, setEstimatedDelivery] = useState("");
   const [enableRepairInfo, setEnableRepairInfo] = useState(true);
 
   // Sync existing email when customer changes
@@ -176,8 +177,20 @@ export default function PosCustomerPage() {
           delivery_charge: deliveryCharge,
           tax: 0,
           note: asQuotation ? "Quotation / প্রাক-বিক্রয় কোটেশন" : "",
-          alteration_notes: alterationNotes.trim(),
-          alteration_status: alterationNotes.trim() ? (alterationStatus === "none" ? "pending" : alterationStatus) : "",
+          alteration_notes: (() => {
+            if (isRepairShop && enableRepairInfo) {
+              const p = [];
+              if (deviceModel.trim()) p.push("Device: " + deviceModel.trim());
+              if (deviceImei.trim()) p.push("IMEI: " + deviceImei.trim());
+              if (serviceChargeNum > 0) p.push("Service: ৳" + serviceChargeNum);
+              if (repairWarrantyDays && repairWarrantyDays !== "0") p.push("Warranty: " + repairWarrantyDays + "d");
+              if (estimatedDelivery) p.push("Est.Del: " + estimatedDelivery);
+              if (problemDescription.trim()) p.push("Fault: " + problemDescription.trim());
+              if (p.length > 0) return p.join(" | ");
+            }
+            return alterationNotes.trim();
+          })(),
+          alteration_status: (isRepairShop && enableRepairInfo && (deviceModel.trim() || problemDescription.trim() || serviceChargeNum > 0)) ? "in_repair" : (alterationNotes.trim() ? (alterationStatus === "none" ? "pending" : alterationStatus) : ""),
           items: cart.map((l) => {
             const mult = Number((l.product as any)?.purchase_multiplier) || 1;
             const isBulk = l.sellMode === "bulk" && mult > 1;
@@ -372,6 +385,7 @@ export default function PosCustomerPage() {
                           setServiceCharge("");
                           setDeviceModel("");
                           setDeviceImei("");
+                          setEstimatedDelivery("");
                           setProblemDescription("");
                         }
                       }}
@@ -456,6 +470,22 @@ export default function PosCustomerPage() {
                       />
                       <label htmlFor="deviceImeiInput">
                         {lang === "bn" ? "🔢 IMEI / সিরিয়াল নম্বর (ঐচ্ছিক)" : "🔢 IMEI / Serial No (Optional)"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Est. Delivery Date */}
+                  <div className="col-md-6">
+                    <div className="form-floating">
+                      <input
+                        id="estDeliveryInput"
+                        type="date"
+                        className="form-control shadow-sm"
+                        value={estimatedDelivery}
+                        onChange={(e) => setEstimatedDelivery(e.target.value)}
+                      />
+                      <label htmlFor="estDeliveryInput">
+                        {t("pos_checkout_est_delivery") || "📅 আনুমানিক ডেলিভারি (Est. Delivery)"}
                       </label>
                     </div>
                   </div>

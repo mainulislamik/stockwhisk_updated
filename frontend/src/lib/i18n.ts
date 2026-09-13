@@ -420,6 +420,7 @@ export const translations: Translations = {
     pos_checkout_service_fee: "Service / Labor Fee (৳)",
     pos_checkout_warranty_period: "Repair Warranty Period",
     pos_checkout_problem_desc: "Fault / Problem Description",
+    pos_checkout_est_delivery: "Est. Delivery Date (Optional)",
     pos_checkout_email_opt: "Email (Optional)",
     pos_checkout_address_opt: "Address (Optional)",
     pos_checkout_discount: "Discount (৳) *",
