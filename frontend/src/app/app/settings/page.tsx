@@ -10,7 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function SettingsPage() {
   const { user, billing, isOwner, reload } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   
   const [profileForm, setProfileForm] = useState({ first_name: "", last_name: "", phone: "" });
   const [profileBusy, setProfileBusy] = useState(false);
@@ -81,6 +81,24 @@ export default function SettingsPage() {
       toast.error(err?.message || t("settings_err_prof"));
     } finally {
       setProfileBusy(false);
+    }
+  }
+
+  // Instant-save toggle for Mobile Repair module — takes effect immediately everywhere
+  async function toggleMobileRepair(nextVal: boolean) {
+    setShopForm(f => ({ ...f, mobile_repair_enabled: nextVal }));
+    try {
+      const fd = new FormData();
+      fd.append("mobile_repair_enabled", nextVal.toString());
+      await api("/auth/shop-settings/", { method: "PATCH", body: fd });
+      await reload(); // refresh user payload → POS/menus react instantly
+      const isBn = lang === "bn";
+      toast.success(nextVal
+        ? (isBn ? "মোবাইল রিপেয়ার মডিউল চালু হয়েছে" : "Mobile Repair module enabled")
+        : (isBn ? "মোবাইল রিপেয়ার মডিউল বন্ধ হয়েছে" : "Mobile Repair module disabled"));
+    } catch (err: any) {
+      setShopForm(f => ({ ...f, mobile_repair_enabled: !nextVal }));
+      toast.error(err?.message || t("settings_err_shop"));
     }
   }
 
@@ -350,7 +368,7 @@ export default function SettingsPage() {
                           role="switch" 
                           id="mobileRepairSwitch" 
                           checked={shopForm.mobile_repair_enabled} 
-                          onChange={e => setShopForm({...shopForm, mobile_repair_enabled: e.target.checked})} 
+                          onChange={e => toggleMobileRepair(e.target.checked)} 
                         />
                         <label className="form-check-label small fw-semibold" htmlFor="mobileRepairSwitch">
                           🔧 {t("settings_repair_en")}
