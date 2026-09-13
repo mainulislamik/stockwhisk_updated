@@ -176,7 +176,7 @@ export default function ShopDataPage() {
       <div className="row mt-4">
         <div className="col-lg-8">
           <div className="card shadow-sm mb-4">
-            <div className="card-header bg-white">
+            <div className="card-header bg-body border-bottom">
               <h5 className="mb-0 fw-semibold">{lang === "bn" ? "১৫ দিনের রিকভারি ব্যাকআপসমূহ" : "15-Day Recovery Backups"}</h5>
             </div>
             <div className="table-responsive">
@@ -225,7 +225,7 @@ export default function ShopDataPage() {
 
         <div className="col-lg-4">
           <div className="card shadow-sm">
-            <div className="card-header bg-white">
+            <div className="card-header bg-body border-bottom">
               <h5 className="mb-0 fw-semibold">Recent Operations</h5>
             </div>
             <div className="list-group list-group-flush" style={{ maxHeight: "500px", overflowY: "auto" }}>
@@ -300,7 +300,7 @@ export default function ShopDataPage() {
                     />
                   </div>
                 </div>
-                <div className="modal-footer bg-light">
+                <div className="modal-footer bg-body-tertiary border-top">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowClearModal(false)}>Cancel</button>
                   <button type="submit" className="btn btn-danger fw-semibold" disabled={busy || !password}>
                     {busy ? <Spinner /> : "Execute Clear Operation"}
@@ -340,7 +340,7 @@ export default function ShopDataPage() {
                     />
                   </div>
                 </div>
-                <div className="modal-footer bg-light">
+                <div className="modal-footer bg-body-tertiary border-top">
                   <button type="button" className="btn btn-secondary" onClick={() => setShowRestoreModal(null)}>Cancel</button>
                   <button type="submit" className="btn btn-primary fw-semibold" disabled={busy || !password}>
                     {busy ? <Spinner /> : "Execute Restore Operation"}

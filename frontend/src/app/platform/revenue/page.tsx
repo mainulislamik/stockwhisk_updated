@@ -105,7 +105,7 @@ export default function RevenuePage() {
       {/* Totals */}
       <div className="row g-3 mb-3">
         <div className="col-6 col-lg-3">
-          <div className="card border-0 shadow-sm rounded-4" style={{ background: "rgba(34,197,94,.1)", border: "1px solid rgba(34,197,94,.25)" }}>
+          <div className="card border border-success-subtle shadow-sm rounded-4 bg-success bg-opacity-10">
             <div className="card-body">
               <div className="text-secondary small">{monthLabel(data.month)}</div>
               <div className="fs-3 fw-bold text-success">{money(data.month_total)}</div>
@@ -113,7 +113,7 @@ export default function RevenuePage() {
           </div>
         </div>
         <div className="col-6 col-lg-3">
-          <div className="card border-0 shadow-sm rounded-4" style={{ background: "rgba(30,41,59,.5)" }}>
+          <div className="card border shadow-sm rounded-4 bg-body">
             <div className="card-body">
               <div className="text-secondary small">{lang === "bn" ? "সর্বমোট অর্জিত আয়" : "All-time revenue"}</div>
               <div className="fs-3 fw-bold">{money(data.all_time_total)}</div>
@@ -134,7 +134,7 @@ export default function RevenuePage() {
       </div>
 
       {/* Invoices table */}
-      <div className="card border-0 shadow-sm rounded-4" style={{ background: "rgba(30,41,59,.5)" }}>
+      <div className="card border shadow-sm rounded-4 bg-body">
         <div className="table-responsive">
           <table className="table table-hover align-middle mb-0">
             <thead className="table-dark">

@@ -407,7 +407,7 @@ export default function BackupsPage() {
           <div className="card border-0 shadow-sm rounded-4 h-100">
             <div className="card-body p-4 vstack">
               <div className="d-flex align-items-center gap-2 mb-2">
-                <i className="bi bi-download text-dark fs-5"></i>
+                <i className="bi bi-download text-body fs-5"></i>
                 <h2 className="h6 fw-bold mb-0">Manual Download</h2>
               </div>
               <p className="text-secondary small mb-4">Generates a full PostgreSQL SQL dump of the entire platform database and downloads it to your computer.</p>
@@ -451,7 +451,7 @@ export default function BackupsPage() {
           <div className="card border-0 shadow-sm rounded-4 h-100">
             <div className="card-body p-4 vstack">
               <div className="d-flex align-items-center gap-2 mb-2">
-                <i className="bi bi-images text-dark fs-5"></i>
+                <i className="bi bi-images text-body fs-5"></i>
                 <h2 className="h6 fw-bold mb-0">Media Backup (Images)</h2>
               </div>
               <p className="text-secondary small mb-4">Generates a .zip file of all uploaded shop media (images, logos) and downloads it to your computer.</p>

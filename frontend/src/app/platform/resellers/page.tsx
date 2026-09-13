@@ -206,7 +206,7 @@ export default function ResellersPage() {
                 {filtered && filtered.length === 0 && <EmptyRow cols={7} text="No resellers found." />}
                 {filtered && filtered.map((r) => (
                   <tr key={r.id}>
-                    <td>{r.reseller_code ? <span className="badge bg-light text-dark font-monospace">{r.reseller_code}</span> : "—"}</td>
+                    <td>{r.reseller_code ? <span className="badge bg-body-secondary text-body border font-monospace">{r.reseller_code}</span> : "—"}</td>
                     <td>
                       <div className="fw-semibold">{r.user_name}</div>
                       <div className="small text-secondary">{r.user_email}</div>
@@ -215,7 +215,7 @@ export default function ResellersPage() {
                     <td>{r.company_name || "—"}</td>
                     <td>{r.commission_rate}%</td>
                     <td>{fmtDate(r.created_at)}</td>
-                    <td><span className={`badge ${STATUS_BADGE[r.status] || "text-bg-light"}`}>{r.status}</span></td>
+                    <td><span className={`badge ${STATUS_BADGE[r.status] || "bg-body-secondary text-body border"}`}>{r.status}</span></td>
                     <td className="text-end">
                       <div className="btn-group btn-group-sm">
                         {r.status === "pending" && (
@@ -256,7 +256,7 @@ export default function ResellersPage() {
                   <div>
                     <div className="d-flex align-items-center gap-2">
                       <h4 className="fw-bold mb-0">{detail.user_name}</h4>
-                      <span className={`badge ${STATUS_BADGE[detail.status] || "text-bg-light"}`}>{detail.status}</span>
+                      <span className={`badge ${STATUS_BADGE[detail.status] || "bg-body-secondary text-body border"}`}>{detail.status}</span>
                     </div>
                     <div className="small text-secondary">
                       <span className="font-monospace">{detail.reseller_code}</span> · {detail.user_email}{detail.phone ? ` · ${detail.phone}` : ""}
@@ -362,7 +362,7 @@ export default function ResellersPage() {
                             <td>{c.shop_name || "—"}</td>
                             <td className="text-end">{money(c.gross_profit)}</td>
                             <td className="text-end fw-semibold">{money(c.commission_amount)}</td>
-                            <td><span className={`badge ${COMM_BADGE[c.status] || "text-bg-light"}`}>{c.status}</span></td>
+                            <td><span className={`badge ${COMM_BADGE[c.status] || "bg-body-secondary text-body border"}`}>{c.status}</span></td>
                             <td className="text-end">
                               <div className="btn-group btn-group-sm">
                                 {c.status === "pending" && (

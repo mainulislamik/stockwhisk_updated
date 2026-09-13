@@ -240,7 +240,7 @@ export default function ShopsPage() {
       {editCatFor && (
         <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)" }}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content text-body" style={{ background: "rgba(30,41,59,1)", border: "1px solid rgba(255,255,255,0.1)" }}>
+            <div className="modal-content text-body bg-body border shadow-lg">
               <div className="modal-header border-0">
                 <h5 className="modal-title">Change Category: {editCatFor.name}</h5>
                 <button type="button" className="btn-close btn-close-white" onClick={() => setEditCatFor(null)}></button>

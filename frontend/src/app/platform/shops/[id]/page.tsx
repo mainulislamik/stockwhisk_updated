@@ -279,43 +279,43 @@ export default function ShopDetailsPage() {
       <div className="row g-4">
         {/* Left Column - Details */}
         <div className="col-lg-8">
-          <div className="card border-0 shadow-sm rounded-4 h-100" style={{ background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(10px)" }}>
+          <div className="card border shadow-sm rounded-4 h-100 bg-body">
             <div className="card-body p-4">
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-shop me-2 text-brand"></i>{lang === "bn" ? "দোকানের সাধারণ তথ্য" : "Shop Information"}</h5>
               
               <div className="row g-4">
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "ইউনিক শপ আইডি" : "Unique Shop ID"}</p>
                     <p className="fw-bold text-brand mb-0 font-monospace fs-5">{shop.shop_code || `SW-${1000 + shop.id}`}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "ব্যবসার ধরন" : "Business Type"}</p>
                     <p className="fw-medium text-white mb-0">{TYPE_LABELS[shop.business_type] || shop.business_type}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "যোগাযোগের নম্বর" : "Contact Phone"}</p>
                     <p className="fw-medium text-white mb-0">{shop.phone || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "অফিসিয়াল ইমেইল" : "Public Email"}</p>
                     <p className="fw-medium text-white mb-0">{shop.email || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "মোট ব্যবহারকারী" : "Total Users"}</p>
                     <p className="fw-medium text-white mb-0">{shop.user_count} User(s)</p>
                   </div>
                 </div>
                 <div className="col-12">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "ঠিকানা" : "Physical Address"}</p>
                     <p className="fw-medium text-white mb-0">{shop.address || "No address provided"}</p>
                   </div>
@@ -325,7 +325,7 @@ export default function ShopDetailsPage() {
                             <hr className="border-secondary my-4 opacity-25" />
 
               <h5 className="fw-bold text-white mb-3"><i className="bi bi-toggles me-2 text-primary"></i>Module Controls & Features</h5>
-              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3" style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 bg-body-tertiary border">
                 <div className="d-flex align-items-center gap-3">
                   <div className="p-2 rounded-circle bg-primary bg-opacity-25 text-primary fs-4">
                     <i className="bi bi-gear-wide-connected"></i>
@@ -348,7 +348,7 @@ export default function ShopDetailsPage() {
                 </div>
               </div>
 
-              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3" style={{ background: "rgba(15, 23, 42, 0.6)", border: "1px solid rgba(255, 255, 255, 0.1)" }}>
+              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 bg-body-tertiary border">
                 <div className="d-flex align-items-center gap-3">
                   <div className="p-2 rounded-circle bg-info bg-opacity-25 text-info fs-4">
                     <i className="bi bi-tools"></i>
@@ -374,13 +374,13 @@ export default function ShopDetailsPage() {
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-person-badge me-2 text-info"></i>Owner Details</h5>
               <div className="row g-4">
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">Owner Name</p>
                     <p className="fw-medium text-white mb-0">{shop.owner_full_name || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
-                  <div className="p-3 rounded-3" style={{ background: "rgba(15, 23, 42, 0.4)" }}>
+                  <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">Owner Email (Login)</p>
                     <p className="fw-medium text-white mb-0">{shop.owner_email || "—"}</p>
                   </div>
@@ -392,7 +392,7 @@ export default function ShopDetailsPage() {
 
         {/* Right Column - Status & Actions */}
         <div className="col-lg-4">
-          <div className="card border-0 shadow-sm rounded-4 mb-4" style={{ background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(10px)" }}>
+          <div className="card border shadow-sm rounded-4 mb-4 bg-body">
             <div className="card-body p-4">
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-activity me-2 text-warning"></i>Subscription</h5>
 
@@ -483,7 +483,7 @@ export default function ShopDetailsPage() {
             </div>
           </div>
 
-          <div className="card border-0 shadow-sm rounded-4 border-top border-danger border-4" style={{ background: "rgba(30, 41, 59, 0.5)", backdropFilter: "blur(10px)" }}>
+          <div className="card border shadow-sm rounded-4 border-top border-danger border-4 bg-body">
             <div className="card-body p-4">
               <h5 className="fw-bold text-white mb-4"><i className="bi bi-shield-lock me-2 text-danger"></i>Admin Actions</h5>
               
@@ -514,7 +514,7 @@ export default function ShopDetailsPage() {
                     <i className="bi bi-gift me-2"></i>
                     {shop.is_free ? "Remove Free Access (start charging)" : "Grant Lifetime-Free Access"}
                   </span>
-                  {shop.is_free && <span className="badge bg-light text-success">FREE</span>}
+                  {shop.is_free && <span className="badge bg-success-subtle text-success border border-success-subtle">FREE</span>}
                 </button>
 
                 <button

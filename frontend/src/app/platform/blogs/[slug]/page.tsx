@@ -151,7 +151,7 @@ export default function BlogEditorPage() {
             
             <div className="col-12">
               <label className="form-label">Content (Rich Text)</label>
-              <div className="bg-white rounded overflow-hidden border">
+              <div className="bg-body rounded overflow-hidden border">
                 <ReactQuill 
                   theme="snow"
                   value={content}

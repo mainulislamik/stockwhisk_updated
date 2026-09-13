@@ -170,7 +170,7 @@ export default function TutorialsPage() {
                     <td>{v.sequence}</td>
                     <td>{v.thumbnail_url ? <img src={v.thumbnail_url} alt="" style={{ width: 80, borderRadius: 4, cursor: "pointer" }} onClick={() => setPlaying(v)} /> : "—"}</td>
                     <td>
-                      <div className="fw-semibold"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-decoration-none text-dark">{v.title}</a></div>
+                      <div className="fw-semibold"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-decoration-none text-body fw-bold">{v.title}</a></div>
                       <div className="small"><a href="#!" onClick={(e) => { e.preventDefault(); setPlaying(v); }} className="text-break">{v.youtube_url}</a></div>
                     </td>
                     <td>

@@ -96,7 +96,7 @@ export default function ApiKeysPage() {
       {rawKey && (
         <div className="alert alert-warning">
           <div className="fw-semibold mb-1">New key “{rawKey.name}” — copy it now, it won’t be shown again.</div>
-          <code className="d-block bg-white border rounded p-2 text-break">{rawKey.key}</code>
+          <code className="d-block bg-body-tertiary border rounded p-2 text-break text-body">{rawKey.key}</code>
           <button className="btn btn-sm btn-outline-secondary mt-2" onClick={() => navigator.clipboard?.writeText(rawKey.key)}>{lang === "bn" ? "কপি" : "Copy"}</button>
         </div>
       )}

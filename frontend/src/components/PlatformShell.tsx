@@ -57,7 +57,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
           {!collapsed && (
             <div className="text-truncate">
               {branding.logo
-                ? <span style={{ background: "#fff", borderRadius: 10, padding: "5px 10px", display: "inline-flex" }}>
+                ? <span className="bg-body-tertiary border rounded-3 p-1 px-2 d-inline-flex">
                     <img src={branding.logo} alt="Logo" style={{ height: 44, maxWidth: 170, objectFit: "contain", display: "block" }} />
                   </span>
                 : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
@@ -84,7 +84,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
         <div className="offcanvas-header border-bottom border-secondary border-opacity-25">
           <div>
             {branding.logo
-              ? <span style={{ background: "#fff", borderRadius: 10, padding: "5px 10px", display: "inline-flex" }}>
+              ? <span className="bg-body-tertiary border rounded-3 p-1 px-2 d-inline-flex">
                   <img src={branding.logo} alt="Logo" style={{ height: 44, maxWidth: 170, objectFit: "contain", display: "block" }} />
                 </span>
               : <div className="fs-5 fw-bold brand-title">StockWhisk</div>}
@@ -103,7 +103,7 @@ export default function PlatformShell({ children }: { children: React.ReactNode 
 
       {/* Main */}
       <div className="flex-grow-1 d-flex flex-column min-vw-0" style={{ minWidth: 0 }}>
-        <header className="bg-white border-bottom px-3 py-3 d-flex align-items-center gap-2">
+        <header className="bg-body border-bottom px-3 py-3 d-flex align-items-center gap-2">
           <button
             className="btn btn-sm btn-outline-secondary d-md-none"
             type="button"
