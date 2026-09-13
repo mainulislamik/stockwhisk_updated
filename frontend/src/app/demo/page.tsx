@@ -34,6 +34,106 @@ type DemoResponse = {
   categories: DemoCategory[];
 };
 
+// Modernized Feature Styling Dictionary
+const FEATURE_MAP: Record<string, { icon: string; color: string; bg: string; border: string; bn: string; en: string }> = {
+  "POS Thermal Billing": {
+    icon: "🧾",
+    color: "#1d4ed8",
+    bg: "rgba(37, 99, 235, 0.08)",
+    border: "rgba(37, 99, 235, 0.2)",
+    bn: "থার্মাল ও A4 পিওএস বিলিং",
+    en: "POS Thermal & A4 Billing"
+  },
+  "Barcode Scanning": {
+    icon: "🏷️",
+    color: "#6d28d9",
+    bg: "rgba(109, 40, 217, 0.08)",
+    border: "rgba(109, 40, 217, 0.2)",
+    bn: "বারকোড তৈরি ও স্ক্যানিং",
+    en: "Barcode Generator & Scanning"
+  },
+  "Real-Time Stock": {
+    icon: "📦",
+    color: "#047857",
+    bg: "rgba(5, 150, 105, 0.08)",
+    border: "rgba(5, 150, 105, 0.2)",
+    bn: "রিয়েল-টাইম স্টক লেজার",
+    en: "Live Stock & Inventory"
+  },
+  "Daily Cash Register": {
+    icon: "💰",
+    color: "#b45309",
+    bg: "rgba(217, 119, 6, 0.08)",
+    border: "rgba(217, 119, 6, 0.2)",
+    bn: "দৈনিক ক্যাশ ও সেলস হিসাব",
+    en: "Daily Cash Register"
+  },
+  "Customer Dues": {
+    icon: "👥",
+    color: "#0e7490",
+    bg: "rgba(14, 116, 144, 0.08)",
+    border: "rgba(14, 116, 144, 0.2)",
+    bn: "কাস্টমার বাকি ও পেমেন্ট ট্র্যাকিং",
+    en: "Customer Dues & Ledger"
+  },
+  "Service & Repair Tickets (with QR Live Tracking)": {
+    icon: "🛠️",
+    color: "#4338ca",
+    bg: "rgba(67, 56, 202, 0.08)",
+    border: "rgba(67, 56, 202, 0.22)",
+    bn: "সার্ভিস টিকিট ও লাইভ QR ট্র্যাকিং",
+    en: "Service Tickets & Live QR Tracking"
+  },
+  "Serial Warranty Management": {
+    icon: "🛡️",
+    color: "#be123c",
+    bg: "rgba(190, 18, 60, 0.08)",
+    border: "rgba(190, 18, 60, 0.2)",
+    bn: "সিরিয়াল ওয়ারেন্টি ম্যানেজমেন্ট",
+    en: "Serial & Warranty Tracking"
+  },
+  "Barcode Scale Integration (EAN-13)": {
+    icon: "⚖️",
+    color: "#15803d",
+    bg: "rgba(22, 128, 61, 0.08)",
+    border: "rgba(22, 128, 61, 0.2)",
+    bn: "ওজন স্কেল বারকোড (EAN-13)",
+    en: "Weight Scale Barcodes"
+  },
+  "Hold & Recall Cart (F8/F9)": {
+    icon: "⏸️",
+    color: "#0369a1",
+    bg: "rgba(2, 132, 199, 0.08)",
+    border: "rgba(2, 132, 199, 0.2)",
+    bn: "হোল্ড ও রিকল কার্ট (F8/F9)",
+    en: "Hold & Recall Cart"
+  },
+  "You Saved Discount Receipts": {
+    icon: "🎁",
+    color: "#c2410c",
+    bg: "rgba(194, 65, 12, 0.08)",
+    border: "rgba(194, 65, 12, 0.2)",
+    bn: "ইউ সেভড ডিসকাউন্ট রসিদ",
+    en: "You Saved Savings Receipts"
+  },
+  "Size/Color Variant Matrix": {
+    icon: "👗",
+    color: "#be185d",
+    bg: "rgba(190, 24, 93, 0.08)",
+    border: "rgba(190, 24, 93, 0.2)",
+    bn: "সাইজ/রং ভ্যারিয়েন্ট ম্যাট্রিক্স",
+    en: "Variant Matrix (Size/Color)"
+  },
+  "Batch Manufacturing & Production": {
+    icon: "🏭",
+    color: "#334155",
+    bg: "rgba(51, 65, 85, 0.08)",
+    border: "rgba(51, 65, 85, 0.2)",
+    bn: "ব্যাচ প্রোডাকশন ও ফর্মুলা",
+    en: "Batch Manufacturing"
+  }
+};
+
 export default function CategoryDemoPage() {
   const { lang, t } = useLanguage();
   const [data, setData] = useState<DemoResponse | null>(null);
@@ -189,12 +289,12 @@ export default function CategoryDemoPage() {
             {loading && (
               <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, gap: 3 }}>
                 {[1, 2].map((n) => (
-                  <Skeleton key={n} variant="rounded" height={320} sx={{ borderRadius: 4 }} />
+                  <Skeleton key={n} variant="rounded" height={340} sx={{ borderRadius: 4 }} />
                 ))}
               </Box>
             )}
 
-            {/* Category Groups & Demo Shop Cards */}
+            {/* Category Groups & Modernized Demo Shop Cards */}
             {!loading && displayedCategories.length > 0 && (
               <Stack spacing={6}>
                 {displayedCategories.map((cat) => (
@@ -219,83 +319,129 @@ export default function CategoryDemoPage() {
                     </Box>
 
                     {/* Demo Shops Grid for this category */}
-                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, gap: 3 }}>
+                    <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, gap: 3.5 }}>
                       {cat.shops.map((shop) => (
                         <Box
                           key={shop.id}
                           sx={{
-                            bgcolor: "rgba(255, 255, 255, 0.9)",
-                            backdropFilter: "blur(20px)",
-                            border: `1px solid ${M.border}`,
-                            borderRadius: 4,
-                            p: { xs: 3, md: 3.5 },
-                            boxShadow: "0 15px 35px -15px rgba(15,23,42,.12)",
+                            position: "relative",
+                            bgcolor: "rgba(255, 255, 255, 0.95)",
+                            backdropFilter: "blur(24px)",
+                            border: `1px solid rgba(226, 232, 240, 0.9)`,
+                            borderRadius: "20px",
+                            p: { xs: 3, md: 3.8 },
+                            boxShadow: "0 20px 40px -20px rgba(15,23,42,.1)",
                             display: "flex",
                             flexDirection: "column",
                             justifyContent: "space-between",
-                            transition: "all .25s ease",
+                            transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)",
+                            overflow: "hidden",
                             "&:hover": {
-                              transform: "translateY(-4px)",
-                              boxShadow: "0 25px 50px -20px rgba(37,99,235,.25)",
-                              borderColor: "rgba(37,99,235,0.4)"
+                              transform: "translateY(-5px)",
+                              boxShadow: "0 30px 60px -20px rgba(37,99,235,.28)",
+                              borderColor: "rgba(37,99,235,0.45)"
                             }
                           }}
                         >
+                          {/* Top accent bar */}
+                          <Box sx={{
+                            position: "absolute", top: 0, left: 0, right: 0, height: 4,
+                            background: "linear-gradient(90deg, #3b82f6, #6366f1, #06b6d4)"
+                          }} />
+
                           <Box>
-                            {/* Shop Title & Badge */}
-                            <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 1.5 }}>
+                            {/* Shop Header */}
+                            <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2 }}>
                               <Box>
-                                <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", fontSize: "1.2rem" }}>
-                                  {shop.name}
+                                <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", fontSize: "1.3rem", letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 1 }}>
+                                  <span>🏬</span> {shop.name}
                                 </Typography>
-                                <Typography sx={{ color: M.textFaint, fontSize: "0.82rem" }}>
-                                  📍 {shop.address}
+                                <Typography sx={{ color: "#64748b", fontSize: "0.85rem", mt: 0.5, display: "flex", alignItems: "center", gap: 0.5 }}>
+                                  <span>📍</span> {shop.address}
                                 </Typography>
                               </Box>
-                              <Chip 
-                                label={isBn ? cat.name_bn : cat.name_en} 
-                                size="small" 
-                                sx={{ 
-                                  bgcolor: "rgba(37,99,235,0.08)", 
-                                  color: M.primary, 
-                                  fontWeight: 700, 
-                                  borderRadius: "6px" 
-                                }} 
-                              />
+                              <Box sx={{ textAlign: "right" }}>
+                                <Chip 
+                                  label={isBn ? cat.name_bn : cat.name_en} 
+                                  size="small" 
+                                  sx={{ 
+                                    bgcolor: "rgba(37,99,235,0.1)", 
+                                    color: "#1d4ed8", 
+                                    fontWeight: 700, 
+                                    borderRadius: "8px",
+                                    fontSize: "0.78rem",
+                                    border: "1px solid rgba(37,99,235,0.2)"
+                                  }} 
+                                />
+                                <Typography sx={{ fontSize: "0.72rem", color: "#16a34a", fontWeight: 700, mt: 0.5 }}>
+                                  ● Live Demo
+                                </Typography>
+                              </Box>
                             </Box>
 
-                            {/* Features list */}
-                            <Box sx={{ my: 2.5 }}>
-                              <Typography sx={{ fontSize: "0.78rem", fontWeight: 700, color: M.textFaint, textTransform: "uppercase", letterSpacing: ".05em", mb: 1.2 }}>
-                                {isBn ? "প্রদর্শিত ফিচারসমূহ:" : "Enabled Demo Features:"}
+                            {/* Modernized Feature Chips Grid */}
+                            <Box sx={{ my: 3 }}>
+                              <Typography sx={{ 
+                                fontSize: "0.76rem", fontWeight: 800, color: "#64748b", 
+                                textTransform: "uppercase", letterSpacing: ".08em", mb: 1.5,
+                                display: "flex", alignItems: "center", gap: 1
+                              }}>
+                                <span>⚡</span> {isBn ? "প্রদর্শিত প্রিমিয়াম ফিচারসমূহ:" : "Enabled Demo Features:"}
                               </Typography>
-                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                                {shop.features.map((feat, idx) => (
-                                  <Box
-                                    key={idx}
-                                    sx={{
-                                      display: "inline-flex",
-                                      alignItems: "center",
-                                      gap: 0.75,
-                                      px: 1.5,
-                                      py: 0.5,
-                                      bgcolor: "#f8fafc",
-                                      border: "1px solid #e2e8f0",
-                                      borderRadius: "8px",
-                                      fontSize: "0.82rem",
-                                      fontWeight: 600,
-                                      color: "#334155"
-                                    }}
-                                  >
-                                    <span style={{ color: "#16a34a" }}>✓</span> {feat}
-                                  </Box>
-                                ))}
+
+                              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1.2 }}>
+                                {shop.features.map((featName, idx) => {
+                                  const f = FEATURE_MAP[featName] || {
+                                    icon: "✓",
+                                    color: "#2563eb",
+                                    bg: "rgba(37, 99, 235, 0.06)",
+                                    border: "rgba(37, 99, 235, 0.15)",
+                                    bn: featName,
+                                    en: featName
+                                  };
+
+                                  return (
+                                    <Box
+                                      key={idx}
+                                      sx={{
+                                        display: "flex",
+                                        alignItems: "center",
+                                        gap: 1,
+                                        px: 1.4,
+                                        py: 0.9,
+                                        bgcolor: f.bg,
+                                        border: `1px solid ${f.border}`,
+                                        borderRadius: "10px",
+                                        transition: "all .2s ease",
+                                        "&:hover": {
+                                          bgcolor: "#fff",
+                                          transform: "translateY(-1px)",
+                                          boxShadow: "0 4px 10px -2px rgba(15,23,42,.08)"
+                                        }
+                                      }}
+                                    >
+                                      <Box sx={{ 
+                                        fontSize: "1rem", lineHeight: 1, flexShrink: 0,
+                                        width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center"
+                                      }}>
+                                        {f.icon}
+                                      </Box>
+                                      <Typography sx={{ 
+                                        fontSize: "0.82rem", fontWeight: 700, 
+                                        color: f.color, lineHeight: 1.25,
+                                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
+                                      }}>
+                                        {isBn ? f.bn : f.en}
+                                      </Typography>
+                                    </Box>
+                                  );
+                                })}
                               </Box>
                             </Box>
                           </Box>
 
-                          {/* 1-Click Action Button */}
-                          <Box sx={{ pt: 2, borderTop: "1px solid #f1f5f9", mt: 2 }}>
+                          {/* Modernized CTA 1-Click Button */}
+                          <Box sx={{ pt: 2.5, borderTop: "1px solid #f1f5f9", mt: 1 }}>
                             <Button
                               variant="contained"
                               fullWidth
@@ -303,21 +449,31 @@ export default function CategoryDemoPage() {
                               disabled={busyShopId === shop.id}
                               onClick={() => enterDemoShop(shop.id)}
                               sx={{
-                                bgcolor: M.primary,
+                                background: "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
                                 color: "#fff",
                                 fontWeight: 800,
                                 textTransform: "none",
-                                borderRadius: 3,
-                                py: 1.3,
-                                fontSize: "1rem",
-                                boxShadow: "0 10px 20px -10px rgba(37,99,235,0.5)",
-                                "&:hover": { bgcolor: M.primaryDark }
+                                borderRadius: "12px",
+                                py: 1.4,
+                                fontSize: "1.02rem",
+                                letterSpacing: "-0.01em",
+                                boxShadow: "0 10px 25px -8px rgba(37,99,235,0.6)",
+                                transition: "all .25s ease",
+                                "&:hover": { 
+                                  background: "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
+                                  boxShadow: "0 14px 30px -8px rgba(37,99,235,0.8)",
+                                  transform: "translateY(-1px)"
+                                }
                               }}
                             >
                               {busyShopId === shop.id 
-                                ? (isBn ? "ডেমো লোড হচ্ছে…" : "Entering Demo…") 
+                                ? (isBn ? "ডেমোতে প্রবেশ করা হচ্ছে…" : "Entering Demo…") 
                                 : (isBn ? `🚀 ${shop.name} ডেমো এক্সপ্লোর করুন →` : `Explore ${shop.name} Demo →`)}
                             </Button>
+
+                            <Typography sx={{ textAlign: "center", color: "#94a3b8", fontSize: "0.76rem", mt: 1 }}>
+                              🔒 {isBn ? "১০০% নিরাপদ · কোনো পাসওয়ার্ড বা রেজিস্ট্রেশন ছাড়াই ডেমো দেখুন" : "100% Safe · Instant read-only demo access without credentials"}
+                            </Typography>
                           </Box>
                         </Box>
                       ))}
