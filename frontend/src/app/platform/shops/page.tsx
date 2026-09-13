@@ -54,7 +54,7 @@ export default function ShopsPage() {
   const [shops, setShops] = useState<Shop[] | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
-  const [tab, setTab] = useState<"all" | "live" | "demo">("all");
+  const [tab, setTab] = useState<"all" | "live" | "demo" | "test">("all");
   const [busy, setBusy] = useState<number | null>(null);
   const [pwFor, setPwFor] = useState<Shop | null>(null);
   const [delFor, setDelFor] = useState<Shop | null>(null);
@@ -86,24 +86,27 @@ export default function ShopsPage() {
   useEffect(() => { load(); }, [load]);
 
   const counts = useMemo(() => {
-    if (!shops) return { all: 0, live: 0, demo: 0 };
-    const demo = shops.filter(x => x.is_demo || x.is_test).length;
+    if (!shops) return { all: 0, live: 0, demo: 0, test: 0 };
+    const demo = shops.filter(x => x.is_demo).length;
+    const test = shops.filter(x => x.is_test && !x.is_demo).length;
     const live = shops.filter(x => !x.is_demo && !x.is_test).length;
-    return { all: shops.length, live, demo };
+    return { all: shops.length, live, demo, test };
   }, [shops]);
 
   const filtered = useMemo(() => {
     if (!shops) return [];
     
-    // First filter by active tab
+    // Filter by active tab (Separate Demo, Test, Live)
     let list = shops;
     if (tab === "live") {
       list = shops.filter(x => !x.is_demo && !x.is_test);
     } else if (tab === "demo") {
-      list = shops.filter(x => x.is_demo || x.is_test);
+      list = shops.filter(x => x.is_demo);
+    } else if (tab === "test") {
+      list = shops.filter(x => x.is_test && !x.is_demo);
     }
 
-    // Then filter by search query
+    // Filter by search query
     const s = q.trim().toLowerCase();
     if (!s) return list;
     return list.filter((x) => {
@@ -141,7 +144,20 @@ export default function ShopsPage() {
     try {
       const r = await api<{ is_demo: boolean; is_test: boolean }>(`/platform/shops/${shop.id}/toggle-demo/`, { method: "POST" });
       await load();
-      toast.success(r.is_demo ? "Marked as Demo shop (separated)" : "Marked as standard live shop");
+      toast.success(r.is_demo ? "Marked as Demo shop (moved to Demo tab)" : "Unmarked from Demo shop");
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed.");
+    } finally {
+      setBusy(null);
+    }
+  }, [load]);
+
+  const toggleTest = useCallback(async (shop: Shop) => {
+    setBusy(shop.id);
+    try {
+      const r = await api<{ is_test: boolean }>(`/platform/shops/${shop.id}/toggle-test/`, { method: "POST" });
+      await load();
+      toast.success(r.is_test ? "Marked as Test shop (moved to Test tab)" : "Unmarked from Test shop");
     } catch (e: any) {
       toast.error(e?.message || "Action failed.");
     } finally {
@@ -159,9 +175,10 @@ export default function ShopsPage() {
         actions={<Link href="/platform/shops/new" className="btn btn-brand btn-sm">{lang === "bn" ? "+ নতুন শপ তৈরি" : "+ Create shop"}</Link>}
       />
 
-      {/* ── Separate Demo vs Live Shops Filter Tabs ── */}
+      {/* ── Separate Live, Demo, and Test Shops Tabs ── */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
         <div className="btn-group p-1 bg-body-tertiary rounded-pill shadow-sm border" role="group">
+          {/* All Shops Tab */}
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-3 fw-semibold ${tab === "all" ? "btn-brand shadow-sm text-white" : "btn-light border-0 text-secondary"}`}
@@ -174,34 +191,50 @@ export default function ShopsPage() {
             </span>
           </button>
 
+          {/* Live Merchant Shops Tab */}
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-3 fw-semibold ${tab === "live" ? "btn-success shadow-sm text-white" : "btn-light border-0 text-secondary"}`}
             onClick={() => setTab("live")}
           >
             <i className="bi bi-check-circle-fill me-1"></i>
-            {lang === "bn" ? "মার্চেন্ট শপ (লাইভ)" : "Client Shops (Live)"}
+            {lang === "bn" ? "মার্চেন্ট শপ (লাইভ)" : "Live Merchants"}
             <span className={`badge ms-2 rounded-pill ${tab === "live" ? "bg-white text-success" : "bg-success bg-opacity-25 text-success"}`}>
               {counts.live}
             </span>
           </button>
 
+          {/* Demo Shops Tab */}
           <button
             type="button"
             className={`btn btn-sm rounded-pill px-3 fw-semibold ${tab === "demo" ? "btn-warning shadow-sm text-dark" : "btn-light border-0 text-secondary"}`}
             onClick={() => setTab("demo")}
           >
-            <i className="bi bi-flask-fill me-1"></i>
-            {lang === "bn" ? "ডেমো ও টেস্ট শপ" : "Demo & Test Shops"}
+            <i className="bi bi-eye-fill me-1"></i>
+            {lang === "bn" ? "ডেমো শপ" : "Demo Shops"}
             <span className={`badge ms-2 rounded-pill ${tab === "demo" ? "bg-dark text-white" : "bg-warning bg-opacity-25 text-body"}`}>
               {counts.demo}
+            </span>
+          </button>
+
+          {/* Test Shops Tab */}
+          <button
+            type="button"
+            className={`btn btn-sm rounded-pill px-3 fw-semibold ${tab === "test" ? "btn-info shadow-sm text-white" : "btn-light border-0 text-secondary"}`}
+            onClick={() => setTab("test")}
+          >
+            <i className="bi bi-flask-fill me-1"></i>
+            {lang === "bn" ? "টেস্ট শপ" : "Test Shops"}
+            <span className={`badge ms-2 rounded-pill ${tab === "test" ? "bg-white text-dark" : "bg-info bg-opacity-25 text-body"}`}>
+              {counts.test}
             </span>
           </button>
         </div>
 
         <div className="text-secondary small">
           {tab === "live" && (lang === "bn" ? "⚡ শুধুমাত্র মূল ক্লায়েন্ট/মার্চেন্ট শপগুলো প্রদর্শিত হচ্ছে" : "⚡ Showing real client merchant stores")}
-          {tab === "demo" && (lang === "bn" ? "🧪 শুধুমাত্র ডেমো ও ইন্টারনাল টেস্টিং শপগুলো আলাদা করে প্রদর্শিত হচ্ছে" : "🧪 Showing demo & internal test shops separated")}
+          {tab === "demo" && (lang === "bn" ? "🧪 শুধুমাত্র পাবলিক ডেমো স্টোরগুলো প্রদর্শিত হচ্ছে" : "🧪 Showing public demo stores")}
+          {tab === "test" && (lang === "bn" ? "🔬 শুধুমাত্র টেস্ট/পরীক্ষামূলক শপগুলো প্রদর্শিত হচ্ছে (রেভিনিউ থেকে বাদ)" : "🔬 Showing internal test stores (excluded from revenue)")}
           {tab === "all" && (lang === "bn" ? "🏬 প্ল্যাটফর্মের সব দোকান একসাথে প্রদর্শিত হচ্ছে" : "🏬 Showing all registered shops")}
         </div>
       </div>
@@ -220,8 +253,8 @@ export default function ShopsPage() {
               <tr>
                 <th>{lang === "bn" ? "ইউনিক আইডি" : "Unique ID"}</th>
                 <th>{lang === "bn" ? "দোকান / ব্যবসা" : "Shop"}</th>
-                <th>{lang === "bn" ? "স্ট্যাটাস ট্যাগ" : "Type / Mode"}</th>
-                <th>{lang === "bn" ? "ধরন" : "Category"}</th>
+                <th>{lang === "bn" ? "মোড / ধরন" : "Mode"}</th>
+                <th>{lang === "bn" ? "ক্যাটাগরি" : "Category"}</th>
                 <th>{lang === "bn" ? "প্যাকেজ" : "Plan"}</th>
                 <th>{lang === "bn" ? "ব্যবহারকারী" : "Users"}</th>
                 <th>setStatus</th>
@@ -236,6 +269,8 @@ export default function ShopsPage() {
                   text={
                     tab === "demo"
                       ? "কোনো ডেমো শপ পাওয়া যায়নি।"
+                      : tab === "test"
+                      ? "কোনো টেস্ট শপ পাওয়া যায়নি।"
                       : tab === "live"
                       ? "কোনো মার্চেন্ট শপ ফিল্টারের সাথে মেলেনি।"
                       : "No shops match your filter."
@@ -243,7 +278,7 @@ export default function ShopsPage() {
                 />
               )}
               {filtered.map((s) => (
-                <tr key={s.id} className={s.is_demo ? "table-warning table-opacity-10" : ""}>
+                <tr key={s.id} className={s.is_demo ? "table-warning table-opacity-10" : s.is_test ? "table-info table-opacity-10" : ""}>
                   <td>
                     <span className="badge rounded-pill bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 font-monospace px-2 py-1">
                       {s.shop_code || `SW-${1000 + s.id}`}
@@ -264,11 +299,11 @@ export default function ShopsPage() {
                   <td>
                     <div className="d-flex flex-wrap gap-1">
                       {s.is_demo ? (
-                        <span className="badge bg-purple bg-opacity-10 text-purple border border-purple border-opacity-25" style={{ color: "#7c3aed", borderColor: "#c4b5fd" }} title="Public Demo Store">
+                        <span className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50" title="Public Demo Store">
                           🧪 Demo
                         </span>
                       ) : s.is_test ? (
-                        <span className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50" title="Test Store (Excluded from Revenue)">
+                        <span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50" title="Internal Test Store (Excluded from Revenue)">
                           🔬 Test
                         </span>
                       ) : (
@@ -338,12 +373,22 @@ export default function ShopsPage() {
                       
                       {/* Demo Toggle Button */}
                       <button
-                        className={`btn btn-sm py-0 ${s.is_demo ? "btn-outline-warning" : "btn-outline-secondary"}`}
+                        className={`btn btn-sm py-0 ${s.is_demo ? "btn-warning text-dark" : "btn-outline-secondary"}`}
                         disabled={busy === s.id}
                         onClick={() => toggleDemo(s)}
-                        title={s.is_demo ? "Click to move to Live Merchant list" : "Click to mark and separate as Demo Store"}
+                        title={s.is_demo ? "Unmark Demo (move out of Demo tab)" : "Mark as Demo (move to Demo tab)"}
                       >
-                        {s.is_demo ? "Unmark Demo" : "Mark Demo"}
+                        {s.is_demo ? "Demo ✓" : "Demo"}
+                      </button>
+
+                      {/* Test Toggle Button */}
+                      <button
+                        className={`btn btn-sm py-0 ${s.is_test && !s.is_demo ? "btn-info text-white" : "btn-outline-secondary"}`}
+                        disabled={busy === s.id}
+                        onClick={() => toggleTest(s)}
+                        title={s.is_test ? "Unmark Test (move to Live Merchants)" : "Mark as Test (move to Test tab)"}
+                      >
+                        {s.is_test && !s.is_demo ? "Test ✓" : "Test"}
                       </button>
 
                       <button
