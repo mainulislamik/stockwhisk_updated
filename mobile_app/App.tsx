@@ -33,7 +33,7 @@ import GlobalHeader from './src/components/GlobalHeader';
 import UpdatingOverlay from './src/components/UpdatingOverlay';
 import { useAutoUpdateChecker } from './src/hooks/useAutoUpdateChecker';
 
-import { View, Text, ScrollView, LogBox, Platform } from 'react-native';
+import { View, Text, ScrollView, LogBox, Platform, ActivityIndicator } from 'react-native';
 
 LogBox.ignoreLogs([
   'Invalid DOM property',
@@ -78,7 +78,20 @@ function RootNavigator() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return null;
+    return (
+      <View style={{ flex: 1, backgroundColor: "#0f172a", justifyContent: "center", alignItems: "center" }}>
+        <View style={{ width: 64, height: 64, borderRadius: 16, backgroundColor: "#4f46e5", justifyContent: "center", alignItems: "center", marginBottom: 18, shadowColor: "#4f46e5", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 }}>
+          <Text style={{ fontSize: 32 }}>📦</Text>
+        </View>
+        <Text style={{ color: "#ffffff", fontSize: 20, fontWeight: "bold", letterSpacing: 0.5, marginBottom: 6 }}>
+          StockWhisk ERP
+        </Text>
+        <Text style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>
+          লোড হচ্ছে, অপেক্ষা করুন...
+        </Text>
+        <ActivityIndicator size="small" color="#4f46e5" />
+      </View>
+    );
   }
 
   return (

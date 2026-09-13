@@ -99,6 +99,7 @@ export default function POSScreen() {
   const [deviceImei, setDeviceImei] = useState('');
   const [repairWarrantyDays, setRepairWarrantyDays] = useState('30');
   const [problemDescription, setProblemDescription] = useState('');
+  const [estimatedDelivery, setEstimatedDelivery] = useState('');
 
   const [selectedVariantSize, setSelectedVariantSize] = useState('');
   const [selectedVariantColor, setSelectedVariantColor] = useState('');
@@ -593,7 +594,7 @@ export default function POSScreen() {
         alteration_notes: isFashionShop 
           ? alterationNotes.trim() 
           : isRepairShop 
-            ? `[REPAIR] Model: ${deviceModel || 'N/A'} | IMEI: ${deviceImei || 'N/A'} | Service: ৳${serviceCharge || '0'} | Warranty: ${repairWarrantyDays}d | Fault: ${problemDescription || 'N/A'}`
+            ? `[REPAIR] Model: ${deviceModel || 'N/A'} | IMEI: ${deviceImei || 'N/A'} | Service: ৳${serviceCharge || '0'} | Warranty: ${repairWarrantyDays}d | Est.Del: ${estimatedDelivery || 'N/A'} | Fault: ${problemDescription || 'N/A'}`
             : "",
         alteration_status: isFashionShop ? (alterationNotes.trim() ? (alterationStatus === 'none' ? 'pending' : alterationStatus) : "") : isRepairShop ? "repaired" : "",
       };
@@ -1035,6 +1036,16 @@ export default function POSScreen() {
                   value={deviceImei}
                   onChangeText={setDeviceImei}
                   placeholder="35894109..."
+                  style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+                />
+
+                {/* Est. Delivery Date */}
+                <TextInput
+                  mode="outlined"
+                  label={isBN ? '📅 আনুমানিক ডেলিভারি তারিখ (ঐচ্ছিক)' : '📅 Est. Delivery Date (Optional)'}
+                  value={estimatedDelivery}
+                  onChangeText={setEstimatedDelivery}
+                  placeholder="YYYY-MM-DD"
                   style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
                 />
 
