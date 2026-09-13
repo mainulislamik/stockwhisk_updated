@@ -36,7 +36,7 @@ def create_sale(
     payments=None, sale_date=None, due_date=None, note="", created_by=None,
     customer_name="", customer_phone="", customer_address="",
     idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO,
-    is_quotation=False, alteration_notes="", alteration_status="",
+    is_quotation=False, alteration_notes="", alteration_status="", points_redeemed=0,
 ):
     """
     ``items``: list of dicts with keys ``product`` (instance), optional
@@ -256,7 +256,7 @@ def create_sale(
 
     if customer is not None and not is_quotation:
         effective_due = total_emi_amount if is_emi else (total - paid)
-        _update_customer_after_sale(customer, total=total, due=effective_due, when=sale_date)
+        _update_customer_after_sale(customer, total=total, due=effective_due, when=sale_date, points_redeemed=points_redeemed)
 
     if not is_quotation:
         # Flip tracked ProductUnits (FIFO or specific) to sold and bind the buyer onto each
@@ -629,12 +629,17 @@ def _resolve_status(total, paid):
     return Sale.Status.PARTIAL
 
 
-def _update_customer_after_sale(customer, *, total, due, when):
+def _update_customer_after_sale(customer, *, total, due, when, points_redeemed=0):
     if due > 0 and getattr(customer, "credit_limit", None) and customer.credit_limit > 0:
         new_due = (customer.due_balance or ZERO) + due
         if new_due > customer.credit_limit:
             raise ValueError(f"Sale exceeds customer credit limit of ৳{customer.credit_limit} (Total due would be ৳{new_due}).")
     customer.total_purchased = (customer.total_purchased or ZERO) + total
     customer.due_balance = (customer.due_balance or ZERO) + due
-    customer.last_purchase_at = when
-    customer.save(update_fields=["total_purchased", "due_balance", "last_purchase_at"])
+    customer.last_purchase_at = when or timezone.now()
+    
+    # ── Super Shop Customer Loyalty Points Accrual & Redemption ──
+    points_earned = max(0, int(total / Decimal("100")))
+    net_points = points_earned - points_redeemed
+    customer.loyalty_points = max(0, (customer.loyalty_points or 0) + net_points)
+    customer.save(update_fields=["total_purchased", "due_balance", "last_purchase_at", "loyalty_points"])
