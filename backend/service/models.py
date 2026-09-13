@@ -113,6 +113,7 @@ class ServiceTicket(TenantScopedModel):
         OTHER = "other", "Other"
 
     ticket_no = models.CharField(max_length=40, db_index=True)
+    track_token = models.CharField(max_length=64, unique=True, db_index=True, blank=True, null=True)
     branch = models.ForeignKey(
         "tenants.Branch", on_delete=models.SET_NULL, null=True, blank=True, related_name="service_tickets"
     )
@@ -156,6 +157,12 @@ class ServiceTicket(TenantScopedModel):
         constraints = [
             models.UniqueConstraint(fields=["shop", "ticket_no"], name="uniq_ticket_no_per_shop"),
         ]
+
+    def save(self, *args, **kwargs):
+        if not self.track_token:
+            import secrets
+            self.track_token = secrets.token_urlsafe(20)
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.ticket_no

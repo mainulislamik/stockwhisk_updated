@@ -74,7 +74,7 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
     class Meta:
         model = ServiceTicket
         fields = [
-            "id", "ticket_no", "branch", "customer", "customer_name", "customer_phone",
+            "id", "ticket_no", "track_token", "branch", "customer", "customer_name", "customer_phone",
             "device_description", "complaint",
             "received_at", "technician", "status", "service_charge", "discount", "estimated_delivery",
             "actual_delivery", "is_overdue", "parts", "history", "created_at",

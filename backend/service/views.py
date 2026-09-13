@@ -7,7 +7,7 @@ from core.api import TenantScopedViewSet
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
 
-from .models import ServiceTicket, Warranty, WarrantyClaim
+from .models import ServiceTicket, ServiceTicketStatusHistory, Warranty, WarrantyClaim
 from .serializers import (
     ServiceTicketSerializer,
     TicketCreateSerializer,
@@ -262,4 +262,70 @@ class ServiceDashboardView(APIView):
             "overdue_tickets": overdue,
             "technician_workload": workload,
             "warranties_expiring_soon": expiring,
+        })
+
+
+from rest_framework.permissions import AllowAny
+
+class PublicServiceTicketTrackView(APIView):
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def get(self, request, token):
+        ticket = ServiceTicket.all_objects.select_related("shop", "branch", "customer").filter(track_token=token).first()
+        if not ticket:
+            return Response({"error": "Service ticket not found with this tracking link."}, status=status.HTTP_404_NOT_FOUND)
+
+        raw_phone = ticket.customer_phone or (ticket.customer.phone if ticket.customer else "")
+        masked_phone = ""
+        if raw_phone:
+            if len(raw_phone) > 6:
+                masked_phone = raw_phone[:5] + "***" + raw_phone[-3:]
+            else:
+                masked_phone = raw_phone[:2] + "***"
+
+        shop = ticket.shop
+        logo_url = ""
+        if getattr(shop, "logo", None) and shop.logo:
+            try:
+                logo_url = shop.logo.url
+            except Exception:
+                logo_url = ""
+
+        history_data = []
+        for h in ServiceTicketStatusHistory.all_objects.filter(ticket=ticket).order_by("created_at"):
+            history_data.append({
+                "id": h.id,
+                "from_status": h.from_status,
+                "to_status": h.to_status,
+                "note": h.note,
+                "created_at": h.created_at,
+            })
+
+        return Response({
+            "ticket_no": ticket.ticket_no,
+            "status": ticket.status,
+            "status_display": ticket.get_status_display(),
+            "device_description": ticket.device_description,
+            "device_type": ticket.device_type,
+            "complaint": ticket.complaint,
+            "received_at": ticket.received_at,
+            "estimated_delivery": ticket.estimated_delivery,
+            "actual_delivery": ticket.actual_delivery,
+            "service_charge": float(ticket.service_charge),
+            "discount": float(ticket.discount),
+            "paid": float(ticket.paid),
+            "bill_total": float(ticket.bill_total),
+            "due": float(ticket.due),
+            "customer_name": ticket.customer_name or (ticket.customer.name if ticket.customer else "Customer"),
+            "customer_phone_masked": masked_phone,
+            "shop": {
+                "id": shop.id,
+                "name": shop.name,
+                "phone": shop.phone,
+                "email": shop.email,
+                "address": shop.address,
+                "logo": logo_url,
+            },
+            "history": history_data,
         })

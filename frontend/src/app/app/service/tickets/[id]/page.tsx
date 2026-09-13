@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Barcode from "react-barcode";
+import { QRCodeSVG } from "qrcode.react";
 import { api } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
@@ -26,6 +27,7 @@ type History = { id: number; from_status: string; to_status: string; note: strin
 type Ticket = {
   id: number;
   ticket_no: string;
+  track_token?: string;
   device_description: string;
   complaint: string;
   status: string;
@@ -50,7 +52,7 @@ type ProductHit = { id: number; name: string; sku: string; selling_price: string
 const STATUSES = ["received", "diagnosing", "awaiting_parts", "in_repair", "ready_for_pickup", "delivered", "cancelled"];
 
 export default function TicketDetailPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const { isOwner, can, user } = useAuth();
@@ -661,6 +663,20 @@ export default function TicketDetailPage() {
           <div className="text-center mb-2">
             <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.2} height={30} displayValue={false} margin={0} background="transparent" />
           </div>
+
+          {/* QR Code for Customer Live Tracking */}
+          <div className="text-center my-2 p-2 bg-light rounded" style={{ border: "1px dashed #cbd5e1" }}>
+            <div className="d-flex justify-content-center mb-1">
+              <QRCodeSVG
+                value={typeof window !== "undefined" ? `${window.location.origin}/track/${ticket.track_token || ticket.id}` : `https://stockwhisk.com/track/${ticket.track_token || ticket.id}`}
+                size={84}
+                level="M"
+              />
+            </div>
+            <div className="fw-bold" style={{ fontSize: "8pt", color: "#0f172a" }}>
+              📱 {lang === "bn" ? "QR স্ক্যান করে লাইভ ট্র্যাকিং দেখুন" : "Scan QR for live repair updates"}
+            </div>
+          </div>
           <div className="token-row"><strong>{t("tktd_ticket_hash")}</strong> {ticket.ticket_no || `#${ticket.id}`}</div>
           <div className="token-row"><strong>{t("tktd_date")}</strong> {fmtDate(ticket.received_at)}</div>
           <div className="token-row">
@@ -739,8 +755,15 @@ export default function TicketDetailPage() {
               </div>
               <div className="inv-title-text">{t("tktd_invoice_heading")}</div>
             </div>
-            <div className="d-flex justify-content-end mb-2" style={{ marginRight: '-10px' }}>
-              <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.5} height={40} displayValue={false} margin={0} background="transparent" />
+            <div className="d-flex justify-content-end align-items-center gap-2 mb-2" style={{ marginRight: '-10px' }}>
+              <Barcode value={ticket.ticket_no || `SVC-${ticket.id}`} width={1.3} height={36} displayValue={false} margin={0} background="transparent" />
+              <div className="p-1 bg-white border rounded">
+                <QRCodeSVG
+                  value={typeof window !== "undefined" ? `${window.location.origin}/track/${ticket.track_token || ticket.id}` : `https://stockwhisk.com/track/${ticket.track_token || ticket.id}`}
+                  size={42}
+                  level="M"
+                />
+              </div>
             </div>
             <table className="inv-meta-table">
               <tbody>
