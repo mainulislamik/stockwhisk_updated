@@ -387,3 +387,203 @@ class DownloadBackupView(APIView):
         response = HttpResponse(json_data, content_type='application/json')
         response['Content-Disposition'] = f'attachment; filename="shop_{shop_id}_backup_{timezone.now().strftime("%Y%m%d")}.json"'
         return response
+
+
+class PublicDemoShopsView(APIView):
+    """
+    Public endpoint listing all active demo shops grouped strictly by category.
+    Only categories with AT LEAST ONE available demo shop are returned.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    CATEGORY_META = {
+        "general": {
+            "name_en": "General Retail",
+            "name_bn": "জেনারেল রিটেইল ও ডিপার্টমেন্টাল",
+            "icon": "🛒",
+            "desc_en": "Super-fast POS, barcode scanning, stock ledger & customer dues for general stores.",
+            "desc_bn": "সুপার-ফাস্ট পিওএস বিলিং, বারকোড স্ক্যানিং, স্টক খাতা এবং কাস্টমার বাকি ব্যবস্থাপনা।"
+        },
+        "supershop": {
+            "name_en": "Super Shop & Grocery",
+            "name_bn": "সুপারশপ ও গ্রোসারি",
+            "icon": "🏬",
+            "desc_en": "Barcode weight scales, expiry dates, batch management, F8 hold cart & instant thermal billing.",
+            "desc_bn": "ওয়েট স্কেল বারকোড, মেয়াদ ট্র্যাকিং, ব্যাচ ম্যানেজমেন্ট, হোল্ড কার্ট ও দ্রুত ক্যাশ বিলিং।"
+        },
+        "fashion": {
+            "name_en": "Fashion & Apparel",
+            "name_bn": "ফ্যাশন ও ক্লোথিং স্টোর",
+            "icon": "👗",
+            "desc_en": "Variant matrices (Size/Color/Fabric), barcode hangtags, exchange & seasonal discount control.",
+            "desc_bn": "সাইজ/রং/ভ্যারিয়েন্ট ম্যাট্রিক্স, বারকোড ট্যাগ জেনারেশন ও দ্রুত রিটার্ন-এক্সচেঞ্জ।"
+        },
+        "mobile": {
+            "name_en": "Mobile & Repair Service",
+            "name_bn": "মোবাইল ও সার্ভিস রিপেয়ার",
+            "icon": "📱",
+            "desc_en": "IMEI warranty tracking, technician assignment, repair tickets with live QR customer tracking.",
+            "desc_bn": "আইএমইআই ট্র্যাকিং, সার্ভিস রিপেয়ার টিকিট ও কিউআর কোড লাইভ কাস্টমার ট্র্যাকিং।"
+        },
+        "electronics": {
+            "name_en": "Electronics & Home Appliances",
+            "name_bn": "ইলেকট্রনিক্স ও গ্যাজেট",
+            "icon": "⚡",
+            "desc_en": "Serial number tracking, manufacturer warranties, installment (EMI) & service billing.",
+            "desc_bn": "সিরিয়াল নম্বর ট্র্যাকিং, ওয়ারেন্টি ম্যানেজমেন্ট এবং কিস্তি (ইএমআই) হিসাব।"
+        },
+        "cosmetics": {
+            "name_en": "Cosmetics & Beauty Care",
+            "name_bn": "কসমেটিক্স ও পারফিউম",
+            "icon": "💄",
+            "desc_en": "Brand directories, shade variants, batch expiry tracking & customer loyalty reward points.",
+            "desc_bn": "ব্র্যান্ড ডিরেক্টরি, শেড ভ্যারিয়েন্ট, মেয়াদোত্তীর্ণ ট্র্যাকিং ও লয়্যালটি পয়েন্ট।"
+        },
+        "camical": {
+            "name_en": "Chemical & Lab Supplies",
+            "name_bn": "কেমিক্যাল ও ল্যাব সাপ্লাই",
+            "icon": "🧪",
+            "desc_en": "Raw material recipes, multi-stage batch production & chemical inventory management.",
+            "desc_bn": "কাঁচামাল ফরমুলা, ব্যাচ প্রোডাকশন ম্যানুফ্যাকচারিং ও কেমিক্যাল স্টক হিসাব।"
+        },
+        "computer": {
+            "name_en": "Computer & IT Accessories",
+            "name_bn": "কম্পিউটার ও আইটি শপ",
+            "icon": "💻",
+            "desc_en": "Serial barcode warranties, custom PC component assembly, service RMA & ticket tracking.",
+            "desc_bn": "সিরিয়াল বারকোড ওয়ারেন্টি, পার্টস অ্যাসেম্বলি এবং রিপেয়ার ট্র্যাকিং।"
+        },
+        "jewelry": {
+            "name_en": "Jewelry & Gold Shop",
+            "name_bn": "জুয়েলারি ও জুয়েলার্স",
+            "icon": "💍",
+            "desc_en": "Gold/silver weight, karat purity grading, making charge calculation & custom orders.",
+            "desc_bn": "স্বর্ণ/রুপার ওজন, ক্যারেট গ্রেডিং, মজুরি হিসাব ও স্পেশাল অর্ডার ম্যানেজমেন্ট।"
+        },
+        "food": {
+            "name_en": "Organic Food & Bakery",
+            "name_bn": "ফুড ও বেকারি",
+            "icon": "🥖",
+            "desc_en": "Perishable ingredients, production recipes, expiry tracking & fast-checkout POS.",
+            "desc_bn": "দ্রুত পচনশীল কাঁচামাল, উৎপাদন রেসিপি ও সুপারফাস্ট পিওএস সেলস।"
+        },
+        "handcrafts": {
+            "name_en": "Handcrafts & Boutique",
+            "name_bn": "হস্তশিল্প ও বুটিক",
+            "icon": "🎨",
+            "desc_en": "Artisan inventory, handmade item tags, boutique orders & instant POS invoicing.",
+            "desc_bn": "কারুশিল্প ও বুটিক পণ্য, কাস্টম বারকোড এবং সহজ ইনভয়েসিং।"
+        },
+        "other": {
+            "name_en": "Other Retail & Services",
+            "name_bn": "অন্যান্য রিটেইল ও সার্ভিস",
+            "icon": "🏢",
+            "desc_en": "Complete all-in-one POS, barcode inventory, accounts & multi-channel billing.",
+            "desc_bn": "অল-ইন-ওয়ান পিওএস, বারকোড ইনভেন্টরি ও নির্ভুল অ্যাকাউন্টিং।"
+        }
+    }
+
+    def get(self, request):
+        from tenants.models import Shop
+        from accounts.models import User
+        
+        # Query only active demo shops
+        demo_shops = Shop.objects.filter(is_demo=True, is_active=True).order_by("business_type", "name")
+        
+        # Group shops strictly by category
+        grouped = {}
+        for s in demo_shops:
+            cat_key = s.business_type or "general"
+            if cat_key not in grouped:
+                meta = self.CATEGORY_META.get(cat_key, self.CATEGORY_META["other"])
+                grouped[cat_key] = {
+                    "key": cat_key,
+                    "name_en": meta["name_en"],
+                    "name_bn": meta["name_bn"],
+                    "icon": meta["icon"],
+                    "desc_en": meta["desc_en"],
+                    "desc_bn": meta["desc_bn"],
+                    "shops": []
+                }
+            
+            # Key feature list
+            features = ["POS Thermal Billing", "Barcode Scanning", "Real-Time Stock", "Daily Cash Register", "Customer Dues"]
+            if s.business_type in ["mobile", "computer"] or s.service_enabled:
+                features.append("Service & Repair Tickets (with QR Live Tracking)")
+                features.append("Serial Warranty Management")
+            if s.business_type == "supershop":
+                features.append("Barcode Scale Integration (EAN-13)")
+                features.append("Hold & Recall Cart (F8/F9)")
+                features.append("You Saved Discount Receipts")
+            if s.business_type == "fashion":
+                features.append("Size/Color Variant Matrix")
+                features.append("Barcode Hangtag Printing")
+            if s.manufacturing_enabled or s.business_type == "camical":
+                features.append("Batch Manufacturing & Production")
+
+            grouped[cat_key]["shops"].append({
+                "id": s.id,
+                "name": s.name,
+                "slug": s.slug,
+                "business_type": s.business_type,
+                "address": s.address or "StockWhisk Demo Centre, Dhaka",
+                "features": features,
+            })
+            
+        # Return only categories that actually have at least 1 demo shop
+        categories_list = list(grouped.values())
+        return Response({
+            "total_demo_shops": demo_shops.count(),
+            "total_categories": len(categories_list),
+            "categories": categories_list
+        })
+
+
+class PublicDemoLoginView(APIView):
+    """
+    1-Click Instant Login into a specific demo shop.
+    Issues a valid JWT for the demo owner without requiring manual password entry.
+    """
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    def post(self, request):
+        from tenants.models import Shop
+        from accounts.models import User
+        from rest_framework_simplejwt.tokens import RefreshToken
+        from django.contrib.auth.hashers import make_password
+
+        shop_id = request.data.get("shop_id")
+        
+        # If shop_id not provided, pick the first active demo shop
+        if shop_id:
+            shop = Shop.objects.filter(id=shop_id, is_demo=True, is_active=True).first()
+        else:
+            shop = Shop.objects.filter(is_demo=True, is_active=True).first()
+
+        if not shop:
+            return Response({"error": "Selected demo store is currently not available."}, status=status.HTTP_404_NOT_FOUND)
+
+        # Get or create demo owner user
+        user = User.objects.filter(shop=shop, role="owner").first()
+        if not user:
+            user = User.objects.create(
+                email=f"demo_owner_{shop.id}@demo.stockwhisk.com",
+                first_name="Demo",
+                last_name="Manager",
+                shop=shop,
+                role="owner",
+                is_active=True,
+                password=make_password("admin")
+            )
+
+        refresh = RefreshToken.for_user(user)
+        return Response({
+            "access": str(refresh.access_token),
+            "refresh": str(refresh),
+            "shop_name": shop.name,
+            "business_type": shop.business_type,
+            "shop_id": shop.id,
+            "owner_email": user.email
+        })
