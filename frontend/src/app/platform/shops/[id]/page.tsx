@@ -20,6 +20,7 @@ type Shop = {
   plan_tier: string | null;
   is_active: boolean;
   is_test?: boolean;
+  is_demo?: boolean;
   is_free?: boolean;
   manufacturing_enabled?: boolean;
   mobile_repair_enabled?: boolean;
@@ -195,6 +196,20 @@ export default function ShopDetailsPage() {
       setBusy(false);
     }
   }, [shop]);
+
+  const toggleDemo = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const r = await api<{ is_demo: boolean; is_test: boolean }>(`/platform/shops/${shop.id}/toggle-demo/`, { method: "POST" });
+      await load();
+      toast.success(r.is_demo ? "Marked as Demo Store (separated)." : "Marked as Live Merchant Store.");
+    } catch (e: any) {
+      toast.error(e?.message || "Action failed.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop, load]);
 
   const toggleTest = useCallback(async () => {
     if (!shop) return;
@@ -515,6 +530,19 @@ export default function ShopDetailsPage() {
                     {shop.is_free ? "Remove Free Access (start charging)" : "Grant Lifetime-Free Access"}
                   </span>
                   {shop.is_free && <span className="badge bg-success-subtle text-success border border-success-subtle">FREE</span>}
+                </button>
+
+                <button
+                  className={`btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between ${shop.is_demo ? "btn-outline-warning" : "btn-outline-secondary"}`}
+                  onClick={toggleDemo}
+                  disabled={busy}
+                  title="Demo shops are separated in platform admin"
+                >
+                  <span>
+                    <i className="bi bi-flask-fill me-2"></i>
+                    {shop.is_demo ? "Unmark Demo Store (move to live)" : "Mark as Demo Store (separate)"}
+                  </span>
+                  {shop.is_demo && <span className="badge bg-warning text-dark">DEMO</span>}
                 </button>
 
                 <button

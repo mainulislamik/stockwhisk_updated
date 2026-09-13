@@ -65,7 +65,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
         model = Shop
         fields = [
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
-            "plan", "plan_tier", "is_active", "is_test", "is_free", "trial_ends_at", "suspended_at",
+            "plan", "plan_tier", "is_active", "is_test", "is_demo", "is_free", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
             "created_at", "owner_name", "owner_password", "subscription_info", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled"
         ]
@@ -429,6 +429,18 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         data["subscription"] = shop_subscription_info(shop)
         data["invoice_number"] = invoice.number
         return Response(data)
+
+    @action(detail=True, methods=["post"], url_path="toggle-demo")
+    def toggle_demo(self, request, pk=None):
+        """Mark/unmark a shop as a demo shop."""
+        shop = self.get_object()
+        shop.is_demo = not shop.is_demo
+        if shop.is_demo:
+            shop.is_test = True
+        shop.save(update_fields=["is_demo", "is_test"])
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
+               description=f"Shop marked as {'demo' if shop.is_demo else 'standard'} by platform admin")
+        return Response({"status": "ok", "is_demo": shop.is_demo, "is_test": shop.is_test})
 
     @action(detail=True, methods=["post"], url_path="toggle-test")
     def toggle_test(self, request, pk=None):
