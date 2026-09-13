@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, fetchAll, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
-import { ErrorState, Pagination, Spinner } from "@/components/ui";
+import { ErrorState, Pagination, Spinner, money } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -1011,8 +1011,8 @@ export default function ProductsPage() {
                                   )}
                                 </div>
                               </td>
-                              <td className="text-end">`৳${Number(cost).toFixed(2)}`</td>
-                              <td className="text-end">`৳${Number(sell).toFixed(2)}`</td>
+                              <td className="text-end">{money(cost)}</td>
+                              <td className="text-end">{money(sell)}</td>
                               <td className="text-end">
                                 <span className={stockNum <= 0 ? "text-danger fw-bold" : ""}>
                                   {stockNum} {baseUnit || "pcs"}
@@ -1100,8 +1100,8 @@ export default function ProductsPage() {
                             )}
                           </div>
                         </td>
-                        <td className="text-end">`৳${Number(cost).toFixed(2)}`</td>
-                        <td className="text-end">`৳${Number(sell).toFixed(2)}`</td>
+                        <td className="text-end">{money(cost)}</td>
+                        <td className="text-end">{money(sell)}</td>
                         <td className="text-end">
                           <span className={stockNum <= 0 ? "text-danger fw-bold" : ""}>
                             {stockNum} {baseUnit || "pcs"}
