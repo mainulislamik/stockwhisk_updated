@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Nav from "@/components/Nav";
 import UniversalSearch from "@/components/UniversalSearch";
-import { impersonatingShop, isImpersonating, returnToAdmin } from "@/lib/impersonation";
+import { impersonatingShop, isImpersonating, returnToAdmin, clearImpersonation } from "@/lib/impersonation";
 import ThemeToggle from "@/components/ThemeToggle";
 import LanguageToggle from "@/components/LanguageToggle";
 import PageGuideButton from "@/components/PageGuideButton";
@@ -253,7 +253,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Main */}
       <div className="flex-grow-1 d-flex flex-column min-vw-0" style={{ minWidth: 0 }}>
-        {mounted && isImpersonating() && (
+        {mounted && isImpersonating() && !user?.shop_is_demo && (
           <div className="d-print-none d-flex flex-wrap align-items-center justify-content-between gap-2 px-3 py-2 text-white" style={{ background: "var(--brand-500)" }}>
             <span className="small">
               🔓 You are viewing <strong>{impersonatingShop()}</strong> as a platform admin.
@@ -268,7 +268,14 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             <span className="small">
               🔴 <strong>{lang === "bn" ? "ডেমো মোড" : "Demo mode"}</strong> — {lang === "bn" ? "আপনি সবকিছু দেখতে পারবেন, কিন্তু পরিবর্তন করতে পারবেন না (রিড-অনলি)।" : "you can browse everything, but changes are disabled (read-only)."}
             </span>
-            <button className="btn btn-light btn-sm py-0" onClick={logout}>
+            <button
+              className="btn btn-light btn-sm py-0"
+              onClick={() => {
+                clearImpersonation();
+                logout();
+                window.location.href = "/demo";
+              }}
+            >
               {lang === "bn" ? "← ডেমো থেকে প্রস্থান" : "← Exit demo"}
             </button>
           </div>

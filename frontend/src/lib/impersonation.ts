@@ -17,6 +17,13 @@ export function impersonatingShop(): string {
   return localStorage.getItem(FLAG) || "";
 }
 
+export function clearImpersonation() {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ADMIN_ACCESS);
+  localStorage.removeItem(ADMIN_REFRESH);
+  localStorage.removeItem(FLAG);
+}
+
 // Called from the platform "Login as" button with the backend's token response.
 export function startImpersonation(tokens: { access: string; refresh: string; shop_name: string }) {
   const adminAccess = getAccess();
@@ -33,8 +40,6 @@ export function returnToAdmin() {
   const access = localStorage.getItem(ADMIN_ACCESS);
   const refresh = localStorage.getItem(ADMIN_REFRESH);
   if (access) setTokens(access, refresh || undefined);
-  localStorage.removeItem(ADMIN_ACCESS);
-  localStorage.removeItem(ADMIN_REFRESH);
-  localStorage.removeItem(FLAG);
+  clearImpersonation();
   window.location.href = "/platform";
 }

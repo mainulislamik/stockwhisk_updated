@@ -8,7 +8,8 @@ import MarketingNav from "@/components/MarketingNav";
 import MarketingFooter from "@/components/MarketingFooter";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { M } from "@/lib/marketing";
-import { setTokens } from "@/lib/api";
+import { setTokens, clearTokens } from "@/lib/api";
+import { clearImpersonation } from "@/lib/impersonation";
 
 type DemoShop = {
   id: number;
@@ -177,6 +178,8 @@ export default function CategoryDemoPage() {
 
       const authData = await res.json();
       
+      clearImpersonation();
+      clearTokens();
       // Save tokens in sw_access and sw_refresh (StockWhisk client storage)
       setTokens(authData.access, authData.refresh);
       try {
