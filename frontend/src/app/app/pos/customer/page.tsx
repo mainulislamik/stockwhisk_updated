@@ -61,6 +61,7 @@ export default function PosCustomerPage() {
   const [deviceImei, setDeviceImei] = useState("");
   const [problemDescription, setProblemDescription] = useState("");
   const [repairWarrantyDays, setRepairWarrantyDays] = useState("30");
+  const [enableRepairInfo, setEnableRepairInfo] = useState(true);
 
   // Sync existing email when customer changes
   useEffect(() => {
@@ -356,15 +357,35 @@ export default function PosCustomerPage() {
                 ══════════════════════════════════════════════════════════ */}
             {isRepairShop && (
               <div className="card shadow-sm border-0 rounded-4 p-3 bg-light border-start border-4 border-warning mb-3">
-                <div className="d-flex align-items-center justify-content-between mb-3">
-                  <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
-                    <span className="p-1 px-2 rounded bg-warning text-dark fs-6">🛠️</span>
-                    <span>{lang === "bn" ? "মোবাইল সার্ভিসিং ও ডিভাইস তথ্য" : "Mobile Repair & Device Info"}</span>
-                  </h6>
-                  <span className="badge bg-warning text-dark px-2 py-1 fw-bold">Repair Mode</span>
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                    <input
+                      className="form-check-input fs-5"
+                      type="checkbox"
+                      role="switch"
+                      id="posRepairToggleSwitch"
+                      checked={enableRepairInfo}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setEnableRepairInfo(checked);
+                        if (!checked) {
+                          setServiceCharge("");
+                          setDeviceModel("");
+                          setDeviceImei("");
+                          setProblemDescription("");
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <label className="form-check-label fw-bold text-dark mb-0" htmlFor="posRepairToggleSwitch" style={{ cursor: "pointer" }}>
+                      🛠️ {lang === "bn" ? "মোবাইল রিপেয়ার ও সার্ভিসিং তথ্য" : "Mobile Repair & Service Info"}
+                    </label>
+                  </div>
+                  <span className={enableRepairInfo ? "badge px-2 py-1 fw-semibold bg-warning text-dark" : "badge px-2 py-1 fw-semibold bg-secondary text-white"}>{enableRepairInfo ? (lang === "bn" ? "অন (চালু)" : "Enabled") : (lang === "bn" ? "অফ (বন্ধ)" : "Disabled")}</span>
                 </div>
 
-                <div className="row g-3">
+                {enableRepairInfo && (
+                <div className="row g-3 pt-2 border-top mt-2">
                   {/* Service / Labor Charge */}
                   <div className="col-md-6">
                     <div className="form-floating">
@@ -456,6 +477,7 @@ export default function PosCustomerPage() {
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             )}
 
