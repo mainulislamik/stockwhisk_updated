@@ -43,6 +43,8 @@ export default function TicketsPage() {
     customer_name: "", 
     customer_phone: "", 
     device_description: "", 
+    device_imei: "",
+    repair_warranty_days: "30",
     complaint: "", 
     service_charge: "", 
     advance_paid: "",
@@ -70,14 +72,14 @@ export default function TicketsPage() {
           // Walk-in identity is only sent when no existing customer is chosen.
           customer_name: form.customer ? "" : form.customer_name.trim(),
           customer_phone: form.customer ? "" : form.customer_phone.trim(),
-          device_description: form.device_description,
-          complaint: form.complaint,
+          device_description: form.device_imei ? (form.device_description.trim() + " (IMEI: " + form.device_imei.trim() + ")") : form.device_description.trim(),
+          complaint: (form.repair_warranty_days && form.repair_warranty_days !== "0") ? (form.complaint.trim() + "\n[Warranty: " + form.repair_warranty_days + " Days]") : form.complaint.trim(),
           service_charge: form.service_charge || 0,
           advance_paid: form.advance_paid || 0,
           estimated_delivery: form.estimated_delivery || null,
         },
       });
-      setForm({ customer: "", customer_name: "", customer_phone: "", device_description: "", complaint: "", service_charge: "", advance_paid: "", estimated_delivery: "" });
+      setForm({ customer: "", customer_name: "", customer_phone: "", device_description: "", device_imei: "", repair_warranty_days: "30", complaint: "", service_charge: "", advance_paid: "", estimated_delivery: "" });
       setShowAdd(false);
       setPage(1);
       mutate();
@@ -105,9 +107,10 @@ export default function TicketsPage() {
         <div className="card shadow-sm">
           <div className="card-body">
             <form onSubmit={save} className="row g-3">
+              {/* Row 1: Customer Contact */}
               <div className="col-md-4">
-                <label className="small">{t("tkt_lbl_cust")}</label>
-                <select className="form-select form-select-sm" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
+                <label className="small fw-medium">{t("tkt_lbl_cust")}</label>
+                <select className="form-select form-select-sm shadow-sm" value={form.customer} onChange={(e) => setForm({ ...form, customer: e.target.value })}>
                   <option value="">{t("tkt_walkin")}</option>
                   {(customers || []).map((c) => (
                     <option key={c.id} value={c.id}>
@@ -119,39 +122,66 @@ export default function TicketsPage() {
               {!form.customer && (
                 <>
                   <div className="col-md-4">
-                    <label className="small">{t("tkt_lbl_walkin_name")}</label>
-                    <input className="form-control form-control-sm" placeholder={t("tkt_ph_cust_name")}
+                    <label className="small fw-medium">{t("tkt_lbl_walkin_name")}</label>
+                    <input className="form-control form-control-sm shadow-sm" placeholder={t("tkt_ph_cust_name")}
                       value={form.customer_name} onChange={(e) => setForm({ ...form, customer_name: e.target.value })} />
                   </div>
                   <div className="col-md-4">
-                    <label className="small">{t("tkt_lbl_walkin_phone")}</label>
-                    <input className="form-control form-control-sm" placeholder={t("tkt_ph_phone")}
+                    <label className="small fw-medium">{t("tkt_lbl_walkin_phone")}</label>
+                    <input className="form-control form-control-sm shadow-sm" placeholder={t("tkt_ph_phone")}
                       value={form.customer_phone} onChange={(e) => setForm({ ...form, customer_phone: e.target.value })} />
                   </div>
                 </>
               )}
+
+              {/* Row 2: Device, IMEI & Warranty (Identical to POS Repair Section) */}
               <div className="col-md-4">
-                <label className="small fw-semibold">📱 {t("pos_checkout_device_model") || "ডিভাইস ব্র্যান্ড ও মডেল"}</label>
+                <label className="small fw-semibold text-dark">📱 {t("pos_checkout_device_model")}</label>
                 <input required className="form-control form-control-sm shadow-sm" placeholder="যেমন: Samsung Galaxy A12" value={form.device_description} onChange={(e) => setForm({ ...form, device_description: e.target.value })} />
               </div>
-              <div className="col-md-2">
-                <label className="small fw-semibold text-warning-emphasis">🛠️ {t("tkt_lbl_charge")} (৳)</label>
-                <input type="number" step="0.01" min="0" className="form-control form-control-sm shadow-sm border-warning" placeholder="0" value={form.service_charge} onChange={(e) => setForm({ ...form, service_charge: e.target.value })} />
+
+              <div className="col-md-4">
+                <label className="small fw-semibold text-dark">🔢 {t("pos_checkout_device_imei")}</label>
+                <input className="form-control form-control-sm shadow-sm font-monospace" placeholder="35894109..." value={form.device_imei} onChange={(e) => setForm({ ...form, device_imei: e.target.value })} />
               </div>
-              <div className="col-md-2">
-                <label className="small">{t("tkt_lbl_advance")}</label>
-                <input type="number" step="0.01" className="form-control form-control-sm" value={form.advance_paid} onChange={(e) => setForm({ ...form, advance_paid: e.target.value })} />
+
+              <div className="col-md-4">
+                <label className="small fw-semibold text-dark">🛡️ {t("pos_checkout_warranty_period")}</label>
+                <select className="form-select form-select-sm shadow-sm" value={form.repair_warranty_days} onChange={(e) => setForm({ ...form, repair_warranty_days: e.target.value })}>
+                  <option value="0">ওয়ারেন্টি ছাড়া (No Warranty)</option>
+                  <option value="7">৭ দিন টেস্টিং ওয়ারেন্টি (7 Days)</option>
+                  <option value="15">১৫ দিন ওয়ারেন্টি (15 Days)</option>
+                  <option value="30">৩০ দিন / ১ মাস ওয়ারেন্টি (30 Days)</option>
+                  <option value="90">৩ মাস ওয়ারেন্টি (90 Days)</option>
+                  <option value="180">৬ মাস ওয়ারেন্টি (6 Months)</option>
+                </select>
               </div>
-              <div className="col-md-2">
-                <label className="small">{t("tkt_lbl_est_del")}</label>
-                <input type="date" className="form-control form-control-sm" value={form.estimated_delivery} onChange={(e) => setForm({ ...form, estimated_delivery: e.target.value })} />
+
+              {/* Row 3: Financials & Delivery Date */}
+              <div className="col-md-4">
+                <label className="small fw-semibold text-warning-emphasis">🛠️ {t("pos_checkout_service_fee")}</label>
+                <input type="number" step="0.01" min="0" className="form-control form-control-sm shadow-sm border-warning fw-bold text-warning-emphasis" placeholder="0" value={form.service_charge} onChange={(e) => setForm({ ...form, service_charge: e.target.value })} />
               </div>
+              <div className="col-md-4">
+                <label className="small fw-medium">💵 {t("tkt_lbl_advance")} (৳)</label>
+                <input type="number" step="0.01" min="0" className="form-control form-control-sm shadow-sm" placeholder="0" value={form.advance_paid} onChange={(e) => setForm({ ...form, advance_paid: e.target.value })} />
+              </div>
+              <div className="col-md-4">
+                <label className="small fw-medium">📅 {t("tkt_lbl_est_del")}</label>
+                <input type="date" className="form-control form-control-sm shadow-sm" value={form.estimated_delivery} onChange={(e) => setForm({ ...form, estimated_delivery: e.target.value })} />
+              </div>
+
+              {/* Row 4: Problem & Fault Description */}
               <div className="col-12">
-                <label className="small fw-semibold">📝 {t("pos_checkout_problem_desc") || "সমস্যা / ফল্ট বিবরণ (Customer Fault Report)"}</label>
+                <label className="small fw-semibold text-dark">📝 {t("pos_checkout_problem_desc")}</label>
                 <textarea required className="form-control form-control-sm shadow-sm" placeholder="যেমন: ডিসপ্লে ভাঙা, চার্জিং পোর্ট সমস্যা, টাচ কাজ করে না..." rows={2} value={form.complaint} onChange={(e) => setForm({ ...form, complaint: e.target.value })} />
               </div>
-              <div className="col-12">
-                <button className="btn btn-brand btn-sm" disabled={saving}>
+
+              <div className="col-12 d-flex justify-content-end gap-2">
+                <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setShowAdd(false)}>
+                  বাতিল (Cancel)
+                </button>
+                <button type="submit" className="btn btn-brand btn-sm px-4 fw-semibold" disabled={saving}>
                   {saving ? t("tkt_btn_saving") : t("tkt_btn_create")}
                 </button>
               </div>
