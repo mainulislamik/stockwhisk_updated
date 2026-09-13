@@ -256,7 +256,7 @@ export default function ShopDetailsPage() {
           <Link href="/platform/shops" className="text-decoration-none text-secondary small d-flex align-items-center gap-1 mb-2">
             <i className="bi bi-arrow-left"></i> Back to Shops
           </Link>
-          <h1 className="h3 fw-bold mb-0 text-white d-flex align-items-center gap-3">
+          <h1 className="h3 fw-bold mb-0 text-body d-flex align-items-center gap-3">
             {shop.name}
             <span className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 rounded-pill px-3 py-1 fs-6 font-monospace">
               {shop.shop_code || `SW-${1000 + shop.id}`}
@@ -281,7 +281,7 @@ export default function ShopDetailsPage() {
         <div className="col-lg-8">
           <div className="card border shadow-sm rounded-4 h-100 bg-body">
             <div className="card-body p-4">
-              <h5 className="fw-bold text-white mb-4"><i className="bi bi-shop me-2 text-brand"></i>{lang === "bn" ? "দোকানের সাধারণ তথ্য" : "Shop Information"}</h5>
+              <h5 className="fw-bold text-body mb-4"><i className="bi bi-shop me-2 text-brand"></i>{lang === "bn" ? "দোকানের সাধারণ তথ্য" : "Shop Information"}</h5>
               
               <div className="row g-4">
                 <div className="col-md-6">
@@ -293,45 +293,45 @@ export default function ShopDetailsPage() {
                 <div className="col-md-6">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "ব্যবসার ধরন" : "Business Type"}</p>
-                    <p className="fw-medium text-white mb-0">{TYPE_LABELS[shop.business_type] || shop.business_type}</p>
+                    <p className="fw-medium text-body mb-0">{TYPE_LABELS[shop.business_type] || shop.business_type}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "যোগাযোগের নম্বর" : "Contact Phone"}</p>
-                    <p className="fw-medium text-white mb-0">{shop.phone || "—"}</p>
+                    <p className="fw-medium text-body mb-0">{shop.phone || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "অফিসিয়াল ইমেইল" : "Public Email"}</p>
-                    <p className="fw-medium text-white mb-0">{shop.email || "—"}</p>
+                    <p className="fw-medium text-body mb-0">{shop.email || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "মোট ব্যবহারকারী" : "Total Users"}</p>
-                    <p className="fw-medium text-white mb-0">{shop.user_count} User(s)</p>
+                    <p className="fw-medium text-body mb-0">{shop.user_count} User(s)</p>
                   </div>
                 </div>
                 <div className="col-12">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">{lang === "bn" ? "ঠিকানা" : "Physical Address"}</p>
-                    <p className="fw-medium text-white mb-0">{shop.address || "No address provided"}</p>
+                    <p className="fw-medium text-body mb-0">{shop.address || "No address provided"}</p>
                   </div>
                 </div>
               </div>
 
                             <hr className="border-secondary my-4 opacity-25" />
 
-              <h5 className="fw-bold text-white mb-3"><i className="bi bi-toggles me-2 text-primary"></i>Module Controls & Features</h5>
+              <h5 className="fw-bold text-body mb-3"><i className="bi bi-toggles me-2 text-primary"></i>Module Controls & Features</h5>
               <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 bg-body-tertiary border">
                 <div className="d-flex align-items-center gap-3">
                   <div className="p-2 rounded-circle bg-primary bg-opacity-25 text-primary fs-4">
                     <i className="bi bi-gear-wide-connected"></i>
                   </div>
                   <div>
-                    <h6 className="text-white fw-bold mb-0">Manufacturing & Batch Production</h6>
+                    <h6 className="text-body fw-bold mb-0">Manufacturing & Batch Production</h6>
                     <p className="text-secondary small mb-0">Enable 2-step dynamic yield production batches, raw material deductions, and automatic unit cost calculation.</p>
                   </div>
                 </div>
@@ -354,7 +354,7 @@ export default function ShopDetailsPage() {
                     <i className="bi bi-tools"></i>
                   </div>
                   <div>
-                    <h6 className="text-white fw-bold mb-0">Mobile Repair Shop Module</h6>
+                    <h6 className="text-body fw-bold mb-0">Mobile Repair Shop Module</h6>
                     <p className="text-secondary small mb-0">Enable Brand-first hierarchy (Brand → Category → Model), Repair POS speed-mode, Service Labor items, and Job Sheets.</p>
                   </div>
                 </div>
@@ -371,18 +371,18 @@ export default function ShopDetailsPage() {
                 </div>
               </div>
 
-              <h5 className="fw-bold text-white mb-4"><i className="bi bi-person-badge me-2 text-info"></i>Owner Details</h5>
+              <h5 className="fw-bold text-body mb-4"><i className="bi bi-person-badge me-2 text-info"></i>Owner Details</h5>
               <div className="row g-4">
                 <div className="col-md-6">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">Owner Name</p>
-                    <p className="fw-medium text-white mb-0">{shop.owner_full_name || "—"}</p>
+                    <p className="fw-medium text-body mb-0">{shop.owner_full_name || "—"}</p>
                   </div>
                 </div>
                 <div className="col-md-6">
                   <div className="p-3 rounded-3 bg-body-tertiary border">
                     <p className="text-secondary small mb-1">Owner Email (Login)</p>
-                    <p className="fw-medium text-white mb-0">{shop.owner_email || "—"}</p>
+                    <p className="fw-medium text-body mb-0">{shop.owner_email || "—"}</p>
                   </div>
                 </div>
               </div>
@@ -394,7 +394,7 @@ export default function ShopDetailsPage() {
         <div className="col-lg-4">
           <div className="card border shadow-sm rounded-4 mb-4 bg-body">
             <div className="card-body p-4">
-              <h5 className="fw-bold text-white mb-4"><i className="bi bi-activity me-2 text-warning"></i>Subscription</h5>
+              <h5 className="fw-bold text-body mb-4"><i className="bi bi-activity me-2 text-warning"></i>Subscription</h5>
 
               {(() => {
                 const sub = shop.subscription;
@@ -414,7 +414,7 @@ export default function ShopDetailsPage() {
                     {(state === "trial" || state === "paid" || state === "expired") && (
                       <div className="mb-3">
                         <p className="text-secondary small mb-1">{state === "expired" ? "Expired on" : (state === "trial" ? "Trial ends" : "Renews / expires")}</p>
-                        <p className="fw-medium text-white mb-0">
+                        <p className="fw-medium text-body mb-0">
                           {fmtDate(sub?.ends_at || shop.trial_ends_at)}
                           {state !== "expired" && (
                             <span className={`ms-2 badge bg-${daysLeft <= 5 ? "danger" : "success"} bg-opacity-25 text-${daysLeft <= 5 ? "danger" : "success"}`}>
@@ -426,7 +426,7 @@ export default function ShopDetailsPage() {
                     )}
                     <div className="mb-2">
                       <p className="text-secondary small mb-1">Registered On</p>
-                      <p className="fw-medium text-white mb-0">{fmtDate(shop.created_at)}</p>
+                      <p className="fw-medium text-body mb-0">{fmtDate(shop.created_at)}</p>
                     </div>
                   </>
                 );
@@ -485,10 +485,10 @@ export default function ShopDetailsPage() {
 
           <div className="card border shadow-sm rounded-4 border-top border-danger border-4 bg-body">
             <div className="card-body p-4">
-              <h5 className="fw-bold text-white mb-4"><i className="bi bi-shield-lock me-2 text-danger"></i>Admin Actions</h5>
+              <h5 className="fw-bold text-body mb-4"><i className="bi bi-shield-lock me-2 text-danger"></i>Admin Actions</h5>
               
               <div className="d-grid gap-3">
-                <button className="btn btn-outline-light text-start p-3 rounded-3 d-flex align-items-center justify-content-between" onClick={resetPassword} disabled={busy}>
+                <button className="btn btn-outline-secondary text-start p-3 rounded-3 d-flex align-items-center justify-content-between" onClick={resetPassword} disabled={busy}>
                   <span><i className="bi bi-key me-2"></i> Reset Owner Password</span>
                   <i className="bi bi-chevron-right text-secondary"></i>
                 </button>
