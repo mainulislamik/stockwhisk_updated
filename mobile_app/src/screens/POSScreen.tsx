@@ -50,6 +50,8 @@ type Product = {
   variations?: ProductVariation[];
   scanned_variation?: ProductVariation;
   scanned_scale_weight?: number;
+  brand?: any;
+  category?: any;
 };
 type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[]; selectedVariation?: ProductVariation | null };
 type Customer = { id: number; name: string; phone?: string; };
@@ -132,8 +134,8 @@ export default function POSScreen() {
 
   useEffect(() => {
     if (isRepairShop) {
-      api.get('/catalog/brands/').then(r => setRepairBrands(r.data.results || r.data || [])).catch(() => {});
-      api.get('/catalog/categories/').then(r => setRepairCategories(r.data.results || r.data || [])).catch(() => {});
+      api.get('/catalog/brands/?page_size=100').then((r: any) => setRepairBrands(r.data.results || r.data || [])).catch(() => {});
+      api.get('/catalog/categories/?page_size=100').then((r: any) => setRepairCategories(r.data.results || r.data || [])).catch(() => {});
     }
   }, [isRepairShop]);
   const shopType = (user as any)?.shop_business_type || '';
@@ -191,13 +193,23 @@ export default function POSScreen() {
           setView('products');
           return true;
         }
+        if (isRepairShop) {
+          if (selectedRepairCategory) {
+            setSelectedRepairCategory(null);
+            return true;
+          }
+          if (selectedRepairBrand) {
+            setSelectedRepairBrand(null);
+            return true;
+          }
+        }
         return false;
       };
       if (Platform.OS !== 'web' && BackHandler && typeof BackHandler.addEventListener === 'function') {
         const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
         return () => subscription?.remove?.();
       }
-    }, [view])
+    }, [view, isRepairShop, selectedRepairBrand, selectedRepairCategory])
   );
 
   const CART_DRAFT_KEY = `stockwhisk_pos_cart_draft_${user?.id || 'default'}`;
@@ -270,10 +282,23 @@ export default function POSScreen() {
     if (loading || (!hasMore && !reset)) return;
     setLoading(true);
     try {
-      const res = await api.get('/catalog/products/', {
-        params: { search: debouncedQuery, page: pageNum, page_size: 20, in_stock: 1, light: 1 }
-      });
-      const data = res.data.results || [];
+      const params: any = {
+        search: debouncedQuery,
+        page: pageNum,
+        page_size: 50,
+        in_stock: 1,
+        light: 1
+      };
+      if (isRepairShop && selectedRepairBrand) {
+        params.brand = selectedRepairBrand.id;
+      }
+      if (isRepairShop && selectedRepairCategory) {
+        params.category = selectedRepairCategory.id;
+      } else if (!isRepairShop && selectedCategory) {
+        params.category = selectedCategory;
+      }
+      const res = await api.get('/catalog/products/', { params });
+      const data = res.data.results || res.data || [];
       if (reset) {
         setProducts(data);
       } else {
@@ -294,7 +319,32 @@ export default function POSScreen() {
 
   useEffect(() => {
     fetchProducts(1, true);
-  }, [debouncedQuery, selectedCategory]);
+  }, [debouncedQuery, selectedCategory, selectedRepairBrand, selectedRepairCategory]);
+
+  const displayedProducts = useMemo(() => {
+    if (debouncedQuery.trim()) {
+      return products;
+    }
+    if (isRepairShop) {
+      if (selectedRepairBrand && selectedRepairCategory) {
+        return products.filter((p: any) => {
+          const pBrandId = typeof p.brand === 'object' && p.brand !== null ? p.brand.id : p.brand;
+          const pCatId = typeof p.category === 'object' && p.category !== null ? p.category.id : p.category;
+          const matchBrand = !pBrandId || pBrandId === selectedRepairBrand.id;
+          const matchCat = !pCatId || pCatId === selectedRepairCategory.id;
+          return matchBrand && matchCat;
+        });
+      }
+      return [];
+    }
+    if (selectedCategory) {
+      return products.filter((p: any) => {
+        const pCatId = typeof p.category === 'object' && p.category !== null ? p.category.id : p.category;
+        return pCatId === selectedCategory;
+      });
+    }
+    return products;
+  }, [products, isRepairShop, debouncedQuery, selectedRepairBrand, selectedRepairCategory, selectedCategory]);
 
   const loadMore = () => {
     if (hasMore && !loading) {
@@ -727,7 +777,7 @@ export default function POSScreen() {
             </Button>
           </View>
 
-          <View style={{ paddingHorizontal: 12, paddingBottom: 12, flexDirection: 'row', justifyContent: 'flex-start' }}>
+          <View style={{ paddingHorizontal: 12, paddingBottom: 10, flexDirection: 'row', justifyContent: 'flex-start' }}>
             <Button 
               mode="contained-tonal" 
               icon="plus" 
@@ -738,13 +788,304 @@ export default function POSScreen() {
             </Button>
           </View>
 
-          {loading && page === 1 ? (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <ActivityIndicator size="large" />
+          {/* Quick Category Filter Pills for standard/fashion shops */}
+          {!isRepairShop && categories.length > 0 && !query.trim() && (
+            <View style={{ paddingHorizontal: 12, marginBottom: 8 }}>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', gap: 6 }}>
+                <TouchableOpacity
+                  onPress={() => setSelectedCategory(null)}
+                  style={{
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 20,
+                    backgroundColor: selectedCategory === null ? theme.colors.primary : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                  }}
+                >
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: selectedCategory === null ? '#ffffff' : theme.colors.onSurface }}>
+                    {isBN ? 'সকল' : 'All'}
+                  </Text>
+                </TouchableOpacity>
+                {categories.map((c: any) => (
+                  <TouchableOpacity
+                    key={c.id}
+                    onPress={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
+                    style={{
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      borderRadius: 20,
+                      backgroundColor: selectedCategory === c.id ? theme.colors.primary : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: 'bold', color: selectedCategory === c.id ? '#ffffff' : theme.colors.onSurface }}>
+                      {c.name}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
-          ) : (
-            <FlatList
-              data={products}
+          )}
+
+          {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
+          {isRepairShop && !query.trim() && (
+            <View style={{ marginBottom: 8 }}>
+              {/* Breadcrumb Navigation Bar */}
+              <View style={{
+                marginHorizontal: 12,
+                marginBottom: 8,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                backgroundColor: theme.colors.surface,
+                borderRadius: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+              }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedRepairBrand(null);
+                      setSelectedRepairCategory(null);
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: !selectedRepairBrand ? theme.colors.primary : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      color: !selectedRepairBrand ? '#ffffff' : theme.colors.onSurface
+                    }}>
+                      📱 ১. {isBN ? 'ব্র্যান্ড' : 'Brands'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {selectedRepairBrand && (
+                    <>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: 'bold' }}>›</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedRepairCategory(null);
+                        }}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 8,
+                          backgroundColor: !selectedRepairCategory ? '#f59e0b' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: !selectedRepairCategory ? '#000000' : theme.colors.onSurface
+                        }}>
+                          🛠️ {selectedRepairBrand.name}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {selectedRepairBrand && selectedRepairCategory && (
+                    <>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: 'bold' }}>›</Text>
+                      <View style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        backgroundColor: '#10b981',
+                      }}>
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: '#ffffff'
+                        }}>
+                          📦 {selectedRepairCategory.name}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </ScrollView>
+
+                {selectedRepairBrand && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedRepairBrand(null);
+                      setSelectedRepairCategory(null);
+                    }}
+                    style={{
+                      marginLeft: 8,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: isDarkMode ? '#3b1d22' : '#fee2e2',
+                      borderWidth: 1,
+                      borderColor: '#fca5a5'
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>
+                      {isBN ? 'রিসেট ↺' : 'Reset ↺'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* STEP 1: Select Brand Cards */}
+              {!selectedRepairBrand && (
+                <View style={{ paddingHorizontal: 12 }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
+                    📱 {isBN ? '১. ব্র্যান্ড নির্বাচন করুন (Select Device Brand):' : '1. Select Device Brand:'}
+                  </Text>
+                  {repairBrands.length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 28, marginBottom: 6 }}>📱</Text>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : 'gray' }}>{isBN ? 'কোনো ব্র্যান্ড পাওয়া যায়নি' : 'No brands found'}</Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                      {repairBrands.map(item => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{ width: '50%', padding: 4 }}
+                          onPress={() => {
+                            setSelectedRepairBrand(item);
+                            setSelectedRepairCategory(null);
+                          }}
+                        >
+                          <Surface style={{
+                            padding: 16,
+                            borderRadius: 12,
+                            backgroundColor: theme.colors.surface,
+                            elevation: 2,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                            minHeight: 110
+                          }}>
+                            <View style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 24,
+                              backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginBottom: 8
+                            }}>
+                              <MaterialCommunityIcons name="cellphone" size={26} color={theme.colors.primary} />
+                            </View>
+                            <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.colors.onSurface, textAlign: 'center' }}>
+                              {item.name}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: theme.colors.primary, marginTop: 4 }}>
+                              {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
+                            </Text>
+                          </Surface>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* STEP 2: Select Category Cards */}
+              {selectedRepairBrand && !selectedRepairCategory && (
+                <View style={{ paddingHorizontal: 12 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#f59e0b', flex: 1 }}>
+                      🛠️ {selectedRepairBrand.name} {isBN ? 'এর ক্যাটাগরি / পার্টস বেছে নিন:' : 'Parts Category:'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setSelectedRepairBrand(null)}
+                      style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}
+                    >
+                      <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>
+                        ← {isBN ? 'ব্র্যান্ড পরিবর্তন' : 'Change Brand'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {(repairCategories.length > 0 ? repairCategories : categories).length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 28, marginBottom: 6 }}>⚙️</Text>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : 'gray' }}>{isBN ? 'কোনো ক্যাটাগরি পাওয়া যায়নি' : 'No categories found'}</Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                      {(repairCategories.length > 0 ? repairCategories : categories).map(item => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{ width: '50%', padding: 4 }}
+                          onPress={() => {
+                            setSelectedRepairCategory(item);
+                          }}
+                        >
+                          <Surface style={{
+                            padding: 14,
+                            borderRadius: 12,
+                            backgroundColor: theme.colors.surface,
+                            elevation: 2,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                            minHeight: 100
+                          }}>
+                            <View style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 22,
+                              backgroundColor: isDarkMode ? '#78350f' : '#fef3c7',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginBottom: 8
+                            }}>
+                              <MaterialCommunityIcons name="tools" size={22} color="#f59e0b" />
+                            </View>
+                            <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.onSurface, textAlign: 'center' }}>
+                              {item.name}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
+                              {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}
+                            </Text>
+                          </Surface>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* STEP 3 Header: Brand & Category Selected */}
+              {selectedRepairBrand && selectedRepairCategory && (
+                <View style={{ paddingHorizontal: 12, marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#10b981', flex: 1 }}>
+                    📦 {selectedRepairBrand.name} · {selectedRepairCategory.name} {isBN ? 'এর পার্টস তালিকা:' : 'Parts List:'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setSelectedRepairCategory(null)}
+                    style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}
+                  >
+                    <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>
+                      ← {isBN ? 'ক্যাটাগরি পরিবর্তন' : 'Change Category'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
+          {isRepairShop && !query.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? null : (
+            loading && page === 1 ? (
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" />
+              </View>
+            ) : (
+              <FlatList
+                data={displayedProducts}
               keyExtractor={item => item.id.toString()}
               numColumns={2}
               contentContainerStyle={{ padding: 8, paddingBottom: 100 }}
@@ -781,7 +1122,23 @@ export default function POSScreen() {
                   </TouchableOpacity>
                 );
               }}
-            />
+                ListEmptyComponent={
+                  !loading ? (
+                    <View style={{ padding: 32, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 36, marginBottom: 10 }}>📦</Text>
+                      <Text style={{ fontWeight: 'bold', fontSize: 16, color: theme.colors.onSurface }}>
+                        {isBN ? 'কোনো পার্টস পাওয়া যায়নি' : 'No products found'}
+                      </Text>
+                      <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : 'gray', marginTop: 4, textAlign: 'center' }}>
+                        {isRepairShop && selectedRepairBrand && selectedRepairCategory
+                          ? (isBN ? (selectedRepairBrand.name + ' এর ' + selectedRepairCategory.name + ' ক্যাটাগরিতে কোনো পণ্য পাওয়া যায়নি।') : ('No items found in ' + selectedRepairBrand.name + ' (' + selectedRepairCategory.name + ').'))
+                          : (isBN ? 'অনুগ্রহ করে অন্য শব্দ বা বারকোড দিয়ে চেষ্টা করুন।' : 'Please try another search or barcode.')}
+                      </Text>
+                    </View>
+                  ) : null
+                }
+              />
+            )
           )}
         </View>
       )}
