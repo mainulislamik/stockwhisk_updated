@@ -8,6 +8,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect } from '@react-navigation/native';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
+import { useAuth } from '../contexts/AuthContext';
 import Skeleton from '../components/Skeleton';
 import ProductDetailModal from '../components/ProductDetailModal';
 import EditProductModal from '../components/EditProductModal';
@@ -27,7 +28,7 @@ type Movement = {
 type FullProduct = {
   id: number; name: string; sku: string; selling_price: string; cost_price: string;
   current_stock: string; reorder_level?: string; is_low_stock?: boolean;
-  is_active?: boolean; category?: number | null; category_name?: string;
+  is_active?: boolean; category?: number | null; category_name?: string; brand?: any;
 };
 
 type AdjProduct = { id: number; name: string; };
@@ -43,6 +44,20 @@ export default function InventoryScreen() {
   const [products, setProducts] = useState<FullProduct[]>([]);
   const [adjProducts, setAdjProducts] = useState<AdjProduct[]>([]);
   const [productsLoading, setProductsLoading] = useState(true);
+
+  const { user } = useAuth();
+  const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [repairBrands, setRepairBrands] = useState<any[]>([]);
+  const [repairCategories, setRepairCategories] = useState<any[]>([]);
+  const [selectedRepairBrand, setSelectedRepairBrand] = useState<any | null>(null);
+  const [selectedRepairCategory, setSelectedRepairCategory] = useState<any | null>(null);
+
+  useEffect(() => {
+    if (isRepairShop) {
+      api.get('/catalog/brands/?page_size=100').then((r: any) => setRepairBrands(r.data.results || r.data || [])).catch(() => {});
+      api.get('/catalog/categories/?page_size=100').then((r: any) => setRepairCategories(r.data.results || r.data || [])).catch(() => {});
+    }
+  }, [isRepairShop]);
 
   // Expand state for cards
   const [expandedCard, setExpandedCard] = useState<'lowstock' | 'outofstock' | 'categories' | null>(null);
@@ -105,7 +120,14 @@ export default function InventoryScreen() {
     const seq = ++searchSeqRef.current;
     setProductsLoading(true);
     try {
-      const res = await api.get('/catalog/products/', { params: { page, page_size: 20, search, light: 1 } });
+      const params: any = { page, page_size: 50, search, light: 1 };
+      if (isRepairShop && selectedRepairBrand) {
+        params.brand = selectedRepairBrand.id;
+      }
+      if (isRepairShop && selectedRepairCategory) {
+        params.category = selectedRepairCategory.id;
+      }
+      const res = await api.get('/catalog/products/', { params });
       if (seq !== searchSeqRef.current) return;
       const results: FullProduct[] = res.data?.results || [];
       if (page === 1) {
@@ -119,14 +141,33 @@ export default function InventoryScreen() {
     if (seq === searchSeqRef.current) {
       setProductsLoading(false);
     }
-  }, []);
+  }, [isRepairShop, selectedRepairBrand, selectedRepairCategory]);
 
   useFocusEffect(
     useCallback(() => {
       loadSummary();
       loadProducts(1, productSearch);
-    }, [productSearch])
+    }, [productSearch, selectedRepairBrand, selectedRepairCategory])
   );
+
+  const displayedProducts = React.useMemo(() => {
+    if (productSearch.trim()) {
+      return products;
+    }
+    if (isRepairShop) {
+      if (selectedRepairBrand && selectedRepairCategory) {
+        return products.filter((p: any) => {
+          const pBrandId = typeof p.brand === 'object' && p.brand !== null ? p.brand.id : p.brand;
+          const pCatId = typeof p.category === 'object' && p.category !== null ? p.category.id : p.category;
+          const matchBrand = !pBrandId || pBrandId === selectedRepairBrand.id;
+          const matchCat = !pCatId || pCatId === selectedRepairCategory.id;
+          return matchBrand && matchCat;
+        });
+      }
+      return [];
+    }
+    return products;
+  }, [products, isRepairShop, productSearch, selectedRepairBrand, selectedRepairCategory]);
 
   const handleSearch = (text: string) => {
     setProductSearch(text);
@@ -330,11 +371,266 @@ export default function InventoryScreen() {
             style={{ marginBottom: 12, backgroundColor: theme.colors.surface }}
             outlineStyle={{ borderRadius: 12 }}
           />
-          {productsLoading && productPage === 1 ? (
-            [1,2,3,4].map(i => <Skeleton key={i} style={{ height: 70, borderRadius: 12, marginBottom: 8 }} isDark={isDarkMode} />)
-          ) : (
-            <>
-              {products.map((item, idx) => (
+
+          {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
+          {isRepairShop && !productSearch.trim() && (
+            <View style={{ marginBottom: 12 }}>
+              {/* Breadcrumb Navigation Bar */}
+              <View style={{
+                marginBottom: 8,
+                paddingVertical: 6,
+                paddingHorizontal: 10,
+                backgroundColor: theme.colors.surface,
+                borderRadius: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+              }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedRepairBrand(null);
+                      setSelectedRepairCategory(null);
+                    }}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: !selectedRepairBrand ? theme.colors.primary : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                    }}
+                  >
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: 'bold',
+                      color: !selectedRepairBrand ? '#ffffff' : theme.colors.onSurface
+                    }}>
+                      📱 ১. {isBN ? 'ব্র্যান্ড' : 'Brands'}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {selectedRepairBrand && (
+                    <>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: 'bold' }}>›</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setSelectedRepairCategory(null);
+                        }}
+                        style={{
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 8,
+                          backgroundColor: !selectedRepairCategory ? '#f59e0b' : (isDarkMode ? '#1e293b' : '#f1f5f9'),
+                        }}
+                      >
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: !selectedRepairCategory ? '#000000' : theme.colors.onSurface
+                        }}>
+                          🛠️ {selectedRepairBrand.name}
+                        </Text>
+                      </TouchableOpacity>
+                    </>
+                  )}
+
+                  {selectedRepairBrand && selectedRepairCategory && (
+                    <>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: 'bold' }}>›</Text>
+                      <View style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 8,
+                        backgroundColor: '#10b981',
+                      }}>
+                        <Text style={{
+                          fontSize: 12,
+                          fontWeight: 'bold',
+                          color: '#ffffff'
+                        }}>
+                          📦 {selectedRepairCategory.name}
+                        </Text>
+                      </View>
+                    </>
+                  )}
+                </ScrollView>
+
+                {selectedRepairBrand && (
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedRepairBrand(null);
+                      setSelectedRepairCategory(null);
+                    }}
+                    style={{
+                      marginLeft: 8,
+                      paddingHorizontal: 8,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: isDarkMode ? '#3b1d22' : '#fee2e2',
+                      borderWidth: 1,
+                      borderColor: '#fca5a5'
+                    }}
+                  >
+                    <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>
+                      {isBN ? 'রিসেট ↺' : 'Reset ↺'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* STEP 1: Select Brand Cards */}
+              {!selectedRepairBrand && (
+                <View>
+                  <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
+                    📱 {isBN ? '১. ব্র্যান্ড নির্বাচন করুন (Select Device Brand):' : '1. Select Device Brand:'}
+                  </Text>
+                  {repairBrands.length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 28, marginBottom: 6 }}>📱</Text>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : 'gray' }}>{isBN ? 'কোনো ব্র্যান্ড পাওয়া যায়নি' : 'No brands found'}</Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                      {repairBrands.map(item => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{ width: '50%', padding: 4 }}
+                          onPress={() => {
+                            setSelectedRepairBrand(item);
+                            setSelectedRepairCategory(null);
+                          }}
+                        >
+                          <Surface style={{
+                            padding: 16,
+                            borderRadius: 12,
+                            backgroundColor: theme.colors.surface,
+                            elevation: 2,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                            minHeight: 110
+                          }}>
+                            <View style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 24,
+                              backgroundColor: isDarkMode ? '#1e3a8a' : '#eff6ff',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginBottom: 8
+                            }}>
+                              <MaterialCommunityIcons name="cellphone" size={26} color={theme.colors.primary} />
+                            </View>
+                            <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.colors.onSurface, textAlign: 'center' }}>
+                              {item.name}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: theme.colors.primary, marginTop: 4 }}>
+                              {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
+                            </Text>
+                          </Surface>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* STEP 2: Select Category Cards */}
+              {selectedRepairBrand && !selectedRepairCategory && (
+                <View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#f59e0b', flex: 1 }}>
+                      🛠️ {selectedRepairBrand.name} {isBN ? 'এর ক্যাটাগরি / পার্টস বেছে নিন:' : 'Parts Category:'}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => setSelectedRepairBrand(null)}
+                      style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}
+                    >
+                      <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>
+                        ← {isBN ? 'ব্র্যান্ড পরিবর্তন' : 'Change Brand'}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+
+                  {repairCategories.length === 0 ? (
+                    <View style={{ padding: 24, alignItems: 'center', backgroundColor: theme.colors.surface, borderRadius: 12 }}>
+                      <Text style={{ fontSize: 28, marginBottom: 6 }}>⚙️</Text>
+                      <Text style={{ color: isDarkMode ? '#94a3b8' : 'gray' }}>{isBN ? 'কোনো ক্যাটাগরি পাওয়া যায়নি' : 'No categories found'}</Text>
+                    </View>
+                  ) : (
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginHorizontal: -4 }}>
+                      {repairCategories.map(item => (
+                        <TouchableOpacity
+                          key={item.id}
+                          style={{ width: '50%', padding: 4 }}
+                          onPress={() => {
+                            setSelectedRepairCategory(item);
+                          }}
+                        >
+                          <Surface style={{
+                            padding: 14,
+                            borderRadius: 12,
+                            backgroundColor: theme.colors.surface,
+                            elevation: 2,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? '#334155' : '#e2e8f0',
+                            minHeight: 100
+                          }}>
+                            <View style={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 22,
+                              backgroundColor: isDarkMode ? '#78350f' : '#fef3c7',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              marginBottom: 8
+                            }}>
+                              <MaterialCommunityIcons name="tools" size={22} color="#f59e0b" />
+                            </View>
+                            <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.onSurface, textAlign: 'center' }}>
+                              {item.name}
+                            </Text>
+                            <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
+                              {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}
+                            </Text>
+                          </Surface>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* STEP 3 Header: Brand & Category Selected */}
+              {selectedRepairBrand && selectedRepairCategory && (
+                <View style={{ marginBottom: 4, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#10b981', flex: 1 }}>
+                    📦 {selectedRepairBrand.name} · {selectedRepairCategory.name} {isBN ? 'এর পার্টস তালিকা:' : 'Parts List:'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={() => setSelectedRepairCategory(null)}
+                    style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}
+                  >
+                    <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>
+                      ← {isBN ? 'ক্যাটাগরি পরিবর্তন' : 'Change Category'}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          )}
+
+          {/* If Repair Shop and picking Brand or Category (and not searching) */}
+          {isRepairShop && !productSearch.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? null : (
+            productsLoading && productPage === 1 ? (
+              [1,2,3,4].map(i => <Skeleton key={i} style={{ height: 70, borderRadius: 12, marginBottom: 8 }} isDark={isDarkMode} />)
+            ) : (
+              <>
+                {displayedProducts.map((item, idx) => (
                 <View key={item.id}>
                   <Surface style={{
                     borderRadius: 12, padding: 14, marginBottom: 8,
@@ -402,11 +698,19 @@ export default function InventoryScreen() {
                   {isBN ? 'আরও লোড করুন' : 'Load More'}
                 </Button>
               )}
-              {products.length === 0 && !productsLoading && (
-                <Text style={{ color: '#94a3b8', textAlign: 'center', padding: 20 }}>{isBN ? 'কোনো পণ্য পাওয়া যায়নি' : 'No products found'}</Text>
+              {displayedProducts.length === 0 && !productsLoading && (
+                <View style={{ padding: 24, alignItems: 'center' }}>
+                  <Text style={{ fontSize: 32, marginBottom: 6 }}>📦</Text>
+                  <Text style={{ color: '#94a3b8', textAlign: 'center' }}>
+                    {isRepairShop && selectedRepairBrand && selectedRepairCategory
+                      ? (isBN ? (selectedRepairBrand.name + ' (' + selectedRepairCategory.name + ') এর জন্য কোনো পার্টস নেই।') : ('No parts for ' + selectedRepairBrand.name + ' (' + selectedRepairCategory.name + ').'))
+                      : (isBN ? 'কোনো পণ্য পাওয়া যায়নি' : 'No products found')}
+                  </Text>
+                </View>
               )}
             </>
-          )}
+          )
+        )}
         </View>
 
         {/* Stock Movements */}
