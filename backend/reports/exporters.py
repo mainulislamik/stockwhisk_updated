@@ -16,13 +16,21 @@ def _filename(title, ext):
     return f"{slug}.{ext}"
 
 
+def _format_cell(val):
+    if isinstance(val, dict):
+        return ", ".join(f"{k}: {v}" for k, v in val.items())
+    if isinstance(val, list):
+        return ", ".join(str(x) for x in val)
+    return val
+
+
 def to_csv(title, columns, rows):
     resp = HttpResponse(content_type="text/csv")
     resp["Content-Disposition"] = f'attachment; filename="{_filename(title, "csv")}"'
     writer = csv.writer(resp)
     writer.writerow(columns)
     for row in rows:
-        writer.writerow(row)
+        writer.writerow([_format_cell(c) for c in row])
     return resp
 
 
@@ -37,7 +45,7 @@ def to_excel(title, columns, rows):
     for cell in ws[1]:
         cell.font = Font(bold=True)
     for row in rows:
-        ws.append(list(row))
+        ws.append([_format_cell(c) for c in row])
 
     buf = io.BytesIO()
     wb.save(buf)
@@ -62,7 +70,7 @@ def to_pdf(title, columns, rows):
     doc = SimpleDocTemplate(buf, pagesize=landscape(A4), title=title,
                             leftMargin=10 * mm, rightMargin=10 * mm)
     styles = getSampleStyleSheet()
-    data = [columns] + [[str(c) for c in row] for row in rows]
+    data = [columns] + [[str(_format_cell(c)) for c in row] for row in rows]
     table = Table(data, repeatRows=1)
     table.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#1f2937")),

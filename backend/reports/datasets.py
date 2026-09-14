@@ -57,7 +57,15 @@ def inventory_report(shop, **_):
 
 def profit_report(shop, start=None, end=None):
     s = profit_summary(shop, start=start, end=end)
-    rows = [[k.replace("_", " ").title(), v] for k, v in s.items()]
+    rows = []
+    for k, v in s.items():
+        if isinstance(v, dict):
+            for subk, subv in v.items():
+                rows.append([f"{k.replace('_', ' ').title()} ({subk.title()})", subv])
+        elif isinstance(v, list):
+            rows.append([k.replace("_", " ").title(), ", ".join(str(x) for x in v)])
+        else:
+            rows.append([k.replace("_", " ").title(), v])
     return ("Profit Report", ["Metric", "Value"], rows)
 
 

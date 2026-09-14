@@ -12,9 +12,25 @@ from .datasets import BUILDERS
 from .exporters import export
 
 
+from rest_framework.renderers import BaseRenderer
+
+
+class PassthroughRenderer(BaseRenderer):
+    media_type = "*/*"
+    format = "any"
+
+    def render(self, data, accepted_media_type=None, renderer_context=None):
+        return data
+
+
 class ReportExportView(APIView):
     permission_classes = [IsTenantMember, HasPermCode]
     required_perm = "view_reports"
+    renderer_classes = [PassthroughRenderer]
+
+    def perform_content_negotiation(self, request, force=False):
+        # Override DRF content negotiation so ?format=csv/pdf/excel does not trigger 404
+        return (PassthroughRenderer(), "*/*")
 
     def initial(self, request, *args, **kwargs):
         set_current_tenant(getattr(request.user, "shop", None))
@@ -22,12 +38,12 @@ class ReportExportView(APIView):
         super().initial(request, *args, **kwargs)
 
     def get(self, request):
-        report_type = request.query_params.get("type")
-        fmt = request.query_params.get("export_format", "csv")
+        report_type = request.query_params.get("type") or request.query_params.get("report")
+        fmt = request.query_params.get("export_format") or request.query_params.get("format") or "csv"
         builder = BUILDERS.get(report_type)
         if builder is None:
             return Response(
-                {"detail": f"Unknown report type. Options: {sorted(BUILDERS)}"},
+                {"detail": f"Unknown report type '{report_type}'. Options: {sorted(BUILDERS)}"},
                 status=400,
             )
         start = parse_datetime(request.query_params.get("start", "") or "")

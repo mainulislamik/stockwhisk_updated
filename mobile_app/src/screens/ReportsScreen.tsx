@@ -358,6 +358,7 @@ export default function ReportsScreen() {
               <LineChart
                 data={{
                   labels: (() => {
+                    if (profitTrend.length <= 1) return profitTrend.length === 1 ? [new Date(profitTrend[0].date).getDate().toString(), ''] : [''];
                     const step = Math.max(1, Math.floor(profitTrend.length / 5));
                     return profitTrend.map((d: any, i: number) => {
                       if (i % step === 0 || i === profitTrend.length - 1) {
@@ -369,7 +370,9 @@ export default function ReportsScreen() {
                   })(),
                   datasets: [
                     {
-                      data: profitTrend.map((d: any) => Number(d.margin) || 0),
+                      data: profitTrend.length === 1
+                        ? [Number(profitTrend[0].margin) || 0, Number(profitTrend[0].margin) || 0]
+                        : profitTrend.map((d: any) => Number(d.margin) || 0),
                       color: (opacity = 1) => `rgba(139, 92, 246, ${opacity})`,
                     },
                   ],
