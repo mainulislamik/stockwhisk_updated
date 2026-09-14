@@ -108,6 +108,14 @@ class ProductViewSet(TenantScopedViewSet):
         if params.get("in_stock") in {"1", "true"}:
             qs = qs.filter(current_stock__gt=0)
 
+        brand_id = params.get("brand")
+        if brand_id:
+            qs = qs.filter(brand_id=brand_id)
+
+        category_id = params.get("category")
+        if category_id:
+            qs = qs.filter(category_id=category_id)
+
         ordering = params.get("ordering")
         allowed = {
             "current_stock", "-current_stock", "name", "-name", "sku", "-sku",

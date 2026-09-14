@@ -348,7 +348,7 @@ export default function POSScreen() {
         return products.filter((p: any) => {
           const pBrandId = typeof p.brand === 'object' && p.brand !== null ? p.brand.id : p.brand;
           const pCatId = typeof p.category === 'object' && p.category !== null ? p.category.id : p.category;
-          const matchBrand = !pBrandId || pBrandId === selectedRepairBrand.id;
+          const matchBrand = pBrandId === selectedRepairBrand.id;
           const matchCat = !pCatId || pCatId === selectedRepairCategory.id;
           return matchBrand && matchCat;
         });
