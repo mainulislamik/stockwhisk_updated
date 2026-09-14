@@ -8,7 +8,7 @@ from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from catalog.models import Product, ProductUnit
+from catalog.models import Product, ProductUnit, ProductVariation
 from catalog.serializers import ProductSerializer, ProductUnitSerializer
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
@@ -86,6 +86,18 @@ class BarcodeLookupView(_POSBase):
             except Exception:
                 pass
 
+        scanned_variation = None
+        if product is None:
+            variation = (
+                ProductVariation.objects.filter(is_active=True)
+                .filter(Q(barcode=code) | Q(sku=code))
+                .select_related("product", "product__category", "product__brand", "product__unit")
+                .first()
+            )
+            if variation:
+                product = variation.product
+                scanned_variation = variation
+
         if product is None:
             # Check if it matches an in-stock ProductUnit (per-unit serial). Scope
             # to the current shop so a barcode reused across shops can't leak or
@@ -128,6 +140,18 @@ class BarcodeLookupView(_POSBase):
         if scanned_scale_weight is not None:
             data["scanned_scale_weight"] = scanned_scale_weight
             data["is_scale_barcode"] = True
+        if scanned_variation:
+            data["scanned_variation"] = {
+                "id": scanned_variation.id,
+                "name": scanned_variation.name,
+                "sku": scanned_variation.sku,
+                "barcode": scanned_variation.barcode,
+                "attributes": scanned_variation.attributes,
+                "selling_price": str(scanned_variation.effective_price),
+                "cost_price": str(scanned_variation.effective_cost),
+            }
+            data["name"] = f"{product.name} ({scanned_variation.name})"
+            data["selling_price"] = str(scanned_variation.effective_price)
 
         return Response(data)
 
