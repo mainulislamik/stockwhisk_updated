@@ -123,14 +123,16 @@ def recalc_stock(product, variation=None):
     Product.all_objects.filter(pk=product.pk).update(current_stock=total)
     product.current_stock = total
 
-    if variation is not None:
+    # Authoritative variation reconcile: recompute stock for ALL variations of this product
+    from catalog.models import ProductVariation
+    for var in ProductVariation.all_objects.filter(product=product):
         vtotal = (
             StockMovement.all_objects.filter(
-                shop_id=product.shop_id, variation=variation
+                shop_id=product.shop_id, variation=var
             ).aggregate(s=Sum("quantity"))["s"] or Decimal("0")
         )
-        ProductVariation.all_objects.filter(pk=variation.pk).update(current_stock=vtotal)
-        variation.current_stock = vtotal
+        ProductVariation.all_objects.filter(pk=var.pk).update(current_stock=vtotal)
+        var.current_stock = vtotal
 
     # Keep cached dashboards fresh after any stock change.
     from analytics.services import invalidate_dashboard_cache

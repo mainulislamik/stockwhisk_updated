@@ -213,7 +213,13 @@ export default function PosPage() {
     setUnitLoadingId(p.id);
     try {
       const full = await api<Product>(`/catalog/products/${p.id}/`);
-      tryAdd({ ...p, units: full.units, unit_detail: full.unit_detail, purchase_unit_detail: full.purchase_unit_detail });
+      tryAdd({
+        ...p,
+        variations: full.variations || p.variations,
+        units: full.units,
+        unit_detail: full.unit_detail,
+        purchase_unit_detail: full.purchase_unit_detail,
+      });
     } catch {
       tryAdd(p);
     } finally {
@@ -256,10 +262,11 @@ export default function PosPage() {
   }, []);
 
   // ── Cart helpers ────────────────────────────────────────────────────────
-  function addToCart(p: Product, specificUnit?: ProductUnit, explicitQty?: number) {
+  function addToCart(p: Product, specificUnit?: ProductUnit, explicitQty?: number, variation?: ProductVariation | null) {
     const addAmount = explicitQty !== undefined ? explicitQty : 1;
+    const itemPrice = variation ? Number(variation.selling_price || p.selling_price) : Number(specificUnit?.effective_selling_price || p.selling_price) || 0;
     setCart((c) => {
-      const exIndex = c.findIndex((l) => l.product.id === p.id);
+      const exIndex = c.findIndex((l) => l.product.id === p.id && (!variation || l.selectedVariation?.id === variation.id));
       if (exIndex >= 0) {
         const ex = c[exIndex];
         if (specificUnit) {
@@ -277,9 +284,10 @@ export default function PosPage() {
       return [...c, { 
         product: p, 
         qty: addAmount, 
-        price: Number(specificUnit?.effective_selling_price || p.selling_price) || 0, 
+        price: itemPrice, 
         discount: 0, 
         selectedUnits: specificUnit ? [specificUnit] : [],
+        selectedVariation: variation || null,
         sellMode: "base",
       }];
     });
@@ -362,8 +370,12 @@ export default function PosPage() {
       setUnitSelectProduct(p);
       return;
     }
-    // Fashion variant picker
-    if (isFashionShop && p.size_variants && p.size_variants.length > 0) {
+    // Size & Color Variations picker (ProductVariation or size_variants)
+    if (p.variations && p.variations.length > 0) {
+      setVariantModalProduct(p);
+      return;
+    }
+    if (p.size_variants && p.size_variants.length > 0) {
       setFashionPickProduct(p);
       return;
     }
@@ -624,6 +636,31 @@ export default function PosPage() {
             </div>
           </div>
 
+          {/* ── Quick Category Filter Pills (Fashion & General POS) ── */}
+          {!isRepairShop && categories.length > 0 && (
+            <div className="d-flex align-items-center gap-2 mb-3 overflow-auto pb-2" style={{ whiteSpace: "nowrap", scrollbarWidth: "thin" }}>
+              <button
+                type="button"
+                style={{ flexShrink: 0 }}
+                className={`btn btn-sm px-3.5 py-1.5 rounded-pill fw-bold shadow-sm ${selectedCategory === null ? "btn-dark text-white" : "btn-light text-dark border bg-white"}`}
+                onClick={() => setSelectedCategory(null)}
+              >
+                {lang === "bn" ? "✨ সকল পণ্য" : "All Items"}
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  style={{ flexShrink: 0 }}
+                  className={`btn btn-sm px-3.5 py-1.5 rounded-pill fw-bold shadow-sm ${selectedCategory === c.id ? "btn-primary text-white" : "btn-light text-dark border bg-white"}`}
+                  onClick={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+
           {/* ══════════════════════════════════════════════════════════════════════
               REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
               Step 1: Big Brand Cards -> Step 2: Category Cards -> Step 3: Products
@@ -846,6 +883,13 @@ export default function PosPage() {
                           <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
                             {p.barcode || p.sku}
                           </div>
+                          {p.variations && p.variations.length > 0 && (
+                            <div className="mt-1">
+                              <span className="badge rounded-pill" style={{ backgroundColor: "#f3e8ff", color: "#7c3aed", border: "1px solid #d8b4fe", fontSize: "10px", padding: "2px 7px" }}>
+                                👗 {p.variations.length}টি সাইজ উপলব্ধ
+                              </span>
+                            </div>
+                          )}
                           <div className="d-flex justify-content-between align-items-center mt-1">
                             <div>
                               <span className="small fw-bold">{money(p.selling_price)}</span>
@@ -1163,6 +1207,68 @@ export default function PosPage() {
         </div>
       )}
       {/* ── Select units modal ── */}
+      {/* ── Size & Color Variant Selection Modal ── */}
+      {variantModalProduct && (
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.6)", backdropFilter: "blur(4px)", zIndex: 2050 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header py-3 text-white" style={{ background: "linear-gradient(135deg, #7c3aed, #6d28d9)" }}>
+                <h5 className="modal-title h6 fw-bold d-flex align-items-center gap-2 mb-0">
+                  <span>👗</span>
+                  <span>সাইজ ও কালার নির্বাচন করুন (Select Size & Color)</span>
+                </h5>
+                <button type="button" className="btn-close btn-close-white" onClick={() => setVariantModalProduct(null)} />
+              </div>
+              <div className="modal-body p-4">
+                <div className="mb-3">
+                  <h6 className="fw-bold text-dark mb-1">{variantModalProduct.name}</h6>
+                  <div className="text-secondary small">কাস্টমারের পছন্দ অনুযায়ী সাইজে ক্লিক করলেই কার্টে যোগ হবে:</div>
+                </div>
+
+                <div className="d-grid gap-2" style={{ maxHeight: "380px", overflowY: "auto" }}>
+                  {variantModalProduct.variations?.map((v) => {
+                    const outOfStock = Number(v.current_stock) <= 0;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        className="btn btn-outline-light text-start p-3 rounded-3 border d-flex align-items-center justify-content-between text-dark shadow-sm"
+                        style={{ transition: "all 0.15s ease", backgroundColor: "#f8fafc" }}
+                        onClick={() => {
+                          addToCart(variantModalProduct, undefined, 1, v);
+                          setVariantModalProduct(null);
+                          flash(`✔ কার্টে যোগ হয়েছে: ${variantModalProduct.name} (${v.name})`, true);
+                        }}
+                      >
+                        <div>
+                          <div className="fw-bold fs-6 text-primary d-flex align-items-center gap-2">
+                            <span>👗 {v.name}</span>
+                          </div>
+                          <div className="text-secondary small mt-0.5">
+                            বারকোড হ্যাংট্যাগ: <code>{v.barcode || v.sku}</code>
+                          </div>
+                        </div>
+                        <div className="text-end">
+                          <div className="fw-bold text-success fs-6">{money(v.selling_price || variantModalProduct.selling_price)}</div>
+                          <span className={`badge ${outOfStock ? "bg-danger-subtle text-danger" : "bg-success-subtle text-success"} border`}>
+                            {outOfStock ? "স্টক শেষ" : `স্টক: ${v.current_stock} পিস`}
+                          </span>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              <div className="modal-footer bg-light py-2">
+                <button type="button" className="btn btn-secondary btn-sm" onClick={() => setVariantModalProduct(null)}>
+                  বাতিল
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {unitSelectProduct && (
         <div className="modal d-block" style={{ background: "rgba(0,0,0,.45)" }}>
           <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
