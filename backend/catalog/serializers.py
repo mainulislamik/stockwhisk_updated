@@ -63,7 +63,7 @@ class ProductVariationSerializer(HideCostMixin, serializers.ModelSerializer):
 
 
 class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
-    variations = ProductVariationSerializer(many=True, read_only=True)
+    variations = serializers.SerializerMethodField()
     is_low_stock = serializers.BooleanField(read_only=True)
     unit_detail = serializers.SerializerMethodField()
     purchase_unit_detail = serializers.SerializerMethodField()
@@ -83,6 +83,14 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "units", "unit_detail", "purchase_unit_detail",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]
+
+    def get_variations(self, obj):
+        tenant_id = getattr(obj, "shop_id", None)
+        if tenant_id:
+            qs = ProductVariation.all_objects.filter(product_id=obj.id, shop_id=tenant_id, is_active=True)
+        else:
+            qs = obj.variations.filter(is_active=True)
+        return ProductVariationSerializer(qs, many=True, context=self.context).data
 
     def get_unit_detail(self, obj):
         if obj.unit_id is None:
@@ -112,7 +120,8 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
 
         # Light mode (list/table views): skip units entirely for a small payload.
         request = self.context.get("request")
-        if request is not None and request.query_params.get("light") in {"1", "true"}:
+        qp = getattr(request, "query_params", getattr(request, "GET", {}))
+        if qp.get("light") in {"1", "true"}:
             return []
 
         # Use prefetched IN_STOCK units if available to prevent N+1 queries

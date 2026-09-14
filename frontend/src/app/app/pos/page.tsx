@@ -11,6 +11,16 @@ import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 import { useAuth } from "@/components/AuthProvider";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
+type ProductVariation = {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  attributes: { size?: string; color?: string; [key: string]: any };
+  cost_price: string;
+  selling_price: string;
+  current_stock: string;
+};
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
@@ -18,6 +28,8 @@ type Product = {
   expiry_date?: string | null;
   lot_number?: string;
   size_variants?: Array<{size: string; color: string; stock: number}>;
+  variations?: ProductVariation[];
+  scanned_variation?: ProductVariation;
   replacement_guarantee_days?: number;
   fabric_material?: string;
   gender_target?: string;
@@ -38,7 +50,8 @@ type CartLine = {
   price: number; 
   discount: number; 
   selectedUnits: ProductUnit[];
-  sellMode?: "base" | "bulk"; // "base" = Retail (Liter/Kg/Pcs), "bulk" = Wholesale (Drum/Box/Pack)
+  selectedVariation?: ProductVariation | null;
+  sellMode?: "base" | "bulk";
 };
 type ScanMsg = { text: string; ok: boolean } | null;
 
@@ -62,6 +75,7 @@ export default function PosPage() {
   const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
   const [showHeldModal, setShowHeldModal] = useState(false);
   const [fastCheckingOut, setFastCheckingOut] = useState(false);
+  const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     try {
