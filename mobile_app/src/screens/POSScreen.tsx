@@ -136,6 +136,7 @@ export default function POSScreen() {
   const [repairWarrantyDays, setRepairWarrantyDays] = useState('30');
   const [problemDescription, setProblemDescription] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
+  const [showEstimatedDatePicker, setShowEstimatedDatePicker] = useState(false);
 
   const [selectedVariantSize, setSelectedVariantSize] = useState('');
   const [selectedVariantColor, setSelectedVariantColor] = useState('');
@@ -1614,14 +1615,67 @@ export default function POSScreen() {
                 />
 
                 {/* Est. Delivery Date */}
-                <TextInput
-                  mode="outlined"
-                  label={isBN ? '📅 আনুমানিক ডেলিভারি তারিখ (ঐচ্ছিক)' : '📅 Est. Delivery Date (Optional)'}
-                  value={estimatedDelivery}
-                  onChangeText={setEstimatedDelivery}
-                  placeholder="YYYY-MM-DD"
-                  style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
-                />
+                <View style={{ marginBottom: 10 }}>
+                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.colors.onSurface, marginBottom: 4 }}>
+                    {isBN ? '📅 আনুমানিক ডেলিভারি তারিখ (ঐচ্ছিক)' : '📅 Est. Delivery Date (Optional)'}
+                  </Text>
+                  {Platform.OS === 'web' ? (
+                    <input 
+                      type="date" 
+                      value={estimatedDelivery} 
+                      onChange={(e: any) => setEstimatedDelivery(e.target.value)}
+                      style={{
+                        padding: 12,
+                        borderRadius: 4,
+                        border: '1px solid #ccc',
+                        backgroundColor: theme.colors.surface,
+                        color: theme.colors.onSurface,
+                        width: '100%',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  ) : (
+                    <TouchableOpacity 
+                      onPress={() => setShowEstimatedDatePicker(true)}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: 14,
+                        backgroundColor: theme.colors.surface,
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#334155' : '#ccc',
+                        borderRadius: 8
+                      }}
+                    >
+                      <Text style={{ color: estimatedDelivery ? theme.colors.onSurface : (isDarkMode ? '#64748b' : '#a1a1aa'), fontSize: 14 }}>
+                        {estimatedDelivery || (isBN ? 'তারিখ নির্বাচন করুন (YYYY-MM-DD)' : 'Select Date (YYYY-MM-DD)')}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        {estimatedDelivery ? (
+                          <TouchableOpacity onPress={() => setEstimatedDelivery('')} style={{ padding: 2 }}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color="#ef4444" />
+                          </TouchableOpacity>
+                        ) : null}
+                        <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+                      </View>
+                    </TouchableOpacity>
+                  )}
+
+                  {Platform.OS !== 'web' && showEstimatedDatePicker && (
+                    <DateTimePicker
+                      value={estimatedDelivery ? new Date(estimatedDelivery) : new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={(event: any, selectedDate?: Date) => {
+                        setShowEstimatedDatePicker(false);
+                        if (selectedDate) {
+                          setEstimatedDelivery(selectedDate.toISOString().split('T')[0]);
+                        }
+                      }}
+                    />
+                  )}
+                </View>
 
                 {/* Fault Notes Input */}
                 <TextInput
