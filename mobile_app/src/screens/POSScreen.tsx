@@ -63,6 +63,20 @@ export default function POSScreen() {
   const isBN = language === 'BN';
   const t = (bn: string, en: string) => isBN ? bn : en;
 
+
+  // Fashion: add a specific color variation of a chosen size straight to cart
+  function addToCartWithVariation(product: Product, variation: ProductVariation) {
+    setCart(prev => {
+      const idx = prev.findIndex(l => l.product.id === product.id && l.selectedVariation?.id === variation.id);
+      if (idx >= 0) {
+        const copy = [...prev];
+        copy[idx] = { ...copy[idx], qty: copy[idx].qty + 1 };
+        return copy;
+      }
+      return [...prev, { product, qty: 1, price: Number(variation.selling_price || product.selling_price), discount: 0, selectedUnits: [], selectedVariation: variation }];
+    });
+  }
+
   const [view, setView] = useState<'products' | 'cart'>('products');
   const [cart, setCart] = useState<CartLine[]>([]);
 
@@ -77,6 +91,9 @@ export default function POSScreen() {
   const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
   const [variantModalVisible, setVariantModalVisible] = useState(false);
   const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
+  // Fashion 3-step drill-down: category -> size -> color
+  const [fashionProduct, setFashionProduct] = useState<Product | null>(null);
+  const [fashionSize, setFashionSize] = useState<string | null>(null);
   
   // Camera Scanner
   const [showScanner, setShowScanner] = useState(false);
@@ -932,6 +949,162 @@ export default function POSScreen() {
                   </TouchableOpacity>
                 )}
               </View>
+
+              {/* ═══════════ FASHION 3-STEP DRILL-DOWN (Category → Size → Color) ═══════════ */}
+              {isFashionShop && !query.trim() && (
+                <View>
+                  {/* Breadcrumb bar */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 6, flexWrap: 'wrap' }}>
+                    <TouchableOpacity
+                      onPress={() => { setSelectedCategory(null); setFashionProduct(null); setFashionSize(null); }}
+                      style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: !selectedCategory ? theme.colors.primary : (isDarkMode ? '#334155' : '#e2e8f0'), marginRight: 6 }}
+                    >
+                      <Text style={{ fontSize: 12, fontWeight: 'bold', color: !selectedCategory ? '#fff' : theme.colors.onSurface }}>👗 ১. {isBN ? 'ক্যাটাগরি' : 'Category'}</Text>
+                    </TouchableOpacity>
+                    {selectedCategory ? (
+                      <>
+                        <Text style={{ color: 'gray', fontWeight: 'bold' }}>›</Text>
+                        <TouchableOpacity
+                          onPress={() => { setFashionProduct(null); setFashionSize(null); }}
+                          style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: fashionProduct ? '#7c3aed' : (isDarkMode ? '#334155' : '#e2e8f0'), marginHorizontal: 6 }}
+                        >
+                          <Text style={{ fontSize: 12, fontWeight: 'bold', color: fashionProduct ? '#fff' : '#7c3aed' }}>২. {categories.find(x => x.id === selectedCategory)?.name || 'সাইজ'}</Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : null}
+                    {fashionProduct ? (
+                      <>
+                        <Text style={{ color: 'gray', fontWeight: 'bold' }}>›</Text>
+                        <View style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: '#f59e0b', marginHorizontal: 6 }}>
+                          <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#fff' }}>৩. {isBN ? 'কালার' : 'Color'}</Text>
+                        </View>
+                      </>
+                    ) : null}
+                    {selectedCategory ? (
+                      <TouchableOpacity
+                        onPress={() => { setSelectedCategory(null); setFashionProduct(null); setFashionSize(null); }}
+                        style={{ marginLeft: 'auto', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, backgroundColor: isDarkMode ? '#3b1d22' : '#fee2e2', borderWidth: 1, borderColor: '#fca5a5' }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: 'bold', color: '#dc2626' }}>রিসেট ↺</Text>
+                      </TouchableOpacity>
+                    ) : null}
+                  </View>
+
+                  {/* STEP 1: Fashion category cards */}
+                  {!selectedCategory && (
+                    <View style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
+                      <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.primary, marginBottom: 8 }}>
+                        👗 {isBN ? '১. পোশাকের ক্যাটাগরি বেছে নিন:' : '1. Choose Clothing Category:'}
+                      </Text>
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                        {categories.map(cat => (
+                          <TouchableOpacity
+                            key={cat.id}
+                            onPress={() => setSelectedCategory(cat.id)}
+                            style={{ width: '48.5%', margin: 2, backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: isDarkMode ? '#334155' : '#e2e8f0', elevation: 2 }}
+                          >
+                            <Text style={{ fontSize: 22 }}>👗</Text>
+                            <Text style={{ fontWeight: 'bold', fontSize: 13, color: theme.colors.onSurface, marginTop: 4 }}>{cat.name}</Text>
+                            <Text style={{ fontSize: 10, color: '#7c3aed', marginTop: 2 }}>{isBN ? 'সাইজ দেখুন →' : 'View sizes →'}</Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+                  )}
+
+                  {/* STEP 2: Product & Size pills */}
+                  {selectedCategory && !fashionProduct && (
+                    <View style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#7c3aed', flex: 1 }}>
+                          📏 {categories.find(x => x.id === selectedCategory)?.name} {isBN ? '— সাইজ নির্বাচন:' : '— Select Size:'}
+                        </Text>
+                        <TouchableOpacity onPress={() => setSelectedCategory(null)} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}>
+                          <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>← {isBN ? 'ক্যাটাগরি' : 'Category'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {displayedProducts.map(p => {
+                        const sizeMap = new Map<string, { stock: number; count: number }>();
+                        (p.variations || []).forEach(v => {
+                          const size = (v.attributes && (v.attributes.size || v.attributes['size'])) || v.name.split('/')[1]?.trim() || v.name;
+                          const cur = sizeMap.get(size) || { stock: 0, count: 0 };
+                          cur.stock += Number(v.current_stock || 0);
+                          cur.count += 1;
+                          sizeMap.set(size, cur);
+                        });
+                        return (
+                          <Surface key={p.id} style={{ padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: theme.colors.surface, elevation: 2 }}>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
+                              <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface, flex: 1 }} numberOfLines={2}>{p.name}</Text>
+                              <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{p.selling_price}</Text>
+                            </View>
+                            <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 6 }}>
+                              {isBN ? 'সাইজে ট্যাপ করুন:' : 'Tap a size:'}
+                            </Text>
+                            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                              {Array.from(sizeMap.entries()).map(([sz, data]) => (
+                                <TouchableOpacity
+                                  key={sz}
+                                  onPress={() => { setFashionProduct(p); setFashionSize(sz); }}
+                                  style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, backgroundColor: data.stock <= 0 ? (isDarkMode ? '#1e293b' : '#f1f5f9') : '#f3e8ff', borderWidth: 1, borderColor: '#ddd6fe', marginRight: 6, marginBottom: 6, opacity: data.stock <= 0 ? 0.5 : 1 }}
+                                >
+                                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: data.stock <= 0 ? '#94a3b8' : '#7c3aed' }}>
+                                    {sz} · {data.stock} {isBN ? 'পিস' : 'pcs'}
+                                  </Text>
+                                </TouchableOpacity>
+                              ))}
+                            </View>
+                          </Surface>
+                        );
+                      })}
+                    </View>
+                  )}
+
+                  {/* STEP 3: Color variants of chosen size */}
+                  {fashionProduct && (
+                    <View style={{ paddingHorizontal: 12, paddingBottom: 10 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                        <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#10b981', flex: 1 }} numberOfLines={1}>
+                          🎨 {fashionProduct.name} — {fashionSize}
+                        </Text>
+                        <TouchableOpacity onPress={() => setFashionSize(null)} style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}>
+                          <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>← {isBN ? 'সাইজ' : 'Size'}</Text>
+                        </TouchableOpacity>
+                      </View>
+                      {(fashionProduct.variations || [])
+                        .filter(v => {
+                          const sz = (v.attributes && v.attributes.size) || v.name.split('/')[1]?.trim() || v.name;
+                          return sz === fashionSize || v.name.includes(fashionSize || '');
+                        })
+                        .map(v => {
+                          const stock = Number(v.current_stock || 0);
+                          return (
+                            <TouchableOpacity
+                              key={v.id}
+                              onPress={() => {
+                                addToCartWithVariation(fashionProduct, v);
+                                setFashionSize(null);
+                              }}
+                              disabled={stock <= 0}
+                              style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: isDarkMode ? '#1e293b' : '#fff', borderWidth: 1, borderColor: stock <= 0 ? '#fca5a5' : '#10b981', opacity: stock <= 0 ? 0.5 : 1 }}
+                            >
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>👗 {v.name}</Text>
+                                <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray', fontFamily: 'monospace' }}>{v.barcode || v.sku}</Text>
+                              </View>
+                              <View style={{ alignItems: 'flex-end' }}>
+                                <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{v.selling_price || fashionProduct.selling_price}</Text>
+                                <Text style={{ fontSize: 10, color: stock <= 0 ? '#ef4444' : '#10b981' }}>
+                                  {stock <= 0 ? (isBN ? 'স্টক নেই' : 'Out of stock') : `${isBN ? 'স্টক' : 'Stock'}: ${stock}`}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                    </View>
+                  )}
+                </View>
+              )}
 
               {/* STEP 1: Select Brand Cards */}
               {!selectedRepairBrand && (

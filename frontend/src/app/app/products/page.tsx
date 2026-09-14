@@ -3,7 +3,7 @@
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { api, fetchAll, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money } from "@/components/ui";
@@ -36,6 +36,18 @@ type Product = {
   lot_number?: string;
   mfg_date?: string | null;
   size_variants?: Array<{size: string; color: string; stock: number}>;
+  variations?: Array<{
+    id: number;
+    name: string;
+    sku: string;
+    barcode: string;
+    size_name: string;
+    color_name: string;
+    cost_price: string;
+    selling_price: string;
+    current_stock: string | number;
+    is_active: boolean;
+  }>;
   fabric_material?: string;
   gender_target?: string;
   season?: string;
@@ -61,6 +73,8 @@ export default function ProductsPage() {
   const [brands, setBrands] = useState<Named[]>([]);
   const [units, setUnits] = useState<Named[]>([]);
   const [filter, setFilter] = useState("");
+  const [expandedProducts, setExpandedProducts] = useState<number[]>([]);
+  function toggleExpandedProduct(id: number) { setExpandedProducts((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]); }
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [page, setPage] = useState(1);
 
@@ -1084,47 +1098,119 @@ export default function ProductsPage() {
                     const cost = Number(p.cost_price) || 0;
                     const sell = Number(p.selling_price) || 0;
                     const stockNum = Math.max(0, Number(p.current_stock || 0));
+                    const isExpanded = expandedProducts.includes(p.id);
+                    const hasVars = p.variations && p.variations.length > 0;
 
                     return (
-                      <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
-                        <td>
-                          <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
-                            {p.name}
-                          </Link>
-                          <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
-                            <span>{p.sku || "—"}</span>
-                            {isBulk && (
-                              <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                                📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
-                              </span>
+                      <Fragment key={p.id}>
+                        <tr className={p.is_low_stock ? "table-danger" : ""}>
+                          <td>
+                            <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-bold text-dark">
+                              {p.name}
+                            </Link>
+                            <div className="text-secondary small d-flex flex-wrap align-items-center gap-2 mt-0.5">
+                              <span>{p.sku || "—"}</span>
+                              {isBulk && (
+                                <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                  📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                                </span>
+                              )}
+                            </div>
+                            {hasVars && (
+                              <div className="mt-1">
+                                <button
+                                  type="button"
+                                  className="btn btn-sm py-0.5 px-2.5 rounded-pill border fw-bold d-inline-flex align-items-center gap-1.5 shadow-sm"
+                                  style={{ backgroundColor: isExpanded ? "#7c3aed" : "#f5f3ff", color: isExpanded ? "#ffffff" : "#7c3aed", borderColor: "#ddd6fe", fontSize: "11px" }}
+                                  onClick={() => toggleExpandedProduct(p.id)}
+                                >
+                                  <span>👗 {p.variations?.length}টি সাইজ ও কালার</span>
+                                  <span>{isExpanded ? "▲ বন্ধ করুন" : "▼ সাইজভিত্তিক স্টক দেখুন"}</span>
+                                </button>
+                              </div>
                             )}
-                          </div>
-                        </td>
-                        <td className="text-end">{money(cost)}</td>
-                        <td className="text-end">{money(sell)}</td>
-                        <td className="text-end">
-                          <span className={stockNum <= 0 ? "text-danger fw-bold" : ""}>
-                            {stockNum} {baseUnit || "pcs"}
-                          </span>
-                        </td>
-                        <td className="text-center">
-                          <span className={`badge ${p.is_active ? "bg-success" : "bg-secondary"}`}>
-                            {p.is_active ? "Active" : "Inactive"}
-                          </span>
-                        </td>
-                        <td className="text-end">
-                                {canManage && (
-                                  <>
-                                    <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
-                                      {t("prod_list_edit") || "Edit"}
-                                    </Link>
-                                    <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
-                                      {t("prod_list_delete") || "Delete"}
-                                    </button>
-                                  </>
-                                )}
-                        </td>
-                      </tr>
+                          </td>
+                          <td className="text-end">{money(cost)}</td>
+                          <td className="text-end fw-bold text-dark">{money(sell)}</td>
+                          <td className="text-end">
+                            <span className={stockNum <= 0 ? "text-danger fw-bold" : "fw-bold"}>
+                              {stockNum} {baseUnit || "pcs"}
+                            </span>
+                          </td>
+                          <td className="text-center">
+                            <span className={`badge ${p.is_active ? "bg-success" : "bg-secondary"}`}>
+                              {p.is_active ? "Active" : "Inactive"}
+                            </span>
+                          </td>
+                          <td className="text-end">
+                            {canManage && (
+                              <>
+                                <Link href={`/app/products/${p.id}/edit`} className="small text-decoration-none me-2">
+                                  {t("prod_list_edit") || "Edit"}
+                                </Link>
+                                <button onClick={() => remove(p)} className="btn btn-link btn-sm text-danger p-0">
+                                  {t("prod_list_delete") || "Delete"}
+                                </button>
+                              </>
+                            )}
+                          </td>
+                        </tr>
+
+                        {/* ── Sub-row: Size & Color Stock Matrix ── */}
+                        {isExpanded && hasVars && (
+                          <tr className="table-light">
+                            <td colSpan={6} className="p-3">
+                              <div className="card border shadow-sm rounded-3 overflow-hidden bg-white">
+                                <div className="card-header py-2 px-3 bg-purple-subtle border-bottom d-flex align-items-center justify-content-between" style={{ backgroundColor: "#f5f3ff" }}>
+                                  <span className="fw-bold small" style={{ color: "#7c3aed" }}>
+                                    👗 সাইজ ও কালার অনুযায়ী স্টক ব্রেকডাউন (Size & Color Breakdown)
+                                  </span>
+                                  <span className="badge bg-white text-dark border">মোট ভ্যারিয়েন্ট: {p.variations?.length}টি</span>
+                                </div>
+                                <div className="table-responsive">
+                                  <table className="table table-sm table-hover align-middle mb-0" style={{ fontSize: "12px" }}>
+                                    <thead className="table-light">
+                                      <tr>
+                                        <th>সাইজ ও কালার ভ্যারিয়েন্ট</th>
+                                        <th>হ্যাংট্যাগ বারকোড</th>
+                                        <th className="text-end">ক্রয়মূল্য</th>
+                                        <th className="text-end">বিক্রয়মূল্য</th>
+                                        <th className="text-end">বর্তমান স্টক</th>
+                                        <th className="text-center">স্ট্যাটাস</th>
+                                      </tr>
+                                    </thead>
+                                    <tbody>
+                                      {p.variations?.map((v) => {
+                                        const vStock = Number(v.current_stock || 0);
+                                        return (
+                                          <tr key={v.id}>
+                                            <td className="fw-bold text-dark">
+                                              <span>👗 {v.name}</span>
+                                            </td>
+                                            <td>
+                                              <code className="text-dark bg-light px-2 py-0.5 rounded border">{v.barcode || v.sku || "—"}</code>
+                                            </td>
+                                            <td className="text-end">{money(Number(v.cost_price || p.cost_price))}</td>
+                                            <td className="text-end fw-bold text-primary">{money(Number(v.selling_price || p.selling_price))}</td>
+                                            <td className="text-end">
+                                              <span className={`badge ${vStock <= 0 ? "bg-danger-subtle text-danger" : "bg-success-subtle text-success"} border fw-bold`}>
+                                                {vStock} পিস
+                                              </span>
+                                            </td>
+                                            <td className="text-center">
+                                              <span className="badge bg-success-subtle text-success border border-success-subtle">সক্রিয়</span>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })}
+                                    </tbody>
+                                  </table>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })
                 )}

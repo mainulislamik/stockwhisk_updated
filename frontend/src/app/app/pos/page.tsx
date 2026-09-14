@@ -76,6 +76,8 @@ export default function PosPage() {
   const [showHeldModal, setShowHeldModal] = useState(false);
   const [fastCheckingOut, setFastCheckingOut] = useState(false);
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
+  const [selectedFashionProduct, setSelectedFashionProduct] = useState<Product | null>(null);
+  const [selectedFashionSize, setSelectedFashionSize] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -665,7 +667,265 @@ export default function PosPage() {
               REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
               Step 1: Big Brand Cards -> Step 2: Category Cards -> Step 3: Products
               ══════════════════════════════════════════════════════════════════════ */}
-          {isRepairShop ? (
+          {/* ══════════════════════════════════════════════════════════════════════
+              FASHION & APPAREL: 3-STEP HIERARCHICAL DRILL-DOWN (Category ➜ Size ➜ Color)
+              ══════════════════════════════════════════════════════════════════════ */}
+          {isFashionShop ? (
+            <div className="d-flex flex-column gap-3">
+              {/* Breadcrumb Navigation Bar */}
+              <div className="card shadow-sm border-0 mb-1" style={{ backgroundColor: "#ffffff", borderRadius: "14px" }}>
+                <div className="card-body p-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                  <div className="d-flex align-items-center gap-2 small flex-wrap">
+                    <button
+                      type="button"
+                      className={`btn btn-sm py-1 px-3 fw-bold rounded-pill ${!selectedCategory ? "btn-primary shadow-sm" : "btn-outline-primary bg-white"}`}
+                      onClick={() => { setSelectedCategory(null); setSelectedFashionProduct(null); setSelectedFashionSize(null); setQuery(""); }}
+                    >
+                      <span>👗 ১. ক্যাটাগরি</span>
+                    </button>
+
+                    {selectedCategory && (
+                      <>
+                        <span className="text-secondary fw-bold">›</span>
+                        <button
+                          type="button"
+                          className={`btn btn-sm py-1 px-3 fw-bold rounded-pill ${!selectedFashionProduct ? "text-white shadow-sm" : "bg-white"}`}
+                          style={{
+                            backgroundColor: !selectedFashionProduct ? "#7c3aed" : undefined,
+                            borderColor: "#7c3aed",
+                            color: !selectedFashionProduct ? "#ffffff" : "#7c3aed"
+                          }}
+                          onClick={() => { setSelectedFashionProduct(null); setSelectedFashionSize(null); }}
+                        >
+                          <span>২. {categories.find(c => c.id === selectedCategory)?.name || "ডিজাইন ও সাইজ"}</span>
+                        </button>
+                      </>
+                    )}
+
+                    {selectedFashionProduct && (
+                      <>
+                        <span className="text-secondary fw-bold">›</span>
+                        <button
+                          type="button"
+                          className={`btn btn-sm py-1 px-3 fw-bold rounded-pill ${!selectedFashionSize ? "btn-warning text-dark shadow-sm" : "btn-outline-warning text-dark bg-white"}`}
+                          onClick={() => setSelectedFashionSize(null)}
+                        >
+                          <span>{selectedFashionProduct.name}</span>
+                        </button>
+                      </>
+                    )}
+
+                    {selectedFashionSize && (
+                      <>
+                        <span className="text-secondary fw-bold">›</span>
+                        <span className="badge bg-success py-1.5 px-3 fw-bold rounded-pill shadow-sm" style={{ fontSize: "0.82rem" }}>
+                          <span>৩. সাইজ: {selectedFashionSize}</span>
+                        </span>
+                      </>
+                    )}
+                  </div>
+
+                  {selectedCategory && (
+                    <button
+                      type="button"
+                      className="btn btn-outline-danger btn-sm py-1 px-3 fw-bold rounded-pill"
+                      style={{ fontSize: "11px" }}
+                      onClick={() => { setSelectedCategory(null); setSelectedFashionProduct(null); setSelectedFashionSize(null); setQuery(""); }}
+                    >
+                      <i className="bi bi-arrow-counterclockwise me-1"></i>রিসেট
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* ── STEP 1: CATEGORY CARDS ── */}
+              {!selectedCategory && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
+                      <span>👗</span>
+                      <span>১. পোশাকের ক্যাটাগরি বেছে নিন:</span>
+                    </h6>
+                    <span className="badge bg-light text-secondary border">মোট {categories.length}টি ক্যাটাগরি</span>
+                  </div>
+
+                  <div className="row g-3">
+                    {categories.map((c) => (
+                      <div className="col-6 col-md-4" key={c.id}>
+                        <button
+                          type="button"
+                          className="btn btn-outline-light text-start p-3.5 w-100 rounded-4 border shadow-sm d-flex flex-column justify-content-between text-dark"
+                          style={{ minHeight: "115px", backgroundColor: "#ffffff", borderColor: "#e2e8f0", transition: "all 0.2s ease" }}
+                          onClick={() => { setSelectedCategory(c.id); setSelectedFashionProduct(null); setSelectedFashionSize(null); }}
+                        >
+                          <div className="d-flex align-items-center justify-content-between w-100">
+                            <span className="fs-3">{c.icon || "👗"}</span>
+                            <span className="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">
+                              ব্রাউজ করুন →
+                            </span>
+                          </div>
+                          <div className="mt-2">
+                            <div className="fw-bold fs-6 text-dark">{c.name}</div>
+                            <div className="text-secondary small mt-0.5">ক্লিক করে সাইজ ও ডিজাইন দেখুন</div>
+                          </div>
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* ── STEP 2: PRODUCTS IN CATEGORY & SIZE PILLS ── */}
+              {selectedCategory && !selectedFashionProduct && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <h6 className="fw-bold text-dark mb-0">
+                      <span>{categories.find(c => c.id === selectedCategory)?.name} — ডিজাইন ও সাইজ তালিকা:</span>
+                    </h6>
+                    <button type="button" className="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill" onClick={() => setSelectedCategory(null)}>
+                      ← ক্যাটাগরি পরিবর্তন
+                    </button>
+                  </div>
+
+                  <div className="row g-3">
+                    {shown.map((p) => {
+                      const hasVars = p.variations && p.variations.length > 0;
+                      const sizeMap = new Map<string, { count: number; stock: number; colors: string[] }>();
+                      if (hasVars) {
+                        p.variations?.forEach((v) => {
+                          const size = v.attributes?.size || v.name.split('/')[1]?.split('(')[0]?.trim() || v.name;
+                          const color = v.attributes?.color || v.name.split('/')[0]?.trim() || "";
+                          const cur = sizeMap.get(size) || { count: 0, stock: 0, colors: [] };
+                          cur.count += 1;
+                          cur.stock += Number(v.current_stock || 0);
+                          if (color && !cur.colors.includes(color)) cur.colors.push(color);
+                          sizeMap.set(size, cur);
+                        });
+                      }
+
+                      return (
+                        <div className="col-12 col-md-6" key={p.id}>
+                          <div className="card shadow-sm border rounded-4 overflow-hidden h-100 p-3 bg-white">
+                            <div className="d-flex justify-content-between align-items-start mb-2">
+                              <div>
+                                <h6 className="fw-bold text-dark mb-1">{p.name}</h6>
+                                <span className="text-secondary small font-monospace">{p.sku || p.barcode}</span>
+                              </div>
+                              <div className="text-end">
+                                <span className="fw-bold text-primary fs-6">{money(p.selling_price)}</span>
+                                <div>
+                                  <span className="badge bg-light text-secondary border">
+                                    মোট স্টক: {p.current_stock} পিস
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Size Pills Grid */}
+                            {hasVars ? (
+                              <div className="mt-2 pt-2 border-top">
+                                <div className="text-secondary small fw-bold mb-1.5">
+                                  <span>📏 সাইজ নির্বাচন করুন:</span>
+                                </div>
+                                <div className="d-flex flex-wrap gap-1.5">
+                                  {Array.from(sizeMap.entries()).map(([sizeKey, sizeData]) => {
+                                    const outOfStock = sizeData.stock <= 0;
+                                    return (
+                                      <button
+                                        key={sizeKey}
+                                        type="button"
+                                        className={`btn btn-sm py-1 px-2.5 rounded-pill fw-bold border text-start d-flex align-items-center gap-1.5 ${outOfStock ? "btn-light text-muted opacity-50" : "btn-outline-purple bg-purple-subtle"}`}
+                                        style={{ backgroundColor: outOfStock ? "#f1f5f9" : "#f5f3ff", color: outOfStock ? "#94a3b8" : "#7c3aed", borderColor: "#ddd6fe" }}
+                                        onClick={() => {
+                                          setSelectedFashionProduct(p);
+                                          setSelectedFashionSize(sizeKey);
+                                        }}
+                                      >
+                                        <span>👗 {sizeKey}</span>
+                                        <span className="badge bg-white text-purple border" style={{ color: "#7c3aed", fontSize: "10px" }}>
+                                          {sizeData.stock} পিস
+                                        </span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="mt-auto pt-2">
+                                <button
+                                  type="button"
+                                  className="btn btn-primary btn-sm w-100 rounded-pill fw-bold"
+                                  onClick={() => addToCart(p)}
+                                >
+                                  + কার্টে যোগ করুন
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* ── STEP 3: COLOR VARIANTS OF SELECTED SIZE ── */}
+              {selectedFashionProduct && selectedFashionSize && (
+                <div>
+                  <div className="d-flex align-items-center justify-content-between mb-3">
+                    <div>
+                      <h6 className="fw-bold text-dark mb-0">
+                        <span>{selectedFashionProduct.name} ➜ সাইজ: {selectedFashionSize}</span>
+                      </h6>
+                      <div className="text-secondary small">কাস্টমারের পছন্দ অনুযায়ী রঙে ক্লিক করলেই কার্টে যোগ হবে:</div>
+                    </div>
+                    <button type="button" className="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill" onClick={() => setSelectedFashionSize(null)}>
+                      ← অন্য সাইজ বেছে নিন
+                    </button>
+                  </div>
+
+                  <div className="row g-3">
+                    {selectedFashionProduct.variations
+                      ?.filter((v) => {
+                        const size = v.attributes?.size || v.name.split('/')[1]?.split('(')[0]?.trim() || v.name;
+                        return size === selectedFashionSize || v.name.includes(selectedFashionSize);
+                      })
+                      .map((v) => {
+                        const colorName = v.attributes?.color || v.name.split('/')[0]?.trim() || v.name;
+                        const outOfStock = Number(v.current_stock) <= 0;
+                        return (
+                          <div className="col-12 col-md-4" key={v.id}>
+                            <button
+                              type="button"
+                              className="btn btn-outline-light text-start p-3 w-100 rounded-4 border shadow-sm d-flex flex-column justify-content-between text-dark"
+                              style={{ minHeight: "110px", backgroundColor: "#ffffff", borderColor: "#e2e8f0" }}
+                              onClick={() => {
+                                addToCart(selectedFashionProduct, undefined, 1, v);
+                                flash(`✔ কার্টে যোগ হয়েছে: ${selectedFashionProduct.name} (${v.name})`, true);
+                              }}
+                            >
+                              <div className="d-flex align-items-center justify-content-between w-100">
+                                <div className="fw-bold fs-6 text-dark d-flex align-items-center gap-2">
+                                  <span className="p-1 rounded-circle bg-primary" style={{ width: 10, height: 10, display: "inline-block" }}></span>
+                                  <span>{colorName}</span>
+                                </div>
+                                <span className={`badge ${outOfStock ? "bg-danger-subtle text-danger" : "bg-success-subtle text-success"} border`}>
+                                  {outOfStock ? "স্টক নেই" : `স্টক: ${v.current_stock} পিস`}
+                                </span>
+                              </div>
+                              <div className="d-flex align-items-center justify-content-between w-100 mt-2">
+                                <span className="text-secondary small font-monospace">হ্যাংট্যাগ: {v.barcode || v.sku}</span>
+                                <span className="fw-bold text-success fs-6">{money(v.selling_price || selectedFashionProduct.selling_price)}</span>
+                              </div>
+                            </button>
+                          </div>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : isRepairShop ? (
             <div className="d-flex flex-column gap-3">
               {/* Breadcrumb / Navigation Bar */}
               <div className="card shadow-sm border-0 mb-2">
