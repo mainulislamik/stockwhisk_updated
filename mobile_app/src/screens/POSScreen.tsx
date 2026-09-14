@@ -31,14 +31,27 @@ if (Platform.OS !== 'web') {
 
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
+type ProductVariation = {
+  id: number;
+  name: string;
+  sku: string;
+  barcode: string;
+  attributes?: any;
+  cost_price?: string;
+  selling_price?: string;
+  current_stock?: string;
+};
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
   warranty_months?: number; is_low_stock?: boolean; image?: string;
   units?: ProductUnit[];
   scanned_unit?: ProductUnit;
+  variations?: ProductVariation[];
+  scanned_variation?: ProductVariation;
+  scanned_scale_weight?: number;
 };
-type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[] };
+type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[]; selectedVariation?: ProductVariation | null };
 type Customer = { id: number; name: string; phone?: string; };
 
 export default function POSScreen() {
@@ -58,6 +71,10 @@ export default function POSScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
+  const [variantModalVisible, setVariantModalVisible] = useState(false);
+  const [selectedProductForVariant, setSelectedProductForVariant] = useState<Product | null>(null);
   
   // Camera Scanner
   const [showScanner, setShowScanner] = useState(false);
@@ -272,8 +289,12 @@ export default function POSScreen() {
   };
 
   useEffect(() => {
+    api.get('/catalog/categories/?page_size=100').then((r: any) => setCategories(r.data.results || r.data || [])).catch(() => {});
+  }, []);
+
+  useEffect(() => {
     fetchProducts(1, true);
-  }, [debouncedQuery]);
+  }, [debouncedQuery, selectedCategory]);
 
   const loadMore = () => {
     if (hasMore && !loading) {
@@ -293,10 +314,22 @@ export default function POSScreen() {
       return;
     }
 
+    // If product already has variations loaded
+    if (product.variations && product.variations.length > 0) {
+      setSelectedProductForVariant(product);
+      setVariantModalVisible(true);
+      return;
+    }
+
     setFetchingUnits(true);
     try {
       const res = await api.get(`/catalog/products/${product.id}/`);
       const fullProduct = res.data || product;
+      if (fullProduct.variations && fullProduct.variations.length > 0) {
+        setSelectedProductForVariant(fullProduct);
+        setVariantModalVisible(true);
+        return;
+      }
       setSelectedProductForUnit(fullProduct);
       setUnitSearchQuery('');
       const existingLine = cart.find(l => l.product.id === fullProduct.id);
@@ -393,9 +426,10 @@ export default function POSScreen() {
     setTempSelectedUnits([]);
   };
 
-  const addToCart = (product: Product, units: ProductUnit[], qty: number = 1) => {
+  const addToCart = (product: Product, units: ProductUnit[], qty: number = 1, variation?: ProductVariation | null) => {
+    const itemPrice = variation ? Number(variation.selling_price || product.selling_price) : Number(product.selling_price);
     setCart(prev => {
-      const idx = prev.findIndex(l => l.product.id === product.id);
+      const idx = prev.findIndex(l => l.product.id === product.id && (!variation || l.selectedVariation?.id === variation.id));
       if (idx >= 0) {
         const newLine = { ...prev[idx] };
         if (units.length > 0) {
@@ -415,9 +449,10 @@ export default function POSScreen() {
         return [...prev, {
           product,
           qty,
-          price: Number(product.selling_price),
+          price: itemPrice,
           discount: 0,
-          selectedUnits: units
+          selectedUnits: units,
+          selectedVariation: variation || null
         }];
       }
     });
@@ -476,6 +511,10 @@ export default function POSScreen() {
           }
         } else if (p.units && p.units.length > 0) {
            handleProductTap(p);
+        } else if (p.scanned_variation) {
+           addToCart(p, [], 1, p.scanned_variation);
+        } else if (p.scanned_scale_weight) {
+           addToCart(p, [], p.scanned_scale_weight);
         } else {
            addToCart(p, []);
         }
@@ -726,6 +765,11 @@ export default function POSScreen() {
                       <View>
                         <Text numberOfLines={2} style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{item.name}</Text>
                         <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray' }}>{item.sku}</Text>
+                        {item.variations && item.variations.length > 0 && (
+                          <View style={{ alignSelf: 'flex-start', backgroundColor: '#f3e8ff', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10, marginTop: 2 }}>
+                            <Text style={{ color: '#7c3aed', fontSize: 9, fontWeight: 'bold' }}>👗 {item.variations.length} সাইজ</Text>
+                          </View>
+                        )}
                       </View>
                       <View>
                         <Text style={{ color: theme.colors.primary, fontWeight: 'bold' }}>৳ {item.selling_price}</Text>
