@@ -303,7 +303,7 @@ export default function CategoryDemoPage() {
 
             {/* Loading State Skeleton */}
             {loading && (
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, gap: 3.5 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }, gap: 3.5 }}>
                 {[1, 2].map((n) => (
                   <Skeleton key={n} variant="rounded" height={420} sx={{ borderRadius: "20px" }} />
                 ))}
@@ -314,7 +314,7 @@ export default function CategoryDemoPage() {
             {!loading && displayedShopItems.length > 0 && (
               <Box sx={{ 
                 display: "grid", 
-                gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)" }, 
+                gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }, 
                 gap: { xs: 3, md: 4 } 
               }}>
                 {displayedShopItems.map(({ shop, cat }) => (
