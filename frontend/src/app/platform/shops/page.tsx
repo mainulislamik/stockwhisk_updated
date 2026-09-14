@@ -278,36 +278,36 @@ export default function ShopsPage() {
                 />
               )}
               {filtered.map((s) => (
-                <tr key={s.id} className={s.is_demo ? "table-warning table-opacity-10" : s.is_test ? "table-info table-opacity-10" : ""}>
+                <tr key={s.id} className={s.is_demo ? "table-warning-subtle" : s.is_test ? "table-info-subtle" : ""}>
                   <td>
-                    <span className="badge rounded-pill bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 font-monospace px-2 py-1">
+                    <span className="badge rounded-pill bg-primary-subtle text-primary border border-primary-subtle font-monospace px-2.5 py-1 fw-bold" style={{ fontSize: "11px" }}>
                       {s.shop_code || `SW-${1000 + s.id}`}
                     </span>
                   </td>
                   <td className="fw-semibold">
                     <div className="d-flex flex-column">
-                      <Link href={`/platform/shops/${s.id}`} className="text-decoration-none text-body hover-underline">
+                      <Link href={`/platform/shops/${s.id}`} className="text-decoration-none fw-bold hover-underline" style={{ color: "var(--text-body, #0f172a)", fontSize: "0.92rem" }}>
                         {s.name}
                       </Link>
                       {s.owner_email && (
-                        <span className="text-secondary opacity-75 font-monospace" style={{ fontSize: "0.75rem" }}>
+                        <span className="font-monospace mt-0.5" style={{ fontSize: "0.76rem", color: "#64748b" }}>
                           {s.owner_email}
                         </span>
                       )}
                     </div>
                   </td>
                   <td>
-                    <div className="d-flex flex-wrap gap-1">
+                    <div className="d-flex flex-nowrap align-items-center">
                       {s.is_demo ? (
-                        <span className="badge bg-warning bg-opacity-25 text-dark border border-warning border-opacity-50" title="Public Demo Store">
+                        <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle px-2.5 py-1 fw-bold" style={{ whiteSpace: "nowrap", fontSize: "11px" }} title="Public Demo Store">
                           🧪 Demo
                         </span>
                       ) : s.is_test ? (
-                        <span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-50" title="Internal Test Store (Excluded from Revenue)">
+                        <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle px-2.5 py-1 fw-bold" style={{ whiteSpace: "nowrap", fontSize: "11px" }} title="Internal Test Store (Excluded from Revenue)">
                           🔬 Test
                         </span>
                       ) : (
-                        <span className="badge bg-success bg-opacity-15 text-success border border-success border-opacity-25" title="Live Client Merchant Store">
+                        <span className="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1 fw-bold" style={{ whiteSpace: "nowrap", fontSize: "11px" }} title="Live Client Merchant Store">
                           🟢 Live Client
                         </span>
                       )}
@@ -315,7 +315,7 @@ export default function ShopsPage() {
                   </td>
                   <td>
                     <div className="d-flex align-items-center gap-2">
-                      <span>{TYPE_LABELS[s.business_type] || s.business_type}</span>
+                      <span className="fw-medium" style={{ color: "var(--text-body, #0f172a)" }}>{TYPE_LABELS[s.business_type] || s.business_type}</span>
                       <button onClick={() => setEditCatFor(s)} className="btn btn-sm btn-link p-0 text-secondary" disabled={busy === s.id} title="Change Category">
                         <i className="bi bi-pencil-square"></i>
                       </button>
@@ -325,47 +325,47 @@ export default function ShopsPage() {
                     {s.subscription_info ? (
                       <div className="d-flex flex-column gap-1">
                         <div className="d-flex align-items-center gap-2">
-                          <span className="fw-semibold text-capitalize text-body">
+                          <span className="fw-bold text-capitalize" style={{ color: "var(--text-body, #0f172a)" }}>
                             {s.subscription_info.plan_tier || "—"}
                           </span>
-                          {s.manufacturing_enabled && (<span className="badge bg-info bg-opacity-25 text-info border border-info border-opacity-25 me-1" style={{ fontSize: "0.65rem" }}>🏭 Mfg</span>)}
-                          {s.mobile_repair_enabled && (<span className="badge bg-primary bg-opacity-25 text-primary border border-primary border-opacity-25 me-1" style={{ fontSize: "0.65rem" }}>🛠️ Repair</span>)}
+                          {s.manufacturing_enabled && (<span className="badge bg-info-subtle text-info-emphasis border border-info-subtle me-1" style={{ fontSize: "0.65rem" }}>🏭 Mfg</span>)}
+                          {s.mobile_repair_enabled && (<span className="badge bg-primary-subtle text-primary border border-primary-subtle me-1" style={{ fontSize: "0.65rem" }}>🛠️ Repair</span>)}
                           {s.subscription_info.state === "free" && (
-                            <span className="badge bg-success" style={{ fontSize: '0.7rem' }}>🎁 Free</span>
+                            <span className="badge bg-success-subtle text-success border border-success-subtle fw-bold" style={{ fontSize: '0.7rem' }}>🎁 Free</span>
                           )}
                           {s.is_free && s.subscription_info.state !== "free" && (
-                            <span className="badge bg-secondary" style={{ fontSize: '0.7rem' }} title="Free grant is paused because the reseller is inactive — shop must pay">🎁 Free (paused)</span>
+                            <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle fw-bold" style={{ fontSize: '0.7rem' }} title="Free grant is paused because the reseller is inactive — shop must pay">🎁 Free (paused)</span>
                           )}
                           {s.subscription_info.state === "trial" && (
-                            <span className="badge bg-warning text-dark" style={{ fontSize: '0.7rem' }}>Trial</span>
+                            <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle fw-bold" style={{ fontSize: '0.7rem' }}>Trial</span>
                           )}
                           {s.subscription_info.state === "expired" && (
-                            <span className="badge bg-danger" style={{ fontSize: '0.7rem' }}>Expired</span>
+                            <span className="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold" style={{ fontSize: '0.7rem' }}>Expired</span>
                           )}
                         </div>
                         {s.subscription_info.ends_at && (
                           <div className="d-flex align-items-center gap-1" style={{ fontSize: '0.8rem' }}>
-                            <span className={s.subscription_info.days_left < 7 ? "text-danger fw-medium" : "text-secondary"}>
+                            <span className={s.subscription_info.days_left < 7 ? "text-danger fw-bold" : "text-muted"} style={{ color: s.subscription_info.days_left < 7 ? undefined : "#64748b" }}>
                               {s.subscription_info.days_left} days left
                             </span>
                             <span className="text-secondary opacity-50">•</span>
-                            <span className="text-secondary opacity-75">
+                            <span style={{ color: "#64748b" }}>
                               {fmtDate(s.subscription_info.ends_at)}
                             </span>
                           </div>
                         )}
                       </div>
                     ) : (
-                      <span>{s.plan_tier || "—"}</span>
+                      <span className="fw-medium" style={{ color: "var(--text-body, #0f172a)" }}>{s.plan_tier || "—"}</span>
                     )}
                   </td>
-                  <td>{s.user_count}</td>
+                  <td><span className="fw-semibold" style={{ color: "var(--text-body, #0f172a)" }}>{s.user_count}</span></td>
                   <td>
                     {s.is_active
-                      ? <span className="text-success fw-medium">Active</span>
-                      : <span className="text-danger">Suspended{s.days_suspended ? ` · ${s.days_suspended}d` : ""}</span>}
+                      ? <span className="badge bg-success-subtle text-success border border-success-subtle fw-bold px-2 py-1">Active</span>
+                      : <span className="badge bg-danger-subtle text-danger border border-danger-subtle fw-bold px-2 py-1">Suspended{s.days_suspended ? ` · ${s.days_suspended}d` : ""}</span>}
                   </td>
-                  <td className="text-nowrap">{fmtDate(s.created_at)}</td>
+                  <td className="text-nowrap" style={{ color: "#475569", fontSize: "0.82rem" }}>{fmtDate(s.created_at)}</td>
                   <td>
                     <div className="d-flex flex-wrap gap-1 justify-content-end">
                       <button className="btn btn-brand btn-sm py-0" onClick={() => loginAs(s)} title="Login directly into this shop's dashboard">Login as</button>
