@@ -36,538 +36,639 @@ type DemoResponse = {
   categories: DemoCategory[];
 };
 
+// Industry Theme Definition
+const INDUSTRY_THEMES: Record<string, {
+  accentGradient: string;
+  btnGradient: string;
+  badgeBg: string;
+  badgeColor: string;
+  badgeBorder: string;
+  glowColor: string;
+  iconBg: string;
+}> = {
+  fashion: {
+    accentGradient: "linear-gradient(135deg, #7c3aed, #a855f7)",
+    btnGradient: "linear-gradient(135deg, #7c3aed, #6d28d9)",
+    badgeBg: "rgba(124, 58, 237, 0.08)",
+    badgeColor: "#7c3aed",
+    badgeBorder: "rgba(124, 58, 237, 0.25)",
+    glowColor: "rgba(124, 58, 237, 0.2)",
+    iconBg: "rgba(124, 58, 237, 0.12)",
+  },
+  general: {
+    accentGradient: "linear-gradient(135deg, #2563eb, #3b82f6)",
+    btnGradient: "linear-gradient(135deg, #2563eb, #1d4ed8)",
+    badgeBg: "rgba(37, 99, 235, 0.08)",
+    badgeColor: "#1d4ed8",
+    badgeBorder: "rgba(37, 99, 235, 0.25)",
+    glowColor: "rgba(37, 99, 235, 0.2)",
+    iconBg: "rgba(37, 99, 235, 0.12)",
+  },
+  supershop: {
+    accentGradient: "linear-gradient(135deg, #059669, #10b981)",
+    btnGradient: "linear-gradient(135deg, #059669, #047857)",
+    badgeBg: "rgba(5, 150, 105, 0.08)",
+    badgeColor: "#047857",
+    badgeBorder: "rgba(5, 150, 105, 0.25)",
+    glowColor: "rgba(5, 150, 105, 0.2)",
+    iconBg: "rgba(5, 150, 105, 0.12)",
+  },
+};
+
+const DEFAULT_THEME = {
+  accentGradient: "linear-gradient(135deg, #475569, #64748b)",
+  btnGradient: "linear-gradient(135deg, #334155, #1e293b)",
+  badgeBg: "rgba(71, 85, 105, 0.08)",
+  badgeColor: "#334155",
+  badgeBorder: "rgba(71, 85, 105, 0.25)",
+  glowColor: "rgba(71, 85, 105, 0.2)",
+  iconBg: "rgba(71, 85, 105, 0.12)",
+};
+
 // Modernized Feature Styling Dictionary
 const FEATURE_MAP: Record<string, { icon: string; color: string; bg: string; border: string; bn: string; en: string }> = {
   "POS Thermal Billing": {
     icon: "🧾",
     color: "#1d4ed8",
-    bg: "rgba(37, 99, 235, 0.08)",
-    border: "rgba(37, 99, 235, 0.2)",
+    bg: "rgba(37, 99, 235, 0.06)",
+    border: "rgba(37, 99, 235, 0.18)",
     bn: "থার্মাল ও A4 পিওএস বিলিং",
     en: "POS Thermal & A4 Billing"
   },
   "Barcode Scanning": {
     icon: "🏷️",
     color: "#6d28d9",
-    bg: "rgba(109, 40, 217, 0.08)",
-    border: "rgba(109, 40, 217, 0.2)",
+    bg: "rgba(109, 40, 217, 0.06)",
+    border: "rgba(109, 40, 217, 0.18)",
     bn: "বারকোড তৈরি ও স্ক্যানিং",
     en: "Barcode Generator & Scanning"
   },
   "Real-Time Stock": {
     icon: "📦",
     color: "#047857",
-    bg: "rgba(5, 150, 105, 0.08)",
-    border: "rgba(5, 150, 105, 0.2)",
+    bg: "rgba(5, 150, 105, 0.06)",
+    border: "rgba(5, 150, 105, 0.18)",
     bn: "রিয়েল-টাইম স্টক লেজার",
     en: "Live Stock & Inventory"
   },
   "Daily Cash Register": {
     icon: "💰",
     color: "#b45309",
-    bg: "rgba(217, 119, 6, 0.08)",
-    border: "rgba(217, 119, 6, 0.2)",
+    bg: "rgba(217, 119, 6, 0.06)",
+    border: "rgba(217, 119, 6, 0.18)",
     bn: "দৈনিক ক্যাশ ও সেলস হিসাব",
-    en: "Daily Cash Register"
+    en: "Daily Cash Register Closing"
   },
   "Customer Dues": {
     icon: "👥",
     color: "#0e7490",
-    bg: "rgba(14, 116, 144, 0.08)",
-    border: "rgba(14, 116, 144, 0.2)",
-    bn: "কাস্টমার বাকি ও পেমেন্ট ট্র্যাকিং",
-    en: "Customer Dues & Ledger"
+    bg: "rgba(14, 116, 144, 0.06)",
+    border: "rgba(14, 116, 144, 0.18)",
+    bn: "কাস্টমার বাকি ও রসিদ",
+    en: "Customer Dues & Ledgers"
   },
   "Service & Repair Tickets (with QR Live Tracking)": {
     icon: "🛠️",
     color: "#4338ca",
-    bg: "rgba(67, 56, 202, 0.08)",
-    border: "rgba(67, 56, 202, 0.22)",
-    bn: "সার্ভিস টিকিট ও লাইভ QR ট্র্যাকিং",
-    en: "Service Tickets & Live QR Tracking"
+    bg: "rgba(67, 56, 202, 0.06)",
+    border: "rgba(67, 56, 202, 0.18)",
+    bn: "সার্ভিস টিকিট ও QR ট্র্যাকিং",
+    en: "Repair Tickets & Live QR Tracking"
   },
   "Serial Warranty Management": {
     icon: "🛡️",
     color: "#be123c",
-    bg: "rgba(190, 18, 60, 0.08)",
-    border: "rgba(190, 18, 60, 0.2)",
-    bn: "সিরিয়াল ওয়ারেন্টি ম্যানেজমেন্ট",
-    en: "Serial & Warranty Tracking"
+    bg: "rgba(190, 18, 60, 0.06)",
+    border: "rgba(190, 18, 60, 0.18)",
+    bn: "সিরিয়াল ওয়ারেন্টি ট্র্যাকিং",
+    en: "Serial Warranty Management"
   },
   "Barcode Scale Integration (EAN-13)": {
     icon: "⚖️",
     color: "#15803d",
-    bg: "rgba(22, 128, 61, 0.08)",
-    border: "rgba(22, 128, 61, 0.2)",
-    bn: "ওজন স্কেল বারকোড (EAN-13)",
-    en: "Weight Scale Barcodes"
+    bg: "rgba(22, 128, 61, 0.06)",
+    border: "rgba(22, 128, 61, 0.18)",
+    bn: "ওয়েট স্কেল বারকোড (EAN-13)",
+    en: "Weight Scale Barcodes (EAN-13)"
   },
   "Hold & Recall Cart (F8/F9)": {
     icon: "⏸️",
     color: "#0369a1",
-    bg: "rgba(2, 132, 199, 0.08)",
-    border: "rgba(2, 132, 199, 0.2)",
+    bg: "rgba(3, 105, 161, 0.06)",
+    border: "rgba(3, 105, 161, 0.18)",
     bn: "হোল্ড ও রিকল কার্ট (F8/F9)",
-    en: "Hold & Recall Cart"
+    en: "Hold & Recall Carts (F8/F9)"
   },
   "You Saved Discount Receipts": {
     icon: "🎁",
     color: "#c2410c",
-    bg: "rgba(194, 65, 12, 0.08)",
-    border: "rgba(194, 65, 12, 0.2)",
-    bn: "ইউ সেভড ডিসকাউন্ট রসিদ",
-    en: "You Saved Savings Receipts"
+    bg: "rgba(194, 65, 12, 0.06)",
+    border: "rgba(194, 65, 12, 0.18)",
+    bn: "ইউ সেভড (You Saved) রসিদ",
+    en: "You Saved Discount Receipts"
   },
   "Size/Color Variant Matrix": {
     icon: "👗",
     color: "#be185d",
-    bg: "rgba(190, 24, 93, 0.08)",
-    border: "rgba(190, 24, 93, 0.2)",
-    bn: "সাইজ/রং ভ্যারিয়েন্ট ম্যাট্রিক্স",
-    en: "Variant Matrix (Size/Color)"
+    bg: "rgba(190, 24, 93, 0.06)",
+    border: "rgba(190, 24, 93, 0.18)",
+    bn: "সাইজ ও কালার ভ্যারিয়েন্ট",
+    en: "Size & Color Variant Matrix"
   },
-  "Batch Manufacturing & Production": {
-    icon: "🏭",
-    color: "#334155",
-    bg: "rgba(51, 65, 85, 0.08)",
-    border: "rgba(51, 65, 85, 0.2)",
-    bn: "ব্যাচ প্রোডাকশন ও ফর্মুলা",
-    en: "Batch Manufacturing"
+  "Barcode Hangtag Printing": {
+    icon: "🏷️",
+    color: "#7c3aed",
+    bg: "rgba(124, 58, 237, 0.06)",
+    border: "rgba(124, 58, 237, 0.18)",
+    bn: "বারকোড হ্যাংট্যাগ প্রিন্টিং",
+    en: "Hangtag Barcode Printing"
+  },
+  "Alteration & Exchange Tracking": {
+    icon: "✂️",
+    color: "#b91c1c",
+    bg: "rgba(185, 28, 28, 0.06)",
+    border: "rgba(185, 28, 28, 0.18)",
+    bn: "অল্টারেশন ও এক্সচেঞ্জ ট্র্যাকিং",
+    en: "Alteration & Exchange Tracking"
   }
 };
 
-export default function CategoryDemoPage() {
-  const { lang, t } = useLanguage();
-  const [data, setData] = useState<DemoResponse | null>(null);
-  const [selectedCat, setSelectedCat] = useState<string>("all");
-  const [loading, setLoading] = useState(true);
-  const [busyShopId, setBusyShopId] = useState<number | null>(null);
-  const [error, setError] = useState("");
-
+export default function DemoPage() {
+  const { lang } = useLanguage();
   const isBn = lang === "bn";
+
+  const [categories, setCategories] = useState<DemoCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [loading, setLoading] = useState(true);
+  const [enteringShopId, setEnteringShopId] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadDemoShops() {
       try {
+        setLoading(true);
         const res = await fetch("/api/public/demo-shops/");
-        if (!res.ok) throw new Error("Failed to load demo stores");
-        const json: DemoResponse = await res.json();
-        setData(json);
+        if (!res.ok) throw new Error("Failed to load demo shops");
+        const data: DemoResponse = await res.json();
+        setCategories(data.categories || []);
       } catch (err: any) {
-        setError(err?.message || "Could not load demo stores.");
+        console.error("Demo load error:", err);
+        setError(isBn ? "ডেমো শপের তথ্য লোড করা যায়নি।" : "Failed to load demo stores.");
       } finally {
         setLoading(false);
       }
     }
     loadDemoShops();
-  }, []);
+  }, [isBn]);
 
-  async function enterDemoShop(shopId?: number) {
-    setBusyShopId(shopId || 7);
-    setError("");
-    try {
-      const res = await fetch("/api/public/demo-login/", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ shop_id: shopId || undefined }),
-      });
-
-      if (!res.ok) {
-        throw new Error("Demo store login is temporarily unavailable.");
-      }
-
-      const authData = await res.json();
-      
-      clearImpersonation();
-      clearTokens();
-      // Save tokens in sw_access and sw_refresh (StockWhisk client storage)
-      setTokens(authData.access, authData.refresh);
-      try {
-        localStorage.setItem("themeMode", "light");
-        document.documentElement.setAttribute("data-bs-theme", "light");
-      } catch {}
-
-      // Hard navigation to /app so AuthProvider and layout re-initialise fresh with new tokens
-      window.location.href = "/app";
-    } catch (err: any) {
-      setError(err?.message || "Demo login failed. Please try again.");
-      setBusyShopId(null);
-    }
-  }
-
-  // Categories that strictly have available demo shops
-  const availableCategories = data?.categories || [];
-  
-  // Flatten all demo shops with their category metadata for side-by-side grid
-  const allShopsWithCat = useMemo(() => {
+  const allShopsList = useMemo(() => {
     const list: { shop: DemoShop; cat: DemoCategory }[] = [];
-    availableCategories.forEach(cat => {
-      cat.shops.forEach(shop => {
+    categories.forEach((cat) => {
+      cat.shops.forEach((shop) => {
         list.push({ shop, cat });
       });
     });
     return list;
-  }, [availableCategories]);
+  }, [categories]);
 
-  // Filtered list based on selected category pill
   const displayedShopItems = useMemo(() => {
-    if (selectedCat === "all") return allShopsWithCat;
-    return allShopsWithCat.filter(item => item.cat.key === selectedCat);
-  }, [allShopsWithCat, selectedCat]);
+    if (selectedCategory === "all") return allShopsList;
+    return allShopsList.filter((item) => item.cat.key === selectedCategory);
+  }, [selectedCategory, allShopsList]);
+
+  async function enterDemoShop(shopId: number) {
+    try {
+      setEnteringShopId(shopId);
+      setError(null);
+
+      const res = await fetch("/api/public/demo-login/", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ shop_id: shopId }),
+      });
+
+      if (!res.ok) {
+        throw new Error("Demo login failed");
+      }
+
+      const authData = await res.json();
+
+      // Wipe any lingering admin impersonation or old session
+      clearImpersonation();
+      clearTokens();
+
+      // Set the fresh demo tokens
+      setTokens(authData.access, authData.refresh);
+
+      // Redirect smoothly into the live demo shop dashboard
+      window.location.href = "/app";
+    } catch (err: any) {
+      console.error("Demo entry error:", err);
+      setError(isBn ? "ডেমো শপে প্রবেশ করা সম্ভব হচ্ছে না। অনুগ্রহ করে কিছুক্ষণ পর চেষ্টা করুন।" : "Could not log into demo store. Please try again.");
+      setEnteringShopId(null);
+    }
+  }
 
   return (
     <PublicThemeProvider>
-      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: M.surface, color: M.text, fontFamily: "Outfit, sans-serif" }}>
+      <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: "#f8fafc", color: "#0f172a" }}>
         <MarketingNav />
 
-        <Box component="main" sx={{ position: "relative", flexGrow: 1, py: { xs: 6, md: 10 }, overflow: "hidden" }}>
-          {/* Background Glow */}
-          <Box sx={{ 
-            position: "absolute", top: "5%", left: "50%", transform: "translateX(-50%)", 
-            width: 900, height: 450, 
-            background: `radial-gradient(ellipse at center, ${M.accent}25 0%, transparent 70%)`, 
-            filter: "blur(70px)", zIndex: 0, pointerEvents: "none" 
-          }} />
-
-          <Container maxWidth="lg" sx={{ position: "relative", zIndex: 1 }}>
-            {/* Header Hero */}
-            <Box sx={{ textAlign: "center", mb: { xs: 4, md: 6 } }}>
-              <Box sx={{ 
-                display: "inline-flex", alignItems: "center", gap: 1, px: 2.5, py: 0.8, 
-                borderRadius: "30px", bgcolor: "rgba(37,99,235,0.08)", color: M.primary, 
-                fontWeight: 700, fontSize: "0.88rem", mb: 2.5, border: `1px solid rgba(37,99,235,0.2)` 
-              }}>
-                <span style={{ color: "#ef4444", fontSize: "1.2rem", lineHeight: 1 }}>●</span> 
-                {isBn ? "লাইভ ইন্টারঅ্যাক্টিভ ডেমো · ১০০% ফ্রি ও রিড-অনলি" : "Live Interactive Demo · 100% Free & Read-Only"}
+        {/* HERO HEADER */}
+        <Box sx={{ pt: { xs: 5, md: 7 }, pb: { xs: 4, md: 5 }, bgcolor: "#ffffff", borderBottom: "1px solid #e2e8f0", textAlign: "center" }}>
+          <Container maxWidth="lg">
+            <Stack spacing={2} sx={{ alignItems: "center", maxWidth: 880, mx: "auto" }}>
+              
+              <Box
+                sx={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 1,
+                  px: 2,
+                  py: 0.6,
+                  borderRadius: "24px",
+                  bgcolor: "rgba(37, 99, 235, 0.08)",
+                  border: "1px solid rgba(37, 99, 235, 0.2)",
+                  color: "#1d4ed8",
+                  fontSize: "13px",
+                  fontWeight: 700,
+                }}
+              >
+                <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "#16a34a", boxShadow: "0 0 8px #16a34a" }} />
+                <span>{isBn ? "লাইভ ইন্টারঅ্যাক্টিভ ডেমো · রিড-অনলি (Live Interactive Demo)" : "Live Interactive Sandbox · Read-Only"}</span>
               </Box>
 
-              <Typography variant="h2" sx={{ 
-                fontWeight: 800, mb: 2, 
-                fontSize: { xs: "1.85rem", sm: "2.4rem", md: "3.2rem" }, 
-                letterSpacing: "-0.03em", color: "#0f172a", lineHeight: 1.2 
-              }}>
+              <Typography
+                component="h1"
+                sx={{
+                  fontSize: { xs: "26px", sm: "34px", md: "42px" },
+                  fontWeight: 800,
+                  letterSpacing: "-0.02em",
+                  color: "#0f172a",
+                  lineHeight: 1.25,
+                }}
+              >
                 {isBn ? "আপনার ব্যবসার ধরন অনুযায়ী ডেমো শপ এক্সপ্লোর করুন" : "Explore Live Demo Tailored to Your Business"}
               </Typography>
 
-              <Typography sx={{ 
-                color: M.textMuted, fontSize: { xs: "1rem", md: "1.15rem" }, 
-                maxWidth: 720, mx: "auto", lineHeight: 1.6 
-              }}>
-                {isBn 
-                  ? "নিচের যে কোনো ক্যাটাগরির ডেমো স্টোরে ১-ক্লিকে প্রবেশ করুন। POS বিলিং, বারকোড স্ক্যানিং, স্টক লেজার, কাস্টমার বাকি ও রিপোর্টের সম্পূর্ণ অভিজ্ঞতা নিন — কোনো রেজিস্ট্রেশনের প্রয়োজন নেই।"
-                  : "Jump directly into a live, fully-populated demo store for your industry. Test POS billing, barcode scanning, real-time inventory, and financial reporting with sample data."}
+              <Typography
+                sx={{
+                  fontSize: { xs: "14px", sm: "16px" },
+                  color: "#475569",
+                  lineHeight: 1.6,
+                  maxWidth: 760,
+                }}
+              >
+                {isBn
+                  ? "নিচের যেকোনো ক্যাটাগরির ডেমো স্টোরে ১-ক্লিকে সরাসরি প্রবেশ করুন। পিওএস বিলিং, বারকোড স্ক্যানিং, স্টক লেজার, কাস্টমার বাকি ও রিপোর্ট সম্পূর্ণ রিয়েল-টাইমে অভিজ্ঞতা নিন — কোনো পাসওয়ার্ডের প্রয়োজন নেই।"
+                  : "Experience StockWhisk's live cloud POS, inventory, barcode scanning, dues tracking, and reports in a real-time sandbox tailored for your industry."}
               </Typography>
 
-              {error && (
-                <Alert severity="error" sx={{ maxWidth: 600, mx: "auto", mt: 3 }}>
-                  {error}
-                </Alert>
-              )}
-            </Box>
-
-            {/* Category Filter Pills (Only shown when >1 category exists) */}
-            {availableCategories.length > 1 && (
-              <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 1.5, mb: 5 }}>
-                <Button
-                  variant={selectedCat === "all" ? "contained" : "outlined"}
-                  onClick={() => setSelectedCat("all")}
-                  sx={{
-                    borderRadius: "50px", textTransform: "none", fontWeight: 700, px: 2.5, py: 0.8,
-                    bgcolor: selectedCat === "all" ? M.primary : "rgba(255,255,255,0.8)",
-                    color: selectedCat === "all" ? "#fff" : M.text,
-                    borderColor: M.border,
-                    "&:hover": { bgcolor: selectedCat === "all" ? M.primaryDark : "#f1f5f9" }
-                  }}
-                >
-                  🏬 {isBn ? "সকল ক্যাটাগরি" : "All Categories"} ({allShopsWithCat.length})
-                </Button>
-
-                {availableCategories.map((cat) => (
-                  <Button
-                    key={cat.key}
-                    variant={selectedCat === cat.key ? "contained" : "outlined"}
-                    onClick={() => setSelectedCat(cat.key)}
+              {/* Dynamic Category Filter Pills */}
+              {!loading && categories.length > 1 && (
+                <Box sx={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 1, pt: 2 }}>
+                  <Chip
+                    label={`${isBn ? "সকল ক্যাটাগরি" : "All Categories"} (${allShopsList.length})`}
+                    onClick={() => setSelectedCategory("all")}
                     sx={{
-                      borderRadius: "50px", textTransform: "none", fontWeight: 700, px: 2.5, py: 0.8,
-                      bgcolor: selectedCat === cat.key ? M.primary : "rgba(255,255,255,0.8)",
-                      color: selectedCat === cat.key ? "#fff" : M.text,
-                      borderColor: M.border,
-                      "&:hover": { bgcolor: selectedCat === cat.key ? M.primaryDark : "#f1f5f9" }
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      py: 2.2,
+                      px: 1,
+                      cursor: "pointer",
+                      bgcolor: selectedCategory === "all" ? "#1e293b" : "#f1f5f9",
+                      color: selectedCategory === "all" ? "#ffffff" : "#475569",
+                      border: "1px solid",
+                      borderColor: selectedCategory === "all" ? "#1e293b" : "#cbd5e1",
+                      "&:hover": { bgcolor: selectedCategory === "all" ? "#0f172a" : "#e2e8f0" }
                     }}
-                  >
-                    {cat.icon} {isBn ? cat.name_bn : cat.name_en} ({cat.shops.length})
-                  </Button>
-                ))}
-              </Box>
-            )}
+                  />
+                  {categories.map((cat) => (
+                    <Chip
+                      key={cat.key}
+                      icon={<span style={{ fontSize: "15px" }}>{cat.icon}</span>}
+                      label={`${isBn ? cat.name_bn : cat.name_en} (${cat.shops.length})`}
+                      onClick={() => setSelectedCategory(cat.key)}
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "13px",
+                        py: 2.2,
+                        px: 1,
+                        cursor: "pointer",
+                        bgcolor: selectedCategory === cat.key ? "#2563eb" : "#f1f5f9",
+                        color: selectedCategory === cat.key ? "#ffffff" : "#475569",
+                        border: "1px solid",
+                        borderColor: selectedCategory === cat.key ? "#2563eb" : "#cbd5e1",
+                        "&:hover": { bgcolor: selectedCategory === cat.key ? "#1d4ed8" : "#e2e8f0" }
+                      }}
+                    />
+                  ))}
+                </Box>
+              )}
+            </Stack>
+          </Container>
+        </Box>
 
-            {/* Loading State Skeleton */}
-            {loading && (
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }, gap: 3.5 }}>
-                {[1, 2].map((n) => (
-                  <Skeleton key={n} variant="rounded" height={420} sx={{ borderRadius: "20px" }} />
-                ))}
-              </Box>
-            )}
+        {/* DEMO CARDS GRID */}
+        <Container maxWidth="xl" sx={{ py: { xs: 4, md: 6 }, flexGrow: 1 }}>
+          {error && (
+            <Alert severity="error" sx={{ mb: 4, borderRadius: "12px", maxWidth: 700, mx: "auto" }}>
+              {error}
+            </Alert>
+          )}
 
-            {/* ── Side-by-Side Modernized Demo Shop Cards Grid ── */}
-            {!loading && displayedShopItems.length > 0 && (
-              <Box sx={{ 
-                display: "grid", 
-                gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }, 
-                gap: { xs: 3, md: 4 } 
-              }}>
-                {displayedShopItems.map(({ shop, cat }) => (
+          {/* Loading Skeletons */}
+          {loading && (
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "repeat(2, 1fr)", lg: "repeat(3, 1fr)" }, gap: 3.5 }}>
+              {[1, 2, 3].map((n) => (
+                <Skeleton key={n} variant="rounded" height={460} sx={{ borderRadius: "20px" }} />
+              ))}
+            </Box>
+          )}
+
+          {/* Side-by-Side Unified Cards Grid */}
+          {!loading && displayedShopItems.length > 0 && (
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: {
+                  xs: "1fr",
+                  md: displayedShopItems.length === 2 ? "repeat(2, 1fr)" : "repeat(2, 1fr)",
+                  lg: displayedShopItems.length >= 3 ? "repeat(3, 1fr)" : "repeat(2, 1fr)",
+                },
+                gap: 3.5,
+                alignItems: "stretch",
+              }}
+            >
+              {displayedShopItems.map(({ shop, cat }) => {
+                const theme = INDUSTRY_THEMES[cat.key] || DEFAULT_THEME;
+                const isCurrentEntering = enteringShopId === shop.id;
+
+                return (
                   <Box
                     key={shop.id}
                     sx={{
-                      position: "relative",
-                      bgcolor: "rgba(255, 255, 255, 0.98)",
-                      backdropFilter: "blur(24px)",
-                      border: `1px solid rgba(226, 232, 240, 0.95)`,
-                      borderRadius: "24px",
-                      p: { xs: 3, sm: 3.8 },
-                      boxShadow: "0 20px 45px -20px rgba(15,23,42,.12)",
                       display: "flex",
                       flexDirection: "column",
-                      justifyContent: "space-between",
-                      transition: "all .3s cubic-bezier(0.4, 0, 0.2, 1)",
+                      bgcolor: "#ffffff",
+                      borderRadius: "20px",
+                      border: "1px solid #e2e8f0",
+                      boxShadow: "0 4px 20px rgba(0, 0, 0, 0.04)",
                       overflow: "hidden",
+                      transition: "all 0.3s cubic-bezier(0.16, 1, 0.3, 1)",
+                      position: "relative",
                       "&:hover": {
-                        transform: "translateY(-6px)",
-                        boxShadow: "0 30px 65px -20px rgba(37,99,235,.3)",
-                        borderColor: "rgba(37,99,235,0.45)"
-                      }
+                        transform: "translateY(-4px)",
+                        boxShadow: `0 16px 36px ${theme.glowColor}`,
+                        borderColor: theme.badgeColor,
+                      },
                     }}
                   >
-                    {/* Top Accent Gradient Bar */}
-                    <Box sx={{
-                      position: "absolute", top: 0, left: 0, right: 0, height: 5,
-                      background: cat.key === "supershop"
-                        ? "linear-gradient(90deg, #10b981, #06b6d4, #3b82f6)"
-                        : "linear-gradient(90deg, #3b82f6, #6366f1, #8b5cf6)"
-                    }} />
+                    {/* Top Gradient Accent Line */}
+                    <Box sx={{ height: 5, background: theme.accentGradient }} />
 
-                    <Box>
-                      {/* Shop Header */}
-                      <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 2, mb: 2 }}>
-                        <Box>
-                          <Typography variant="h6" sx={{ fontWeight: 800, color: "#0f172a", fontSize: { xs: "1.2rem", sm: "1.35rem" }, letterSpacing: "-0.02em", display: "flex", alignItems: "center", gap: 1 }}>
-                            <span>{cat.icon}</span> {shop.name}
-                          </Typography>
-                          <Typography sx={{ color: "#64748b", fontSize: "0.85rem", mt: 0.5, display: "flex", alignItems: "center", gap: 0.5 }}>
-                            <span>📍</span> {shop.address}
-                          </Typography>
+                    {/* Card Content Wrapper */}
+                    <Box sx={{ p: { xs: 2.5, sm: 3 }, display: "flex", flexDirection: "column", flexGrow: 1 }}>
+                      
+                      {/* Top Header Row: Category Badge + Live Status */}
+                      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 1.5 }}>
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            gap: 0.8,
+                            px: 1.4,
+                            py: 0.4,
+                            borderRadius: "14px",
+                            bgcolor: theme.badgeBg,
+                            color: theme.badgeColor,
+                            border: `1px solid ${theme.badgeBorder}`,
+                            fontSize: "12px",
+                            fontWeight: 700,
+                          }}
+                        >
+                          <span>{cat.icon}</span>
+                          <span>{isBn ? cat.name_bn : cat.name_en}</span>
                         </Box>
-                        <Box sx={{ textAlign: "right" }}>
-                          <Chip 
-                            label={isBn ? cat.name_bn : cat.name_en} 
-                            size="small" 
-                            sx={{ 
-                              bgcolor: "rgba(37,99,235,0.09)", 
-                              color: "#1d4ed8", 
-                              fontWeight: 700, 
-                              borderRadius: "8px",
-                              fontSize: "0.78rem",
-                              border: "1px solid rgba(37,99,235,0.2)"
-                            }} 
-                          />
-                          <Typography sx={{ fontSize: "0.74rem", color: "#16a34a", fontWeight: 800, mt: 0.6, display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 0.5 }}>
-                            <span style={{ fontSize: "8px" }}>●</span> Live Demo
-                          </Typography>
+
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.6, fontSize: "11px", fontWeight: 700, color: "#16a34a" }}>
+                          <Box sx={{ width: 7, height: 7, borderRadius: "50%", bgcolor: "#16a34a", boxShadow: "0 0 6px #16a34a" }} />
+                          <span>{isBn ? "লাইভ ডেমো" : "Live Demo"}</span>
                         </Box>
                       </Box>
 
-                      {/* Category Description */}
-                      <Typography sx={{ color: "#475569", fontSize: "0.88rem", mb: 2.5, lineHeight: 1.45 }}>
-                        {isBn ? cat.desc_bn : cat.desc_en}
-                      </Typography>
-
-                      {/* Modernized Feature Chips Grid */}
-                      <Box sx={{ my: 2.5 }}>
-                        <Typography sx={{ 
-                          fontSize: "0.76rem", fontWeight: 800, color: "#64748b", 
-                          textTransform: "uppercase", letterSpacing: ".08em", mb: 1.5,
-                          display: "flex", alignItems: "center", gap: 1
-                        }}>
-                          <span>⚡</span> {isBn ? "প্রদর্শিত প্রিমিয়াম ফিচারসমূহ:" : "Enabled Demo Features:"}
-                        </Typography>
-
-                        <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" }, gap: 1.2 }}>
-                          {shop.features.map((featName, idx) => {
-                            const f = FEATURE_MAP[featName] || {
-                              icon: "✓",
-                              color: "#2563eb",
-                              bg: "rgba(37, 99, 235, 0.06)",
-                              border: "rgba(37, 99, 235, 0.15)",
-                              bn: featName,
-                              en: featName
-                            };
-
-                            return (
-                              <Box
-                                key={idx}
-                                sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 1,
-                                  px: 1.4,
-                                  py: 0.9,
-                                  bgcolor: f.bg,
-                                  border: `1px solid ${f.border}`,
-                                  borderRadius: "10px",
-                                  transition: "all .2s ease",
-                                  "&:hover": {
-                                    bgcolor: "#fff",
-                                    transform: "translateY(-1px)",
-                                    boxShadow: "0 4px 10px -2px rgba(15,23,42,.08)"
-                                  }
-                                }}
-                              >
-                                <Box sx={{ 
-                                  fontSize: "1rem", lineHeight: 1, flexShrink: 0,
-                                  width: 22, height: 22, display: "flex", alignItems: "center", justifyContent: "center"
-                                }}>
-                                  {f.icon}
-                                </Box>
-                                <Typography sx={{ 
-                                  fontSize: "0.82rem", fontWeight: 700, 
-                                  color: f.color, lineHeight: 1.25,
-                                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis"
-                                }}>
-                                  {isBn ? f.bn : f.en}
-                                </Typography>
-                              </Box>
-                            );
-                          })}
-                        </Box>
-                      </Box>
-                    </Box>
-
-                    {/* Modernized CTA 1-Click Button */}
-                    <Box sx={{ pt: 2.5, borderTop: "1px solid #f1f5f9", mt: 1 }}>
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        size="large"
-                        disabled={busyShopId === shop.id}
-                        onClick={() => enterDemoShop(shop.id)}
+                      {/* Shop Name */}
+                      <Typography
+                        component="h2"
                         sx={{
-                          background: cat.key === "supershop"
-                            ? "linear-gradient(135deg, #059669 0%, #047857 100%)"
-                            : "linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)",
-                          color: "#fff",
+                          fontSize: { xs: "18px", sm: "20px" },
                           fontWeight: 800,
-                          textTransform: "none",
-                          borderRadius: "14px",
-                          py: 1.45,
-                          fontSize: "1.02rem",
-                          letterSpacing: "-0.01em",
-                          boxShadow: cat.key === "supershop"
-                            ? "0 10px 25px -8px rgba(5,150,105,0.6)"
-                            : "0 10px 25px -8px rgba(37,99,235,0.6)",
-                          transition: "all .25s ease",
-                          "&:hover": { 
-                            background: cat.key === "supershop"
-                              ? "linear-gradient(135deg, #047857 0%, #065f46 100%)"
-                              : "linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%)",
-                            boxShadow: "0 14px 30px -8px rgba(37,99,235,0.8)",
-                            transform: "translateY(-2px)"
-                          }
+                          color: "#0f172a",
+                          mb: 0.8,
+                          lineHeight: 1.3,
                         }}
                       >
-                        {busyShopId === shop.id 
-                          ? (isBn ? "ডেমোতে প্রবেশ করা হচ্ছে…" : "Entering Demo…") 
-                          : (isBn ? `🚀 ${shop.name} ডেমো এক্সপ্লোর করুন →` : `Explore ${shop.name} Demo →`)}
-                      </Button>
-
-                      <Typography sx={{ textAlign: "center", color: "#94a3b8", fontSize: "0.76rem", mt: 1 }}>
-                        🔒 {isBn ? "১০০% নিরাপদ · কোনো পাসওয়ার্ড বা লগইন ছাড়াই ডেমো ড্যাশবোর্ডে প্রবেশ করুন" : "100% Safe · Instant 1-click access without typing credentials"}
+                        {shop.name}
                       </Typography>
+
+                      {/* Address / Location with Min Height for Uniform Alignment */}
+                      <Box sx={{ minHeight: "42px", display: "flex", alignItems: "flex-start", gap: 0.8, color: "#64748b", fontSize: "12.5px", mb: 2 }}>
+                        <span>📍</span>
+                        <Typography sx={{ fontSize: "12.5px", color: "#64748b", lineHeight: 1.4 }}>
+                          {shop.address}
+                        </Typography>
+                      </Box>
+
+                      {/* Divider */}
+                      <Box sx={{ height: "1px", bgcolor: "#f1f5f9", mb: 2 }} />
+
+                      {/* Feature Chips Section */}
+                      <Typography sx={{ fontSize: "11.5px", fontWeight: 700, color: "#475569", textTransform: "uppercase", letterSpacing: "0.05em", mb: 1.2 }}>
+                        ⚡ {isBn ? "প্রদর্শিত প্রিমিয়াম ফিচারসমূহ:" : "Enabled Demo Features:"}
+                      </Typography>
+
+                      {/* Flex-Wrap Chips (Zero Clipping Guaranteed) */}
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.8, mb: 2.5, flexGrow: 1, minHeight: "170px", alignContent: "flex-start" }}>
+                        {shop.features.map((featName, idx) => {
+                          const f = FEATURE_MAP[featName] || {
+                            icon: "✓",
+                            color: "#334155",
+                            bg: "rgba(51, 65, 85, 0.06)",
+                            border: "rgba(51, 65, 85, 0.18)",
+                            bn: featName,
+                            en: featName,
+                          };
+
+                          return (
+                            <Box
+                              key={idx}
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 0.7,
+                                px: 1.2,
+                                py: 0.5,
+                                borderRadius: "16px",
+                                bgcolor: f.bg,
+                                border: `1px solid ${f.border}`,
+                                fontSize: "12px",
+                                fontWeight: 600,
+                                color: "#1e293b",
+                                transition: "all 0.15s ease",
+                                "&:hover": {
+                                  bgcolor: "#ffffff",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+                                  borderColor: f.color,
+                                }
+                              }}
+                            >
+                              <span style={{ fontSize: "13px" }}>{f.icon}</span>
+                              <span>{isBn ? f.bn : f.en}</span>
+                            </Box>
+                          );
+                        })}
+                      </Box>
+
+                      {/* Action CTA Button (Pushed to bottom uniformly via margin-top: auto) */}
+                      <Box sx={{ mt: "auto", pt: 1 }}>
+                        <Button
+                          fullWidth
+                          variant="contained"
+                          disabled={isCurrentEntering}
+                          onClick={() => enterDemoShop(shop.id)}
+                          sx={{
+                            background: theme.btnGradient,
+                            color: "#ffffff",
+                            fontWeight: 700,
+                            fontSize: "14px",
+                            py: 1.4,
+                            borderRadius: "12px",
+                            textTransform: "none",
+                            boxShadow: `0 4px 14px ${theme.glowColor}`,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: 1,
+                            transition: "all 0.2s ease",
+                            "&:hover": {
+                              background: theme.btnGradient,
+                              filter: "brightness(1.08)",
+                              boxShadow: `0 8px 22px ${theme.glowColor}`,
+                              transform: "translateY(-1px)",
+                            },
+                          }}
+                        >
+                          {isCurrentEntering ? (
+                            <span>{isBn ? "প্রবেশ করা হচ্ছে…" : "Connecting Sandbox…"}</span>
+                          ) : (
+                            <>
+                              <span>🚀 {isBn ? "ডেমো এক্সপ্লোর করুন" : "Explore Live Demo"}</span>
+                              <span>→</span>
+                            </>
+                          )}
+                        </Button>
+                      </Box>
+
                     </Box>
                   </Box>
-                ))}
-              </Box>
-            )}
+                );
+              })}
+            </Box>
+          )}
 
-            {/* If no demo shops found */}
-            {!loading && displayedShopItems.length === 0 && (
-              <Box sx={{ textAlign: "center", py: 8 }}>
-                <Typography variant="h6" sx={{ color: M.textMuted, mb: 2 }}>
-                  {isBn ? "বর্তমানে কোনো ডেমো শপ উপলব্ধ নেই।" : "No demo shops are currently active."}
+          {/* Fallback Empty */}
+          {!loading && displayedShopItems.length === 0 && (
+            <Box sx={{ textAlign: "center", py: 8, bgcolor: "#ffffff", borderRadius: "16px", border: "1px dashed #cbd5e1" }}>
+              <Typography sx={{ color: "#64748b", fontSize: "16px", fontWeight: 600 }}>
+                {isBn ? "এই ক্যাটাগরিতে বর্তমানে কোনো ডেমো শপ সক্রিয় নেই।" : "No live demo store available in this category."}
+              </Typography>
+            </Box>
+          )}
+        </Container>
+
+        {/* FEATURE OVERVIEW SECTION FOR MARKETING & SEO */}
+        <Box sx={{ py: { xs: 6, md: 8 }, bgcolor: "#ffffff", borderTop: "1px solid #e2e8f0" }}>
+          <Container maxWidth="lg">
+            <Stack spacing={4} sx={{ textAlign: "center", alignItems: "center" }}>
+              <Box sx={{ maxWidth: 700 }}>
+                <Typography sx={{ fontSize: "13px", fontWeight: 800, color: "#2563eb", textTransform: "uppercase", letterSpacing: "0.08em", mb: 1 }}>
+                  {isBn ? "কেন StockWhisk বেছে নেবেন?" : "Why Choose StockWhisk?"}
                 </Typography>
-                <Link href="/" style={{ textDecoration: "none" }}>
-                  <Button variant="outlined" sx={{ borderRadius: "20px" }}>
-                    {isBn ? "হোমে ফিরে যান" : "Return to Home"}
-                  </Button>
-                </Link>
+                <Typography component="h2" sx={{ fontSize: { xs: "22px", md: "30px" }, fontWeight: 800, color: "#0f172a", mb: 1 }}>
+                  {isBn ? "যেকোনো রিটেইল ও হোলসেল ব্যবসার জন্য তৈরি" : "Engineered for Every Retail & Wholesale Business"}
+                </Typography>
+                <Typography sx={{ color: "#64748b", fontSize: "14.5px" }}>
+                  {isBn ? "সহজ ব্যবহার, দ্রুত বিলিং এবং ক্লাউড সিকিউরিটি — যা আপনার দোকানের ব্যবসা পরিচালনা করবে ঝামেলামুক্ত।" : "Fast, reliable cloud POS designed to streamline billing, stock control, and profits."}
+                </Typography>
               </Box>
-            )}
 
-            {/* SEO & Feature Highlights Section */}
-            <Box sx={{ mt: { xs: 8, md: 12 }, pt: 6, borderTop: `1px solid ${M.border}` }}>
-              <Typography variant="h4" sx={{ textAlign: "center", fontWeight: 800, color: "#0f172a", mb: 1.5, fontSize: { xs: "1.5rem", md: "2rem" } }}>
-                {isBn ? "StockWhisk কেন বাংলাদেশের রিটেইল ব্যবসার সেরা সমাধান?" : "Why StockWhisk is Bangladesh's Leading Retail POS?"}
-              </Typography>
-              <Typography sx={{ textAlign: "center", color: M.textMuted, maxWidth: 650, mx: "auto", mb: 5, fontSize: "1rem" }}>
-                {isBn ? "সহজ ব্যবহার, দ্রুত বিলিং এবং ক্লাউড সিকিউরিটি — যা আপনার দোকানের ব্যবসা পরিচালনা করবে ঝামেলামুক্ত।" : "Fast, reliable cloud POS designed to streamline billing, stock control, and profits."}
-              </Typography>
-
-              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 3 }}>
+              <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(3, 1fr)" }, gap: 3, width: "100%", textAlign: "left" }}>
                 {[
                   {
                     icon: "🛒",
-                    title: isBn ? "সুপারফাস্ট POS বিলিং" : "Fast POS Billing",
-                    desc: isBn ? "ক্যাশ, কার্ড, বিকাশ ও নগদ পেমেন্ট। থার্মাল ও সাধারণ প্রিন্টারে দ্রুত রসিদ প্রিন্ট।" : "Cash, mobile payments, and split tenders with instant 58mm/80mm thermal receipts."
+                    titleBn: "সুপারফাস্ট POS ও দ্রুত চেকআউট",
+                    titleEn: "Lightning Fast POS Billing",
+                    descBn: "কিবোর্ড শর্টকাট (F12), বারকোড স্ক্যানিং, স্প্লিট পেমেন্ট এবং হোল্ড/রিকল কার্ট সুবিধা।",
+                    descEn: "Keyboard hotkeys (F12), instant barcode lookup, split payments and hold/recall carts."
                   },
                   {
                     icon: "📦",
-                    title: isBn ? "লাইভ স্টক ও ইনভেন্টরি" : "Live Inventory Ledger",
-                    desc: isBn ? "পণ্যের রিয়েল-টাইম স্টক লেজার, লো-স্টক সতর্কতা ও বারকোড জেনারেশন।" : "Real-time stock ledger with low-stock alerts and instant barcode label generator."
+                    titleBn: "স্মার্ট ইনভেন্টরি ও স্টক লেজার",
+                    titleEn: "Smart Stock & Inventory",
+                    descBn: "রিয়েল-টাইম স্টক লেজার, লো-স্টক অ্যালার্ট, মেয়াদ ট্র্যাকিং এবং ব্যাচ ওয়্যারহাউজ ম্যানেজমেন্ট।",
+                    descEn: "Real-time stock ledger, low stock alerts, expiry dates and multi-batch management."
                   },
                   {
-                    icon: "📱",
-                    title: isBn ? "সার্ভিস রিপেয়ার ও QR ট্র্যাকিং" : "Service Tickets & QR Tracking",
-                    desc: isBn ? "মোবাইল ও ইলেকট্রনিক্স রিপেয়ার টিকিট তৈরি ও কাস্টমারের জন্য লাইভ QR ট্র্যাকিং।" : "Repair job management with live customer status tracking via QR code scanning."
-                  },
-                  {
-                    icon: "📊",
-                    title: isBn ? "দৈনিক ক্যাশ ও লাভ-ক্ষতি" : "Daily Register & Reports",
-                    desc: isBn ? "প্রতিদিনের ক্যাশ ক্লোজিং, বিক্রি, লাভ-ক্ষতি ও খরচের স্বয়ংক্রিয় নিখুঁত হিসাব।" : "Daily shift cash register reconciliation and profit-and-loss business analytics."
+                    icon: "⚖️",
+                    titleBn: "ওজন স্কেল ও বারকোড ইন্টিগ্রেশন",
+                    titleEn: "Weight Scale & Barcode Matrix",
+                    descBn: "সুপারশপের ওজন স্কেল স্টিকার (EAN-13) অটো-ডিকোডিং এবং কাস্টম হ্যাংট্যাগ প্রিন্টিং।",
+                    descEn: "EAN-13 weight scale parsing and custom barcode hangtag generation."
                   },
                   {
                     icon: "👥",
-                    title: isBn ? "কাস্টমার বাকি ও WhatsApp ইনভয়েস" : "Customer Dues & WhatsApp",
-                    desc: isBn ? "গ্রাহকের বাকির খাতা ও এক ক্লিকে WhatsApp-এ ডিজিটাল ইনভয়েস পাঠানো।" : "Track customer credit balances and send PDF invoices directly on WhatsApp."
+                    titleBn: "কাস্টমার বাকি ও লয়্যালটি পয়েন্ট",
+                    titleEn: "Customer Dues & Loyalty Club",
+                    descBn: "বাকি খাতা, পেমেন্ট রসিদ, ক্লাব রিওয়ার্ড পয়েন্ট এবং WhatsApp চালান শেয়ারিং।",
+                    descEn: "Credit ledgers, automated payment receipts, loyalty rewards and WhatsApp invoices."
                   },
                   {
-                    icon: "🛡️",
-                    title: isBn ? "১০০% সুরক্ষিত ক্লাউড ব্যাকআপ" : "Safe & Cloud Synced",
-                    desc: isBn ? "স্বয়ংক্রিয় ক্লাউড ব্যাকআপ ও একাধিক ব্রাঞ্চ বা কম্পিউটার থেকে রিয়েল-টাইম সিঙ্ক।" : "Automated Google Drive / cloud backups with seamless multi-device sync."
+                    icon: "📊",
+                    titleBn: "দৈনিক ক্যাশ ও অডিটিং হিসাব",
+                    titleEn: "Daily Cash Register & Audit",
+                    descBn: "শিফট ওপেনিং/ক্লোজিং ক্যাশ রিকনসিলিয়েশন এবং ডে-এন্ড প্রফিট ও লস রিপোর্ট।",
+                    descEn: "Shift opening/closing cash drawer reconciliation and daily profit/loss analytics."
+                  },
+                  {
+                    icon: "🔒",
+                    titleBn: "১০০% ক্লাউড ব্যাকআপ ও নিরাপদ",
+                    titleEn: "100% Cloud Synced & Secure",
+                    descBn: "কোনো ডেটা হারানোর ভয় নেই, যেকোনো ডিভাইস (মোবাইল/কম্পিউটার) থেকে পরিচালনাযোগ্য।",
+                    descEn: "Zero data loss risk, access anywhere from mobile, tablet or PC."
                   }
                 ].map((item, i) => (
                   <Box
                     key={i}
                     sx={{
                       p: 3,
-                      bgcolor: "rgba(255,255,255,0.7)",
-                      borderRadius: 3,
+                      borderRadius: "16px",
+                      bgcolor: "#f8fafc",
                       border: "1px solid #e2e8f0",
-                      transition: "transform .2s ease",
-                      "&:hover": { transform: "translateY(-2px)", bgcolor: "#fff" }
+                      transition: "all 0.2s ease",
+                      "&:hover": { bgcolor: "#ffffff", boxShadow: "0 8px 24px rgba(0,0,0,0.06)", transform: "translateY(-2px)" }
                     }}
                   >
-                    <Box sx={{ fontSize: "2rem", mb: 1.5 }}>{item.icon}</Box>
-                    <Typography sx={{ fontWeight: 700, color: "#0f172a", fontSize: "1.1rem", mb: 1 }}>
-                      {item.title}
+                    <Box sx={{ fontSize: "28px", mb: 1.5 }}>{item.icon}</Box>
+                    <Typography sx={{ fontWeight: 700, fontSize: "16px", color: "#0f172a", mb: 0.8 }}>
+                      {isBn ? item.titleBn : item.titleEn}
                     </Typography>
-                    <Typography sx={{ color: M.textMuted, fontSize: "0.9rem", lineHeight: 1.5 }}>
-                      {item.desc}
+                    <Typography sx={{ fontSize: "13px", color: "#64748b", lineHeight: 1.5 }}>
+                      {isBn ? item.descBn : item.descEn}
                     </Typography>
                   </Box>
                 ))}
               </Box>
-            </Box>
+            </Stack>
           </Container>
         </Box>
 
