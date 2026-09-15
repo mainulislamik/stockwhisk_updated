@@ -1,4 +1,5 @@
 "use client";
+import { formatProductName } from "@/lib/formatters";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -1085,7 +1086,7 @@ export default function PosPage() {
                               disabled={out || busy}
                               onClick={() => pickFromGrid(p)}
                             >
-                              <div className="fw-bold text-truncate" style={{ fontSize: "0.95rem" }}>{p.name}</div>
+                              <div className="fw-bold text-truncate" style={{ fontSize: "0.95rem" }}>{formatProductName(p, isRepairShop)}</div>
                               <div style={{ fontSize: ".72rem", fontFamily: "monospace", color: "var(--text-muted, #64748b)" }}>
                                 {p.sku || p.barcode}
                               </div>

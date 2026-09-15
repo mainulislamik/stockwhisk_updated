@@ -1175,7 +1175,7 @@ export default function POSScreen() {
                               <MaterialCommunityIcons name="cellphone" size={26} color={theme.colors.primary} />
                             </View>
                             <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.colors.onSurface, textAlign: 'center' }}>
-                              {formatProductName(item, isRepairShop)}
+                              {item.name}
                             </Text>
                             <Text style={{ fontSize: 11, color: theme.colors.primary, marginTop: 4 }}>
                               {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
@@ -1243,7 +1243,7 @@ export default function POSScreen() {
                               <MaterialCommunityIcons name="tools" size={22} color="#f59e0b" />
                             </View>
                             <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.onSurface, textAlign: 'center' }}>
-                              {formatProductName(item, isRepairShop)}
+                              {item.name}
                             </Text>
                             <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
                               {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}

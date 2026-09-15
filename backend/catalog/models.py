@@ -24,7 +24,6 @@ class Category(TenantScopedModel):
 
     def __str__(self):
         return self.display_name
-
     @property
     def display_name(self) -> str:
         shop = getattr(self, "shop", None)
@@ -54,7 +53,6 @@ class Category(TenantScopedModel):
             parts.append(category_name)
 
         return " ".join(parts).strip()
-
 
 
 
@@ -69,7 +67,6 @@ class Brand(TenantScopedModel):
 
     def __str__(self):
         return self.display_name
-
     @property
     def display_name(self) -> str:
         shop = getattr(self, "shop", None)
@@ -99,7 +96,6 @@ class Brand(TenantScopedModel):
             parts.append(category_name)
 
         return " ".join(parts).strip()
-
 
 
 
@@ -128,7 +124,6 @@ class Unit(TenantScopedModel):
 
     def __str__(self):
         return self.display_name
-
     @property
     def display_name(self) -> str:
         shop = getattr(self, "shop", None)
@@ -158,7 +153,6 @@ class Unit(TenantScopedModel):
             parts.append(category_name)
 
         return " ".join(parts).strip()
-
 
 
 
@@ -251,7 +245,6 @@ class Product(TenantScopedModel):
 
     def __str__(self):
         return self.display_name
-
     @property
     def display_name(self) -> str:
         shop = getattr(self, "shop", None)
@@ -281,7 +274,6 @@ class Product(TenantScopedModel):
             parts.append(category_name)
 
         return " ".join(parts).strip()
-
 
 
     @property
