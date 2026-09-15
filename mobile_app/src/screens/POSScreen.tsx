@@ -1175,7 +1175,7 @@ export default function POSScreen() {
                               <MaterialCommunityIcons name="cellphone" size={26} color={theme.colors.primary} />
                             </View>
                             <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.colors.onSurface, textAlign: 'center' }}>
-                              {item.name}
+                              {formatProductName(item, isRepairShop)}
                             </Text>
                             <Text style={{ fontSize: 11, color: theme.colors.primary, marginTop: 4 }}>
                               {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
@@ -1243,7 +1243,7 @@ export default function POSScreen() {
                               <MaterialCommunityIcons name="tools" size={22} color="#f59e0b" />
                             </View>
                             <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.onSurface, textAlign: 'center' }}>
-                              {item.name}
+                              {formatProductName(item, isRepairShop)}
                             </Text>
                             <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
                               {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}
@@ -1318,7 +1318,7 @@ export default function POSScreen() {
                   >
                     <Surface style={{ padding: 12, borderRadius: 8, backgroundColor: theme.colors.surface, elevation: 2, height: 120, justifyContent: 'space-between' }}>
                       <View>
-                        <Text numberOfLines={2} style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{item.name}</Text>
+                        <Text numberOfLines={2} style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{formatProductName(item, isRepairShop)}</Text>
                         <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray' }}>{item.sku}</Text>
                         {item.variations && item.variations.length > 0 && (
                           <View style={{ alignSelf: 'flex-start', backgroundColor: '#f3e8ff', paddingHorizontal: 6, paddingVertical: 1, borderRadius: 10, marginTop: 2 }}>
@@ -1938,7 +1938,7 @@ export default function POSScreen() {
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#f1f5f9', paddingBottom: 10 }}>
                   <View style={{ flex: 1, paddingRight: 8 }}>
                     <Text style={{ fontSize: 17, fontWeight: 'bold', color: theme.colors.onSurface }}>
-                      {selectedProductForUnit?.name}
+                      {selectedProductForUnit ? formatProductName(selectedProductForUnit, isRepairShop) : ''}
                     </Text>
                     <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4, gap: 8, flexWrap: 'wrap' }}>
                       <Text style={{ fontSize: 11, color: '#64748b' }}>
