@@ -867,7 +867,7 @@ export default function POSScreen() {
 
           {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
           {isRepairShop && !query.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true}>
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 220 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always">
               <View style={{ marginBottom: 8 }}>
               {/* Breadcrumb Navigation Bar */}
               <View style={{
@@ -1302,7 +1302,7 @@ export default function POSScreen() {
                 data={displayedProducts}
               keyExtractor={item => item.id.toString()}
               numColumns={2}
-              contentContainerStyle={{ padding: 8, paddingBottom: 100 }}
+              style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 8, paddingBottom: 220 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always"
               onEndReached={loadMore}
               onEndReachedThreshold={0.5}
               ListFooterComponent={loading && page > 1 ? <ActivityIndicator style={{ margin: 16 }} /> : null}
