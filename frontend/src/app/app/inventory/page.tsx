@@ -1,4 +1,5 @@
 "use client";
+import { formatProductName } from '@/lib/formatters';
 
 import toast from "react-hot-toast";
 
@@ -196,7 +197,7 @@ export default function InventoryPage() {
                     ) : (
                       lowStock.paged.map((p) => (
                         <tr key={p.id}>
-                          <td>{p.name}</td>
+                          <td>{formatProductName(p, isRepairShop)}</td>
                           <td className="text-end text-warning fw-semibold">{p.current_stock}</td>
                           <td className="text-end">{p.reorder_level}</td>
                         </tr>
@@ -229,7 +230,7 @@ export default function InventoryPage() {
                     ) : (
                       outStock.paged.map((p) => (
                         <tr key={p.id}>
-                          <td>{p.name}</td>
+                          <td>{formatProductName(p, isRepairShop)}</td>
                           <td className="text-end text-danger fw-semibold">{p.current_stock}</td>
                         </tr>
                       ))
@@ -323,7 +324,7 @@ export default function InventoryPage() {
                       <option value="">-- পণ্য নির্বাচন করুন --</option>
                       {wasteProdList.map(p => (
                         <option key={p.id} value={p.id}>
-                          {p.name} (বর্তমান স্টক: {p.current_stock} {p.unit_name || p.unit?.name || "একক"})
+                          {formatProductName(p, isRepairShop)} (বর্তমান স্টক: {p.current_stock} {p.unit_name || p.unit?.name || "একক"})
                         </option>
                       ))}
                     </select>

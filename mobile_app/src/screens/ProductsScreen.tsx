@@ -1,3 +1,4 @@
+import { formatProductName } from '../utils/formatters';
 import React, { useState, useEffect, useCallback } from 'react';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, Platform } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, useTheme, FAB, Button, Divider, Menu, Surface } from 'react-native-paper';
@@ -849,7 +850,7 @@ export default function ProductsScreen() {
                       <View style={styles.rowBetween}>
                         <View style={{ flex: 1, paddingRight: 8 }}>
                           <Text style={[styles.productName, { color: isOutOfStock ? '#dc2626' : (isDarkMode ? '#f8fafc' : '#1e293b') }]}>
-                            {product.name}
+                            {formatProductName(product, isRepairShop)}
                           </Text>
                           <Text style={styles.sku}>{product.sku ? `SKU: ${product.sku}` : (product.barcode ? `Barcode: ${product.barcode}` : '')}</Text>
                         </View>
@@ -965,7 +966,7 @@ export default function ProductsScreen() {
                       onPress={() => selectProductForPurchase(p)}
                       style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}
                     >
-                      <Text style={{ fontWeight: 'bold' }}>{p.name}</Text>
+                      <Text style={{ fontWeight: 'bold' }}>{formatProductName(p, isRepairShop)}</Text>
                       <Text style={{ fontSize: 11, color: '#64748b' }}>{p.sku || p.barcode || ''} | Stock: {p.current_stock}</Text>
                     </TouchableOpacity>
                   ))}

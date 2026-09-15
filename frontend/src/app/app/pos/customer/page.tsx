@@ -1,4 +1,5 @@
 "use client";
+import { formatProductName } from '@/lib/formatters';
 
 import { useEffect, useState } from "react";
 import { toast } from "react-hot-toast";
@@ -260,7 +261,7 @@ export default function PosCustomerPage() {
                     return (
                       <tr key={l.product.id}>
                         <td className="ps-3">
-                          <div className="fw-medium">{l.product.name}</div>
+                          <div className="fw-medium">{formatProductName(l.product, isRepairShop)}</div>
                           {isBulk && (
                             <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
                               📦 Full {unitLabel} ({mult} {(l.product as any)?.unit_detail?.short_code || "Unit"})

@@ -68,6 +68,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
     unit_detail = serializers.SerializerMethodField()
     purchase_unit_detail = serializers.SerializerMethodField()
     units = serializers.SerializerMethodField()
+    display_name = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -80,9 +81,29 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "is_low_stock", "is_active", "variations", "warranty_months",
             "replacement_guarantee_days",
             "expiry_date", "lot_number", "mfg_date", "size_variants", "fabric_material", "gender_target", "season", "style_type", "fit_type", "collection_name", "care_instructions",
-            "units", "unit_detail", "purchase_unit_detail",
+            "units", "unit_detail", "purchase_unit_detail", "display_name",
         ]
         read_only_fields = ["current_stock", "is_low_stock"]
+
+
+    def get_display_name(self, obj):
+        shop = getattr(obj, "shop", None)
+        is_repair = getattr(shop, "shop_mobile_repair_enabled", False) if shop else False
+        if not is_repair:
+            return obj.name
+
+        brand_name = (getattr(obj.brand, "name", "") or "").strip() if getattr(obj, "brand_id", None) else ""
+        category_name = (getattr(obj.category, "name", "") or "").strip() if getattr(obj, "category_id", None) else ""
+        raw_name = (obj.name or "").strip()
+
+        parts = []
+        if brand_name and brand_name.lower() not in raw_name.lower():
+            parts.append(brand_name)
+        parts.append(raw_name)
+        if category_name and category_name.lower() not in raw_name.lower():
+            parts.append(category_name)
+
+        return " ".join(parts).strip()
 
     def get_variations(self, obj):
         tenant_id = getattr(obj, "shop_id", None)

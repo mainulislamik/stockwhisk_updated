@@ -1,3 +1,4 @@
+import { formatProductName } from '../utils/formatters';
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, FlatList, Alert, Modal, Dimensions, Linking, Platform, BackHandler, Keyboard, KeyboardAvoidingView } from 'react-native';
 import { Text, Appbar, useTheme, Surface, IconButton, TextInput, Button, Divider, ActivityIndicator, Badge, Chip, Checkbox } from 'react-native-paper';
@@ -666,7 +667,7 @@ export default function POSScreen() {
               });
               pId = pRes.data.id;
             } catch (e: any) {
-              throw new Error(isBN ? `কাস্টম পণ্য "${l.product.name}" যোগ করতে ব্যর্থ হয়েছে।` : `Failed to save custom item "${l.product.name}".`);
+              throw new Error(isBN ? `কাস্টম পণ্য "${formatProductName(l.product, isRepairShop)}" যোগ করতে ব্যর্থ হয়েছে।` : `Failed to save custom item "${formatProductName(l.product, isRepairShop)}".`);
             }
           }
           return {
@@ -1057,7 +1058,7 @@ export default function POSScreen() {
                         return (
                           <Surface key={p.id} style={{ padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: theme.colors.surface, elevation: 2 }}>
                             <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface, flex: 1 }} numberOfLines={2}>{p.name}</Text>
+                              <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface, flex: 1 }} numberOfLines={2}>{formatProductName(p, isRepairShop)}</Text>
                               <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{p.selling_price}</Text>
                             </View>
                             <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 6 }}>
@@ -1358,7 +1359,7 @@ export default function POSScreen() {
               <Surface key={l.product.id} style={{ padding: 12, borderRadius: 8, elevation: 2, marginBottom: 8, backgroundColor: theme.colors.surface }}>
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
                   <View style={{ flex: 1 }}>
-                    <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{l.product.name}</Text>
+                    <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface }}>{formatProductName(l.product, isRepairShop)}</Text>
                     <Text style={{ fontSize: 12, color: isDarkMode ? '#94a3b8' : 'gray' }}>৳ {l.price}</Text>
                     {l.selectedUnits.length > 0 && (
                       <View style={{ marginTop: 4 }}>

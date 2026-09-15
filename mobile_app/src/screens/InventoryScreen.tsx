@@ -1,3 +1,4 @@
+import { formatProductName } from '../utils/formatters';
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, FlatList, Platform, KeyboardAvoidingView
@@ -311,7 +312,7 @@ export default function InventoryScreen() {
                 {summary.low_stock.slice(0, lowStockLimit).map((p) => (
                   <TouchableOpacity key={p.id} onPress={() => setSelectedProduct(p as any)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#fffbeb' }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '600', color: isDarkMode ? '#fde68a' : '#92400e', fontSize: 13 }}>{p.name}</Text>
+                      <Text style={{ fontWeight: '600', color: isDarkMode ? '#fde68a' : '#92400e', fontSize: 13 }}>{formatProductName(p, isRepairShop)}</Text>
                       <Text style={{ color: '#94a3b8', fontSize: 11 }}>{p.sku}</Text>
                     </View>
                     <View style={{ alignItems: 'flex-end' }}>
@@ -339,7 +340,7 @@ export default function InventoryScreen() {
                 {summary.out_of_stock.slice(0, outOfStockLimit).map((p) => (
                   <TouchableOpacity key={p.id} onPress={() => setSelectedProduct(p as any)} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#334155' : '#fef2f2' }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ fontWeight: '600', color: isDarkMode ? '#fca5a5' : '#991b1b', fontSize: 13 }}>{p.name}</Text>
+                      <Text style={{ fontWeight: '600', color: isDarkMode ? '#fca5a5' : '#991b1b', fontSize: 13 }}>{formatProductName(p, isRepairShop)}</Text>
                       <Text style={{ color: '#94a3b8', fontSize: 11 }}>{p.sku}</Text>
                     </View>
                     <View style={{ backgroundColor: isDarkMode ? '#450a0a' : '#fef2f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 }}>
@@ -524,7 +525,7 @@ export default function InventoryScreen() {
                               <MaterialCommunityIcons name="cellphone" size={26} color={theme.colors.primary} />
                             </View>
                             <Text style={{ fontWeight: 'bold', fontSize: 15, color: theme.colors.onSurface, textAlign: 'center' }}>
-                              {item.name}
+                              {formatProductName(item, isRepairShop)}
                             </Text>
                             <Text style={{ fontSize: 11, color: theme.colors.primary, marginTop: 4 }}>
                               {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
@@ -592,7 +593,7 @@ export default function InventoryScreen() {
                               <MaterialCommunityIcons name="tools" size={22} color="#f59e0b" />
                             </View>
                             <Text style={{ fontWeight: 'bold', fontSize: 14, color: theme.colors.onSurface, textAlign: 'center' }}>
-                              {item.name}
+                              {formatProductName(item, isRepairShop)}
                             </Text>
                             <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
                               {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}
@@ -640,7 +641,7 @@ export default function InventoryScreen() {
                   {/* Row 1: Name + Status Badge */}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
                     <TouchableOpacity style={{ flex: 1, marginRight: 8 }} onPress={() => setSelectedProduct(item)}>
-                      <Text style={{ fontWeight: '700', fontSize: 14, color: isDarkMode ? '#f8fafc' : '#1e293b' }} numberOfLines={2}>{item.name}</Text>
+                      <Text style={{ fontWeight: '700', fontSize: 14, color: isDarkMode ? '#f8fafc' : '#1e293b' }} numberOfLines={2}>{formatProductName(item, isRepairShop)}</Text>
                       <Text style={{ color: '#94a3b8', fontSize: 12, marginTop: 2, fontFamily: 'monospace' }}>{item.sku}</Text>
                     </TouchableOpacity>
                     <View style={{ flexDirection: 'row', alignItems: 'center' }}>
