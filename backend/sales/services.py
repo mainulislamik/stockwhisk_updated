@@ -255,7 +255,7 @@ def create_sale(
         EMIInstallment.objects.bulk_create(installments)
 
     if customer is not None and not is_quotation:
-        effective_due = total_emi_amount if is_emi else (total - paid)
+        effective_due = total_emi_amount if is_emi else max(ZERO, total - paid)
         _update_customer_after_sale(customer, total=total, due=effective_due, when=sale_date, points_redeemed=points_redeemed)
 
     if not is_quotation:
