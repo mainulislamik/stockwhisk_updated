@@ -578,8 +578,9 @@ export default function ProductsScreen() {
             )}
 
             {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
-            {isRepairShop && !debouncedSearch.trim() && (
-              <View style={{ marginTop: 8, marginBottom: 8 }}>
+            {isRepairShop && !debouncedSearch.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? (
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true}>
+                <View style={{ marginTop: 8, marginBottom: 8 }}>
                 {/* Breadcrumb Navigation Bar */}
                 <View style={{
                   marginBottom: 8,
@@ -827,8 +828,25 @@ export default function ProductsScreen() {
                   </View>
                 )}
               </View>
-            )}
+              </ScrollView>
+            ) : null}
           </View>
+
+          {isRepairShop && !debouncedSearch.trim() && selectedRepairBrand && selectedRepairCategory && (
+            <View style={{ paddingHorizontal: 12, marginBottom: 8, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 13, color: '#10b981', flex: 1 }}>
+                📦 {selectedRepairBrand.name} · {selectedRepairCategory.name} {isBN ? 'এর পার্টস তালিকা:' : 'Parts List:'}
+              </Text>
+              <TouchableOpacity
+                onPress={() => setSelectedRepairCategory(null)}
+                style={{ paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, backgroundColor: isDarkMode ? '#334155' : '#e2e8f0' }}
+              >
+                <Text style={{ fontSize: 11, color: theme.colors.onSurface }}>
+                  ← {isBN ? 'ক্যাটাগরি পরিবর্তন' : 'Change Category'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           <View style={styles.listContainer}>
             {isRepairShop && !debouncedSearch.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? null : (
