@@ -28,7 +28,7 @@ class NotificationSerializer(serializers.ModelSerializer):
         fields = ["id", "type", "title", "message", "metadata", "sent_channels", "is_read", "created_at"]
 
 
-class NotificationViewSet(_Scoped, mixins.ListModelMixin, viewsets.GenericViewSet):
+class NotificationViewSet(_Scoped, mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsTenantMember]
     serializer_class = NotificationSerializer
 
@@ -63,6 +63,24 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, viewsets.GenericViewSe
     def unread_count(self, request):
         count = Notification.objects.filter(is_read=False).count()
         return Response({"unread": count})
+
+    @action(detail=False, methods=["post"])
+    def clear_read(self, request):
+        shop = getattr(request.user, "shop", None)
+        if shop:
+            Notification.all_objects.filter(shop_id=shop.id, is_read=True).delete()
+        else:
+            Notification.all_objects.filter(is_read=True).delete()
+        return Response({"status": "cleared_read"})
+
+    @action(detail=False, methods=["post"])
+    def clear_all(self, request):
+        shop = getattr(request.user, "shop", None)
+        if shop:
+            Notification.all_objects.filter(shop_id=shop.id).delete()
+        else:
+            Notification.all_objects.filter().delete()
+        return Response({"status": "cleared_all"})
 
     @action(detail=False, methods=["post"])
     def read_all(self, request):

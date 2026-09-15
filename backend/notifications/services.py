@@ -32,11 +32,14 @@ def alert_low_stock_realtime(*, shop, products):
             continue
         out = product.current_stock <= 0
         target_type = NotificationType.OUT_OF_STOCK if out else NotificationType.LOW_STOCK
+        from django.utils import timezone
+        from datetime import timedelta
+        cutoff = timezone.now() - timedelta(hours=24)
         already = Notification.all_objects.filter(
             shop_id=shop.id,
             type=target_type,
-            is_read=False,
             title__contains=product.name,
+            created_at__gte=cutoff,
         ).exists()
         if already:
             continue

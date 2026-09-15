@@ -1,12 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
-import { Text, Appbar, useTheme } from 'react-native-paper';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { usePreferences } from '../contexts/PreferencesContext';
-import { api } from '../api';
-
-const HEADER_HEIGHT = 64;
+import React, { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
+import { Text, Appbar, useTheme, SegmentedButtons } from "react-native-paper";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { usePreferences } from "../contexts/PreferencesContext";
+import { api } from "../api";
 
 export default function NotificationsScreen() {
   const theme = useTheme();
@@ -17,11 +15,21 @@ export default function NotificationsScreen() {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
-  const fetchPage = async (p: number) => {
+  const isBn = language === "BN";
+
+  const fetchPage = async (p: number, currentFilter = filter) => {
     try {
-      if (p === 1) setLoading(true); else setLoadingMore(true);
-      const res = await api.get(`/notifications/notifications/?page=${p}&page_size=15`);
+      if (p === 1) setLoading(true);
+      else setLoadingMore(true);
+
+      let url = `/notifications/notifications/?page=${p}&page_size=15`;
+      if (currentFilter === "unread") {
+        url += "&unread=true";
+      }
+
+      const res = await api.get(url);
       const results = res.data.results || [];
       if (p === 1) setNotifications(results);
       else setNotifications(prev => [...prev, ...results]);
@@ -34,40 +42,121 @@ export default function NotificationsScreen() {
     }
   };
 
-  useEffect(() => { fetchPage(1); }, []);
+  useEffect(() => {
+    setPage(1);
+    fetchPage(1, filter);
+  }, [filter]);
 
   const loadMore = () => {
     if (!loadingMore && hasMore) {
       const next = page + 1;
       setPage(next);
-      fetchPage(next);
+      fetchPage(next, filter);
     }
   };
 
   const markAllAsRead = async () => {
     try {
-      await api.post('/notifications/notifications/read_all/');
+      await api.post("/notifications/notifications/read_all/");
       setNotifications(n => n.map(x => ({ ...x, is_read: true })));
+      if (filter === "unread") {
+        setNotifications([]);
+      }
     } catch {
-      Alert.alert('Error', 'Could not mark all as read');
+      Alert.alert("ত্রুটি", isBn ? "পড়া হিসাবে চিহ্ণিত করা যায়নি" : "Could not mark all as read");
     }
   };
 
   const markAsRead = async (id: number) => {
-    await api.post(`/notifications/notifications/${id}/read/`).catch(() => {});
-    setNotifications(n => n.map(x => x.id === id ? { ...x, is_read: true } : x));
+    try {
+      await api.post(`/notifications/notifications/${id}/read/`);
+      setNotifications(n => {
+        if (filter === "unread") {
+          return n.filter(x => x.id !== id);
+        }
+        return n.map(x => (x.id === id ? { ...x, is_read: true } : x));
+      });
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const deleteNotification = async (id: number) => {
+    try {
+      await api.delete(`/notifications/notifications/${id}/`);
+      setNotifications(n => n.filter(x => x.id !== id));
+    } catch {
+      Alert.alert("ত্রুটি", isBn ? "মুছে ফেলা সম্ভব হয়নি" : "Could not delete notification");
+    }
+  };
+
+  const clearRead = async () => {
+    Alert.alert(
+      isBn ? "পড়া নোটিফিকেশন মুছুন" : "Clear Read Notifications",
+      isBn ? "সকল পড়া শেষ হওয়া নোটিফিকেশন কি মুছে ফেলতে চান?" : "Are you sure you want to clear all read notifications?",
+      [
+        { text: isBn ? "না" : "Cancel", style: "cancel" },
+        {
+          text: isBn ? "হ্যাঁ, মুছুন" : "Clear Read",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.post("/notifications/notifications/clear_read/");
+              setNotifications(n => n.filter(x => !x.is_read));
+            } catch {
+              Alert.alert("ত্রুটি", isBn ? "ক্লিয়ার করা যায়নি" : "Could not clear read notifications");
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const clearAll = async () => {
+    Alert.alert(
+      isBn ? "সব নোটিফিকেশন মুছুন" : "Clear All Notifications",
+      isBn ? "সব নোটিফিকেশন চিরতরে মুছে ফেলতে চান?" : "Are you sure you want to delete ALL notifications?",
+      [
+        { text: isBn ? "না" : "Cancel", style: "cancel" },
+        {
+          text: isBn ? "সব মুছুন" : "Clear All",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.post("/notifications/notifications/clear_all/");
+              setNotifications([]);
+            } catch {
+              Alert.alert("ত্রুটি", isBn ? "ক্লিয়ার করা যায়নি" : "Could not clear all notifications");
+            }
+          }
+        }
+      ]
+    );
   };
 
   return (
     <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface, elevation: 0 }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
-        <Appbar.Content title={language === 'BN' ? 'নোটিফিকেশন' : 'Notifications'} titleStyle={{ fontWeight: 'bold' }} />
+        <Appbar.Content title={isBn ? "নোটিফিকেশন" : "Notifications"} titleStyle={{ fontWeight: "bold" }} />
         <Appbar.Action icon="check-all" onPress={markAllAsRead} color={theme.colors.primary} />
+        <Appbar.Action icon="broom" onPress={clearRead} color="#eab308" />
+        <Appbar.Action icon="delete-outline" onPress={clearAll} color="#ef4444" />
       </Appbar.Header>
 
+      <View style={{ paddingHorizontal: 16, paddingVertical: 8, backgroundColor: theme.colors.surface }}>
+        <SegmentedButtons
+          value={filter}
+          onValueChange={val => setFilter(val as "all" | "unread")}
+          buttons={[
+            { value: "all", label: isBn ? "সব (All)" : "All" },
+            { value: "unread", label: isBn ? "পড়া হয়নি (Unread)" : "Unread" }
+          ]}
+        />
+      </View>
+
       {loading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
           <ActivityIndicator size="large" color={theme.colors.primary} />
         </View>
       ) : (
@@ -81,29 +170,32 @@ export default function NotificationsScreen() {
             if (nearBottom) loadMore();
           }}
         >
-          {notifications.map((notif) => (
-            <TouchableOpacity 
+          {notifications.map(notif => (
+            <TouchableOpacity
               key={notif.id}
-              onPress={() => { if (!notif.is_read) markAsRead(notif.id); }}
+              onPress={() => {
+                if (!notif.is_read) markAsRead(notif.id);
+              }}
               style={[
-                styles.notificationCard, 
-                { 
-                  backgroundColor: theme.colors.surface, 
-                  borderLeftColor: notif.is_read ? 'transparent' : '#ef4444',
+                styles.notificationCard,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderLeftColor: notif.is_read ? "transparent" : "#ef4444",
                   borderLeftWidth: notif.is_read ? 0 : 4
                 }
               ]}
             >
               <View style={styles.iconContainer}>
-                <MaterialCommunityIcons 
+                <MaterialCommunityIcons
                   name={
-                    notif.type === 'low_stock' ? 'package-variant-closed' 
-                    : notif.type === 'out_of_stock' ? 'package-variant-closed'
-                    : notif.type === 'subscription' ? 'star-circle' 
-                    : 'bell'
-                  } 
-                  size={24} 
-                  color={notif.is_read ? theme.colors.secondary : '#ef4444'} 
+                    notif.type === "low_stock" || notif.type === "out_of_stock"
+                      ? "package-variant-closed"
+                      : notif.type === "subscription"
+                      ? "star-circle"
+                      : "bell"
+                  }
+                  size={24}
+                  color={notif.is_read ? theme.colors.secondary : "#ef4444"}
                 />
               </View>
               <View style={styles.textContainer}>
@@ -111,24 +203,28 @@ export default function NotificationsScreen() {
                 <Text style={[styles.body, { color: theme.colors.secondary }]}>{notif.message}</Text>
                 <Text style={[styles.time, { color: theme.colors.primary }]}>{new Date(notif.created_at).toLocaleString()}</Text>
               </View>
+              <TouchableOpacity
+                style={styles.deleteBtn}
+                onPress={() => deleteNotification(notif.id)}
+              >
+                <MaterialCommunityIcons name="trash-can-outline" size={20} color={theme.colors.secondary} />
+              </TouchableOpacity>
             </TouchableOpacity>
           ))}
 
-          {loadingMore && (
-            <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginVertical: 16 }} />
-          )}
+          {loadingMore && <ActivityIndicator size="small" color={theme.colors.primary} style={{ marginVertical: 16 }} />}
 
           {!hasMore && notifications.length > 0 && (
-            <Text style={{ textAlign: 'center', color: theme.colors.secondary, padding: 16, fontSize: 12 }}>
-              {language === 'BN' ? 'সব নোটিফিকেশন দেখানো হয়েছে' : 'All notifications loaded'}
+            <Text style={{ textAlign: "center", color: theme.colors.secondary, padding: 16, fontSize: 12 }}>
+              {isBn ? "সব নোটিফিকেশন দেখানো হয়েছে" : "All notifications loaded"}
             </Text>
           )}
 
           {notifications.length === 0 && (
-            <View style={{ padding: 40, alignItems: 'center' }}>
+            <View style={{ padding: 40, alignItems: "center" }}>
               <MaterialCommunityIcons name="bell-sleep" size={48} color={theme.colors.secondary} />
               <Text style={{ marginTop: 16, color: theme.colors.secondary }}>
-                {language === 'BN' ? 'কোনো নোটিফিকেশন নেই' : 'No notifications'}
+                {isBn ? "কোনো নোটিফিকেশন নেই" : "No notifications"}
               </Text>
             </View>
           )}
@@ -140,31 +236,36 @@ export default function NotificationsScreen() {
 
 const styles = StyleSheet.create({
   notificationCard: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     marginBottom: 12,
     borderRadius: 8,
     elevation: 2,
+    alignItems: "center"
   },
   iconContainer: {
-    marginRight: 16,
-    justifyContent: 'center',
+    marginRight: 12,
+    justifyContent: "center"
   },
   textContainer: {
-    flex: 1,
+    flex: 1
   },
   title: {
-    fontWeight: 'bold',
+    fontWeight: "bold",
     fontSize: 14,
-    marginBottom: 4,
+    marginBottom: 4
   },
   body: {
     fontSize: 13,
-    marginBottom: 8,
-    lineHeight: 18,
+    marginBottom: 6,
+    lineHeight: 18
   },
   time: {
     fontSize: 11,
-    fontWeight: '500',
+    fontWeight: "500"
+  },
+  deleteBtn: {
+    padding: 8,
+    marginLeft: 4
   }
 });

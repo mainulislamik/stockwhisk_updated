@@ -45,6 +45,18 @@ def scan_low_stock():
         if not low and not out:
             continue
 
+        from django.utils import timezone
+        from datetime import timedelta
+        cutoff = timezone.now() - timedelta(hours=24)
+        title_check = f"{len(out)} out-of-stock, {len(low)} low-stock item(s)"
+        already = Notification.all_objects.filter(
+            shop_id=shop.id,
+            title=title_check,
+            created_at__gte=cutoff,
+        ).exists()
+        if already:
+            continue
+
         lines = [f"• {p['name']} — out of stock" for p in out] + [
             f"• {p['name']} — low ({p['current_stock']}/{p['reorder_level']})" for p in low
         ]
