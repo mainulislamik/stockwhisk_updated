@@ -76,7 +76,8 @@ class ProductUnitViewSet(TenantScopedViewSet):
 
 class BrandViewSet(TenantScopedViewSet):
     serializer_class = BrandSerializer
-    required_perm = "manage_products"
+    required_perm = "view_products"
+    required_write_perm = "manage_products"
 
     def get_queryset(self):
         return Brand.objects.all()
@@ -84,7 +85,8 @@ class BrandViewSet(TenantScopedViewSet):
 
 class UnitViewSet(TenantScopedViewSet):
     serializer_class = UnitSerializer
-    required_perm = "manage_products"
+    required_perm = "view_products"
+    required_write_perm = "manage_products"
 
     def get_queryset(self):
         return Unit.objects.all()

@@ -152,8 +152,8 @@ export default function POSScreen() {
 
   useEffect(() => {
     if (isRepairShop) {
-      api.get('/catalog/brands/?page_size=100').then((r: any) => setRepairBrands(r.data.results || r.data || [])).catch(() => {});
-      api.get('/catalog/categories/?page_size=100').then((r: any) => setRepairCategories(r.data.results || r.data || [])).catch(() => {});
+      api.get('/catalog/brands/?page_size=100').then((r: any) => setRepairBrands(r.data.results || r.data || [])).catch((err: any) => console.warn('Repair brands fetch failed:', err?.response?.status, err?.message));
+      api.get('/catalog/categories/?page_size=100').then((r: any) => setRepairCategories(r.data.results || r.data || [])).catch((err: any) => console.warn('Repair categories fetch failed:', err?.response?.status, err?.message));
     }
   }, [isRepairShop]);
   const shopType = (user as any)?.shop_business_type || '';
@@ -332,7 +332,7 @@ export default function POSScreen() {
   };
 
   useEffect(() => {
-    api.get('/catalog/categories/?page_size=100').then((r: any) => setCategories(r.data.results || r.data || [])).catch(() => {});
+    api.get('/catalog/categories/?page_size=100').then((r: any) => setCategories(r.data.results || r.data || [])).catch((err: any) => console.warn('Categories fetch failed:', err?.response?.status, err?.message));
   }, []);
 
   useEffect(() => {

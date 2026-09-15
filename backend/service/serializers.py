@@ -75,7 +75,7 @@ class ServiceTicketSerializer(serializers.ModelSerializer):
         model = ServiceTicket
         fields = [
             "id", "ticket_no", "track_token", "branch", "customer", "customer_name", "customer_phone",
-            "device_description", "complaint",
+            "device_description", "imei_serial", "complaint",
             "received_at", "technician", "status", "service_charge", "discount", "estimated_delivery",
             "actual_delivery", "is_overdue", "parts", "history", "created_at",
             "paid", "parts_total", "bill_total", "due",
@@ -98,6 +98,7 @@ class TicketCreateSerializer(serializers.Serializer):
     customer_name = serializers.CharField(max_length=150, required=False, allow_blank=True)
     customer_phone = serializers.CharField(max_length=30, required=False, allow_blank=True)
     device_description = serializers.CharField(max_length=200)
+    imei_serial = serializers.CharField(max_length=60, required=False, allow_blank=True)
     complaint = serializers.CharField()
     service_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     advance_paid = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)

@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator, Share } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Linking, ActivityIndicator, Share, Platform } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, Button, Modal, Portal, Divider, useTheme, FAB, Menu } from 'react-native-paper';
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation } from '@react-navigation/native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
+
+// DateTimePicker guarded: lazy-loaded on native only (web uses HTML date input)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch (e) {}
+}
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
 
 type Ticket = {
@@ -62,11 +68,13 @@ export default function ServiceTicketsScreen() {
     customer_name: '',
     customer_phone: '',
     device_description: '',
+    imei_serial: '',
     complaint: '',
     service_charge: '',
     advance_paid: '',
     estimated_delivery: ''
   });
+  const [showTicketDatePicker, setShowTicketDatePicker] = useState(false);
 
   // Warranty check state
   const [warrantyBarcode, setWarrantyBarcode] = useState('');
@@ -109,16 +117,17 @@ export default function ServiceTicketsScreen() {
         customer_name: newTicket.customer_name.trim(),
         customer_phone: newTicket.customer_phone.trim(),
         device_description: newTicket.device_description.trim(),
+        imei_serial: newTicket.imei_serial.trim(),
         complaint: newTicket.complaint.trim(),
         service_charge: Number(newTicket.service_charge) || 0,
         advance_paid: Number(newTicket.advance_paid) || 0,
         estimated_delivery: newTicket.estimated_delivery || null
       });
-      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'সার্ভিস টিকিট তৈরি হয়েছে।' : 'Service ticket created successfully!');
+      Alert.alert(isBN ? 'সফল' : 'Success', isBN ? 'সার্ভিস টিকিট তৈরি হয়েছে।' : 'Service ticket created successfully!');
       setShowAddModal(false);
       setNewTicket({
         customer_name: '', customer_phone: '', device_description: '',
-        complaint: '', service_charge: '', advance_paid: '', estimated_delivery: ''
+        imei_serial: '', complaint: '', service_charge: '', advance_paid: '', estimated_delivery: ''
       });
       fetchTickets();
     } catch (e: any) {
@@ -442,6 +451,13 @@ export default function ServiceTicketsScreen() {
             />
             <TextInput
               mode="outlined"
+              label={isBN ? 'IMEI / সিরিয়াল নম্বর (ঐচ্ছিক)' : 'IMEI / Serial Number (Optional)'}
+              value={newTicket.imei_serial}
+              onChangeText={(t) => setNewTicket({ ...newTicket, imei_serial: t })}
+              style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+            />
+            <TextInput
+              mode="outlined"
               label={isBN ? 'সমস্যার বিবরণ *' : 'Complaint / Issue *'}
               value={newTicket.complaint}
               onChangeText={(t) => setNewTicket({ ...newTicket, complaint: t })}
@@ -463,8 +479,57 @@ export default function ServiceTicketsScreen() {
               value={newTicket.advance_paid}
               onChangeText={(t) => setNewTicket({ ...newTicket, advance_paid: t })}
               keyboardType="numeric"
-              style={{ marginBottom: 20, backgroundColor: theme.colors.surface }}
+              style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
             />
+
+            {/* Est. Delivery Date with native calendar */}
+            {Platform.OS === 'web' ? (
+              <input
+                type="date"
+                value={newTicket.estimated_delivery}
+                onChange={(e: any) => setNewTicket({ ...newTicket, estimated_delivery: e.target.value })}
+                style={{ padding: 12, borderRadius: 4, border: '1px solid #ccc', backgroundColor: theme.colors.surface, color: theme.colors.onSurface, width: '100%', boxSizing: 'border-box', marginBottom: 20 }}
+              />
+            ) : (
+              <View style={{ marginBottom: 20 }}>
+                <Text style={{ fontSize: 12, fontWeight: 'bold', color: theme.colors.onSurface, marginBottom: 4 }}>
+                  {isBN ? '📅 আনুমানিক ডেলিভারি তারিখ (ঐচ্ছিক)' : '📅 Est. Delivery Date (Optional)'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setShowTicketDatePicker(true)}
+                  style={{
+                    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                    padding: 14, borderRadius: 4, borderWidth: 1, borderColor: '#ccc',
+                    backgroundColor: theme.colors.surface,
+                  }}
+                >
+                  <Text style={{ fontSize: 15, color: newTicket.estimated_delivery ? theme.colors.onSurface : '#999' }}>
+                    {newTicket.estimated_delivery || (isBN ? 'তারিখ নির্বাচন করুন' : 'Pick a date')}
+                  </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    {newTicket.estimated_delivery ? (
+                      <TouchableOpacity onPress={() => setNewTicket({ ...newTicket, estimated_delivery: '' })} style={{ padding: 2 }}>
+                        <MaterialCommunityIcons name="close-circle" size={18} color="#ef4444" />
+                      </TouchableOpacity>
+                    ) : null}
+                    <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+                  </View>
+                </TouchableOpacity>
+                {showTicketDatePicker && (
+                  <DateTimePicker
+                    value={newTicket.estimated_delivery ? new Date(newTicket.estimated_delivery) : new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={(event: any, selectedDate?: Date) => {
+                      setShowTicketDatePicker(false);
+                      if (selectedDate) {
+                        setNewTicket({ ...newTicket, estimated_delivery: selectedDate.toISOString().split('T')[0] });
+                      }
+                    }}
+                  />
+                )}
+              </View>
+            )}
 
             <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
               <Button disabled={creatingTicket} onPress={() => setShowAddModal(false)}>{isBN ? 'বাতিল' : 'Cancel'}</Button>

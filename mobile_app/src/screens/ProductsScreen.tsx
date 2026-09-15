@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Modal, Platform } from 'react-native';
 import { Appbar, Text, Card, TextInput, Chip, useTheme, FAB, Button, Divider, Menu, Surface } from 'react-native-paper';
 import PageGuideButton from '../components/PageGuideButton';
 import { useNavigation, useFocusEffect, useRoute } from '@react-navigation/native';
@@ -10,6 +10,12 @@ import { useAuth } from '../contexts/AuthContext';
 import ProductDetailModal from '../components/ProductDetailModal';
 import EditProductModal from '../components/EditProductModal';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
+
+// DateTimePicker guarded: lazy-loaded on native only (web uses HTML date input)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch (e) {}
+}
 
 type Product = {
   id: number;
@@ -69,6 +75,7 @@ export default function ProductsScreen() {
   const [selectedRepairBrand, setSelectedRepairBrand] = useState<any | null>(null);
   const [selectedRepairCategory, setSelectedRepairCategory] = useState<any | null>(null);
   const [brands, setBrands] = useState<any[]>([]);
+  const [catalogError, setCatalogError] = useState(false);
   const [branches, setBranches] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(1);
@@ -127,6 +134,7 @@ export default function ProductsScreen() {
   const [purchaseLines, setPurchaseLines] = useState<Array<{product: Product; quantity: number; unit_cost: string; barcodes: string[]; warranty_months: number; expiry_date?: string | null; lot_number?: string; mfg_date?: string | null}>>([]);
   const [selectedBranch, setSelectedBranch] = useState<number | null>(null);
   const [promisedDate, setPromisedDate] = useState('');
+  const [showPromisedDatePicker, setShowPromisedDatePicker] = useState(false);
 
   const generateBarcodesHelper = (p: Product, count: number): string[] => {
     const prefix = p.sku ? p.sku.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase() : 'BC';
@@ -169,24 +177,24 @@ export default function ProductsScreen() {
     api.get('/catalog/categories/').then((res: any) => {
       const cats = res.data.results || res.data;
       if (Array.isArray(cats)) setCategories(cats);
-    }).catch(() => {});
+    }).catch((err: any) => { console.warn('Catalog fetch failed:', err?.response?.status, err?.message); setCatalogError(true); });
 
     api.get('/purchasing/suppliers/').then((res: any) => {
       const sups = res.data.results || res.data;
       if (Array.isArray(sups)) {
         setSuppliers(sups);
       }
-    }).catch(() => {});
+    }).catch((err: any) => console.warn('Suppliers fetch failed:', err?.response?.status, err?.message));
     
     api.get('/catalog/brands/').then((res: any) => {
       const bs = res.data.results || res.data;
       if (Array.isArray(bs)) setBrands(bs);
-    }).catch(() => {});
+    }).catch((err: any) => { console.warn('Catalog fetch failed:', err?.response?.status, err?.message); setCatalogError(true); });
     
     api.get('/tenants/branches/').then((res: any) => {
       const bs = res.data.results || res.data;
       if (Array.isArray(bs)) setBranches(bs);
-    }).catch(() => {});
+    }).catch((err: any) => console.warn('Branches fetch failed:', err?.response?.status, err?.message));
   }, []);
 
   useEffect(() => {
@@ -277,7 +285,7 @@ export default function ProductsScreen() {
     if (purchaseSearch.trim().length > 1) {
       api.get('/catalog/products/', { params: { search: purchaseSearch.trim(), page_size: 10 } })
         .then(res => setPurchaseResults(res.data.results || res.data || []))
-        .catch(() => {});
+        .catch((err: any) => console.warn('Purchase search failed:', err?.response?.status, err?.message));
     } else {
       setPurchaseResults([]);
     }
@@ -360,7 +368,7 @@ export default function ProductsScreen() {
           expiry_date: line.expiry_date || null,
           lot_number: line.lot_number || '',
           mfg_date: line.mfg_date || null,
-        }).catch(() => {});
+        }).catch((err: any) => console.warn('Barcode inward failed:', err?.response?.status, err?.message));
       }
 
       // Create Purchase Order with all lines
@@ -471,6 +479,26 @@ export default function ProductsScreen() {
               right={<TextInput.Icon icon="barcode-scan" onPress={() => setScannerTarget('list')} />}
               style={[styles.searchInput, { backgroundColor: theme.colors.surface }]}
             />
+            {catalogError && (
+              <View style={{ marginTop: 8, padding: 8, backgroundColor: '#fef2f2', borderRadius: 8, borderWidth: 1, borderColor: '#fca5a5', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Text style={{ color: '#b91c1c', fontSize: 12, flex: 1 }}>
+                  {isBN ? '⚠️ ক্যাটালগ তথ্য লোড হতে ব্যর্থ হয়েছে' : '⚠️ Failed to load catalog data'}
+                </Text>
+                <TouchableOpacity onPress={() => {
+                  setCatalogError(false);
+                  api.get('/catalog/categories/').then((res: any) => {
+                    const cats = res.data.results || res.data;
+                    if (Array.isArray(cats)) setCategories(cats);
+                  }).catch(() => setCatalogError(true));
+                  api.get('/catalog/brands/').then((res: any) => {
+                    const bs = res.data.results || res.data;
+                    if (Array.isArray(bs)) setBrands(bs);
+                  }).catch(() => setCatalogError(true));
+                }}>
+                  <Text style={{ color: '#4f46e5', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>{isBN ? 'পুনরায় চেষ্টা' : 'Retry'}</Text>
+                </TouchableOpacity>
+              </View>
+            )}
             {/* Non-repair shops category chips */}
             {!isRepairShop && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 4, alignItems: 'center' }} style={styles.chipScroll}>
@@ -1190,6 +1218,57 @@ export default function ProductsScreen() {
               </View>
 
               <Divider style={{ marginVertical: 12 }} />
+
+              {/* Promised Date (supplier delivery date) */}
+              <View style={{ marginBottom: 10 }}>
+                <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
+                  {isBN ? '📅 সাপ্লায়ারের প্রতিশ্রুত তারিখ (ঐচ্ছিক)' : '📅 Promised Date (Optional)'}
+                </Text>
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    value={promisedDate}
+                    onChange={(e: any) => setPromisedDate(e.target.value)}
+                    style={{ padding: 12, borderRadius: 4, border: '1px solid #ccc', backgroundColor: theme.colors.surface, color: theme.colors.onSurface, width: '100%', boxSizing: 'border-box' }}
+                  />
+                ) : (
+                  <View>
+                    <TouchableOpacity
+                      onPress={() => setShowPromisedDatePicker(true)}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                        padding: 14, borderRadius: 4, borderWidth: 1, borderColor: '#ccc',
+                        backgroundColor: theme.colors.surface,
+                      }}
+                    >
+                      <Text style={{ fontSize: 15, color: promisedDate ? theme.colors.onSurface : '#999' }}>
+                        {promisedDate || (isBN ? 'তারিখ নির্বাচন করুন' : 'Pick a date')}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        {promisedDate ? (
+                          <TouchableOpacity onPress={() => setPromisedDate('')} style={{ padding: 2 }}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color="#ef4444" />
+                          </TouchableOpacity>
+                        ) : null}
+                        <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+                      </View>
+                    </TouchableOpacity>
+                    {showPromisedDatePicker && (
+                      <DateTimePicker
+                        value={promisedDate ? new Date(promisedDate) : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(event: any, selectedDate?: Date) => {
+                          setShowPromisedDatePicker(false);
+                          if (selectedDate) {
+                            setPromisedDate(selectedDate.toISOString().split('T')[0]);
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                )}
+              </View>
 
               {/* Purchase Summary: Vendor Selection */}
               <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, color: theme.colors.onSurface }}>

@@ -63,7 +63,7 @@ const orgJsonLd = {
       "@id": `${SITE_URL}/#organization`,
       name: SITE_NAME,
       url: SITE_URL,
-      logo: `${SITE_URL}/opengraph-image`,
+      logo: `${SITE_URL}/logo_512.png`,
     },
     {
       "@type": "WebSite",
@@ -89,6 +89,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className="h-100">
       <head>
+        {/* Favicon & PWA Icons */}
+        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" type="image/png" sizes="16x16" href="/logo_16.png" />
+        <link rel="icon" type="image/png" sizes="32x32" href="/logo_32.png" />
+        <link rel="icon" type="image/png" sizes="48x48" href="/logo_48.png" />
+        <link rel="icon" type="image/png" sizes="96x96" href="/logo_96.png" />
+        <link rel="icon" type="image/png" sizes="128x128" href="/logo_128.png" />
+        <link rel="icon" type="image/png" sizes="192x192" href="/logo_192.png" />
+        <link rel="icon" type="image/png" sizes="256x256" href="/logo_256.png" />
+        <link rel="icon" type="image/png" sizes="512x512" href="/logo_512.png" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="manifest" href="/manifest.json" />
+        
         {/* Same CDN assets as the original Django base.html, so the look matches exactly. */}
         <link
           href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"

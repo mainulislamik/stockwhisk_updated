@@ -7,6 +7,12 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { api } from '../api';
 import { usePreferences } from '../contexts/PreferencesContext';
 
+// DateTimePicker guarded: lazy-loaded on native only (web uses HTML date input)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch (e) {}
+}
+
 export default function ExpensesScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
@@ -22,6 +28,7 @@ export default function ExpensesScreen() {
   const [hasMore, setHasMore] = useState(true);
   
   const [showForm, setShowForm] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
   
   const [form, setForm] = useState({
     category: '',
@@ -202,13 +209,50 @@ export default function ExpensesScreen() {
                   style={[styles.input, { backgroundColor: theme.colors.surface }]} 
                   mode="outlined" 
                 />
-                <TextInput 
-                  label={isBn ? "তারিখ (YYYY-MM-DD)" : "Date (YYYY-MM-DD)"} 
-                  value={form.spent_on} 
-                  onChangeText={t => setForm({ ...form, spent_on: t })} 
-                  style={[styles.input, { backgroundColor: theme.colors.surface }]} 
-                  mode="outlined" 
-                />
+                {Platform.OS === 'web' ? (
+                  <input
+                    type="date"
+                    value={form.spent_on}
+                    onChange={(e: any) => setForm({ ...form, spent_on: e.target.value })}
+                    style={{ padding: 12, borderRadius: 4, border: '1px solid #ccc', backgroundColor: theme.colors.surface, color: theme.colors.onSurface, width: '100%', boxSizing: 'border-box' }}
+                  />
+                ) : (
+                  <View>
+                    <TouchableOpacity
+                      onPress={() => setShowDatePicker(true)}
+                      style={{
+                        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                        padding: 14, borderRadius: 4, borderWidth: 1, borderColor: '#ccc',
+                        backgroundColor: theme.colors.surface,
+                      }}
+                    >
+                      <Text style={{ fontSize: 15, color: form.spent_on ? theme.colors.onSurface : '#999' }}>
+                        {form.spent_on || (isBn ? 'তারিখ নির্বাচন করুন' : 'Pick a date')}
+                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        {form.spent_on ? (
+                          <TouchableOpacity onPress={() => setForm({ ...form, spent_on: '' })} style={{ padding: 2 }}>
+                            <MaterialCommunityIcons name="close-circle" size={18} color="#ef4444" />
+                          </TouchableOpacity>
+                        ) : null}
+                        <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+                      </View>
+                    </TouchableOpacity>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={form.spent_on ? new Date(form.spent_on) : new Date()}
+                        mode="date"
+                        display="default"
+                        onChange={(event: any, selectedDate?: Date) => {
+                          setShowDatePicker(false);
+                          if (selectedDate) {
+                            setForm({ ...form, spent_on: selectedDate.toISOString().split('T')[0] });
+                          }
+                        }}
+                      />
+                    )}
+                  </View>
+                )}
                 
                 <Text style={{ fontSize: 12, fontWeight: '600', marginBottom: 6 }}>
                   {isBn ? 'পেমেন্ট মাধ্যম' : 'Payment Method'}

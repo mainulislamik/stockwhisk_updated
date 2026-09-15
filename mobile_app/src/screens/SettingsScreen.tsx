@@ -53,6 +53,7 @@ export default function SettingsScreen() {
     emi_enabled: false, delivery_enabled: true,
     whatsapp_invoice_enabled: true, barcode_prefix: '', offline_sale_mode: false,
     service_enabled: true, reports_enabled: true, finance_enabled: true,
+    mobile_repair_enabled: false,
     logo: ''
   });
 
@@ -88,6 +89,7 @@ export default function SettingsScreen() {
         service_enabled: res.data.service_enabled !== false,
         reports_enabled: res.data.reports_enabled !== false,
         finance_enabled: res.data.finance_enabled !== false,
+        mobile_repair_enabled: !!res.data.mobile_repair_enabled,
         logo: res.data.logo || ''
       });
     } catch (e) {
@@ -320,7 +322,7 @@ export default function SettingsScreen() {
 
             <SectionHeader title="মডিউল এবং ফিচার (Features)" />
             <View style={{ backgroundColor: cardColor, borderRadius: 16, paddingHorizontal: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8, marginBottom: 16 }}>
-              <CustomSwitch label="Enable VAT/Tax" icon="receipt" value={shopForm.vat_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, vat_enabled: val })} />
+              <CustomSwitch label="ভ্যাট / ট্যাক্স চালু (VAT/Tax)" icon="receipt" value={shopForm.vat_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, vat_enabled: val })} />
               
               {shopForm.vat_enabled && (
                 <View style={{ paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: borderColor }}>
@@ -332,11 +334,12 @@ export default function SettingsScreen() {
               <CustomSwitch label="Reports Section (রিপোর্ট ও পরিসংখ্যান)" icon="chart-line" value={shopForm.reports_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, reports_enabled: val })} />
               <CustomSwitch label="Finance Section (ফাইন্যান্স ও হিসাব)" icon="calculator-variant" value={shopForm.finance_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, finance_enabled: val })} />
 
-              <CustomSwitch label="EMI Enabled" icon="credit-card-outline" value={shopForm.emi_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, emi_enabled: val })} />
-              <CustomSwitch label="Delivery Enabled" icon="truck-delivery-outline" value={shopForm.delivery_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, delivery_enabled: val })} />
-              <CustomSwitch label="WhatsApp Invoice" icon="whatsapp" value={shopForm.whatsapp_invoice_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, whatsapp_invoice_enabled: val })} />
+              <CustomSwitch label="ইমই (কিস্তিতে বিক্রয়) চালু" icon="credit-card-outline" value={shopForm.emi_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, emi_enabled: val })} />
+              <CustomSwitch label="হোম ডেলিভারি চালু" icon="truck-delivery-outline" value={shopForm.delivery_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, delivery_enabled: val })} />
+              <CustomSwitch label="হোয়াটসঅ্যাপে ইনভয়েস পাঠান" icon="whatsapp" value={shopForm.whatsapp_invoice_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, whatsapp_invoice_enabled: val })} />
+              <CustomSwitch label="মোবাইল রিপেয়ার মডিউল (Mobile Repair)" icon="cellphone-cog" value={shopForm.mobile_repair_enabled} onValueChange={(val: boolean) => setShopForm({ ...shopForm, mobile_repair_enabled: val })} />
               <View style={{ borderBottomWidth: 0 }}>
-                <CustomSwitch label="Offline Sale Mode" icon="wifi-off" value={shopForm.offline_sale_mode} onValueChange={(val: boolean) => setShopForm({ ...shopForm, offline_sale_mode: val })} />
+                <CustomSwitch label="পেছনের তারিখে বিক্রয় (নেট বিচ্ছিন্ন অবস্থার সেল)" icon="wifi-off" value={shopForm.offline_sale_mode} onValueChange={(val: boolean) => setShopForm({ ...shopForm, offline_sale_mode: val })} />
               </View>
             </View>
 

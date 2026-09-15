@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B1120"/>
+      <stop offset="100%" stop-color="#1B3C53"/>
+    </linearGradient>
+    <linearGradient id="iconGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00D4AA"/>
+      <stop offset="100%" stop-color="#00A8E8"/>
+    </linearGradient>
+  </defs>
+  <rect x="16" y="16" width="480" height="480" rx="80" fill="url(#bgGrad)"/>
+  <g transform="translate(120, 140)">
+    <path d="M0 120 L136 40 L272 120 L136 200 Z" fill="#0D2840" opacity="0.5"/>
+    <path d="M0 120 L136 200 L136 280 L0 200 Z" fill="#0F3460" opacity="0.7"/>
+    <path d="M136 40 L272 120 L272 200 L136 120 Z" fill="#1B3C53" opacity="0.8"/>
+    <path d="M0 120 L136 40 L272 120 L136 200 Z" fill="url(#iconGrad)"/>
+  </g>
+  <g transform="translate(160, 170)">
+    <rect x="0" y="0" width="8" height="60" fill="white" opacity="0.9"/>
+    <rect x="18" y="0" width="3" height="45" fill="white" opacity="0.9"/>
+    <rect x="25" y="0" width="5" height="60" fill="white" opacity="0.9"/>
+    <rect x="38" y="0" width="2" height="40" fill="white" opacity="0.9"/>
+    <rect x="45" y="0" width="8" height="60" fill="white" opacity="0.9"/>
+    <rect x="60" y="0" width="3" height="50" fill="white" opacity="0.9"/>
+    <rect x="70" y="0" width="5" height="60" fill="white" opacity="0.9"/>
+    <rect x="83" y="0" width="2" height="35" fill="white" opacity="0.9"/>
+    <rect x="90" y="0" width="8" height="60" fill="white" opacity="0.9"/>
+  </g>
+  <text x="256" y="380" text-anchor="middle" font-family="system-ui, sans-serif" font-size="56" font-weight="800" fill="white" letter-spacing="-1">StockWhisk</text>
+  <text x="256" y="435" text-anchor="middle" font-family="system-ui, sans-serif" font-size="24" font-weight="500" fill="#cccccc">POS & Inventory</text>
+</svg>

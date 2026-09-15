@@ -139,7 +139,7 @@ class ServiceTicketViewSet(TenantScopedViewSet):
         ticket = create_ticket(
             shop=request.user.shop, customer=d.get("customer"),
             customer_name=d.get("customer_name", ""), customer_phone=d.get("customer_phone", ""),
-            device_description=d["device_description"], complaint=d["complaint"],
+            device_description=d["device_description"], imei_serial=d.get("imei_serial", ""), complaint=d["complaint"],
             service_charge=d.get("service_charge", 0),
             estimated_delivery=d.get("estimated_delivery"), created_by=request.user,
         )

@@ -7,6 +7,12 @@ import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
 import CameraBarcodeScannerModal from './CameraBarcodeScannerModal';
 
+// DateTimePicker guarded: lazy-loaded on native only (web uses HTML date input)
+let DateTimePicker: any = null;
+if (Platform.OS !== 'web') {
+  try { DateTimePicker = require('@react-native-community/datetimepicker').default; } catch (e) {}
+}
+
 type Supplier = {
   id: number;
   name: string;
@@ -48,6 +54,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const [categorySearch, setCategorySearch] = useState('');
   const [saving, setSaving] = useState(false);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [showExpiryPicker, setShowExpiryPicker] = useState(false);
 
   // Suggestions state
   const [suggestions, setSuggestions] = useState<any[]>([]);
@@ -158,12 +165,12 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
 
       api.get('/catalog/categories/').then(res => {
         setCategories(res.data.results || res.data || []);
-      }).catch(() => {});
+      }).catch((err: any) => console.warn('Catalog fetch failed:', err?.response?.status, err?.message));
 
       api.get('/purchasing/suppliers/').then(res => {
         const sups = res.data.results || res.data || [];
         setSuppliers(sups);
-      }).catch(() => {});
+      }).catch((err: any) => console.warn('Catalog fetch failed:', err?.response?.status, err?.message));
 
       if (product && product.id) {
         setForm({
@@ -739,6 +746,85 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               style={{ flex: 1, marginLeft: isNew ? 8 : 0, marginBottom: 12, backgroundColor: theme.colors.surface }} 
             />
           </View>
+
+          {/* ── Non-Fashion: Expiry / Lot / Warranty (repair, supershop, medicine) ── */}
+          {!isFashionShop && (
+            <Card style={{ marginBottom: 16, padding: 12, backgroundColor: isDarkMode ? '#052e16' : '#f0fdf4', borderWidth: 1, borderColor: '#86efac' }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 14, color: '#15803d', marginBottom: 8 }}>
+                📦 {isBN ? 'ওয়ারেন্টি, মেয়াদ ও লট তথ্য:' : 'Warranty, Expiry & Lot Info:'}
+              </Text>
+
+              {/* Warranty Months */}
+              <TextInput
+                mode="outlined"
+                dense
+                label={isBN ? 'ওয়ারেন্টি (মাস)' : 'Warranty (Months)'}
+                value={form.warranty_months}
+                keyboardType="numeric"
+                onChangeText={t => setForm({ ...form, warranty_months: t })}
+                style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
+              />
+
+              {/* Expiry Date with native calendar */}
+              <Text style={{ fontSize: 12, fontWeight: '600', color: '#166534', marginBottom: 4 }}>
+                📅 {isBN ? 'মেয়াদোত্তীর্ণের তারিখ (ঐচ্ছিক):' : 'Expiry Date (Optional):'}
+              </Text>
+              {Platform.OS === 'web' ? (
+                <input
+                  type="date"
+                  value={form.expiry_date || ''}
+                  onChange={(e: any) => setForm({ ...form, expiry_date: e.target.value })}
+                  style={{ padding: 12, borderRadius: 4, border: '1px solid #ccc', backgroundColor: theme.colors.surface, color: theme.colors.onSurface, width: '100%', boxSizing: 'border-box', marginBottom: 10 }}
+                />
+              ) : (
+                <View style={{ marginBottom: 10 }}>
+                  <TouchableOpacity
+                    onPress={() => setShowExpiryPicker(true)}
+                    style={{
+                      flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+                      padding: 14, borderRadius: 4, borderWidth: 1, borderColor: '#ccc',
+                      backgroundColor: theme.colors.surface,
+                    }}
+                  >
+                    <Text style={{ fontSize: 15, color: form.expiry_date ? theme.colors.onSurface : '#999' }}>
+                      {form.expiry_date || (isBN ? 'তারিখ নির্বাচন করুন' : 'Pick a date')}
+                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      {form.expiry_date ? (
+                        <TouchableOpacity onPress={() => setForm({ ...form, expiry_date: '' })} style={{ padding: 2 }}>
+                          <MaterialCommunityIcons name="close-circle" size={18} color="#ef4444" />
+                        </TouchableOpacity>
+                      ) : null}
+                      <MaterialCommunityIcons name="calendar" size={20} color={theme.colors.primary} />
+                    </View>
+                  </TouchableOpacity>
+                  {showExpiryPicker && (
+                    <DateTimePicker
+                      value={form.expiry_date ? new Date(form.expiry_date) : new Date()}
+                      mode="date"
+                      display="default"
+                      onChange={(event: any, selectedDate?: Date) => {
+                        setShowExpiryPicker(false);
+                        if (selectedDate) {
+                          setForm({ ...form, expiry_date: selectedDate.toISOString().split('T')[0] });
+                        }
+                      }}
+                    />
+                  )}
+                </View>
+              )}
+
+              {/* Lot Number */}
+              <TextInput
+                mode="outlined"
+                dense
+                label={isBN ? 'লট / ব্যাচ নম্বর (ঐচ্ছিক)' : 'Lot / Batch Number (Optional)'}
+                value={form.lot_number}
+                onChangeText={t => setForm({ ...form, lot_number: t })}
+                style={{ backgroundColor: theme.colors.surface }}
+              />
+            </Card>
+          )}
 
           {/* ── Fashion Section for Apparel / Footwear ── */}
           {isFashionShop && (

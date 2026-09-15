@@ -47,7 +47,7 @@ def lookup_warranties(shop, *, phone=None, invoice_no=None):
 
 @transaction.atomic
 def create_ticket(*, shop, customer, device_description, complaint, branch=None,
-                  technician=None, service_charge=0, estimated_delivery=None, created_by=None,
+                  technician=None, service_charge=0, estimated_delivery=None, created_by=None, imei_serial='',
                   customer_name="", customer_phone="", device_type="", issue_type="", warranty=None):
     # Auto-link or create Customer in CRM so repair customers appear in customer & dues lists.
     if not customer:
@@ -70,7 +70,7 @@ def create_ticket(*, shop, customer, device_description, complaint, branch=None,
 
     ticket = ServiceTicket.objects.create(
         shop=shop, customer=customer, branch=branch,
-        ticket_no=_next_ticket_no(shop), device_description=device_description,
+        ticket_no=_next_ticket_no(shop), device_description=device_description, imei_serial=imei_serial or '',
         complaint=complaint, technician=technician, service_charge=service_charge,
         estimated_delivery=estimated_delivery, created_by=created_by,
         customer_name=customer_name, customer_phone=customer_phone,

@@ -129,6 +129,7 @@ class ServiceTicket(TenantScopedModel):
         related_name="service_tickets",
     )
     device_description = models.CharField(max_length=200)
+    imei_serial = models.CharField(max_length=60, blank=True)
     # Structured taxonomy powering repair-analytics charts (volume by device,
     # issue Pareto). Free-text description/complaint kept for detail.
     device_type = models.CharField(

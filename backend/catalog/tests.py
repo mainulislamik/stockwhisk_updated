@@ -102,3 +102,13 @@ class ProductPermissionTests(APITestCase):
         c = self.api(self.owner)
         self.assertEqual(c.get(PRODUCTS_URL).status_code, 200)
         self.assertIn(c.post(PRODUCTS_URL, {"name": "O", "selling_price": "5", "cost_price": "2"}).status_code, (200, 201))
+
+    def test_cashier_can_list_brands_but_cannot_create(self):
+        c = self.api(self.cashier)
+        self.assertEqual(c.get('/api/catalog/brands/').status_code, 200)
+        self.assertEqual(c.post('/api/catalog/brands/', {'name': 'NewBrand'}).status_code, 403)
+
+    def test_cashier_can_list_units_but_cannot_create(self):
+        c = self.api(self.cashier)
+        self.assertEqual(c.get('/api/catalog/units/').status_code, 200)
+        self.assertEqual(c.post('/api/catalog/units/', {'name': 'Piece'}).status_code, 403)
