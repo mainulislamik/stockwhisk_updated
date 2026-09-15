@@ -867,7 +867,7 @@ export default function POSScreen() {
 
           {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
           {isRepairShop && !query.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 220 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always">
+            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 280 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always" nestedScrollEnabled={true} scrollEventThrottle={16}>
               <View style={{ marginBottom: 8 }}>
               {/* Breadcrumb Navigation Bar */}
               <View style={{
@@ -1146,7 +1146,7 @@ export default function POSScreen() {
                       {repairBrands.map(item => (
                         <TouchableOpacity
                           key={item.id}
-                          style={{ width: '50%', padding: 4 }}
+                          style={{ width: '50%', padding: 4 }} delayPressIn={100} activeOpacity={0.7}
                           onPress={() => {
                             setSelectedRepairBrand(item);
                             setSelectedRepairCategory(null);
@@ -1215,7 +1215,7 @@ export default function POSScreen() {
                       {(repairCategories.length > 0 ? repairCategories : categories).map(item => (
                         <TouchableOpacity
                           key={item.id}
-                          style={{ width: '50%', padding: 4 }}
+                          style={{ width: '50%', padding: 4 }} delayPressIn={100} activeOpacity={0.7}
                           onPress={() => {
                             setSelectedRepairCategory(item);
                           }}

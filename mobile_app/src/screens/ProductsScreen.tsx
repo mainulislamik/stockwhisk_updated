@@ -701,7 +701,7 @@ export default function ProductsScreen() {
                         {brands.map(item => (
                           <TouchableOpacity
                             key={item.id}
-                            style={{ width: '50%', padding: 4 }}
+                            style={{ width: '50%', padding: 4 }} delayPressIn={100} activeOpacity={0.7}
                             onPress={() => {
                               setSelectedRepairBrand(item);
                               setSelectedRepairCategory(null);
@@ -770,7 +770,7 @@ export default function ProductsScreen() {
                         {categories.map(item => (
                           <TouchableOpacity
                             key={item.id}
-                            style={{ width: '50%', padding: 4 }}
+                            style={{ width: '50%', padding: 4 }} delayPressIn={100} activeOpacity={0.7}
                             onPress={() => {
                               setSelectedRepairCategory(item);
                             }}
