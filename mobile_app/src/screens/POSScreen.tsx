@@ -679,6 +679,27 @@ export default function POSScreen() {
         })
       );
 
+      if (isRepairShop && serviceChargeNum > 0) {
+        try {
+          const scRes = await api.post('/catalog/products/', {
+            name: isBN ? '🛠️ সার্ভিস / লেবার চার্জ' : '🛠️ Service / Labor Fee',
+            sku: 'SVC-' + Date.now(),
+            selling_price: serviceChargeNum,
+            cost_price: 0,
+            track_inventory: false,
+          });
+          resolvedItems.push({
+            product: scRes.data.id,
+            quantity: 1,
+            unit_price: serviceChargeNum,
+            discount: 0,
+            unit_ids: []
+          });
+        } catch (e) {
+          console.warn('Failed to attach service charge item:', e);
+        }
+      }
+
       const payload = {
         customer: customerMode === 'existing' && selectedCustomer ? selectedCustomer.id : (customerMode === 'walkin' && matchedId ? matchedId : null),
         customer_name: customerMode === 'walkin' ? walkName.trim() : "",
