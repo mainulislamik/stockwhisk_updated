@@ -153,8 +153,17 @@ export default function POSScreen() {
 
   useEffect(() => {
     if (isRepairShop) {
-      api.get('/catalog/brands/?page_size=100').then((r: any) => setRepairBrands(r.data.results || r.data || [])).catch((err: any) => console.warn('Repair brands fetch failed:', err?.response?.status, err?.message));
-      api.get('/catalog/categories/?page_size=100').then((r: any) => setRepairCategories(r.data.results || r.data || [])).catch((err: any) => console.warn('Repair categories fetch failed:', err?.response?.status, err?.message));
+      api.get('/catalog/brands/?page_size=100').then((r: any) => {
+        const raw = r.data.results || r.data || [];
+        const seen = new Set();
+        const unique = raw.filter((b: any) => {
+          const key = (b.name || '').trim().toUpperCase();
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+        setRepairBrands(unique);
+      }).catch((err: any) => console.warn('Repair brands fetch failed:', err?.response?.status, err?.message));
     }
   }, [isRepairShop]);
   const shopType = (user as any)?.shop_business_type || '';
@@ -784,7 +793,7 @@ export default function POSScreen() {
       </Appbar.Header>
 
       {view === 'products' && (
-        <View style={{ flex: 1 }}>
+        <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 350 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always">
           <View style={{ padding: 12, flexDirection: 'row', alignItems: 'center' }}>
             <TextInput
               mode="outlined"
@@ -867,7 +876,7 @@ export default function POSScreen() {
 
           {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
           {isRepairShop && !query.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? (
-            <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 280 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always" nestedScrollEnabled={true} scrollEventThrottle={16}>
+            <View style={{ flex: 1 }}>
               <View style={{ marginBottom: 8 }}>
               {/* Breadcrumb Navigation Bar */}
               <View style={{
@@ -1273,7 +1282,7 @@ export default function POSScreen() {
                 </View>
               )}
             </View>
-            </ScrollView>
+            </View>
           ) : null}
 
           {isRepairShop && !query.trim() && selectedRepairBrand && selectedRepairCategory && (
@@ -1302,7 +1311,7 @@ export default function POSScreen() {
                 data={displayedProducts}
               keyExtractor={item => item.id.toString()}
               numColumns={2}
-              style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, padding: 8, paddingBottom: 220 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always"
+              scrollEnabled={false} style={{ flex: 1 }} contentContainerStyle={{ padding: 8, paddingBottom: 220 }}
               onEndReached={loadMore}
               onEndReachedThreshold={0.5}
               ListFooterComponent={loading && page > 1 ? <ActivityIndicator style={{ margin: 16 }} /> : null}
@@ -1354,7 +1363,7 @@ export default function POSScreen() {
               />
             )
           )}
-        </View>
+        </ScrollView>
       )}
 
       {view === 'cart' && (
