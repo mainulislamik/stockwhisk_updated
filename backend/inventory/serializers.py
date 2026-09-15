@@ -6,7 +6,7 @@ from .models import MovementType, StockMovement
 
 
 class StockMovementSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_name = serializers.CharField(source="product.display_name", read_only=True)
 
     class Meta:
         model = StockMovement

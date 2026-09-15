@@ -87,32 +87,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
 
 
     def get_display_name(self, obj):
-        shop = getattr(obj, "shop", None)
-        if not shop and getattr(obj, "shop_id", None):
-            from tenants.models import Shop
-            shop = Shop.objects.filter(id=obj.shop_id).first()
-
-        is_repair = False
-        if shop:
-            is_repair = getattr(shop, "mobile_repair_enabled", False) or getattr(shop, "shop_mobile_repair_enabled", False)
-
-        if not is_repair:
-            return obj.name
-
-        brand_obj = getattr(obj, "brand", None)
-        category_obj = getattr(obj, "category", None)
-        brand_name = (getattr(brand_obj, "name", "") or "").strip() if brand_obj else ""
-        category_name = (getattr(category_obj, "name", "") or "").strip() if category_obj else ""
-        raw_name = (obj.name or "").strip()
-
-        parts = []
-        if brand_name and brand_name.lower() not in raw_name.lower():
-            parts.append(brand_name)
-        parts.append(raw_name)
-        if category_name and category_name.lower() not in raw_name.lower():
-            parts.append(category_name)
-
-        return " ".join(parts).strip()
+        return obj.display_name
     def get_variations(self, obj):
         tenant_id = getattr(obj, "shop_id", None)
         if tenant_id:

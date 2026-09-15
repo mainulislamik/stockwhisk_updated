@@ -23,7 +23,39 @@ class Category(TenantScopedModel):
         ]
 
     def __str__(self):
-        return self.name
+        return self.display_name
+
+    @property
+    def display_name(self) -> str:
+        shop = getattr(self, "shop", None)
+        if not shop and getattr(self, "shop_id", None):
+            from tenants.models import Shop
+            shop = Shop.objects.filter(id=self.shop_id).first()
+
+        is_repair = getattr(shop, "mobile_repair_enabled", False) if shop else False
+        if not is_repair:
+            return self.name
+
+        brand_name = (self.brand.name if self.brand else "").strip()
+        category_name = (self.category.name if self.category else "").strip()
+        raw_name = (self.name or "").strip()
+
+        parts = []
+        brand_already_present = (
+            brand_name.lower() in raw_name.lower() or 
+            (len(brand_name) >= 3 and raw_name.lower().startswith(brand_name.lower()[:3]))
+        )
+        if brand_name and not brand_already_present:
+            parts.append(brand_name)
+        parts.append(raw_name)
+
+        category_already_present = category_name.lower() in raw_name.lower()
+        if category_name and not category_already_present:
+            parts.append(category_name)
+
+        return " ".join(parts).strip()
+
+
 
 
 class Brand(TenantScopedModel):
@@ -36,7 +68,39 @@ class Brand(TenantScopedModel):
         ]
 
     def __str__(self):
-        return self.name
+        return self.display_name
+
+    @property
+    def display_name(self) -> str:
+        shop = getattr(self, "shop", None)
+        if not shop and getattr(self, "shop_id", None):
+            from tenants.models import Shop
+            shop = Shop.objects.filter(id=self.shop_id).first()
+
+        is_repair = getattr(shop, "mobile_repair_enabled", False) if shop else False
+        if not is_repair:
+            return self.name
+
+        brand_name = (self.brand.name if self.brand else "").strip()
+        category_name = (self.category.name if self.category else "").strip()
+        raw_name = (self.name or "").strip()
+
+        parts = []
+        brand_already_present = (
+            brand_name.lower() in raw_name.lower() or 
+            (len(brand_name) >= 3 and raw_name.lower().startswith(brand_name.lower()[:3]))
+        )
+        if brand_name and not brand_already_present:
+            parts.append(brand_name)
+        parts.append(raw_name)
+
+        category_already_present = category_name.lower() in raw_name.lower()
+        if category_name and not category_already_present:
+            parts.append(category_name)
+
+        return " ".join(parts).strip()
+
+
 
 
 class Unit(TenantScopedModel):
@@ -63,7 +127,39 @@ class Unit(TenantScopedModel):
         ]
 
     def __str__(self):
-        return self.name
+        return self.display_name
+
+    @property
+    def display_name(self) -> str:
+        shop = getattr(self, "shop", None)
+        if not shop and getattr(self, "shop_id", None):
+            from tenants.models import Shop
+            shop = Shop.objects.filter(id=self.shop_id).first()
+
+        is_repair = getattr(shop, "mobile_repair_enabled", False) if shop else False
+        if not is_repair:
+            return self.name
+
+        brand_name = (self.brand.name if self.brand else "").strip()
+        category_name = (self.category.name if self.category else "").strip()
+        raw_name = (self.name or "").strip()
+
+        parts = []
+        brand_already_present = (
+            brand_name.lower() in raw_name.lower() or 
+            (len(brand_name) >= 3 and raw_name.lower().startswith(brand_name.lower()[:3]))
+        )
+        if brand_name and not brand_already_present:
+            parts.append(brand_name)
+        parts.append(raw_name)
+
+        category_already_present = category_name.lower() in raw_name.lower()
+        if category_name and not category_already_present:
+            parts.append(category_name)
+
+        return " ".join(parts).strip()
+
+
 
 
 class Product(TenantScopedModel):
@@ -154,7 +250,39 @@ class Product(TenantScopedModel):
         ]
 
     def __str__(self):
-        return self.name
+        return self.display_name
+
+    @property
+    def display_name(self) -> str:
+        shop = getattr(self, "shop", None)
+        if not shop and getattr(self, "shop_id", None):
+            from tenants.models import Shop
+            shop = Shop.objects.filter(id=self.shop_id).first()
+
+        is_repair = getattr(shop, "mobile_repair_enabled", False) if shop else False
+        if not is_repair:
+            return self.name
+
+        brand_name = (self.brand.name if self.brand else "").strip()
+        category_name = (self.category.name if self.category else "").strip()
+        raw_name = (self.name or "").strip()
+
+        parts = []
+        brand_already_present = (
+            brand_name.lower() in raw_name.lower() or 
+            (len(brand_name) >= 3 and raw_name.lower().startswith(brand_name.lower()[:3]))
+        )
+        if brand_name and not brand_already_present:
+            parts.append(brand_name)
+        parts.append(raw_name)
+
+        category_already_present = category_name.lower() in raw_name.lower()
+        if category_name and not category_already_present:
+            parts.append(category_name)
+
+        return " ".join(parts).strip()
+
+
 
     @property
     def is_low_stock(self) -> bool:

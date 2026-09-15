@@ -5,7 +5,7 @@ from .models import BatchStatus, ProductionBatch, ProductionMaterial
 
 
 class ProductionMaterialSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_name = serializers.CharField(source="product.display_name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True)
     unit_name = serializers.CharField(source="product.unit.name", read_only=True, default="Unit")
     unit_symbol = serializers.CharField(source="product.unit.short_code", read_only=True, default="")

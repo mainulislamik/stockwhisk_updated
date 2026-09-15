@@ -7,7 +7,7 @@ from .models import Payment, Sale, SaleItem, SaleReturn, EMISchedule
 
 
 class SaleItemSerializer(serializers.ModelSerializer):
-    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_name = serializers.CharField(source="product.display_name", read_only=True)
     product_sku = serializers.CharField(source="product.sku", read_only=True, default="")
     product_barcode = serializers.CharField(source="product.barcode", read_only=True, default="")
     product_warranty_months = serializers.IntegerField(source="product.warranty_months", read_only=True, default=0)
