@@ -172,6 +172,14 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
         setSuppliers(sups);
       }).catch((err: any) => console.warn('Catalog fetch failed:', err?.response?.status, err?.message));
 
+      api.get('/catalog/brands/').then(res => {
+        setBrands(res.data.results || res.data || []);
+      }).catch((err: any) => console.warn('Brands fetch failed:', err?.response?.status, err?.message));
+
+      api.get('/catalog/units/').then(res => {
+        setUnits(res.data.results || res.data || []);
+      }).catch((err: any) => console.warn('Units fetch failed:', err?.response?.status, err?.message));
+
       if (product && product.id) {
         setForm({
           name: product.name || '',
