@@ -177,7 +177,7 @@ export default function ProductsScreen() {
   useEffect(() => {
     api.get('/catalog/categories/').then((res: any) => {
       const cats = res.data.results || res.data;
-      if (Array.isArray(cats)) setCategories(cats);
+      if (Array.isArray(cats)) { const seen = new Set(); setCategories(cats.filter((c: any) => { const k = (c.name || '').trim().toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; })); }
     }).catch((err: any) => { console.warn('Catalog fetch failed:', err?.response?.status, err?.message); setCatalogError(true); });
 
     api.get('/purchasing/suppliers/').then((res: any) => {
@@ -189,7 +189,7 @@ export default function ProductsScreen() {
     
     api.get('/catalog/brands/').then((res: any) => {
       const bs = res.data.results || res.data;
-      if (Array.isArray(bs)) setBrands(bs);
+      if (Array.isArray(bs)) { const seen = new Set(); setBrands(bs.filter((b: any) => { const k = (b.name || '').trim().toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; })); }
     }).catch((err: any) => { console.warn('Catalog fetch failed:', err?.response?.status, err?.message); setCatalogError(true); });
     
     api.get('/tenants/branches/').then((res: any) => {
@@ -489,11 +489,11 @@ export default function ProductsScreen() {
                   setCatalogError(false);
                   api.get('/catalog/categories/').then((res: any) => {
                     const cats = res.data.results || res.data;
-                    if (Array.isArray(cats)) setCategories(cats);
+                    if (Array.isArray(cats)) { const seen = new Set(); setCategories(cats.filter((c: any) => { const k = (c.name || '').trim().toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; })); }
                   }).catch(() => setCatalogError(true));
                   api.get('/catalog/brands/').then((res: any) => {
                     const bs = res.data.results || res.data;
-                    if (Array.isArray(bs)) setBrands(bs);
+                    if (Array.isArray(bs)) { const seen = new Set(); setBrands(bs.filter((b: any) => { const k = (b.name || '').trim().toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; })); }
                   }).catch(() => setCatalogError(true));
                 }}>
                   <Text style={{ color: '#4f46e5', fontWeight: 'bold', fontSize: 12, marginLeft: 8 }}>{isBN ? 'পুনরায় চেষ্টা' : 'Retry'}</Text>

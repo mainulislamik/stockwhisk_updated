@@ -39,11 +39,41 @@ class CategorySerializer(serializers.ModelSerializer):
         model = Category
         fields = ["id", "name", "parent", "is_active"]
 
+    def validate_name(self, value):
+        name = (value or "").strip()
+        if not name:
+            raise serializers.ValidationError("Category name cannot be empty.")
+        request = self.context.get("request")
+        shop = getattr(request, "tenant", None) if request else None
+        instance_id = self.instance.id if self.instance else None
+        qs = Category.all_objects.filter(name__iexact=name)
+        if shop:
+            qs = qs.filter(shop=shop)
+        elif self.instance and self.instance.shop:
+            qs = qs.filter(shop=self.instance.shop)
+        if instance_id:
+            qs = qs.exclude(id=instance_id)
+        if qs.exists():
+            raise serializers.ValidationError(f"Category '{name}' already exists (case-insensitive duplicate not allowed).")
+        return name
+
 
 class BrandSerializer(serializers.ModelSerializer):
     class Meta:
         model = Brand
         fields = ["id", "name", "is_active"]
+
+    def validate_name(self, value):
+        name = (value or "").strip()
+        if not name:
+            raise serializers.ValidationError("Brand name cannot be empty.")
+        instance_id = self.instance.id if self.instance else None
+        qs = Brand.all_objects.filter(name__iexact=name)
+        if instance_id:
+            qs = qs.exclude(id=instance_id)
+        if qs.exists():
+            raise serializers.ValidationError(f"Brand '{name}' already exists (case-insensitive duplicate not allowed).")
+        return name
 
 
 class UnitSerializer(serializers.ModelSerializer):

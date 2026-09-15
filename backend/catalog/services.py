@@ -35,6 +35,8 @@ class ProductService(BaseService[Product]):
                 Q(name__icontains=search) |
                 Q(sku__icontains=search) |
                 Q(barcode__icontains=search) |
+                Q(brand__name__icontains=search) |
+                Q(category__name__icontains=search) |
                 Q(units__barcode__icontains=search, units__status=ProductUnit.Status.IN_STOCK)
             ).distinct()
             
