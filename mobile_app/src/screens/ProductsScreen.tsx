@@ -707,7 +707,7 @@ export default function ProductsScreen() {
                               setSelectedRepairCategory(null);
                             }}
                           >
-                            <Surface style={{
+                            <View style={{
                               padding: 16,
                               borderRadius: 12,
                               backgroundColor: theme.colors.surface,
@@ -735,7 +735,7 @@ export default function ProductsScreen() {
                               <Text style={{ fontSize: 11, color: '#4f46e5', marginTop: 4 }}>
                                 {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
                               </Text>
-                            </Surface>
+                            </View>
                           </TouchableOpacity>
                         ))}
                       </View>
@@ -775,7 +775,7 @@ export default function ProductsScreen() {
                               setSelectedRepairCategory(item);
                             }}
                           >
-                            <Surface style={{
+                            <View style={{
                               padding: 14,
                               borderRadius: 12,
                               backgroundColor: theme.colors.surface,
@@ -803,7 +803,7 @@ export default function ProductsScreen() {
                               <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
                                 {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}
                               </Text>
-                            </Surface>
+                            </View>
                           </TouchableOpacity>
                         ))}
                       </View>

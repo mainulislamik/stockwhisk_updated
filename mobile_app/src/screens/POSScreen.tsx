@@ -883,7 +883,7 @@ export default function POSScreen() {
                 borderWidth: 1,
                 borderColor: isDarkMode ? '#334155' : '#e2e8f0',
               }}>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <ScrollView horizontal nestedScrollEnabled={true} showsHorizontalScrollIndicator={false} contentContainerStyle={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <TouchableOpacity
                     onPress={() => {
                       setSelectedRepairBrand(null);
@@ -1152,7 +1152,7 @@ export default function POSScreen() {
                             setSelectedRepairCategory(null);
                           }}
                         >
-                          <Surface style={{
+                          <View style={{
                             padding: 16,
                             borderRadius: 12,
                             backgroundColor: theme.colors.surface,
@@ -1180,7 +1180,7 @@ export default function POSScreen() {
                             <Text style={{ fontSize: 11, color: theme.colors.primary, marginTop: 4 }}>
                               {isBN ? 'পার্টস দেখুন →' : 'View parts →'}
                             </Text>
-                          </Surface>
+                          </View>
                         </TouchableOpacity>
                       ))}
                     </View>
@@ -1220,7 +1220,7 @@ export default function POSScreen() {
                             setSelectedRepairCategory(item);
                           }}
                         >
-                          <Surface style={{
+                          <View style={{
                             padding: 14,
                             borderRadius: 12,
                             backgroundColor: theme.colors.surface,
@@ -1248,7 +1248,7 @@ export default function POSScreen() {
                             <Text style={{ fontSize: 11, color: '#f59e0b', marginTop: 4 }}>
                               {isBN ? 'মডেল ও পার্টস →' : 'Models & Parts →'}
                             </Text>
-                          </Surface>
+                          </View>
                         </TouchableOpacity>
                       ))}
                     </View>
