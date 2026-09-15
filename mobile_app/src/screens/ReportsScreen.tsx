@@ -184,27 +184,27 @@ export default function ReportsScreen() {
 
         {loading && <ActivityIndicator style={{ marginVertical: 12 }} color="#4f46e5" />}
 
-        {/* 1. Sales Overview Header KPI Cards */}
+        {/* 1. Sales Overview Header KPI Cards — filtered by selected range */}
         <View style={styles.sectionHeaderRow}>
           <MaterialCommunityIcons name="view-dashboard-outline" size={20} color="#4f46e5" style={{ marginRight: 6 }} />
           <Text variant="titleMedium" style={styles.sectionTitle}>
-            {isBN ? 'বিক্রয় ওভারভিউ (Sales Overview)' : 'Sales Overview'}
+            {isBN ? 'বিক্রয় ওভারভিউ (Sales Overview)' : 'Sales Overview'}
           </Text>
         </View>
         <View style={styles.grid}>
           <Surface style={[styles.cardHalf, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
               <MaterialCommunityIcons name="cash-multiple" size={16} color="#4f46e5" style={{ marginRight: 4 }} />
-              <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12 }}>{isBN ? 'মোট সেলস' : 'Total Sales'}</Text>
+              <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12 }}>{isBN ? 'রেভিনিউ (নির্বাচিত সময়)' : 'Revenue (Selected)'}</Text>
             </View>
-            <Text style={[styles.cardValue, { color: '#4f46e5' }]}>৳{Number(overview?.total_sales || 0).toLocaleString()}</Text>
+            <Text style={[styles.cardValue, { color: '#4f46e5' }]}>৳{Number(profitOverview?.summary?.revenue || 0).toLocaleString()}</Text>
           </Surface>
           <Surface style={[styles.cardHalf, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
               <MaterialCommunityIcons name="receipt" size={16} color="#0891b2" style={{ marginRight: 4 }} />
-              <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12 }}>{isBN ? 'মোট অর্ডার' : 'Total Orders'}</Text>
+              <Text style={{ color: isDarkMode ? '#94a3b8' : '#64748b', fontSize: 12 }}>{isBN ? 'অর্ডার সংখ্যা (নির্বাচিত সময়)' : 'Orders (Selected)'}</Text>
             </View>
-            <Text style={[styles.cardValue, { color: '#0891b2' }]}>{Number(overview?.total_orders || 0).toLocaleString()}</Text>
+            <Text style={[styles.cardValue, { color: '#0891b2' }]}>{Number(profitOverview?.summary?.completed_orders || 0).toLocaleString()}</Text>
           </Surface>
           <Surface style={[styles.cardHalf, { backgroundColor: theme.colors.surface }]} elevation={1}>
             <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 4 }}>
