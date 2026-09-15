@@ -361,6 +361,10 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
       Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'পণ্যের নাম আবশ্যক।' : 'Product name is required.');
       return;
     }
+    if (!form.category) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'ক্যাটাগরি নির্বাচন করুন।' : 'Please select a category.');
+      return;
+    }
     const cleanSell = String(form.selling_price || '').trim().replace(/,/g, '');
     if (!cleanSell || isNaN(Number(cleanSell))) {
       Alert.alert(isBN ? 'সতর্কতা' : 'Warning', isBN ? 'সঠিক বিক্রয় মূল্য আবশ্যক।' : 'Valid selling price is required.');
@@ -552,7 +556,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
               }}
             >
               <Text style={{ fontSize: 14, color: form.category_name ? theme.colors.onSurface : '#64748b', fontWeight: form.category_name ? 'bold' : 'normal' }}>
-                {form.category_name || (isBN ? 'ক্যাটাগরি নির্বাচন করুন' : 'Select Category')}
+                {form.category_name || (isBN ? 'ক্যাটাগরি নির্বাচন করুন' : 'Select Category')} <Text style={{ fontSize: 11, color: '#ef4444' }}>*</Text>
               </Text>
               <MaterialCommunityIcons name="chevron-down" size={20} color="#64748b" />
             </TouchableOpacity>
@@ -644,7 +648,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
             />
             <TextInput 
               mode="outlined" 
-              label={isBN ? "বারকোড / সিরিয়াল" : "Barcode / Serial"} 
+              label={isBN ? "বারকোড" : "Barcode"} 
               placeholder={serialBarcodes.length > 0 ? (isBN ? '+ আরেকটি বারকোড...' : '+ Another barcode...') : (isBN ? 'বারকোড লিখুন...' : 'e.g. 123584')}
               value={currentBarcodeInput} 
               onChangeText={t => {

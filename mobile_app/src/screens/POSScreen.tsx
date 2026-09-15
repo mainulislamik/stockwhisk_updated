@@ -1491,75 +1491,6 @@ export default function POSScreen() {
               </Surface>
             )}
 
-            {/* 3. Financials */}
-            <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 16, backgroundColor: theme.colors.surface }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
-                <Text style={{ color: theme.colors.onSurface }}>{t('সাবটোটাল', 'Subtotal')}</Text>
-                <Text style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>৳ {subtotal.toFixed(2)}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ color: theme.colors.onSurface }}>{t('ডিসকাউন্ট (৳)', 'Discount (৳)')}</Text>
-                <TextInput
-                  mode="outlined"
-                  placeholder="0"
-                  keyboardType="numeric"
-                  value={discountInput}
-                  onChangeText={setDiscountInput}
-                  style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
-                />
-              </View>
-              {(user as any)?.shop_delivery_enabled !== false && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ color: theme.colors.onSurface }}>{t('ডেলিভারি চার্জ (৳)', 'Delivery Charge (৳)')}</Text>
-                  <TextInput
-                    mode="outlined"
-                    placeholder="0"
-                    keyboardType="numeric"
-                    value={deliveryCharge}
-                    onChangeText={setDeliveryCharge}
-                    style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
-                  />
-                </View>
-              )}
-
-              {/* Service Charge Breakdown for Repair Shops */}
-              {isRepairShop && serviceChargeNum > 0 && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>{isBN ? '🛠️ সার্ভিস / লেবার চার্জ' : '🛠️ Service / Labor Fee'}</Text>
-                  <Text style={{ color: theme.colors.primary, fontWeight: 'bold', fontSize: 16 }}>+ ৳ {serviceChargeNum.toFixed(2)}</Text>
-                </View>
-              )}
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                <Text style={{ color: theme.colors.onSurface }}>{isEmi ? t('ডাউন পেমেন্ট (৳) *', 'Down Payment (৳) *') : t('প্রদত্ত টাকা (৳) *', 'Paid Amount (৳) *')}</Text>
-                <TextInput
-                  mode="outlined"
-                  placeholder="0"
-                  keyboardType="numeric"
-                  value={paidAmount}
-                  onChangeText={setPaidAmount}
-                  style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
-                />
-              </View>
-              <Divider style={{ marginVertical: 8 }} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.colors.onSurface }}>{t('মোট', 'Total')}</Text>
-                <Text style={{ fontWeight: 'bold', fontSize: 24, color: theme.colors.primary }}>৳ {total.toFixed(2)}</Text>
-              </View>
-              
-              {changeDue > 0 && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <Text style={{ fontSize: 14, color: '#0ea5e9', fontWeight: 'bold' }}>{t('চেঞ্জ ডিউ (খুচরা ফেরত)', 'Change Due')}</Text>
-                  <Text style={{ fontSize: 16, color: '#0ea5e9', fontWeight: 'bold' }}>৳ {changeDue.toFixed(2)}</Text>
-                </View>
-              )}
-              {paidAmount !== '' && paidNum < total && (
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
-                  <Text style={{ fontSize: 14, color: '#ef4444', fontWeight: 'bold' }}>{t('বাকি', 'Due')}</Text>
-                  <Text style={{ fontSize: 16, color: '#ef4444', fontWeight: 'bold' }}>৳ {(total - paidNum).toFixed(2)}</Text>
-                </View>
-              )}
-            </Surface>
-
             {/* Mobile Repair Shop Specialized Info Card */}
             {isRepairShop && (
               <Surface style={{ padding: 16, borderRadius: 12, elevation: 2, marginBottom: 16, backgroundColor: isDarkMode ? '#1e293b' : '#fffbeb', borderWidth: 1, borderColor: '#f59e0b' }}>
@@ -1688,6 +1619,76 @@ export default function POSScreen() {
                 />
               </Surface>
             )}
+
+            
+            {/* 3. Financials */}
+            <Surface style={{ padding: 16, borderRadius: 8, elevation: 2, marginBottom: 16, backgroundColor: theme.colors.surface }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 }}>
+                <Text style={{ color: theme.colors.onSurface }}>{t('সাবটোটাল', 'Subtotal')}</Text>
+                <Text style={{ color: theme.colors.onSurface, fontWeight: 'bold' }}>৳ {subtotal.toFixed(2)}</Text>
+              </View>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ color: theme.colors.onSurface }}>{t('ডিসকাউন্ট (৳)', 'Discount (৳)')}</Text>
+                <TextInput
+                  mode="outlined"
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={discountInput}
+                  onChangeText={setDiscountInput}
+                  style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
+                />
+              </View>
+              {(user as any)?.shop_delivery_enabled !== false && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ color: theme.colors.onSurface }}>{t('ডেলিভারি চার্জ (৳)', 'Delivery Charge (৳)')}</Text>
+                  <TextInput
+                    mode="outlined"
+                    placeholder="0"
+                    keyboardType="numeric"
+                    value={deliveryCharge}
+                    onChangeText={setDeliveryCharge}
+                    style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
+                  />
+                </View>
+              )}
+
+              {/* Service Charge Breakdown for Repair Shops */}
+              {isRepairShop && serviceChargeNum > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <Text style={{ color: theme.colors.primary, fontWeight: '600' }}>{isBN ? '🛠️ সার্ভিস / লেবার চার্জ' : '🛠️ Service / Labor Fee'}</Text>
+                  <Text style={{ color: theme.colors.primary, fontWeight: 'bold', fontSize: 16 }}>+ ৳ {serviceChargeNum.toFixed(2)}</Text>
+                </View>
+              )}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                <Text style={{ color: theme.colors.onSurface }}>{isEmi ? t('ডাউন পেমেন্ট (৳) *', 'Down Payment (৳) *') : t('প্রদত্ত টাকা (৳) *', 'Paid Amount (৳) *')}</Text>
+                <TextInput
+                  mode="outlined"
+                  placeholder="0"
+                  keyboardType="numeric"
+                  value={paidAmount}
+                  onChangeText={setPaidAmount}
+                  style={{ height: 36, width: 100, backgroundColor: theme.colors.surface, textAlign: 'right' }}
+                />
+              </View>
+              <Divider style={{ marginVertical: 8 }} />
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Text style={{ fontWeight: 'bold', fontSize: 18, color: theme.colors.onSurface }}>{t('মোট', 'Total')}</Text>
+                <Text style={{ fontWeight: 'bold', fontSize: 24, color: theme.colors.primary }}>৳ {total.toFixed(2)}</Text>
+              </View>
+              
+              {changeDue > 0 && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <Text style={{ fontSize: 14, color: '#0ea5e9', fontWeight: 'bold' }}>{t('চেঞ্জ ডিউ (খুচরা ফেরত)', 'Change Due')}</Text>
+                  <Text style={{ fontSize: 16, color: '#0ea5e9', fontWeight: 'bold' }}>৳ {changeDue.toFixed(2)}</Text>
+                </View>
+              )}
+              {paidAmount !== '' && paidNum < total && (
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+                  <Text style={{ fontSize: 14, color: '#ef4444', fontWeight: 'bold' }}>{t('বাকি', 'Due')}</Text>
+                  <Text style={{ fontSize: 16, color: '#ef4444', fontWeight: 'bold' }}>৳ {(total - paidNum).toFixed(2)}</Text>
+                </View>
+              )}
+            </Surface>
 
             {/* 4. Payment Method */}
             <Text style={{ fontWeight: 'bold', marginBottom: 8, fontSize: 16, color: theme.colors.onSurface }}>{t('পেমেন্ট মাধ্যম', 'Payment Method')}</Text>
