@@ -64,6 +64,7 @@ export default function PosPage() {
   const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const isElectronicsShop = user?.shop_business_type === "electronics" || user?.shop_business_type === "computer";
   const [cart, setCart] = useState<CartLine[]>([]);
   type HeldCart = {
     id: string;
@@ -142,7 +143,7 @@ export default function PosPage() {
       } else if (e.key === "F9" && isSupershop) {
         e.preventDefault();
         setShowHeldModal(s => !s);
-      } else if (e.key === "F12") {
+      } else if (e.key === "F12" && !isElectronicsShop) {
         e.preventDefault();
         doFastCashCheckout();
       }
@@ -641,7 +642,32 @@ export default function PosPage() {
 
           
 
-          {/* ══════════════════════════════════════════════════════════════════════
+          {/* ── Quick Category Filter Pills (General POS - hidden for Electronics, Fashion, Repair) ── */}
+          {!isRepairShop && !isFashionShop && !isElectronicsShop && categories.length > 0 && (
+            <div className="d-flex align-items-center gap-2 mb-3 overflow-auto pb-2" style={{ whiteSpace: "nowrap", scrollbarWidth: "thin" }}>
+              <button
+                type="button"
+                style={{ flexShrink: 0 }}
+                className={`btn btn-sm px-3.5 py-1.5 rounded-pill fw-bold shadow-sm ${selectedCategory === null ? "btn-dark text-white" : "btn-light text-dark border bg-white"}`}
+                onClick={() => setSelectedCategory(null)}
+              >
+                {lang === "bn" ? "✨ সকল পণ্য" : "All Items"}
+              </button>
+              {categories.map((c) => (
+                <button
+                  key={c.id}
+                  type="button"
+                  style={{ flexShrink: 0 }}
+                  className={`btn btn-sm px-3.5 py-1.5 rounded-pill fw-bold shadow-sm ${selectedCategory === c.id ? "btn-primary text-white" : "btn-light text-dark border bg-white"}`}
+                  onClick={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
+                >
+                  {c.name}
+                </button>
+              ))}
+            </div>
+          )}
+
+                    {/* ══════════════════════════════════════════════════════════════════════
               REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
               Step 1: Big Brand Cards -> Step 2: Category Cards -> Step 3: Products
               ══════════════════════════════════════════════════════════════════════ */}
@@ -1346,14 +1372,41 @@ export default function PosPage() {
                   <span>{t("pos_total")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
-                <button
-                  type="button"
-                  className="btn btn-brand w-100 py-2.5 fw-semibold shadow-sm"
-                  disabled={cart.length === 0}
-                  onClick={goToCheckout}
-                >
-                  {t("pos_continue")} →
-                </button>
+                {isElectronicsShop ? (
+                  <button
+                    type="button"
+                    className="btn btn-brand w-100 py-2.5 fw-semibold shadow-sm"
+                    disabled={cart.length === 0}
+                    onClick={goToCheckout}
+                  >
+                    {t("pos_continue")} →
+                  </button>
+                ) : (
+                  <div className="d-flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-success flex-grow-1 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1"
+                      disabled={cart.length === 0 || fastCheckingOut}
+                      onClick={doFastCashCheckout}
+                      title="Press F12 for instant 1-key cash checkout"
+                    >
+                      {fastCheckingOut ? (
+                        <span className="spinner-border spinner-border-sm me-1" />
+                      ) : (
+                        <span>⚡ {lang === "bn" ? "ক্যাশ পে (F12)" : "Fast Cash (F12)"}</span>
+                      )}
+                    </button>
+
+                    <button
+                      type="button"
+                      className="btn btn-brand flex-grow-1 py-2 fw-semibold shadow-sm"
+                      disabled={cart.length === 0 || fastCheckingOut}
+                      onClick={goToCheckout}
+                    >
+                      {t("pos_continue")} →
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
