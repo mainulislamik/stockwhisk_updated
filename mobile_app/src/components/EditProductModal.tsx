@@ -28,6 +28,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const shopType = (user as any)?.shop_business_type || '';
   const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
   const isSpecialShop = shopType === 'camical' || shopType === 'supershop' || shopType === 'cosmetics' || shopType === 'beauty';
+  const isRepairShop = shopType === 'mobile_repair' || shopType === 'repair' || Boolean((user as any)?.shop_mobile_repair_enabled);
 
   // Fashion Presets
   const FABRIC_PRESETS = ['Cotton', 'Denim', 'Silk', 'Linen', 'Polyester', 'Wool', 'Rayon', 'Georgette', 'Viscose'];
@@ -777,7 +778,9 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                 style={{ marginBottom: 10, backgroundColor: theme.colors.surface }}
               />
 
-              {/* Expiry Date with native calendar */}
+              {/* Expiry Date (hidden for repair shops) */}
+              {!isRepairShop && (
+                <>
               <Text style={{ fontSize: 12, fontWeight: '600', color: '#166534', marginBottom: 4 }}>
                 📅 {isBN ? 'মেয়াদোত্তীর্ণের তারিখ (ঐচ্ছিক):' : 'Expiry Date (Optional):'}
               </Text>
@@ -824,6 +827,9 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     />
                   )}
                 </View>
+              )}
+
+                </>
               )}
 
               {/* Lot Number */}
