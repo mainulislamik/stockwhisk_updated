@@ -1,18 +1,20 @@
 import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+if (Platform.OS !== "web") {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+    }),
+  });
+}
 
 let isConfigured = false;
-let lastNotifiedId: any = null;
+let notifiedIds = new Set<number>();
 
 export async function setupSystemNotifications() {
   if (isConfigured || Platform.OS === "web") return;
@@ -65,13 +67,14 @@ export function checkAndNotifyNewItems(items: any[]) {
   const unreadItems = items.filter((item: any) => !item.is_read);
   if (unreadItems.length === 0) return;
 
-  const newest = unreadItems[0];
-  if (newest && newest.id !== lastNotifiedId) {
-    lastNotifiedId = newest.id;
-    triggerLocalSystemNotification(
-      newest.title || "StockWhisk Alert",
-      newest.message || newest.body || "New notification received.",
-      { notificationId: newest.id }
-    );
+  for (const item of unreadItems) {
+    if (item.id && !notifiedIds.has(item.id)) {
+      notifiedIds.add(item.id);
+      triggerLocalSystemNotification(
+        item.title || "StockWhisk Alert",
+        item.message || item.body || "New notification received.",
+        { notificationId: item.id }
+      );
+    }
   }
 }

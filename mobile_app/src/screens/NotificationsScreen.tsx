@@ -1,3 +1,4 @@
+import { triggerLocalSystemNotification, setupSystemNotifications } from '../services/notificationService';
 import React, { useState, useEffect } from "react";
 import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert } from "react-native";
 import { Text, Appbar, useTheme, SegmentedButtons } from "react-native-paper";
@@ -18,6 +19,24 @@ export default function NotificationsScreen() {
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const isBn = language === "BN";
+
+  const sendTestNotification = async () => {
+    try {
+      await setupSystemNotifications();
+      await triggerLocalSystemNotification(
+        isBn ? "🔔 টেস্ট নোটিফিকেশন" : "🔔 Test Notification",
+        isBn ? "আপনার অ্যান্ড্রয়েড ফোনে নোটিফিকেশন পপআপ সফলভাবে কাজ করছে!" : "System notifications are working properly on your device!",
+        { test: true }
+      );
+      Alert.alert(
+        isBn ? "নোটিফিকেশন পাঠানো হয়েছে" : "Notification Triggered",
+        isBn ? "আপনার স্ট্যাটাস বার এবং লক স্ক্রিন চেক করুন!" : "Check your Android status bar and lock screen!"
+      );
+    } catch (e) {
+      Alert.alert("Error", "Could not trigger test notification.");
+    }
+  };
+
 
   const fetchPage = async (p: number, currentFilter = filter) => {
     try {
@@ -139,6 +158,7 @@ export default function NotificationsScreen() {
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface, elevation: 0 }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBn ? "নোটিফিকেশন" : "Notifications"} titleStyle={{ fontWeight: "bold" }} />
+        <Appbar.Action icon="bell-ring-outline" onPress={sendTestNotification} color="#10b981" />
         <Appbar.Action icon="check-all" onPress={markAllAsRead} color={theme.colors.primary} />
         <Appbar.Action icon="broom" onPress={clearRead} color="#eab308" />
         <Appbar.Action icon="delete-outline" onPress={clearAll} color="#ef4444" />
