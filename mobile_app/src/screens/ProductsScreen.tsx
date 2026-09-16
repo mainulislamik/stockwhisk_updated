@@ -574,10 +574,6 @@ export default function ProductsScreen() {
             </ScrollView>
             )}
 
-            {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
-            {isRepairShop && !debouncedSearch.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? (
-              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true}>
-                <View style={{ marginTop: 8, marginBottom: 8 }}>
                 {/* Breadcrumb Navigation Bar */}
                 <View style={{
                   marginBottom: 8,
@@ -681,6 +677,10 @@ export default function ProductsScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
+            {/* ── REPAIR SHOP: 3-STEP HIERARCHICAL DRILL-DOWN ── */}
+            {isRepairShop && !debouncedSearch.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? (
+              <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 140 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true}>
+                <View style={{ marginTop: 8, marginBottom: 8 }}>
 
                 {/* STEP 1: Select Brand Cards */}
                 {!selectedRepairBrand && (
