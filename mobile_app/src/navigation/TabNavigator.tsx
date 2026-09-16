@@ -23,6 +23,8 @@ function MoreMenuScreen() {
 
   const isServiceEnabled = user?.shop_service_enabled !== false;
   const isFinanceEnabled = user?.shop_finance_enabled !== false;
+  const isRepairShop = (user as any)?.shop_business_type === 'mobile_repair' || (user as any)?.shop_business_type === 'repair' || !!(user as any)?.shop_mobile_repair_enabled;
+  const isMfgEnabled = (user as any)?.shop_manufacturing_enabled === true && !isRepairShop;
 
   const accountsItems: any[] = [];
   if (isFinanceEnabled) {
@@ -58,7 +60,7 @@ function MoreMenuScreen() {
         { name: 'LookupScreen', icon: 'line-scan', labelEn: 'Item Lookup', labelBn: 'আইটেম লুকআপ' },
         { name: 'PurchasesScreen', icon: 'shopping', labelEn: 'Purchase History', labelBn: 'ক্রয় ইতিহাস' },
         { name: 'SuppliersScreen', icon: 'truck-delivery', labelEn: 'Suppliers / Vendors', labelBn: 'সরবরাহকারী' },
-        { name: 'ManufacturingScreen', icon: 'factory', labelEn: 'Manufacturing Hub', labelBn: 'প্রোডাকশন হাব' },
+        ...(isMfgEnabled ? [{ name: 'ManufacturingScreen', icon: 'factory', labelEn: 'Manufacturing Hub', labelBn: 'প্রোডাকশন হাব' }] : []),
         { name: 'BarcodesScreen', icon: 'barcode-scan', labelEn: 'Barcode Generator', labelBn: 'বারকোড জেনারেটর' },
       ],
     },
