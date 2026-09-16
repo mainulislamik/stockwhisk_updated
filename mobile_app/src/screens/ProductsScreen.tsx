@@ -389,7 +389,7 @@ export default function ProductsScreen() {
 
       // Receive the Purchase Order
       await api.post(`/purchasing/purchase-orders/${poId}/receive/`, {
-        paid: Number(paidAmount) || 0,
+        paid: Number(String(paidAmount).replace(/,/g, "")) || 0,
         method: payMethod,
       });
 
@@ -1231,8 +1231,8 @@ export default function ProductsScreen() {
                 <Text style={{ fontSize: 12, color: isDarkMode ? '#cbd5e1' : '#64748b' }}>
                   {isBN ? 'পরিশোধের পর সাপ্লায়ারের বকেয়া' : 'Supplier Due After Payment'}
                 </Text>
-                <Text style={{ fontSize: 14, fontWeight: 'bold', color: Number(totalPurchaseCost) - (Number(paidAmount) || 0) > 0 ? '#ea580c' : '#16a34a' }}>
-                  ৳{Math.max(0, Number(totalPurchaseCost) - (Number(paidAmount) || 0)).toFixed(2)}
+                <Text style={{ fontSize: 14, fontWeight: 'bold', color: Number(totalPurchaseCost) - (Number(String(paidAmount).replace(/,/g, "")) || 0) > 0 ? '#ea580c' : '#16a34a' }}>
+                  ৳{Math.max(0, Number(totalPurchaseCost) - (Number(String(paidAmount).replace(/,/g, "")) || 0)).toFixed(2)}
                 </Text>
               </View>
 

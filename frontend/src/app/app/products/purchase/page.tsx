@@ -526,7 +526,7 @@ export default function PurchaseProductPage() {
   }
   const subtotal = lines.reduce((s, l) => s + l.quantity * l.unit_cost, 0);
 
-  const paid = Number(payAmount) || 0;
+  const paid = Number(String(payAmount).replace(/,/g, "")) || 0;
   const supplierDue = Math.max(0, subtotal - paid);
 
   // Pricing panel values

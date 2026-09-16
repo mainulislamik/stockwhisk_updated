@@ -429,7 +429,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
             });
             if (poRes.data?.id) {
               await api.post(`/purchasing/purchase-orders/${poRes.data.id}/receive/`, {
-                paid: Number(vendorPaidAmount) || 0,
+                paid: Number(vendorPaidAmount.replace(/,/g, "")) || 0,
                 method: vendorPayMethod
               });
             }
@@ -1084,8 +1084,8 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
                     <Text style={{ fontSize: 12, color: isDarkMode ? '#cbd5e1' : '#64748b' }}>
                       {isBN ? 'পরিশোধের পর সাপ্লায়ারের বকেয়া' : 'Supplier Due After Payment'}
                     </Text>
-                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: Math.max(0, (Number(form.cost_price || 0) * Number(form.current_stock || 0)) - (Number(vendorPaidAmount) || 0)) > 0 ? '#ea580c' : '#16a34a' }}>
-                      ৳{Math.max(0, (Number(form.cost_price || 0) * Number(form.current_stock || 0)) - (Number(vendorPaidAmount) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    <Text style={{ fontSize: 13, fontWeight: 'bold', color: Math.max(0, (Number(form.cost_price || 0) * Number(form.current_stock || 0)) - (Number(vendorPaidAmount.replace(/,/g, "")) || 0)) > 0 ? '#ea580c' : '#16a34a' }}>
+                      ৳{Math.max(0, (Number(form.cost_price || 0) * Number(form.current_stock || 0)) - (Number(vendorPaidAmount.replace(/,/g, "")) || 0)).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </Text>
                   </View>
                 </>
