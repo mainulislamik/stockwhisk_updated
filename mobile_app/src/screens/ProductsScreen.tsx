@@ -245,17 +245,14 @@ export default function ProductsScreen() {
     if (debouncedSearch.trim()) {
       return products;
     }
-    if (isRepairShop) {
-      if (selectedRepairBrand && selectedRepairCategory) {
-        return products.filter((p: any) => {
-          const pBrandId = typeof p.brand === 'object' && p.brand !== null ? p.brand.id : p.brand;
-          const pCatId = typeof p.category === 'object' && p.category !== null ? p.category.id : p.category;
-          const matchBrand = !pBrandId || pBrandId === selectedRepairBrand.id;
-          const matchCat = !pCatId || pCatId === selectedRepairCategory.id;
-          return matchBrand && matchCat;
-        });
-      }
-      return [];
+    if (isRepairShop && (selectedRepairBrand || selectedRepairCategory)) {
+      return products.filter((p: any) => {
+        const pBrandId = typeof p.brand === 'object' && p.brand !== null ? p.brand.id : p.brand;
+        const pCatId = typeof p.category === 'object' && p.category !== null ? p.category.id : p.category;
+        const matchBrand = !selectedRepairBrand || pBrandId === selectedRepairBrand.id;
+        const matchCat = !selectedRepairCategory || pCatId === selectedRepairCategory.id;
+        return matchBrand && matchCat;
+      });
     }
     return products;
   }, [products, isRepairShop, debouncedSearch, selectedRepairBrand, selectedRepairCategory]);
@@ -849,15 +846,13 @@ export default function ProductsScreen() {
           )}
 
           <View style={styles.listContainer}>
-            {isRepairShop && !debouncedSearch.trim() && (!selectedRepairBrand || !selectedRepairCategory) ? null : (
-
             <ScrollView 
               style={styles.scrollView} 
               contentContainerStyle={styles.scrollContent}
               onScroll={onScroll}
               scrollEventThrottle={400}
             >
-              {products.map((product, index) => {
+              {displayedProducts.map((product, index) => {
                 const stockNum = Number(product.current_stock || 0);
                 const isOutOfStock = stockNum <= 0;
                 const isLowStock = product.is_low_stock || (stockNum > 0 && stockNum <= 5);
@@ -943,7 +938,6 @@ export default function ProductsScreen() {
                 </View>
               )}
             </ScrollView>
-            )}
           </View>
 
           <FAB
