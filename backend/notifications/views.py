@@ -33,21 +33,7 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, mixins.DestroyModelMix
     serializer_class = NotificationSerializer
 
     def get_queryset(self):
-        shop = getattr(self.request.user, "shop", None)
-        if shop:
-            from catalog.models import Product
-            from django.db.models import F
-            from notifications.services import alert_low_stock_realtime
-            
-            from django.db.models import Q
-            # Auto-generate missing notifications for any products currently in low stock
-            low_products = Product.objects.filter(
-                Q(current_stock__lte=F("reorder_level")) | Q(current_stock__lte=5),
-                shop_id=shop.id, track_inventory=True, is_active=True
-            )
-            alert_low_stock_realtime(shop=shop, products=low_products)
-
-        qs = Notification.objects.all()
+        qs = Notification.objects.all().order_by("-created_at")
         if self.request.query_params.get("unread") in {"1", "true"}:
             qs = qs.filter(is_read=False)
         return qs
@@ -64,22 +50,22 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, mixins.DestroyModelMix
         count = Notification.objects.filter(is_read=False).count()
         return Response({"unread": count})
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post", "delete"])
     def clear_read(self, request):
         shop = getattr(request.user, "shop", None)
         if shop:
             Notification.all_objects.filter(shop_id=shop.id, is_read=True).delete()
         else:
-            Notification.all_objects.filter(is_read=True).delete()
+            Notification.objects.filter(is_read=True).delete()
         return Response({"status": "cleared_read"})
 
-    @action(detail=False, methods=["post"])
+    @action(detail=False, methods=["post", "delete"])
     def clear_all(self, request):
         shop = getattr(request.user, "shop", None)
         if shop:
             Notification.all_objects.filter(shop_id=shop.id).delete()
         else:
-            Notification.all_objects.filter().delete()
+            Notification.objects.all().delete()
         return Response({"status": "cleared_all"})
 
     @action(detail=False, methods=["post"])
