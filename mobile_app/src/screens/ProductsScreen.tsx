@@ -1389,6 +1389,14 @@ export default function ProductsScreen() {
         onSaved={() => {
           setProductToEdit(null);
           fetchProducts(1, debouncedSearch, selectedCategory, brandFilter, true);
+          api.get("/catalog/brands/").then((res: any) => {
+            const bs = res.data.results || res.data;
+            if (Array.isArray(bs)) { const seen = new Set(); setBrands(bs.filter((b: any) => { const k = (b.name || "").trim().toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; })); }
+          }).catch(err => console.warn(err));
+          api.get("/catalog/categories/").then((res: any) => {
+            const cats = res.data.results || res.data;
+            if (Array.isArray(cats)) { const seen = new Set(); setCategories(cats.filter((c: any) => { const k = (c.name || "").trim().toUpperCase(); if (seen.has(k)) return false; seen.add(k); return true; })); }
+          }).catch(err => console.warn(err));
         }}
       />
 
