@@ -639,30 +639,7 @@ export default function PosPage() {
             </div>
           </div>
 
-          {/* ── Quick Category Filter Pills (Fashion & General POS) ── */}
-          {!isRepairShop && categories.length > 0 && (
-            <div className="d-flex align-items-center gap-2 mb-3 overflow-auto pb-2" style={{ whiteSpace: "nowrap", scrollbarWidth: "thin" }}>
-              <button
-                type="button"
-                style={{ flexShrink: 0 }}
-                className={`btn btn-sm px-3.5 py-1.5 rounded-pill fw-bold shadow-sm ${selectedCategory === null ? "btn-dark text-white" : "btn-light text-dark border bg-white"}`}
-                onClick={() => setSelectedCategory(null)}
-              >
-                {lang === "bn" ? "✨ সকল পণ্য" : "All Items"}
-              </button>
-              {categories.map((c) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  style={{ flexShrink: 0 }}
-                  className={`btn btn-sm px-3.5 py-1.5 rounded-pill fw-bold shadow-sm ${selectedCategory === c.id ? "btn-primary text-white" : "btn-light text-dark border bg-white"}`}
-                  onClick={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
-                >
-                  {c.name}
-                </button>
-              ))}
-            </div>
-          )}
+          
 
           {/* ══════════════════════════════════════════════════════════════════════
               REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
@@ -1369,30 +1346,14 @@ export default function PosPage() {
                   <span>{t("pos_total")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
-                <div className="d-flex gap-2">
-                  <button
-                    type="button"
-                    className="btn btn-success flex-grow-1 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1"
-                    disabled={cart.length === 0 || fastCheckingOut}
-                    onClick={doFastCashCheckout}
-                    title="Press F12 for instant 1-key cash checkout"
-                  >
-                    {fastCheckingOut ? (
-                      <span className="spinner-border spinner-border-sm me-1" />
-                    ) : (
-                      <span>⚡ {lang === "bn" ? "ক্যাশ পে (F12)" : "Fast Cash (F12)"}</span>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    className="btn btn-brand flex-grow-1 py-2 fw-semibold shadow-sm"
-                    disabled={cart.length === 0 || fastCheckingOut}
-                    onClick={goToCheckout}
-                  >
-                    {t("pos_continue")} →
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="btn btn-brand w-100 py-2.5 fw-semibold shadow-sm"
+                  disabled={cart.length === 0}
+                  onClick={goToCheckout}
+                >
+                  {t("pos_continue")} →
+                </button>
               </div>
             </div>
           </div>
