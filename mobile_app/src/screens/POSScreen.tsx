@@ -152,6 +152,17 @@ export default function POSScreen() {
   const [selectedRepairCategory, setSelectedRepairCategory] = useState<any | null>(null);
 
   useEffect(() => {
+    if (isRepairShop && selectedRepairBrand) {
+      setDeviceModel(prev => {
+        if (!prev.trim() || repairBrands.some((b: any) => b.name === prev)) {
+          return selectedRepairBrand.name;
+        }
+        return prev;
+      });
+    }
+  }, [isRepairShop, selectedRepairBrand]);
+
+  useEffect(() => {
     if (isRepairShop) {
       api.get('/catalog/brands/?page_size=100').then((r: any) => {
         const raw = r.data.results || r.data || [];
@@ -505,6 +516,15 @@ export default function POSScreen() {
   };
 
   const addToCart = (product: Product, units: ProductUnit[], qty: number = 1, variation?: ProductVariation | null) => {
+    if (isRepairShop && product) {
+      const pName = formatProductName(product, true);
+      setDeviceModel(prev => {
+        if (!prev.trim() || (selectedRepairBrand && prev === selectedRepairBrand.name)) {
+          return pName;
+        }
+        return prev;
+      });
+    }
     const itemPrice = variation ? Number(variation.selling_price || product.selling_price) : Number(product.selling_price);
     setCart(prev => {
       const idx = prev.findIndex(l => l.product.id === product.id && (!variation || l.selectedVariation?.id === variation.id));
