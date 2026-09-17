@@ -328,6 +328,31 @@ with transaction.atomic():
             "stock": Decimal("250.00"),
             "supplier": s_unilever
         },
+        # Length (Goj / Meter) Measure Items
+        {
+            "name": "প্রিমিয়াম পিভিসি ডাইনিং টেবিল ক্লথ কভার (প্রতি গজ)",
+            "sku": "CLOTH-PVC-GOJ",
+            "barcode": "894110009901",
+            "category": cat_toiletries,
+            "unit": u_goj,
+            "brand": b_local,
+            "cost_price": Decimal("90.00"),
+            "selling_price": Decimal("130.00"),
+            "stock": Decimal("150.00"),
+            "supplier": s_meghna
+        },
+        {
+            "name": "মাল্টিপারপাস নাইলন রশি / দড়ি (প্রতি গজ)",
+            "sku": "ROPE-NYLON-GOJ",
+            "barcode": "894110009902",
+            "category": cat_toiletries,
+            "unit": u_goj,
+            "brand": b_local,
+            "cost_price": Decimal("8.00"),
+            "selling_price": Decimal("15.00"),
+            "stock": Decimal("300.00"),
+            "supplier": s_meghna
+        },
     ]
 
     # Create Products & Stock Movements
