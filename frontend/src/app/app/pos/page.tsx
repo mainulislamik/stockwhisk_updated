@@ -435,10 +435,10 @@ export default function PosPage() {
       (p) => !!p.barcode && p.barcode.split(",").map((s) => s.trim()).includes(code)
     );
     if (barcodeMatches.length > 1) { setPickCode(code); setPickProducts(barcodeMatches); return; }
-    if (barcodeMatches.length === 1) { tryAdd(barcodeMatches[0]); return; }
+    if (barcodeMatches.length === 1) { tryAdd(barcodeMatches[0], multiplier); return; }
 
     const bySku = shown.find((p) => p.sku && p.sku.toLowerCase() === code.toLowerCase());
-    if (bySku) { tryAdd(bySku); return; }
+    if (bySku) { tryAdd(bySku, multiplier); return; }
 
     // 2b. Exact match on a specific UNIT barcode → add that exact unit directly
     // (skip the unit-picker modal). Unit barcodes are unique, so never add twice.
@@ -464,7 +464,7 @@ export default function PosPage() {
     const gridReflectsCode = debouncedQuery === code && !gridLoading;
 
     // 3. Exactly one filtered result → auto-add
-    if (gridReflectsCode && shown.length === 1 && query === code) { tryAdd(shown[0]); return; }
+    if (gridReflectsCode && shown.length === 1 && query === code) { tryAdd(shown[0], multiplier); return; }
 
     // 4. Multiple results → keep showing (let the user click one)
     if (gridReflectsCode && shown.length > 1 && query === code) return;
@@ -477,7 +477,7 @@ export default function PosPage() {
         setPickCode(code);
         setPickProducts(res.products as Product[]);
       } else {
-        tryAdd(res as Product);
+        tryAdd(res as Product, multiplier);
       }
     } catch (e: any) {
       if (e?.status === 409 || e?.data?.sold_unit) {

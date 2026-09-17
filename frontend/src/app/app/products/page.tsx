@@ -62,6 +62,7 @@ export default function ProductsPage() {
   const { user, can, isOwner } = useAuth();
   const isCosmetics = user?.shop_business_type === "cosmetics";
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
   const [selectedBrandFilter, setSelectedBrandFilter] = useState<number | null>(null);
@@ -180,8 +181,8 @@ export default function ProductsPage() {
           cost_price: form.cost_price || 0,
           selling_price: form.selling_price || 0,
           reorder_level: form.reorder_level === "" ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
-          warranty_months: form.warranty_months || 0,
-          replacement_guarantee_days: form.replacement_guarantee_days || 0,
+          warranty_months: isSupershop ? 0 : (form.warranty_months || 0),
+          replacement_guarantee_days: isSupershop ? 0 : (form.replacement_guarantee_days || 0),
           expiry_date: form.expiry_date || null,
           lot_number: form.lot_number || "",
           mfg_date: form.mfg_date || null,
@@ -432,9 +433,9 @@ export default function ProductsPage() {
               {(() => {
                 const selectedUnit = units.find((u) => String(u.id) === String(form.unit));
                 const isCountUnit = !selectedUnit || selectedUnit.measure_type === "count" || selectedUnit.name?.toLowerCase().includes("piece") || selectedUnit.name?.toLowerCase().includes("pcs") || selectedUnit.short_code?.toLowerCase() === "pcs";
-                const isChemicalBulk = isSpecialShop && !isCountUnit;
+                const showExpiry = isSupershop || (isSpecialShop && !isCountUnit);
 
-                if (isChemicalBulk) {
+                if (showExpiry) {
                   return (
                     <>
                       <div className="col-md-3">
@@ -469,6 +470,10 @@ export default function ProductsPage() {
                       />
                     </div>
                   );
+                }
+
+                if (isSupershop) {
+                  return null;
                 }
 
                 return (

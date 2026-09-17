@@ -138,8 +138,9 @@ export default function PosCustomerPage() {
       return;
     }
     const finalPaid = asQuotation ? 0 : (paid === "" ? total : Number(paid));
-    if (!asQuotation && customerMode === "walkin" && !walkName.trim()) { await showError("Validation Error", t("pos_err_req_name")); return; }
-    if (!asQuotation && customerMode === "walkin" && !walkPhone.trim()) { await showError("Validation Error", t("pos_err_req_phone")); return; }
+    const requireContact = !isSupershop && customerMode === "walkin";
+    if (!asQuotation && requireContact && !walkName.trim()) { await showError("Validation Error", t("pos_err_req_name")); return; }
+    if (!asQuotation && requireContact && !walkPhone.trim()) { await showError("Validation Error", t("pos_err_req_phone")); return; }
     if (isEmi && !asQuotation) {
       // EMI requires email — validate for both modes
       const selectedCustomer = customers.find(c => c.id === Number(customerId));
@@ -172,7 +173,7 @@ export default function PosCustomerPage() {
         method: "POST",
         body: {
           customer: customerId2,
-          customer_name: customerMode === "walkin" ? walkName.trim() : "",
+          customer_name: customerMode === "walkin" ? (walkName.trim() || (isSupershop ? (lang === "bn" ? "সাধারণ ক্রেতা" : "Walk-in Customer") : "")) : "",
           customer_phone: customerMode === "walkin" ? walkPhone.trim() : "",
           customer_email: customerMode === "existing" ? existingEmail.trim() : walkEmail.trim(),
           customer_address: customerMode === "walkin" ? walkAddress.trim() : "",
@@ -223,7 +224,7 @@ export default function PosCustomerPage() {
         ? walkPhone.trim()
         : (customers.find(c => c.id === Number(customerId))?.phone || "");
       const custName = customerMode === "walkin"
-        ? walkName.trim()
+        ? (walkName.trim() || (isSupershop ? (lang === "bn" ? "সাধারণ ক্রেতা" : "Walk-in Customer") : "Customer"))
         : (customers.find(c => c.id === Number(customerId))?.name || "Customer");
       const pdfUrl = sale.public_invoice_url
         ? (sale.public_invoice_url.startsWith("http") ? sale.public_invoice_url : window.location.origin + sale.public_invoice_url)
@@ -335,7 +336,7 @@ export default function PosCustomerPage() {
               <div className="p-3 bg-light rounded-3 border vstack gap-3">
                 <div className="form-floating">
                   <input id="walkPhone" className="form-control shadow-sm" value={walkPhone} onChange={(e) => onWalkPhoneChange(e.target.value)} placeholder="01XXXXXXXXX" autoFocus />
-                  <label htmlFor="walkPhone">{t("pos_checkout_phone")}</label>
+                  <label htmlFor="walkPhone">{t("pos_checkout_phone")}{isSupershop ? (lang === "bn" ? " (ঐচ্ছিক)" : " (Optional)") : ""}</label>
                 </div>
                 {matchedId && (
                   <div className="text-success small fw-semibold mt-n1">
@@ -344,7 +345,7 @@ export default function PosCustomerPage() {
                 )}
                 <div className="form-floating">
                   <input id="walkName" className="form-control shadow-sm" value={walkName} onChange={(e) => setWalkName(e.target.value)} placeholder={lang === "bn" ? "নাম লিখুন…" : "Enter name…"} />
-                  <label htmlFor="walkName">{t("pos_checkout_cust_name")}</label>
+                  <label htmlFor="walkName">{t("pos_checkout_cust_name")}{isSupershop ? (lang === "bn" ? " (ঐচ্ছিক)" : " (Optional)") : ""}</label>
                 </div>
                 <div className="form-floating">
                   <input id="walkEmail" type="email"

@@ -15,6 +15,7 @@ export default function ProductEditPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
+  const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const { id } = useParams<{ id: string }>();
 
@@ -116,8 +117,11 @@ export default function ProductEditPage() {
           full_pack_cost: form.full_pack_cost !== "" ? Number(form.full_pack_cost) : 0,
           full_pack_sell: form.full_pack_sell !== "" ? Number(form.full_pack_sell) : 0,
           reorder_level: form.reorder_level === "" || form.reorder_level == null ? 5 : Math.max(0, Math.round(Number(form.reorder_level) || 0)),
-          warranty_months: isFashionShop ? 0 : (form.warranty_months !== "" && form.warranty_months != null ? Number(form.warranty_months) : 0),
-          replacement_guarantee_days: form.replacement_guarantee_days !== "" && form.replacement_guarantee_days != null ? Number(form.replacement_guarantee_days) : 0,
+          warranty_months: (isFashionShop || isSupershop) ? 0 : (form.warranty_months !== "" && form.warranty_months != null ? Number(form.warranty_months) : 0),
+          replacement_guarantee_days: isSupershop ? 0 : (form.replacement_guarantee_days !== "" && form.replacement_guarantee_days != null ? Number(form.replacement_guarantee_days) : 0),
+          expiry_date: form.expiry_date || null,
+          lot_number: form.lot_number || "",
+          mfg_date: form.mfg_date || null,
           fabric_material: form.fabric_material || "",
           gender_target: form.gender_target || "",
           season: form.season || "",
@@ -301,7 +305,7 @@ export default function ProductEditPage() {
               <label className="small">{t("pe_lbl_reorder")}</label>
               <input type="number" step="1" min="0" className="form-control form-control-sm" value={form.reorder_level || ""} onChange={set("reorder_level")} />
             </div>
-            {!isSpecialShop && !isFashionShop && (
+            {!isSpecialShop && !isFashionShop && !isSupershop && (
               <div className="col-md-3">
                 <label className="small">{t("pe_lbl_warranty")}</label>
                 <input type="number" min="0" className="form-control form-control-sm" value={form.warranty_months || ""} onChange={set("warranty_months")} placeholder="0" />
@@ -321,6 +325,44 @@ export default function ProductEditPage() {
                   placeholder="7"
                 />
               </div>
+            )}
+            {(isSupershop || isSpecialShop) && (
+              <>
+                <div className="col-md-3">
+                  <label className="small fw-semibold text-danger">
+                    {t("prod_lbl_expiry") || (lang === "bn" ? "মেয়াদোত্তীর্ণের তারিখ (Expiry Date)" : "Expiry Date")}
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    value={form.expiry_date || ""}
+                    onChange={set("expiry_date")}
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label className="small fw-medium">
+                    {t("prod_lbl_lot") || (lang === "bn" ? "লট / ব্যাচ নম্বর" : "Lot / Batch No")}
+                  </label>
+                  <input
+                    type="text"
+                    className="form-control form-control-sm"
+                    value={form.lot_number || ""}
+                    onChange={set("lot_number")}
+                    placeholder="e.g. LOT-2026-09"
+                  />
+                </div>
+                <div className="col-md-3">
+                  <label className="small fw-medium">
+                    {t("prod_lbl_mfg") || (lang === "bn" ? "উৎপাদন তারিখ (ঐচ্ছিক)" : "Mfg Date (Optional)")}
+                  </label>
+                  <input
+                    type="date"
+                    className="form-control form-control-sm"
+                    value={form.mfg_date || ""}
+                    onChange={set("mfg_date")}
+                  />
+                </div>
+              </>
             )}
 
             <div className="col-md-6 d-flex align-items-end gap-4">

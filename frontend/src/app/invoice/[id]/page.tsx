@@ -173,9 +173,12 @@ export default function InvoicePage() {
   const totalDiscount = sale.items.reduce((s, i) => s + Number(i.discount), 0) + Number(sale.discount);
   const paymentMethods = sale.payments.map(p => METHOD_LABEL[p.method] || p.method).join(", ");
 
+  const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
+
   const expandedItems = sale.items.flatMap((it) => {
     const qty = Number(it.quantity);
-    if (Number.isInteger(qty) && qty > 1) {
+    const hasDistinctSerials = !isSupershop && !!(it.unit_barcodes && it.unit_barcodes.length > 1);
+    if (hasDistinctSerials && Number.isInteger(qty) && qty > 1) {
       return Array.from({ length: qty }).map((_, i) => ({
         ...it,
         _extId: `${it.id}-${i}`,

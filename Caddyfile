@@ -57,3 +57,16 @@ app.stockwhisk.com {
 		reverse_proxy mobile:3000
 	}
 }
+
+trycalc.net, www.trycalc.net {
+	encode gzip zstd
+
+	@backend path /api/* /admin/*
+	handle @backend {
+		reverse_proxy 172.17.0.1:8088
+	}
+
+	handle {
+		reverse_proxy 172.17.0.1:3002
+	}
+}
