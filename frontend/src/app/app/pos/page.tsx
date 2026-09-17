@@ -1347,7 +1347,7 @@ export default function PosPage() {
                                   onBlur={() => clampQty(l.product.id)}
                                 />
                                 <div className="text-center text-secondary small" style={{ fontSize: "0.65rem" }}>
-                                  {l.sellMode === "bulk" ? bulkUnit : (l.product.unit_detail?.short_code || "")}
+                                  {l.sellMode === "bulk" ? bulkUnit : (l.product.unit_detail?.short_code || l.product.unit_detail?.name || "")}
                                 </div>
                               </div>
                             )}

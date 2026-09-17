@@ -79,6 +79,8 @@ with transaction.atomic():
     u_pcs, _ = Unit.objects.get_or_create(shop=shop, name="pcs", defaults={"short_code": "পিস", "measure_type": Unit.MeasureType.COUNT, "allow_decimal": False})
     u_ltr, _ = Unit.objects.get_or_create(shop=shop, name="litre", defaults={"short_code": "লিটার", "measure_type": Unit.MeasureType.VOLUME, "allow_decimal": True})
     u_pack, _ = Unit.objects.get_or_create(shop=shop, name="pack", defaults={"short_code": "প্যাকেট", "measure_type": Unit.MeasureType.COUNT, "allow_decimal": False})
+    u_goj, _ = Unit.objects.get_or_create(shop=shop, name="Goj", defaults={"short_code": "গজ", "measure_type": Unit.MeasureType.LENGTH, "allow_decimal": True})
+    u_meter, _ = Unit.objects.get_or_create(shop=shop, name="Meter", defaults={"short_code": "মি.", "measure_type": Unit.MeasureType.LENGTH, "allow_decimal": True})
 
     # 5. Categories
     cat_grains, _ = Category.objects.get_or_create(shop=shop, name="চাল, ডাল ও তেল (Grains & Oil)")

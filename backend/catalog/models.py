@@ -106,6 +106,7 @@ class Unit(TenantScopedModel):
         COUNT = "count", "Piece / Count"
         WEIGHT = "weight", "Weight (kg, g)"
         VOLUME = "volume", "Volume (L, ml)"
+        LENGTH = "length", "Length (Goj, Meter)"
 
     name = models.CharField(max_length=40)
     short_code = models.CharField(max_length=10, blank=True)

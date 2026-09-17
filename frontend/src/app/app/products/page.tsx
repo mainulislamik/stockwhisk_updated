@@ -307,7 +307,7 @@ export default function ProductsPage() {
                     {units.map((u) => <option key={u.id} value={u.id}>{u.name} {u.short_code ? `(${u.short_code})` : ""}</option>)}
                   </select>
                   <div className="input-group input-group-sm">
-                    <input className="form-control" placeholder={lang === "bn" ? "নতুন ইউনিট (যেমন: Kg, Liter)" : "+ New unit"} value={newUnit} onChange={(e) => setNewUnit(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("unit"))} />
+                    <input className="form-control" placeholder={lang === "bn" ? "নতুন ইউনিট (যেমন: কেজি, লিটার, গজ, পিস)" : "+ New unit (e.g. Kg, L, Goj)"} value={newUnit} onChange={(e) => setNewUnit(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), quickAdd("unit"))} />
                     <button type="button" className="btn btn-outline-brand" onClick={() => quickAdd("unit")}>{t("prod_list_add")}</button>
                   </div>
                 </div>

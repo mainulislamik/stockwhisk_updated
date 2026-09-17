@@ -81,6 +81,41 @@ class UnitSerializer(serializers.ModelSerializer):
         model = Unit
         fields = ["id", "name", "short_code", "measure_type", "allow_decimal"]
 
+    def create(self, validated_data):
+        name = validated_data.get("name", "").strip()
+        short_code = validated_data.get("short_code", "").strip()
+        measure_type = validated_data.get("measure_type")
+        lower = f"{name} {short_code}".lower()
+
+        if not validated_data.get("short_code"):
+            if any(w in lower for w in ["kg", "kilogram", "কেজি"]):
+                validated_data["short_code"] = "কেজি"
+            elif any(w in lower for w in ["gm", "gram", "গ্রাম"]):
+                validated_data["short_code"] = "গ্রাম"
+            elif any(w in lower for w in ["liter", "litre", "লিটার"]):
+                validated_data["short_code"] = "লিটার"
+            elif "ml" in lower or "মিলি" in lower:
+                validated_data["short_code"] = "মিলি"
+            elif any(w in lower for w in ["goj", "yard", "গজ"]):
+                validated_data["short_code"] = "গজ"
+            elif any(w in lower for w in ["meter", "metre", "মিটার"]):
+                validated_data["short_code"] = "মি"
+            elif any(w in lower for w in ["pcs", "piece", "পিস"]):
+                validated_data["short_code"] = "পিস"
+
+        if measure_type == Unit.MeasureType.COUNT or not measure_type:
+            if any(w in lower for w in ["kg", "kilogram", "gm", "gram", "কেজি", "গ্রাম"]):
+                validated_data["measure_type"] = Unit.MeasureType.WEIGHT
+                validated_data["allow_decimal"] = True
+            elif any(w in lower for w in ["liter", "litre", "লিটার", "ml", "মিলি"]):
+                validated_data["measure_type"] = Unit.MeasureType.VOLUME
+                validated_data["allow_decimal"] = True
+            elif any(w in lower for w in ["goj", "yard", "meter", "metre", "গজ", "মিটার", "feet", "ফুট"]):
+                validated_data["measure_type"] = Unit.MeasureType.LENGTH
+                validated_data["allow_decimal"] = True
+
+        return super().create(validated_data)
+
 
 class ProductVariationSerializer(HideCostMixin, serializers.ModelSerializer):
     class Meta:

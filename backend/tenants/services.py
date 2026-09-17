@@ -55,15 +55,17 @@ def seed_measurement_units(shop, business_type):
         ]
         if hasattr(shop, "manufacturing_enabled") and not shop.manufacturing_enabled:
             Shop.objects.filter(pk=shop.pk).update(manufacturing_enabled=True)
-    elif btype in ["supershop", "food"]:
+    elif btype in ["supershop", "food", "grocery"]:
         units = [
             ("Piece", "pcs", "count", False),
             ("Kilogram", "kg", "weight", True),
-            ("Gram", "g", "weight", True),
+            ("Gram", "gm", "weight", True),
             ("Liter", "L", "volume", True),
             ("Milliliter", "ml", "volume", True),
             ("Dozen", "dz", "count", True),
             ("Pack / Box", "pkt", "count", False),
+            ("Goj", "গজ", "length", True),
+            ("Meter", "মি.", "length", True),
         ]
     elif btype in ["fashion", "footwear", "handcrafts", "jewelry", "apparel"]:
         units = [
