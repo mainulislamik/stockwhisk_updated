@@ -83,6 +83,18 @@ def seed_measurement_units(shop, business_type):
             ("Set", "set", "count", False),
             ("Carton", "ctn", "count", False),
         ]
+    elif btype in ["printing", "press", "cyber_cafe"]:
+        units = [
+            ("Piece", "pcs", "count", False),
+            ("Sheet / পাতা", "sheet", "count", False),
+            ("Ream / রিম", "ream", "count", False),
+            ("Square Feet / স্কয়ার ফিট", "sqft", "length", True),
+            ("Goj / গজ", "গজ", "length", True),
+            ("Meter / মিটার", "মি.", "length", True),
+            ("Pack / প্যাকেট", "pkt", "count", False),
+            ("Pouch / পাউচ", "pouch", "count", False),
+            ("Roll / রোল", "roll", "count", False),
+        ]
     else:
         units = [
             ("Piece", "pcs", "count", False),

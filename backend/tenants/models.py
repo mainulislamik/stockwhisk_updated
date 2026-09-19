@@ -103,6 +103,7 @@ class Shop(TimeStampedModel):
         CAMICAL = "camical"
         SUPERSHOP = "supershop"
         COSMETICS = "cosmetics", "Chemical & Lab Supplies"
+        PRINTING = "printing", "Printing, Media & Online Services"
         OTHER = "other", "Other"
 
     name = models.CharField(max_length=150)

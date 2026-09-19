@@ -29,7 +29,7 @@ def _sum(qs, expr):
 def profit_summary(shop, start=None, end=None):
     """Return a dict with revenue, COGS, gross/net profit, expenses for a range,
     including both product sales and service/repair revenue."""
-    from service.models import ServiceTicket, ServiceTicketPart
+    from service.models import ServiceTicket, ServiceTicketPart, ServiceJob
 
     sales = Sale.all_objects.filter(shop_id=shop.id).exclude(status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION])
     items = SaleItem.all_objects.filter(shop_id=shop.id).exclude(
@@ -83,12 +83,24 @@ def profit_summary(shop, start=None, end=None):
         ticket_parts,
         ExpressionWrapper(F("quantity") * F("unit_cost"), output_field=_DEC),
     )
-    service_revenue = max(ZERO, ticket_service_charges + ticket_parts_revenue - ticket_discounts)
+    
+    # Service jobs (Printing, Media & Online Services - Split Accounting)
+    jobs = ServiceJob.all_objects.filter(shop_id=shop.id).exclude(
+        status=ServiceJob.Status.CANCELLED
+    )
+    if start is not None:
+        jobs = jobs.filter(created_at__gte=start)
+    if end is not None:
+        jobs = jobs.filter(created_at__lte=end)
+    job_service_revenue = max(ZERO, _sum(jobs, "service_charge") + _sum(jobs, "other_charge") - _sum(jobs, "discount"))
+    job_material_cogs = _sum(jobs, "material_cost")
+
+    service_revenue = max(ZERO, ticket_service_charges + ticket_parts_revenue - ticket_discounts + job_service_revenue)
 
     # Total combined revenue and COGS
     gross_revenue = sales_revenue + service_revenue
     revenue = max(ZERO, gross_revenue - returns_amount)
-    cogs = (sales_cogs - returned_cogs) + ticket_parts_cogs
+    cogs = (sales_cogs - returned_cogs) + ticket_parts_cogs + job_material_cogs
     total_expenses = _sum(expenses, "amount")
 
     gross_profit = revenue - cogs
@@ -106,7 +118,7 @@ def profit_summary(shop, start=None, end=None):
         "gross_profit": gross_profit,
         "expenses": total_expenses,
         "net_profit": net_profit,
-        "sales_count": sales.count() + tickets.count(),
+        "sales_count": sales.count() + tickets.count() + jobs.count(),
         "payment_methods": payment_methods,
     }
 

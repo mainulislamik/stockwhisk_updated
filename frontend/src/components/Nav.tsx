@@ -80,6 +80,9 @@ export default function Nav({
     <>
       {(isOwner || can("view_reports")) && <Item href="/app" icon="bi-speedometer2" label={t("nav_dashboard")} />}
       {showPOS && <Item href="/app/pos" icon="bi-cart3" label={t("nav_pos")} />}
+      {user?.shop_business_type === "printing" && (
+        <Item href="/app/service/jobs" icon="bi-printer-fill" label="🖨️ সেবা ও জব টোকেন" />
+      )}
 
       {showProductsGroup && (
         <NavGroup id="products" icon="bi-box-seam" label={t("nav_products")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
@@ -125,6 +128,9 @@ export default function Nav({
 
       {showService && (
         <NavGroup id="service" icon="bi-tools" label={t("nav_service")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
+          {user?.shop_business_type === "printing" && (
+            <Item href="/app/service/jobs" icon="bi-printer-fill" label="প্রিন্ট ও সেবা জব শিট" />
+          )}
           <Item href="/app/service/tickets" icon="bi-wrench-adjustable" label={t("nav_repair_tickets")} />
           <Item href="/app/service/warranties" icon="bi-shield-check" label={t("nav_warranties")} />
           <Item href="/app/service/warranty-coverage" icon="bi-shield-shaded" label={t("nav_warranty_coverage")} />

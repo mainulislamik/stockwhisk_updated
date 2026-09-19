@@ -223,3 +223,97 @@ class ServiceTicketStatusHistory(TenantScopedModel):
 
     def __str__(self):
         return f"{self.from_status} -> {self.to_status}"
+
+# ============================================================================
+# Printing, Media & Online Services (Digital Center / Cyber Cafe / Press)
+# ============================================================================
+
+class ServiceJob(TenantScopedModel):
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        PROCESSING = "processing", "Processing"
+        READY = "ready", "Ready for Delivery"
+        DELIVERED = "delivered", "Delivered"
+        CANCELLED = "cancelled", "Cancelled"
+
+    job_number = models.CharField(max_length=40, db_index=True)
+    track_token = models.CharField(max_length=64, unique=True, db_index=True, blank=True, null=True)
+    branch = models.ForeignKey(
+        "tenants.Branch", on_delete=models.SET_NULL, null=True, blank=True, related_name="service_jobs"
+    )
+    customer = models.ForeignKey(
+        "crm.Customer", on_delete=models.SET_NULL, null=True, blank=True, related_name="service_jobs"
+    )
+    customer_name = models.CharField(max_length=150)
+    customer_phone = models.CharField(max_length=30)
+    service_type = models.CharField(max_length=100)
+    reference_no = models.CharField(max_length=120, blank=True)
+    specifications = models.JSONField(default=dict, blank=True)
+
+    govt_fee = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    service_charge = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    material_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    other_charge = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    discount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    total_bill = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    advance_paid = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    due_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
+    delivery_date = models.DateTimeField(null=True, blank=True)
+    actual_delivery_date = models.DateTimeField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="created_service_jobs"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(fields=["shop", "job_number"], name="uniq_job_number_per_shop"),
+        ]
+
+    def save(self, *args, **kwargs):
+        if not self.track_token:
+            import secrets
+            self.track_token = secrets.token_urlsafe(20)
+        
+        bill = (self.govt_fee or Decimal("0.00")) + (self.service_charge or Decimal("0.00")) + (self.other_charge or Decimal("0.00")) - (self.discount or Decimal("0.00"))
+        self.total_bill = max(Decimal("0.00"), bill)
+        self.due_amount = max(Decimal("0.00"), self.total_bill - (self.advance_paid or Decimal("0.00")))
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.job_number} ({self.customer_name})"
+
+
+class ServiceJobMaterial(TenantScopedModel):
+    job = models.ForeignKey(ServiceJob, on_delete=models.CASCADE, related_name="materials")
+    product = models.ForeignKey("catalog.Product", on_delete=models.PROTECT, related_name="job_materials")
+    quantity = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("1.00"))
+    unit_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    subtotal = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    from_stock = models.BooleanField(default=True)
+
+    def save(self, *args, **kwargs):
+        self.subtotal = (self.quantity or Decimal("0.00")) * (self.unit_cost or Decimal("0.00"))
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return f"{self.quantity} x {self.product_id} on {self.job_id}"
+
+
+class ServiceJobStatusHistory(TenantScopedModel):
+    job = models.ForeignKey(ServiceJob, on_delete=models.CASCADE, related_name="history")
+    from_status = models.CharField(max_length=20, blank=True)
+    to_status = models.CharField(max_length=20)
+    note = models.CharField(max_length=255, blank=True)
+    changed_by = models.ForeignKey(
+        "accounts.User", on_delete=models.SET_NULL, null=True, blank=True, related_name="job_status_changes"
+    )
+
+    class Meta:
+        ordering = ["created_at"]
+
+    def __str__(self):
+        return f"{self.from_status} -> {self.to_status}"

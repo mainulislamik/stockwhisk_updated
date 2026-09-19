@@ -381,3 +381,205 @@ def edit_service_ticket(
     from analytics.services import invalidate_dashboard_cache
     invalidate_dashboard_cache(ticket.shop_id)
     return ticket
+
+
+# ── Service Job Domain Logic (Printing, Media & Online Services) ──────────────
+from decimal import Decimal
+
+from .models import (
+    ServiceJob,
+    ServiceJobMaterial,
+    ServiceJobStatusHistory,
+)
+
+
+def _next_job_number(shop):
+    count = ServiceJob.all_objects.filter(shop=shop).count() + 1
+    now = timezone.now()
+    return f"JOB-{now.strftime('%Y%m')}-{count:04d}"
+
+
+@transaction.atomic
+def create_service_job(shop, validated_data, created_by=None):
+    job_number = _next_job_number(shop)
+    customer = validated_data.get("customer")
+    customer_name = validated_data.get("customer_name") or (customer.name if customer else "")
+    customer_phone = validated_data.get("customer_phone") or (customer.phone if customer else "")
+
+    govt_fee = Decimal(str(validated_data.get("govt_fee", 0) or 0))
+    service_charge = Decimal(str(validated_data.get("service_charge", 0) or 0))
+    other_charge = Decimal(str(validated_data.get("other_charge", 0) or 0))
+    discount = Decimal(str(validated_data.get("discount", 0) or 0))
+    advance_paid = Decimal(str(validated_data.get("advance_paid", 0) or 0))
+
+    total_bill = max(Decimal("0.00"), govt_fee + service_charge + other_charge - discount)
+    due_amount = max(Decimal("0.00"), total_bill - advance_paid)
+
+    job = ServiceJob.objects.create(
+        shop=shop,
+        job_number=job_number,
+        customer=customer,
+        customer_name=customer_name,
+        customer_phone=customer_phone,
+        service_type=validated_data.get("service_type", "General Service"),
+        reference_no=validated_data.get("reference_no", ""),
+        specifications=validated_data.get("specifications", {}),
+        govt_fee=govt_fee,
+        service_charge=service_charge,
+        other_charge=other_charge,
+        discount=discount,
+        total_bill=total_bill,
+        advance_paid=advance_paid,
+        due_amount=due_amount,
+        status=ServiceJob.Status.PENDING,
+        delivery_date=validated_data.get("delivery_date"),
+        notes=validated_data.get("notes", ""),
+        created_by=created_by,
+    )
+
+    ServiceJobStatusHistory.objects.create(
+        shop=shop,
+        job=job,
+        from_status="",
+        to_status=ServiceJob.Status.PENDING,
+        note="Job Token created & order registered",
+        changed_by=created_by,
+    )
+
+    if advance_paid > Decimal("0.00"):
+        from accounting.models import LedgerEntry
+        payment_method = str(validated_data.get("payment_method", "cash")).lower()
+        if "bank" in payment_method:
+            account = LedgerEntry.Account.BANK
+        elif "bkash" in payment_method or "nagad" in payment_method or "mfs" in payment_method:
+            account = LedgerEntry.Account.BKASH
+        else:
+            account = LedgerEntry.Account.CASH
+
+        LedgerEntry.objects.create(
+            shop=shop,
+            account=account,
+            amount=advance_paid,
+            source_type="ServiceJob",
+            source_id=str(job.id),
+            description=f"Advance collection for Job #{job.job_number} ({job.service_type})",
+        )
+
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(shop.id)
+    return job
+
+
+@transaction.atomic
+def update_service_job_status(job, to_status, note="", changed_by=None):
+    if job.status == to_status:
+        return job
+
+    old_status = job.status
+    job.status = to_status
+    update_fields = ["status", "updated_at"]
+
+    if to_status == ServiceJob.Status.DELIVERED:
+        job.actual_delivery_date = timezone.now()
+        update_fields.append("actual_delivery_date")
+
+    job.save(update_fields=update_fields)
+
+    ServiceJobStatusHistory.objects.create(
+        shop=job.shop,
+        job=job,
+        from_status=old_status,
+        to_status=to_status,
+        note=note or f"Status changed from {old_status} to {to_status}",
+        changed_by=changed_by,
+    )
+
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(job.shop_id)
+    return job
+
+
+@transaction.atomic
+def add_service_job_payment(job, amount, payment_method="cash", note="", created_by=None):
+    amount = Decimal(str(amount or 0))
+    if amount <= Decimal("0.00"):
+        raise ValidationError("Payment amount must be greater than zero.")
+
+    job.advance_paid = (job.advance_paid or Decimal("0.00")) + amount
+    job.due_amount = max(Decimal("0.00"), job.total_bill - job.advance_paid)
+    job.save(update_fields=["advance_paid", "due_amount", "updated_at"])
+
+    from accounting.models import LedgerEntry
+    pm = str(payment_method).lower()
+    if "bank" in pm:
+        account = LedgerEntry.Account.BANK
+    elif "bkash" in pm or "nagad" in pm or "mfs" in pm:
+        account = LedgerEntry.Account.BKASH
+    else:
+        account = LedgerEntry.Account.CASH
+
+    LedgerEntry.objects.create(
+        shop=job.shop,
+        account=account,
+        amount=amount,
+        source_type="ServiceJob",
+        source_id=str(job.id),
+        description=f"Payment collection for Job #{job.job_number} ({job.service_type})",
+    )
+
+    ServiceJobStatusHistory.objects.create(
+        shop=job.shop,
+        job=job,
+        from_status=job.status,
+        to_status=job.status,
+        note=f"Payment received: {amount} via {payment_method}. {note}".strip(),
+        changed_by=created_by,
+    )
+
+    from analytics.services import invalidate_dashboard_cache
+    invalidate_dashboard_cache(job.shop_id)
+    return job
+
+
+@transaction.atomic
+def add_service_job_material(job, product, quantity=Decimal("1.00"), unit_cost=None, from_stock=True, created_by=None):
+    quantity = Decimal(str(quantity or 1))
+    if unit_cost is None:
+        unit_cost = product.cost_price or Decimal("0.00")
+    else:
+        unit_cost = Decimal(str(unit_cost))
+
+    subtotal = quantity * unit_cost
+
+    material = ServiceJobMaterial.objects.create(
+        shop=job.shop,
+        job=job,
+        product=product,
+        quantity=quantity,
+        unit_cost=unit_cost,
+        subtotal=subtotal,
+        from_stock=from_stock,
+    )
+
+    if from_stock:
+        from inventory.models import MovementType, StockMovement
+        from inventory.services import apply_movement
+
+        apply_movement(
+            shop=job.shop,
+            product=product,
+            movement_type=MovementType.ADJUST_OUT,
+            quantity=quantity,
+            unit_cost=unit_cost,
+            reference_type="ServiceJob",
+            reference_id=job.id,
+            note=f"Material deducted for Job {job.job_number}",
+            created_by=created_by,
+        )
+
+    # Recalculate material cost on job
+    total_material = sum((m.subtotal or Decimal("0.00")) for m in job.materials.all())
+    job.material_cost = total_material
+    job.save(update_fields=["material_cost", "updated_at"])
+
+    return material

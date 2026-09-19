@@ -11,6 +11,7 @@ const BUSINESS_TYPES = [
   { value: "general", label: "General Retail" },
   { value: "camical", label: "Chemical & Lab Supplies" },
   { value: "supershop", label: "Super Shop & Grocery" },
+  { value: "printing", label: "Printing, Media & Online Services" },
   { value: "cosmetics", label: "Cosmetics & Beauty" },
   { value: "electronics", label: "Electronics" },
   { value: "computer", label: "Computer" },

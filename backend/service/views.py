@@ -1,4 +1,4 @@
-from rest_framework import status, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -271,7 +271,8 @@ class PublicServiceTicketTrackView(APIView):
     permission_classes = [AllowAny]
     authentication_classes = []
 
-    def get(self, request, token):
+    def get(self, request, token=None, track_token=None):
+        token = token or track_token
         ticket = ServiceTicket.all_objects.select_related("shop", "branch", "customer").filter(track_token=token).first()
         if not ticket:
             return Response({"error": "Service ticket not found with this tracking link."}, status=status.HTTP_404_NOT_FOUND)
@@ -326,6 +327,203 @@ class PublicServiceTicketTrackView(APIView):
                 "email": shop.email,
                 "address": shop.address,
                 "logo": logo_url,
+            },
+            "history": history_data,
+        })
+
+
+
+# ── Service Job Views (Printing, Media & Online Services) ─────────────────────
+
+from django.db.models import Count, Q, Sum
+from .models import (
+    ServiceJob,
+    ServiceJobMaterial,
+    ServiceJobStatusHistory,
+)
+from .serializers import (
+    ServiceJobSerializer,
+    ServiceJobCreateSerializer,
+    ServiceJobStatusUpdateSerializer,
+    ServiceJobPaymentSerializer,
+    ServiceJobMaterialInputSerializer,
+    ServiceJobMaterialSerializer,
+)
+from .services import (
+    create_service_job,
+    update_service_job_status,
+    add_service_job_payment,
+    add_service_job_material,
+)
+
+
+class ServiceJobViewSet(viewsets.ModelViewSet):
+    permission_classes = [permissions.IsAuthenticated]
+    serializer_class = ServiceJobSerializer
+
+    def get_queryset(self):
+        qs = ServiceJob.objects.select_related("customer", "branch", "created_by").prefetch_related(
+            "materials__product", "history__changed_by"
+        ).filter(shop=self.request.user.shop)
+
+        status_filter = self.request.query_params.get("status")
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+
+        service_type = self.request.query_params.get("service_type")
+        if service_type:
+            qs = qs.filter(service_type__icontains=service_type)
+
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(
+                Q(job_number__icontains=search) |
+                Q(customer_name__icontains=search) |
+                Q(customer_phone__icontains=search) |
+                Q(reference_no__icontains=search)
+            )
+        return qs
+
+    def create(self, request, *args, **kwargs):
+        ser = ServiceJobCreateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        job = create_service_job(
+            shop=request.user.shop,
+            validated_data=ser.validated_data,
+            created_by=request.user,
+        )
+        return Response(ServiceJobSerializer(job).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=True, methods=["post"])
+    def update_status(self, request, pk=None):
+        job = self.get_object()
+        ser = ServiceJobStatusUpdateSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        job = update_service_job_status(
+            job=job,
+            to_status=ser.validated_data["status"],
+            note=ser.validated_data.get("note", ""),
+            changed_by=request.user,
+        )
+        return Response(ServiceJobSerializer(job).data)
+
+    @action(detail=True, methods=["post"])
+    def add_payment(self, request, pk=None):
+        job = self.get_object()
+        ser = ServiceJobPaymentSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        job = add_service_job_payment(
+            job=job,
+            amount=ser.validated_data["amount"],
+            payment_method=ser.validated_data.get("payment_method", "cash"),
+            note=ser.validated_data.get("note", ""),
+            created_by=request.user,
+        )
+        return Response(ServiceJobSerializer(job).data)
+
+    @action(detail=True, methods=["post"])
+    def add_material(self, request, pk=None):
+        job = self.get_object()
+        ser = ServiceJobMaterialInputSerializer(data=request.data)
+        ser.is_valid(raise_exception=True)
+        material = add_service_job_material(
+            job=job,
+            product=ser.validated_data["product"],
+            quantity=ser.validated_data.get("quantity", 1),
+            unit_cost=ser.validated_data.get("unit_cost"),
+            from_stock=ser.validated_data.get("from_stock", True),
+            created_by=request.user,
+        )
+        return Response(ServiceJobMaterialSerializer(material).data, status=status.HTTP_201_CREATED)
+
+    @action(detail=False, methods=["get"])
+    def summary(self, request):
+        shop = request.user.shop
+        jobs = ServiceJob.objects.filter(shop=shop)
+
+        total_jobs = jobs.count()
+        pending_count = jobs.filter(status=ServiceJob.Status.PENDING).count()
+        processing_count = jobs.filter(status=ServiceJob.Status.PROCESSING).count()
+        ready_count = jobs.filter(status=ServiceJob.Status.READY).count()
+        delivered_count = jobs.filter(status=ServiceJob.Status.DELIVERED).count()
+
+        sums = jobs.aggregate(
+            total_govt_fee=Sum("govt_fee"),
+            total_service_charge=Sum("service_charge"),
+            total_material_cost=Sum("material_cost"),
+            total_other_charge=Sum("other_charge"),
+            total_bill=Sum("total_bill"),
+            total_advance_paid=Sum("advance_paid"),
+            total_due_amount=Sum("due_amount"),
+        )
+
+        return Response({
+            "total_jobs": total_jobs,
+            "pending_count": pending_count,
+            "processing_count": processing_count,
+            "ready_count": ready_count,
+            "delivered_count": delivered_count,
+            "total_govt_fee": float(sums["total_govt_fee"] or 0),
+            "total_service_charge": float(sums["total_service_charge"] or 0),
+            "total_material_cost": float(sums["total_material_cost"] or 0),
+            "total_other_charge": float(sums["total_other_charge"] or 0),
+            "total_bill": float(sums["total_bill"] or 0),
+            "total_advance_paid": float(sums["total_advance_paid"] or 0),
+            "total_due_amount": float(sums["total_due_amount"] or 0),
+            "net_service_profit": float(
+                (sums["total_service_charge"] or 0) + (sums["total_other_charge"] or 0) - (sums["total_material_cost"] or 0)
+            ),
+        })
+
+
+class PublicServiceJobTrackView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, token):
+        try:
+            job = ServiceJob.all_objects.select_related("shop").get(track_token=token)
+        except ServiceJob.DoesNotExist:
+            return Response({"error": "Service job not found or invalid token"}, status=status.HTTP_404_NOT_FOUND)
+
+        shop = job.shop
+        masked_phone = job.customer_phone
+        if masked_phone and len(masked_phone) >= 7:
+            masked_phone = masked_phone[:3] + "****" + masked_phone[-4:]
+
+        history_data = []
+        for h in ServiceJobStatusHistory.all_objects.filter(job=job).order_by("created_at"):
+            history_data.append({
+                "id": h.id,
+                "from_status": h.from_status,
+                "to_status": h.to_status,
+                "note": h.note,
+                "created_at": h.created_at,
+            })
+
+        return Response({
+            "job_number": job.job_number,
+            "status": job.status,
+            "status_display": job.get_status_display(),
+            "service_type": job.service_type,
+            "reference_no": job.reference_no,
+            "specifications": job.specifications,
+            "delivery_date": job.delivery_date,
+            "actual_delivery_date": job.actual_delivery_date,
+            "govt_fee": float(job.govt_fee),
+            "service_charge": float(job.service_charge),
+            "other_charge": float(job.other_charge),
+            "discount": float(job.discount),
+            "total_bill": float(job.total_bill),
+            "advance_paid": float(job.advance_paid),
+            "due_amount": float(job.due_amount),
+            "customer_name": job.customer_name,
+            "customer_phone_masked": masked_phone,
+            "shop": {
+                "id": shop.id,
+                "name": shop.name,
+                "phone": shop.phone,
+                "email": shop.email,
+                "address": shop.address,
             },
             "history": history_data,
         })

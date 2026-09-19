@@ -3,6 +3,7 @@ import { formatProductName } from "@/lib/formatters";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { api, useApi, Paginated } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
@@ -65,6 +66,7 @@ export default function PosPage() {
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
   const isElectronicsShop = user?.shop_business_type === "electronics" || user?.shop_business_type === "computer";
+  const isPrintingShop = user?.shop_business_type === "printing";
   const [cart, setCart] = useState<CartLine[]>([]);
   type HeldCart = {
     id: string;
@@ -641,6 +643,21 @@ export default function PosPage() {
           </div>
 
           
+
+          {/* ── Printing & Cyber Cafe Quick Hub Banner ── */}
+          {isPrintingShop && (
+            <div className="card shadow-sm border-0 mb-3" style={{ backgroundColor: "#f0fdf4", borderRadius: "12px", borderLeft: "5px solid #16a34a" }}>
+              <div className="card-body p-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="badge bg-success text-white px-2.5 py-1.5 fs-6">🖨️ ডিজিটাল সেবা হাব</span>
+                  <span className="small text-dark fw-medium">পাসপোর্ট, পুলিশ ক্লিয়ারেন্স, ব্যানার ও টোকেন মেমো সরাসরি ইস্যু করুন:</span>
+                </div>
+                <Link href="/app/service/jobs" className="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1 shadow-sm">
+                  <i className="bi bi-file-earmark-plus"></i> সেবা জব শিট ও টোকেন কাউন্টার
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* ── Quick Category Filter Pills (General POS - hidden for Electronics, Fashion, Repair) ── */}
           {!isRepairShop && !isFashionShop && !isElectronicsShop && categories.length > 0 && (

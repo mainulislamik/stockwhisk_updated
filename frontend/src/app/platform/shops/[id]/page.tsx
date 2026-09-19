@@ -60,6 +60,7 @@ const TYPE_LABELS: Record<string, string> = {
   general: "General Retail",
   camical: "Chemical & Lab Supplies",
     supershop: "Super Shop & Grocery",
+  printing: "Printing, Media & Online Services",
   cosmetics: "Cosmetics & Beauty",
 };
 

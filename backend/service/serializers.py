@@ -112,3 +112,95 @@ class TicketPartInputSerializer(serializers.Serializer):
     # Customer sell price; defaults to the product's selling price when omitted.
     unit_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
     from_stock = serializers.BooleanField(default=True)
+
+
+from .models import (
+    ServiceJob,
+    ServiceJobMaterial,
+    ServiceJobStatusHistory,
+)
+
+
+class ServiceJobMaterialSerializer(serializers.ModelSerializer):
+    product_name = serializers.CharField(source="product.name", read_only=True)
+    product_sku = serializers.CharField(source="product.sku", read_only=True)
+
+    class Meta:
+        model = ServiceJobMaterial
+        fields = [
+            "id", "product", "product_name", "product_sku",
+            "quantity", "unit_cost", "subtotal", "from_stock", "created_at"
+        ]
+
+
+class ServiceJobStatusHistorySerializer(serializers.ModelSerializer):
+    changed_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = ServiceJobStatusHistory
+        fields = ["id", "from_status", "to_status", "note", "changed_by_name", "created_at"]
+
+    def get_changed_by_name(self, obj):
+        if obj.changed_by:
+            return obj.changed_by.get_full_name() or obj.changed_by.username
+        return "System"
+
+
+class ServiceJobSerializer(serializers.ModelSerializer):
+    materials = ServiceJobMaterialSerializer(many=True, read_only=True)
+    history = ServiceJobStatusHistorySerializer(many=True, read_only=True)
+    created_by_name = serializers.SerializerMethodField()
+    status_display = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = ServiceJob
+        fields = [
+            "id", "job_number", "track_token", "branch", "customer",
+            "customer_name", "customer_phone", "service_type", "reference_no",
+            "specifications", "govt_fee", "service_charge", "material_cost",
+            "other_charge", "discount", "total_bill", "advance_paid", "due_amount",
+            "status", "status_display", "delivery_date", "actual_delivery_date",
+            "notes", "created_by", "created_by_name", "materials", "history",
+            "created_at", "updated_at"
+        ]
+        read_only_fields = ["job_number", "track_token", "total_bill", "due_amount", "created_by"]
+
+    def get_created_by_name(self, obj):
+        if obj.created_by:
+            return obj.created_by.get_full_name() or obj.created_by.username
+        return "Staff"
+
+
+class ServiceJobCreateSerializer(serializers.Serializer):
+    customer = serializers.PrimaryKeyRelatedField(queryset=Customer.objects, required=False, allow_null=True)
+    customer_name = serializers.CharField(max_length=150)
+    customer_phone = serializers.CharField(max_length=30)
+    service_type = serializers.CharField(max_length=100)
+    reference_no = serializers.CharField(max_length=120, required=False, allow_blank=True, default="")
+    specifications = serializers.DictField(required=False, default=dict)
+    govt_fee = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    service_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    other_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    discount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    advance_paid = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    payment_method = serializers.CharField(required=False, default="cash")
+    delivery_date = serializers.DateTimeField(required=False, allow_null=True)
+    notes = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ServiceJobStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=ServiceJob.Status.choices)
+    note = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ServiceJobPaymentSerializer(serializers.Serializer):
+    amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    payment_method = serializers.CharField(required=False, default="cash")
+    note = serializers.CharField(required=False, allow_blank=True, default="")
+
+
+class ServiceJobMaterialInputSerializer(serializers.Serializer):
+    product = serializers.PrimaryKeyRelatedField(queryset=Product.objects)
+    quantity = serializers.DecimalField(max_digits=12, decimal_places=2, default=1)
+    unit_cost = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, allow_null=True)
+    from_stock = serializers.BooleanField(default=True)
