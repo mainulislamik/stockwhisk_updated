@@ -157,8 +157,9 @@ class ServiceJobSerializer(serializers.ModelSerializer):
         fields = [
             "id", "job_number", "track_token", "branch", "customer",
             "customer_name", "customer_phone", "service_type", "reference_no",
-            "specifications", "govt_fee", "service_charge", "material_cost",
+            "specifications", "govt_fee", "service_charge", "finishing_charge", "material_cost",
             "other_charge", "discount", "total_bill", "advance_paid", "due_amount",
+            "artwork_url", "design_approved", "design_approved_at", "meter_start", "meter_end",
             "status", "status_display", "delivery_date", "actual_delivery_date",
             "notes", "created_by", "created_by_name", "materials", "history",
             "created_at", "updated_at"
@@ -180,7 +181,11 @@ class ServiceJobCreateSerializer(serializers.Serializer):
     specifications = serializers.DictField(required=False, default=dict)
     govt_fee = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     service_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    finishing_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     other_charge = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
+    artwork_url = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+    meter_start = serializers.IntegerField(required=False, allow_null=True)
+    meter_end = serializers.IntegerField(required=False, allow_null=True)
     discount = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     advance_paid = serializers.DecimalField(max_digits=12, decimal_places=2, required=False, default=0)
     payment_method = serializers.CharField(required=False, default="cash")

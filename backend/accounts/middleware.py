@@ -63,6 +63,8 @@ class DemoReadOnlyMiddleware:
             user = self._resolve_user(request)
             shop = getattr(user, "shop", None) if user else None
             if shop is not None and getattr(shop, "is_demo", False):
+                if user and (getattr(user, "is_staff", False) or getattr(user, "is_superuser", False)):
+                    return self.get_response(request)
                 from django.http import JsonResponse
                 return JsonResponse(
                     {"detail": "This is a read-only demo — changes are disabled."},

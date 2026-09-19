@@ -252,12 +252,22 @@ class ServiceJob(TenantScopedModel):
 
     govt_fee = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     service_charge = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+    finishing_charge = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     material_cost = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     other_charge = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     discount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     total_bill = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     advance_paid = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
     due_amount = models.DecimalField(max_digits=12, decimal_places=2, default=Decimal("0.00"))
+
+    # Design proof & customer approval
+    artwork_url = models.URLField(max_length=500, blank=True)
+    design_approved = models.BooleanField(default=False)
+    design_approved_at = models.DateTimeField(null=True, blank=True)
+
+    # Machine meter tracking (Photocopy / Digital Press)
+    meter_start = models.PositiveIntegerField(null=True, blank=True)
+    meter_end = models.PositiveIntegerField(null=True, blank=True)
 
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING, db_index=True)
     delivery_date = models.DateTimeField(null=True, blank=True)
@@ -278,7 +288,7 @@ class ServiceJob(TenantScopedModel):
             import secrets
             self.track_token = secrets.token_urlsafe(20)
         
-        bill = (self.govt_fee or Decimal("0.00")) + (self.service_charge or Decimal("0.00")) + (self.other_charge or Decimal("0.00")) - (self.discount or Decimal("0.00"))
+        bill = (self.govt_fee or Decimal("0.00")) + (self.service_charge or Decimal("0.00")) + (self.finishing_charge or Decimal("0.00")) + (self.other_charge or Decimal("0.00")) - (self.discount or Decimal("0.00"))
         self.total_bill = max(Decimal("0.00"), bill)
         self.due_amount = max(Decimal("0.00"), self.total_bill - (self.advance_paid or Decimal("0.00")))
         super().save(*args, **kwargs)

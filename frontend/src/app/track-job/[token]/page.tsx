@@ -18,7 +18,13 @@ type TrackData = {
   status_display: string;
   service_type: string;
   reference_no: string;
-  specifications: string;
+  specifications: any;
+  artwork_url?: string;
+  design_approved?: boolean;
+  design_approved_at?: string | null;
+  finishing_charge?: number;
+  meter_start?: number | null;
+  meter_end?: number | null;
   delivery_date: string | null;
   actual_delivery_date: string | null;
   govt_fee: number;
@@ -60,10 +66,11 @@ export default function PublicJobTrackingPage() {
   const [data, setData] = useState<TrackData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [approving, setApproving] = useState(false);
+  const [approvedSuccess, setApprovedSuccess] = useState(false);
 
-  useEffect(() => {
+  const fetchTrackData = () => {
     if (!token) return;
-    setLoading(true);
     fetch(`/api/service/public/track-job/${token}/`)
       .then(async (res) => {
         if (!res.ok) {
@@ -80,7 +87,33 @@ export default function PublicJobTrackingPage() {
         setError(err.message || "নেটওয়ার্ক ত্রুটি");
       })
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    fetchTrackData();
   }, [token]);
+
+  const handleApproveDesign = async () => {
+    if (!confirm("আপনি কি নিশ্চিত যে ডিজাইনের বানান ও প্রুফ যাচাই করে অনুমোদন করছেন?")) return;
+    setApproving(true);
+    try {
+      const res = await fetch(`/api/service/public/track-job/${token}/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "approve_design" }),
+      });
+      if (res.ok) {
+        setApprovedSuccess(true);
+        fetchTrackData();
+      } else {
+        alert("অনুমোদনে সমস্যা হয়েছে। অনুগ্রহ করে দোকানে যোগাযোগ করুন।");
+      }
+    } catch {
+      alert("নেটওয়ার্ক সমস্যা। পুনরায় চেষ্টা করুন।");
+    } finally {
+      setApproving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -171,6 +204,58 @@ export default function PublicJobTrackingPage() {
             </div>
           )}
 
+          {/* Online Design Proof & Customer Approval */}
+          {(data.artwork_url || data.design_approved) && (
+            <div className="border rounded-2 p-3 mb-3 bg-light">
+              <div className="d-flex justify-content-between align-items-center mb-2">
+                <span className="fw-bold small text-dark">
+                  <i className="bi bi-palette2 me-1 text-primary"></i> আর্টওয়ার্ক / ডিজাইন প্রুফ
+                </span>
+                {data.design_approved ? (
+                  <span className="badge bg-success">
+                    <i className="bi bi-check-circle-fill me-1"></i> অনুমোদিত (Approved)
+                  </span>
+                ) : (
+                  <span className="badge bg-warning text-dark">অপেক্ষমান প্রুফ</span>
+                )}
+              </div>
+
+              {data.artwork_url && (
+                <div className="mb-2">
+                  <a
+                    href={data.artwork_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="btn btn-outline-primary btn-sm w-100 text-truncate"
+                  >
+                    <i className="bi bi-box-arrow-up-right me-1"></i> ডিজাইন ফাইল প্রিভিউ দেখুন
+                  </a>
+                </div>
+              )}
+
+              {!data.design_approved && (
+                <div className="text-center mt-2">
+                  <p className="text-muted small mb-2" style={{ fontSize: "0.8rem" }}>
+                    বানান ও সাইজ সঠিক থাকলে নিচের বাটনে চাপ দিয়ে প্রিন্টের অনুমতি দিন:
+                  </p>
+                  <button
+                    onClick={handleApproveDesign}
+                    disabled={approving}
+                    className="btn btn-success btn-sm w-100 fw-semibold"
+                  >
+                    {approving ? "অনুমোদন হচ্ছে..." : "✓ ডিজাইন সঠিক আছে, প্রিন্ট অনুমোদন করুন"}
+                  </button>
+                </div>
+              )}
+
+              {data.design_approved_at && (
+                <div className="text-muted small mt-2" style={{ fontSize: "0.75rem" }}>
+                  অনুমোদনের সময়: {new Date(data.design_approved_at).toLocaleString("bn-BD")}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Job Details */}
           <div className="border rounded-2 p-3 bg-light mb-3">
             <div className="row g-2 small">
@@ -206,7 +291,17 @@ export default function PublicJobTrackingPage() {
           {/* Bill Summary */}
           <div className="border rounded-2 p-3 bg-white">
             <div className="d-flex justify-content-between small text-muted mb-1">
-              <span>মোট বিল:</span>
+              <span>মূল বিল (ফি + চার্জ):</span>
+              <span className="fw-bold text-dark">৳{(data.total_bill - (data.finishing_charge || 0)).toFixed(2)}</span>
+            </div>
+            {data.finishing_charge && data.finishing_charge > 0 ? (
+              <div className="d-flex justify-content-between small text-muted mb-1">
+                <span>ফিনিশিং ও মেকিং চার্জ:</span>
+                <span className="fw-bold text-dark">৳{data.finishing_charge.toFixed(2)}</span>
+              </div>
+            ) : null}
+            <div className="d-flex justify-content-between small text-muted mb-1">
+              <span>সর্বমোট বিল:</span>
               <span className="fw-bold text-dark">৳{data.total_bill.toFixed(2)}</span>
             </div>
             <div className="d-flex justify-content-between small text-muted mb-1">

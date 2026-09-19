@@ -361,8 +361,13 @@ class ServiceJobViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
     serializer_class = ServiceJobSerializer
 
+    def initial(self, request, *args, **kwargs):
+        set_current_tenant(getattr(request.user, "shop", None))
+        request.tenant = getattr(request.user, "shop", None)
+        super().initial(request, *args, **kwargs)
+
     def get_queryset(self):
-        qs = ServiceJob.objects.select_related("customer", "branch", "created_by").prefetch_related(
+        qs = ServiceJob.all_objects.select_related("customer", "branch", "created_by").prefetch_related(
             "materials__product", "history__changed_by"
         ).filter(shop=self.request.user.shop)
 
@@ -436,6 +441,38 @@ class ServiceJobViewSet(viewsets.ModelViewSet):
         )
         return Response(ServiceJobMaterialSerializer(material).data, status=status.HTTP_201_CREATED)
 
+    @action(detail=True, methods=["post"], url_path="send-ready-notice")
+    def send_ready_notice(self, request, pk=None):
+        job = self.get_object()
+        phone = job.customer_phone or ""
+        clean_phone = "".join(filter(str.isdigit, phone))
+        if clean_phone.startswith("0"):
+            clean_phone = "88" + clean_phone
+        elif clean_phone and not clean_phone.startswith("88"):
+            clean_phone = "88" + clean_phone
+
+        shop_name = job.shop.name or "StockWhisk Services"
+        lines_arr = [
+            f"শ্রদ্ধেয় {job.customer_name} স্যার/ম্যাম,",
+            f"আপনার অর্ডারকৃত কাজ ({job.service_type}) সম্পন্ন ও প্রস্তুত রয়েছে।",
+            f"অর্ডার নং: #{job.job_number}",
+            f"মোট বিল: ৳{job.total_bill:.2f}",
+            f"বকেয়া: ৳{job.due_amount:.2f}",
+            f"লাইভ ট্র্যাকিং লিংক: https://stockwhisk.com/track-job/{job.track_token}",
+            f"ধন্যবাদ, {shop_name}",
+        ]
+        text_msg = "\n".join(lines_arr)
+        import urllib.parse
+        encoded = urllib.parse.quote(text_msg)
+        wa_link = f"https://api.whatsapp.com/send?phone={clean_phone}&text={encoded}"
+
+        return Response({
+            "success": True,
+            "customer_phone": phone,
+            "message_text": text_msg,
+            "whatsapp_link": wa_link,
+        })
+
     @action(detail=False, methods=["get"])
     def summary(self, request):
         shop = request.user.shop
@@ -507,6 +544,12 @@ class PublicServiceJobTrackView(APIView):
             "service_type": job.service_type,
             "reference_no": job.reference_no,
             "specifications": job.specifications,
+            "artwork_url": job.artwork_url,
+            "design_approved": job.design_approved,
+            "design_approved_at": job.design_approved_at,
+            "finishing_charge": float(job.finishing_charge),
+            "meter_start": job.meter_start,
+            "meter_end": job.meter_end,
             "delivery_date": job.delivery_date,
             "actual_delivery_date": job.actual_delivery_date,
             "govt_fee": float(job.govt_fee),
@@ -527,3 +570,23 @@ class PublicServiceJobTrackView(APIView):
             },
             "history": history_data,
         })
+
+    def post(self, request, token):
+        try:
+            job = ServiceJob.all_objects.select_related("shop").get(track_token=token)
+        except ServiceJob.DoesNotExist:
+            return Response({"error": "Service job not found or invalid token"}, status=status.HTTP_404_NOT_FOUND)
+
+        action = request.data.get("action")
+        if action == "approve_design":
+            from .services import approve_service_job_design
+            note = request.data.get("note") or "কাস্টমার ট্র্যাকিং পোর্টাল থেকে ডিজাইন অনুমোদন করেছেন।"
+            job = approve_service_job_design(job, note=note)
+            return Response({
+                "success": True,
+                "message": "ডিজাইন সফলভাবে অনুমোদিত হয়েছে।",
+                "design_approved": job.design_approved,
+                "design_approved_at": job.design_approved_at,
+            })
+
+        return Response({"error": "Unknown action"}, status=status.HTTP_400_BAD_REQUEST)

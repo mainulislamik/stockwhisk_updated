@@ -408,11 +408,12 @@ def create_service_job(shop, validated_data, created_by=None):
 
     govt_fee = Decimal(str(validated_data.get("govt_fee", 0) or 0))
     service_charge = Decimal(str(validated_data.get("service_charge", 0) or 0))
+    finishing_charge = Decimal(str(validated_data.get("finishing_charge", 0) or 0))
     other_charge = Decimal(str(validated_data.get("other_charge", 0) or 0))
     discount = Decimal(str(validated_data.get("discount", 0) or 0))
     advance_paid = Decimal(str(validated_data.get("advance_paid", 0) or 0))
 
-    total_bill = max(Decimal("0.00"), govt_fee + service_charge + other_charge - discount)
+    total_bill = max(Decimal("0.00"), govt_fee + service_charge + finishing_charge + other_charge - discount)
     due_amount = max(Decimal("0.00"), total_bill - advance_paid)
 
     job = ServiceJob.objects.create(
@@ -426,6 +427,10 @@ def create_service_job(shop, validated_data, created_by=None):
         specifications=validated_data.get("specifications", {}),
         govt_fee=govt_fee,
         service_charge=service_charge,
+        finishing_charge=finishing_charge,
+        artwork_url=validated_data.get("artwork_url", ""),
+        meter_start=validated_data.get("meter_start"),
+        meter_end=validated_data.get("meter_end"),
         other_charge=other_charge,
         discount=discount,
         total_bill=total_bill,
@@ -482,6 +487,14 @@ def update_service_job_status(job, to_status, note="", changed_by=None):
     if to_status == ServiceJob.Status.DELIVERED:
         job.actual_delivery_date = timezone.now()
         update_fields.append("actual_delivery_date")
+
+    # Auto consume materials if moving into work and no materials recorded yet
+    if to_status in [ServiceJob.Status.PROCESSING, ServiceJob.Status.READY, ServiceJob.Status.DELIVERED]:
+        if job.materials.count() == 0:
+            try:
+                auto_consume_job_materials(job, created_by=changed_by)
+            except Exception:
+                pass
 
     job.save(update_fields=update_fields)
 
@@ -583,3 +596,127 @@ def add_service_job_material(job, product, quantity=Decimal("1.00"), unit_cost=N
     job.save(update_fields=["material_cost", "updated_at"])
 
     return material
+
+
+def auto_consume_job_materials(job, created_by=None):
+    """
+    Auto-deduce and record raw materials consumed for a printing/media/service job
+    based on specifications, dimensions, and shop inventory.
+    """
+    from catalog.models import Product
+    from django.db import models
+    specs = job.specifications or {}
+    category = str(specs.get("category", "")).lower()
+    stype = str(job.service_type or "").lower()
+
+    # 1. Banner / Flex / Large Format Media & Finishing
+    if category == "banner" or "banner" in stype or "flex" in stype or "পর্দা" in stype:
+        sqft = Decimal(str(specs.get("total_sqft") or 0))
+        if sqft == Decimal("0.00"):
+            w = Decimal(str(specs.get("width_ft") or 0))
+            h = Decimal(str(specs.get("height_ft") or 0))
+            sqft = w * h
+
+        media_prod = Product.objects.filter(
+            shop=job.shop, is_active=True, is_service=False
+        ).filter(
+            models.Q(name__icontains="Banner") | models.Q(name__icontains="PVC") | models.Q(name__icontains="Flex") | models.Q(sku__istartswith="MAT-PVC")
+        ).first()
+
+        if media_prod and sqft > 0:
+            roll_fraction = max(Decimal("0.05"), (sqft / Decimal("500.00")).quantize(Decimal("0.01")))
+            add_service_job_material(job, media_prod, quantity=roll_fraction, created_by=created_by)
+
+        ink_prod = Product.objects.filter(
+            shop=job.shop, is_active=True, is_service=False
+        ).filter(
+            models.Q(name__icontains="Ink") | models.Q(name__icontains="কালি") | models.Q(sku__istartswith="MAT-INK")
+        ).first()
+        if ink_prod and sqft > 0:
+            ink_fraction = max(Decimal("0.02"), (sqft / Decimal("1000.00")).quantize(Decimal("0.01")))
+            add_service_job_material(job, ink_prod, quantity=ink_fraction, created_by=created_by)
+
+        finishing = specs.get("finishing", {})
+        eyelets_opt = finishing.get("eyelets", {})
+        if eyelets_opt.get("enabled"):
+            count = int(eyelets_opt.get("count") or 4)
+            eyelet_prod = Product.objects.filter(
+                shop=job.shop, is_active=True, is_service=False
+            ).filter(
+                models.Q(name__icontains="Eyelet") | models.Q(name__icontains="Ring") | models.Q(name__icontains="রিং") | models.Q(sku__istartswith="MAT-EYE")
+            ).first()
+            if eyelet_prod and count > 0:
+                add_service_job_material(job, eyelet_prod, quantity=Decimal(str(count)), created_by=created_by)
+
+    # 2. Photocopy / Digital Documents / Ream to Sheets
+    elif category in ["photocopy", "document"] or "ফটোকপি" in stype or "কপি" in stype or "প্রিন্ট" in stype:
+        sheets = Decimal(str(specs.get("sheets_deducted") or specs.get("total_copies") or 10))
+        paper_prod = Product.objects.filter(
+            shop=job.shop, is_active=True, is_service=False
+        ).filter(
+            models.Q(name__icontains="Paper") | models.Q(name__icontains="কাগজ") | models.Q(sku__istartswith="MAT-A4")
+        ).first()
+
+        if paper_prod:
+            reams = max(Decimal("0.01"), (sheets / Decimal("500.00")).quantize(Decimal("0.01")))
+            add_service_job_material(job, paper_prod, quantity=reams, created_by=created_by)
+
+        if "lamination" in stype or "লেমিনেশন" in stype:
+            pouch_prod = Product.objects.filter(
+                shop=job.shop, is_active=True, is_service=False
+            ).filter(
+                models.Q(name__icontains="Pouch") | models.Q(name__icontains="লেমিনেশন") | models.Q(sku__istartswith="MAT-LAM")
+            ).first()
+            if pouch_prod:
+                add_service_job_material(job, pouch_prod, quantity=Decimal("0.05"), created_by=created_by)
+
+    # 3. Offset Printing (Plates + Paper)
+    elif category == "offset" or "offset" in stype or "মেমো" in stype or "কার্ড" in stype:
+        plates = int(specs.get("plates_count") or 1)
+        plate_prod = Product.objects.filter(
+            shop=job.shop, is_active=True, is_service=False
+        ).filter(
+            models.Q(name__icontains="Plate") | models.Q(name__icontains="প্লেট") | models.Q(sku__istartswith="MAT-PLT")
+        ).first()
+        if plate_prod and plates > 0:
+            add_service_job_material(job, plate_prod, quantity=Decimal(str(plates)), created_by=created_by)
+
+        paper_sheets = Decimal(str(specs.get("paper_sheets") or 500))
+        paper_prod = Product.objects.filter(
+            shop=job.shop, is_active=True, is_service=False
+        ).filter(
+            models.Q(name__icontains="Paper") | models.Q(name__icontains="কাগজ") | models.Q(sku__istartswith="MAT-A4") | models.Q(sku__istartswith="MAT-DEMY")
+        ).first()
+        if paper_prod and paper_sheets > 0:
+            reams = max(Decimal("0.01"), (paper_sheets / Decimal("500.00")).quantize(Decimal("0.01")))
+            add_service_job_material(job, paper_prod, quantity=reams, created_by=created_by)
+
+
+@transaction.atomic
+def approve_service_job_design(job, note="Customer approved design via tracking portal"):
+    """Record customer design approval timestamp and advance status to processing if pending."""
+    job.design_approved = True
+    job.design_approved_at = timezone.now()
+    old_status = job.status
+    update_fields = ["design_approved", "design_approved_at", "updated_at"]
+
+    if job.status == ServiceJob.Status.PENDING:
+        job.status = ServiceJob.Status.PROCESSING
+        update_fields.append("status")
+        if job.materials.count() == 0:
+            try:
+                auto_consume_job_materials(job)
+            except Exception:
+                pass
+
+    job.save(update_fields=update_fields)
+
+    ServiceJobStatusHistory.objects.create(
+        shop=job.shop,
+        job=job,
+        from_status=old_status,
+        to_status=job.status,
+        note=note,
+        changed_by=None,
+    )
+    return job

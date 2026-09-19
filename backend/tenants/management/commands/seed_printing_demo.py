@@ -1,12 +1,10 @@
 import os
 import sys
-import os
 sys.path.insert(0, '/app')
 from decimal import Decimal
 from datetime import timedelta
 import django
 
-# Setup django
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
 django.setup()
 
@@ -25,7 +23,7 @@ from service.models import ServiceJob, ServiceJobMaterial, ServiceJobStatusHisto
 from accounting.models import LedgerEntry
 from core.tenant_context import set_current_tenant
 
-print("🚀 Starting Printing, Media & Online Services Demo Shop creation...")
+print("🚀 Starting Printing, Media & Online Services Modern Demo Shop creation...")
 
 with transaction.atomic():
     # 1. Get or Create Subscription Plan
@@ -56,7 +54,6 @@ with transaction.atomic():
     )
     print(f"✅ Shop: {shop.name} (ID: {shop.id}, Created: {created})")
 
-    # Set thread tenant context
     set_current_tenant(shop)
 
     # 3. Create or Update Branch
@@ -102,17 +99,16 @@ with transaction.atomic():
     ]
     units = {}
     for name, code, m_type, allow_dec in units_data:
-        u, _ = Unit.all_objects.update_or_create(
-            shop_id=shop.id,
-            short_code=code,
-            defaults={
-                "name": name,
-                "measure_type": m_type,
-                "allow_decimal": allow_dec,
-            }
-        )
+        u = Unit.all_objects.filter(shop_id=shop.id, short_code=code).first()
+        if not u:
+            u = Unit.all_objects.create(
+                shop=shop,
+                short_code=code,
+                name=name,
+                measure_type=m_type,
+                allow_decimal=allow_dec,
+            )
         units[code] = u
-    print(f"📦 Units: {len(units)} seeded.")
 
     # 6. Seed Categories
     cat_names = [
@@ -124,15 +120,12 @@ with transaction.atomic():
     ]
     categories = {}
     for c_name, c_slug in cat_names:
-        c, _ = Category.all_objects.update_or_create(
-            shop_id=shop.id,
-            name=c_name,
-            defaults={"is_active": True}
-        )
+        c = Category.all_objects.filter(shop_id=shop.id, name=c_name).first()
+        if not c:
+            c = Category.all_objects.create(shop=shop, name=c_name, is_active=True)
         categories[c_slug] = c
-    print(f"📂 Categories: {len(categories)} seeded.")
 
-    # 7. Seed Products / Raw Materials with Stock
+    # 7. Seed Products / Raw Materials
     products_data = [
         ("Double A A4 80GSM Paper Ream (500 Sheets)", "MAT-A4-01", "893500110001", "raw-materials", "ream", 480.00, 550.00, 50),
         ("PaperOne Legal 80GSM Paper Ream (500 Sheets)", "MAT-LEG-01", "893500110002", "raw-materials", "ream", 520.00, 620.00, 30),
@@ -165,7 +158,6 @@ with transaction.atomic():
         )
         products[sku] = p
 
-        # Add initial stock movement if inventory tracked
         if stock_qty > 0:
             StockMovement.all_objects.filter(shop_id=shop.id, product=p, movement_type=MovementType.PURCHASE_IN).delete()
             StockMovement.all_objects.create(
@@ -179,9 +171,7 @@ with transaction.atomic():
             )
             recalc_stock(p)
 
-    print(f"🛍️ Products & Raw Materials: {len(products)} seeded with stock movements.")
-
-    # 8. Seed Demo Customers
+    # 8. Customers
     customers_data = [
         ("মো: রফিকুল ইসলাম", "01711223344", "rafiq@gmail.com", "Housing Estate, Sylhet"),
         ("তানজিলা আক্তার", "01812345678", "tanjila@gmail.com", "Subidbazar, Sylhet"),
@@ -201,7 +191,6 @@ with transaction.atomic():
             }
         )
         customers[c_phone] = cust
-    print(f"👥 Customers: {len(customers)} seeded.")
 
     # 9. Clean up and Seed Realistic Demo Service Jobs
     ServiceJob.all_objects.filter(shop_id=shop.id).delete()
@@ -217,6 +206,7 @@ with transaction.atomic():
             "specifications": {"pages": 48, "validity_years": 10, "type": "Regular"},
             "govt_fee": Decimal("5750.00"),
             "service_charge": Decimal("500.00"),
+            "finishing_charge": Decimal("0.00"),
             "other_charge": Decimal("0.00"),
             "discount": Decimal("0.00"),
             "total_bill": Decimal("6250.00"),
@@ -237,6 +227,7 @@ with transaction.atomic():
             "specifications": {"district": "Sylhet", "thana": "Kotwali"},
             "govt_fee": Decimal("500.00"),
             "service_charge": Decimal("250.00"),
+            "finishing_charge": Decimal("0.00"),
             "other_charge": Decimal("0.00"),
             "discount": Decimal("0.00"),
             "total_bill": Decimal("750.00"),
@@ -252,61 +243,88 @@ with transaction.atomic():
             "customer": customers["01911998877"],
             "customer_name": "মেসার্স আল-মদিনা এন্টারপ্রাইজ",
             "customer_phone": "01911998877",
-            "service_type": "পিভিসি ব্যানার ও সাইনবোর্ড প্রিন্ট",
+            "service_type": "পিভিসি ব্যানার ও সাইনবোর্ড প্রিন্ট + রিভেট ফিনিশিং",
             "reference_no": "BAN-12x4-001",
-            "specifications": {"width_ft": 12, "height_ft": 4, "total_sqft": 48, "rate_per_sqft": 25},
+            "specifications": {
+                "category": "banner",
+                "width_ft": 12,
+                "height_ft": 4,
+                "total_sqft": 48,
+                "rate_per_sqft": 25,
+                "finishing": {"eyelets": {"enabled": True, "count": 6}, "pipe": {"enabled": True}}
+            },
+            "artwork_url": "https://images.unsplash.com/photo-1626785774573-4b799315345d?auto=format&fit=crop&w=1200&q=80",
+            "design_approved": True,
+            "design_approved_at": timezone.now() - timedelta(hours=5),
             "govt_fee": Decimal("0.00"),
             "service_charge": Decimal("1200.00"),
+            "finishing_charge": Decimal("240.00"), # 6 eyelets + 12ft pipe
             "other_charge": Decimal("0.00"),
             "discount": Decimal("0.00"),
-            "total_bill": Decimal("1200.00"),
-            "advance_paid": Decimal("1200.00"),
+            "total_bill": Decimal("1440.00"),
+            "advance_paid": Decimal("1440.00"),
             "due_amount": Decimal("0.00"),
             "material_cost": Decimal("350.00"),
             "status": ServiceJob.Status.DELIVERED,
             "delivery_date": timezone.now() - timedelta(hours=4),
             "actual_delivery_date": timezone.now() - timedelta(hours=2),
-            "notes": "আইলেট এবং রিং লাগানো সম্পন্ন। কাস্টমার ডেলিভারি নিয়েছে।",
+            "notes": "আইলেট এবং পাইপ ফিটিং সম্পন্ন। কাস্টমার ডেলিভারি নিয়েছে।",
         },
         {
             "job_number": "JOB-2026-0004",
             "customer": customers["01611334455"],
             "customer_name": "ইমন আহমেদ",
             "customer_phone": "01611334455",
-            "service_type": "ভোটার এনআইডি সংশোধন ও লেমিনেশন",
-            "reference_no": "NID-MOD-7721",
-            "specifications": {"item": "Smart NID Re-issue"},
-            "govt_fee": Decimal("230.00"),
-            "service_charge": Decimal("200.00"),
-            "other_charge": Decimal("50.00"),
+            "service_type": "অফসেট প্রেস - ৩ পার্ট ক্যাশ মেমো (১,০০০ সেট)",
+            "reference_no": "OFF-MEMO-504",
+            "specifications": {
+                "category": "offset",
+                "plates_count": 2,
+                "paper_sheets": 1000,
+                "color": "2 Color (Red & Black)",
+                "binding": "Serial Numbering & Perforation"
+            },
+            "artwork_url": "https://images.unsplash.com/photo-1586075010923-2dd4570fb338?auto=format&fit=crop&w=1200&q=80",
+            "design_approved": False,
+            "govt_fee": Decimal("0.00"),
+            "service_charge": Decimal("1300.00"), # 2 plates + print
+            "finishing_charge": Decimal("250.00"), # numbering + binding
+            "other_charge": Decimal("0.00"),
             "discount": Decimal("0.00"),
-            "total_bill": Decimal("480.00"),
-            "advance_paid": Decimal("480.00"),
-            "due_amount": Decimal("0.00"),
-            "material_cost": Decimal("25.00"),
-            "status": ServiceJob.Status.READY,
-            "delivery_date": timezone.now() + timedelta(hours=6),
-            "notes": "অনলাইন ফি দেওয়া হয়েছে। লেমিনেশন কপি প্রস্তুত।",
+            "total_bill": Decimal("1550.00"),
+            "advance_paid": Decimal("500.00"),
+            "due_amount": Decimal("1050.00"),
+            "material_cost": Decimal("400.00"),
+            "status": ServiceJob.Status.PROCESSING,
+            "delivery_date": timezone.now() + timedelta(days=2),
+            "notes": "ডিজাইন প্রুফ গ্রাহকের অনুমোদনের অপেক্ষায় আছে।",
         },
         {
             "job_number": "JOB-2026-0005",
             "customer": customers["01755667788"],
             "customer_name": "আব্দুল্লাহ আল নোমান",
             "customer_phone": "01755667788",
-            "service_type": "ই-পাসপোর্ট আবেদন (৫ বছর / ৪৮ পাতা)",
-            "reference_no": "OID-2026-11029",
-            "specifications": {"pages": 48, "validity_years": 5, "type": "Regular"},
-            "govt_fee": Decimal("4025.00"),
-            "service_charge": Decimal("500.00"),
+            "service_type": "ফটোকপি ও লিগ্যাল ডকুমেন্ট প্রিন্টিং",
+            "reference_no": "DOC-CPY-88",
+            "specifications": {
+                "category": "photocopy",
+                "meter_start": 24500,
+                "meter_end": 24650,
+                "total_copies": 150,
+                "sheets_deducted": 150
+            },
+            "govt_fee": Decimal("0.00"),
+            "service_charge": Decimal("375.00"),
+            "finishing_charge": Decimal("50.00"), # spiral binding
             "other_charge": Decimal("0.00"),
             "discount": Decimal("0.00"),
-            "total_bill": Decimal("4525.00"),
-            "advance_paid": Decimal("2000.00"),
-            "due_amount": Decimal("2525.00"),
-            "material_cost": Decimal("0.00"),
-            "status": ServiceJob.Status.PENDING,
-            "delivery_date": timezone.now() + timedelta(days=3),
-            "notes": "জাতীয় পরিচয়পত্র স্ক্যান কপি নেওয়া হয়েছে।",
+            "total_bill": Decimal("425.00"),
+            "advance_paid": Decimal("0.00"),
+            "due_amount": Decimal("425.00"),
+            "material_cost": Decimal("150.00"),
+            "status": ServiceJob.Status.READY,
+            "delivery_date": timezone.now() + timedelta(hours=2),
+            "notes": "১৫০ পাতা ফটোকপি ও স্পাইরাল বাইন্ডিং সম্পন্ন।",
         },
     ]
 
@@ -318,7 +336,6 @@ with transaction.atomic():
             **j_data
         )
 
-        # Create initial history
         ServiceJobStatusHistory.objects.create(
             shop=shop,
             job=job,
@@ -328,7 +345,6 @@ with transaction.atomic():
             changed_by=user,
         )
 
-        # Create LedgerEntry for advance paid
         if job.advance_paid > 0:
             LedgerEntry.objects.create(
                 shop=shop,
@@ -339,25 +355,23 @@ with transaction.atomic():
                 description=f"Payment for Demo Job #{job.job_number} ({job.service_type})",
             )
 
-        # Link consumed raw materials for Job #3 (Banner print)
         if job.job_number == "JOB-2026-0003":
             ServiceJobMaterial.objects.create(
                 shop=shop,
                 job=job,
                 product=products["MAT-BAN-01"],
                 quantity=Decimal("48.00"),
-                unit_cost=Decimal("7.00"), # 336 Tk flex
+                unit_cost=Decimal("7.00"),
                 subtotal=Decimal("336.00"),
                 from_stock=True,
             )
 
-    print(f"📋 Seeded {len(jobs_data)} realistic Service Jobs with split bills, pass-through fees & ledger records!")
+    print(f"📋 Seeded {len(jobs_data)} realistic Modernized Service Jobs!")
 
-print("🎉 StockWhisk Printing, Media & Online Services Demo Shop successfully created!")
+print("🎉 Modernized Printing Demo Shop ready!")
 
 from django.core.management.base import BaseCommand
-
 class Command(BaseCommand):
-    help = "Seed Printing, Media & Online Services Demo Shop"
+    help = "Seed Printing Demo Shop"
     def handle(self, *args, **options):
-        print("Running seed_printing_demo via BaseCommand...")
+        pass
