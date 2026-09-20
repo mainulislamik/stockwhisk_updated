@@ -208,6 +208,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
         shop = getattr(product, "shop", None)
         if not shop:
             return
+        seen_var_ids = set()
         for sv in size_variants:
             if not isinstance(sv, dict):
                 continue
@@ -244,8 +245,9 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
                 var.current_stock = stock
                 var.is_active = True
                 var.save(update_fields=["name", "sku", "barcode", "selling_price", "current_stock", "is_active"])
+                seen_var_ids.add(var.id)
             else:
-                ProductVariation.objects.create(
+                var = ProductVariation.objects.create(
                     product=product,
                     shop=shop,
                     name=name,
@@ -257,8 +259,14 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
                     current_stock=stock,
                     is_active=True,
                 )
+                seen_var_ids.add(var.id)
+        if seen_var_ids:
+            ProductVariation.all_objects.filter(
+                product=product, shop=shop, is_active=True
+            ).exclude(id__in=seen_var_ids).update(is_active=False)
+
         total_var_stock = sum(float(sv.get("stock") or 0) for sv in size_variants if isinstance(sv, dict))
-        if total_var_stock > 0 and (product.current_stock == 0 or product.current_stock is None):
+        if size_variants:
             product.current_stock = total_var_stock
             product.save(update_fields=["current_stock"])
 

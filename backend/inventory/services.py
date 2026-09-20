@@ -36,7 +36,7 @@ def apply_movement(
         reference_type=reference_type, reference_id=str(reference_id),
         note=note, created_by=created_by,
     )
-    _apply_stock_delta(product, variation, signed)
+    _apply_stock_delta(product, variation, signed, movement_type=movement_type)
     
     # Process scanned barcodes for serial-tracked items
     if barcodes:
@@ -84,7 +84,7 @@ def apply_movement(
     return movement
 
 
-def _apply_stock_delta(product, variation, signed):
+def _apply_stock_delta(product, variation, signed, movement_type=None):
     """Adjust the cached ``current_stock`` by a single movement in O(1).
 
     Movements are immutable and append-only, so the cache can be nudged by the
@@ -106,6 +106,26 @@ def _apply_stock_delta(product, variation, signed):
             current_stock=F("current_stock") + signed
         )
         variation.current_stock = Decimal(variation.current_stock or 0) + signed
+
+        # Keep parent size_variants JSON synchronized
+        if movement_type != "sale_out" and product.size_variants and getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
+            sz = str(variation.attributes.get("size", "")).strip().lower()
+            col = str(variation.attributes.get("color", "")).strip().lower()
+            if sz or col:
+                sv_list = list(product.size_variants)
+                updated_sv = False
+                for sv in sv_list:
+                    if isinstance(sv, dict):
+                        s_match = not sz or (str(sv.get("size", "")).strip().lower() == sz)
+                        c_match = not col or (str(sv.get("color", "")).strip().lower() == col)
+                        if s_match and c_match:
+                            cur = float(sv.get("stock") or 0)
+                            sv["stock"] = max(0.0, cur + float(signed))
+                            updated_sv = True
+                            break
+                if updated_sv:
+                    Product.all_objects.filter(pk=product.pk).update(size_variants=sv_list)
+                    product.size_variants = sv_list
 
     from analytics.services import invalidate_dashboard_cache
     invalidate_dashboard_cache(product.shop_id)
