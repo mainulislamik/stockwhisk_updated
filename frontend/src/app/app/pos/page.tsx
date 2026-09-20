@@ -382,6 +382,20 @@ export default function PosPage() {
       setTimeout(() => inputRef.current?.focus(), 50);
       return;
     }
+    if ((p as any).scanned_variation) {
+      const v = (p as any).scanned_variation;
+      addToCart(p, undefined, finalQty, v, {
+        size: v.attributes?.size || v.name,
+        color: v.attributes?.color || "",
+        price: v.selling_price || p.selling_price,
+        sku: v.sku || p.sku,
+        barcode: v.barcode || ""
+      });
+      flash(t("pos_added_alert", { name: `${p.name} (${v.name})` }), true);
+      setQuery("");
+      setTimeout(() => inputRef.current?.focus(), 50);
+      return;
+    }
     if (p.units && p.units.length > 0) {
       setUnitSelectProduct(p);
       return;
@@ -470,6 +484,38 @@ export default function PosPage() {
         setQuery("");
         setTimeout(() => inputRef.current?.focus(), 50);
         return;
+      }
+    }
+
+    // 2c. Exact match on a specific VARIATION barcode or SKU -> add directly without modal
+    for (const p of shown) {
+      const v = p.variations?.find((varItem) => varItem.barcode === code || (varItem.sku && varItem.sku.toLowerCase() === code.toLowerCase()));
+      if (v) {
+        if (p.track_inventory !== false && Number(v.current_stock || p.current_stock) <= 0) {
+          flash(t("pos_out_of_stock_alert", { name: `${p.name} (${v.name})` }), false);
+          return;
+        }
+        addToCart(p, undefined, multiplier, v, {
+          size: v.attributes?.size || v.name,
+          color: v.attributes?.color || "",
+          price: v.selling_price || p.selling_price,
+          sku: v.sku || p.sku,
+          barcode: v.barcode || ""
+        });
+        flash(t("pos_added_alert", { name: `${p.name} (${v.name})` }), true);
+        setQuery("");
+        setTimeout(() => inputRef.current?.focus(), 50);
+        return;
+      }
+      if (p.size_variants && Array.isArray(p.size_variants)) {
+        const sv = p.size_variants.find((item: any) => item.barcode === code || (item.sku && item.sku.toLowerCase() === code.toLowerCase()));
+        if (sv) {
+          addToCart(p, undefined, multiplier, null, sv);
+          flash(t("pos_added_alert", { name: `${p.name} (${sv.size}${sv.color ? ` / ${sv.color}` : ""})` }), true);
+          setQuery("");
+          setTimeout(() => inputRef.current?.focus(), 50);
+          return;
+        }
       }
     }
 

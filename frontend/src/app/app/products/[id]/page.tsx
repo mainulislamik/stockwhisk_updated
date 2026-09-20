@@ -25,7 +25,10 @@ type Product = {
   gender_target?: string;
   season?: string;
   style_type?: string;
-  size_variants?: Array<{ size: string; color: string; stock: number }>;
+  fit_type?: string;
+  collection_name?: string;
+  care_instructions?: string;
+  size_variants?: Array<{ size: string; color: string; stock: number; sku?: string; barcode?: string; price?: number | string }>;
   replacement_guarantee_days?: number;
 };
 type Movement = { id: number; movement_type: string; quantity: string; note: string; created_at: string };
@@ -236,6 +239,24 @@ export default function ProductProfilePage() {
                   <div className="fw-semibold">✨ {p.style_type}</div>
                 </div>
               )}
+              {p.fit_type && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "ফিট" : "Fit"}</div>
+                  <div className="fw-semibold">📐 {p.fit_type}</div>
+                </div>
+              )}
+              {p.collection_name && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "কালেকশন / ড্রপ" : "Collection"}</div>
+                  <div className="fw-semibold">🏷️ {p.collection_name}</div>
+                </div>
+              )}
+              {p.care_instructions && (
+                <div className="col-6 col-md-3">
+                  <div className="small text-secondary">{lang === "bn" ? "যত্ন নির্দেশিকা" : "Care Instructions"}</div>
+                  <div className="fw-semibold">🧼 {p.care_instructions}</div>
+                </div>
+              )}
               {p.replacement_guarantee_days && Number(p.replacement_guarantee_days) > 0 && (
                 <div className="col-6 col-md-3">
                   <div className="small text-secondary">{lang === "bn" ? "এক্সচেঞ্জ / রিটার্ন সময়" : "Exchange Window"}</div>
@@ -246,15 +267,44 @@ export default function ProductProfilePage() {
 
             {p.size_variants && p.size_variants.length > 0 && (
               <div className="mt-3 pt-3 border-top">
-                <div className="small text-secondary mb-2">{lang === "bn" ? "সাইজ ও রঙের স্টক ভ্যারিয়েন্ট:" : "Size & Color Stock Breakdown:"}</div>
-                <div className="d-flex flex-wrap gap-2">
-                  {p.size_variants.map((v: any, idx: number) => (
-                    <div key={idx} className="badge p-2 d-flex align-items-center gap-2" style={{ background: "#fff", border: "1px solid #d8b4fe", color: "#4b5563" }}>
-                      <span className="fw-bold text-dark" style={{ fontSize: "0.85rem" }}>{v.size}</span>
-                      {v.color && <span className="text-secondary" style={{ fontSize: "0.75rem" }}>• {v.color}</span>}
-                      <span className="badge text-white" style={{ background: "#7c3aed" }}>{v.stock} pcs</span>
-                    </div>
-                  ))}
+                <div className="small text-secondary mb-2 fw-semibold">{lang === "bn" ? "সাইজ ও কালার ভ্যারিয়েন্ট স্টক তালিকা:" : "Size & Color Variant Inventory:"}</div>
+                <div className="table-responsive bg-white rounded border">
+                  <table className="table table-sm mb-0 align-middle">
+                    <thead className="table-light small">
+                      <tr>
+                        <th>{lang === "bn" ? "সাইজ" : "Size"}</th>
+                        <th>{lang === "bn" ? "কালার" : "Color"}</th>
+                        <th>SKU</th>
+                        <th>{lang === "bn" ? "বারকোড" : "Barcode"}</th>
+                        <th className="text-end">{lang === "bn" ? "বিক্রয় মূল্য" : "Price"}</th>
+                        <th className="text-end">{lang === "bn" ? "বর্তমান স্টক" : "Stock"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {p.size_variants.map((v: any, idx: number) => (
+                        <tr key={idx}>
+                          <td>
+                            <span className="badge bg-purple-subtle text-purple fw-bold px-2 py-1" style={{ background: "#f3e8ff", color: "#7c3aed", border: "1px solid #e9d5ff" }}>
+                              {v.size}
+                            </span>
+                          </td>
+                          <td>
+                            {v.color ? (
+                              <span className="small fw-semibold">{v.color}</span>
+                            ) : "—"}
+                          </td>
+                          <td className="small text-muted font-monospace">{v.sku || "—"}</td>
+                          <td className="small text-muted font-monospace">{v.barcode || "—"}</td>
+                          <td className="text-end fw-semibold">{v.price ? money(Number(v.price)) : money(Number(p.selling_price || 0))}</td>
+                          <td className="text-end">
+                            <span className={`badge ${Number(v.stock) > 0 ? "bg-success" : "bg-danger"}`}>
+                              {v.stock} pcs
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             )}

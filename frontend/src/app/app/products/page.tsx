@@ -191,6 +191,9 @@ export default function ProductsPage() {
           gender_target: form.gender_target || "",
           season: form.season || "",
           style_type: form.style_type || "",
+          fit_type: form.fit_type || "",
+          collection_name: form.collection_name || "",
+          care_instructions: form.care_instructions || "",
           size_variants: form.size_variants || [],
         },
       });
