@@ -47,7 +47,16 @@ class DemoReadOnlyMiddleware:
 
     SAFE_METHODS = {"GET", "HEAD", "OPTIONS", "TRACE"}
     # Auth flows the demo user still needs (login / refresh / logout).
-    ALLOWED_UNSAFE = ("/api/auth/token", "/api/auth/logout", "/api/auth/token/refresh")
+    ALLOWED_UNSAFE = (
+        "/api/auth/token",
+        "/api/auth/logout",
+        "/api/auth/token/refresh",
+        "/api/auth/register",
+        "/api/auth/verify-otp",
+        "/api/auth/resend-otp",
+        "/api/auth/password-reset",
+        "/api/public/",
+    )
 
     def __init__(self, get_response):
         self.get_response = get_response

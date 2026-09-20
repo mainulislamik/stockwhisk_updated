@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { api, setTokens } from "@/lib/api";
+import { api, setTokens, clearTokens } from "@/lib/api";
 import { Box, Typography, TextField, Button, Alert, CircularProgress, Stack, IconButton, InputAdornment, MenuItem } from '@mui/material';
 import EmailIcon from '@mui/icons-material/Email';
 import MarketingNav from '@/components/MarketingNav';
@@ -80,6 +80,8 @@ export default function RegisterPage() {
   // Capture a reseller referral code from ?ref=CODE (window avoids needing a
   // Suspense boundary for useSearchParams during static build).
   useEffect(() => {
+    // Clear any residual session/demo tokens so registration is always fresh
+    clearTokens();
     try {
       const ref = new URLSearchParams(window.location.search).get("ref");
       if (ref) setReferralCode(ref.trim().toUpperCase());

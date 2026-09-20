@@ -99,8 +99,16 @@ export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
   }
 
   const headers: Record<string, string> = {};
+  const isAuthOrPublic =
+    path.includes("/auth/register") ||
+    path.includes("/auth/verify-otp") ||
+    path.includes("/auth/token") ||
+    path.includes("/auth/resend-otp") ||
+    path.includes("/auth/password-reset") ||
+    path.startsWith("/public/") ||
+    path.startsWith("/api/public/");
   const access = getAccess();
-  if (access) headers["Authorization"] = `Bearer ${access}`;
+  if (access && !isAuthOrPublic) headers["Authorization"] = `Bearer ${access}`;
   let payload: BodyInit | undefined;
   if (body instanceof FormData) {
     payload = body;
