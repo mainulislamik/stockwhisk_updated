@@ -9,6 +9,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import FashionVariantMatrix from "@/components/FashionVariantMatrix";
 
 type Product = {
   id: number;
@@ -792,38 +793,17 @@ export default function ProductsPage() {
                           </div>
                         </div>
                       </div>
-                      {/* Size & Color Variant Matrix */}
-                      <div className="mt-2">
-                        <label className="small text-primary fw-medium">{t("fashion_lbl_variants") || "সাইজ ও রঙের স্টক"}</label>
-                        {(form.size_variants||[]).map((v:any,i:number)=>(
-                          <div key={i} className="row g-1 mb-1 align-items-center">
-                            <div className="col-3">
-                              <input
-                                className="form-control form-control-sm"
-                                list="fashion-size-list"
-                                placeholder={lang==="bn"?"সাইজ (টাইপ করুন)":"Size (type or pick)"}
-                                value={v.size||""}
-                                onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],size:e.target.value};setForm({...form,size_variants:sv})}}
-                              />
-                              <datalist id="fashion-size-list">
-                                {SIZE_PRESETS.map((s:any)=><option key={s} value={s} />)}
-                              </datalist>
-                            </div>
-                            <div className="col-4">
-                              <input className="form-control form-control-sm" placeholder={lang==="bn"?"রং (Color)":"Color"} value={v.color||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],color:e.target.value};setForm({...form,size_variants:sv})}} />
-                            </div>
-                            <div className="col-3">
-                              <input type="number" min="0" className="form-control form-control-sm" placeholder={lang==="bn"?"পরিমাণ":"Qty"} value={v.stock||""} onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],stock:Number(e.target.value)};setForm({...form,size_variants:sv})}} />
-                            </div>
-                            <div className="col-2">
-                              <button type="button" className="btn btn-outline-danger btn-sm w-100" onClick={()=>{const sv=form.size_variants.filter((_:any,j:number)=>j!==i);setForm({...form,size_variants:sv})}}>🗑</button>
-                            </div>
-                          </div>
-                        ))}
-                        <button type="button" className="btn btn-outline-secondary btn-sm mt-1" onClick={()=>setForm({...form,size_variants:[...(form.size_variants||[]),{size:"M",color:"",stock:0}]})}>
-                          + {t("fashion_btn_add_variant")||"ভেরিয়েন্ট যোগ করুন"}
-                        </button>
-                      </div>
+                      {/* Automated Size & Color Variant Matrix */}
+                      <FashionVariantMatrix
+                        variants={form.size_variants || []}
+                        onChange={(newVariants) => {
+                          setForm((f: any) => ({ ...f, size_variants: newVariants }));
+                        }}
+                        parentSku={form.sku}
+                        parentName={form.name}
+                        basePrice={form.selling_price}
+                        lang={lang as any}
+                      />
                     </div>
                   </div>
                 </>

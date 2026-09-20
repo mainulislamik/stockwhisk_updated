@@ -7,6 +7,7 @@ import { ErrorState, Spinner } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import FashionVariantMatrix from "@/components/FashionVariantMatrix";
 
 type Named = { id: number; name: string };
 type UnitT = { id: number; name: string; short_code?: string; measure_type?: string };
@@ -686,60 +687,17 @@ export default function ProductEditPage() {
                       </div>
                     </div>
                   </div>
-                  {/* Size Variants with Creatable Datalist */}
-                  <div className="mt-2">
-                    <label className="small text-primary fw-medium">{lang==="bn"?"সাইজ ও রঙের স্টক":"Size & Color Stock"}</label>
-                    {(form.size_variants||[]).map((v:any,i:number)=>(
-                      <div key={i} className="row g-1 mb-1 align-items-center">
-                        <div className="col-3">
-                          <input
-                            className="form-control form-control-sm"
-                            list="edit-fashion-size-list"
-                            placeholder={lang==="bn"?"সাইজ (টাইপ করুন)":"Size (type or pick)"}
-                            value={v.size||""}
-                            onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],size:e.target.value};setForm({...form,size_variants:sv})}}
-                          />
-                          <datalist id="edit-fashion-size-list">
-                            {["XS","S","M","L","XL","XXL","XXXL","Free Size","28","30","32","34","36","38","40","42","44","46","1-2Y","3-4Y","5-6Y","7-8Y"].map((s:string)=><option key={s} value={s} />)}
-                          </datalist>
-                        </div>
-                        <div className="col-4">
-                          <input
-                            className="form-control form-control-sm"
-                            placeholder={lang==="bn"?"রং (Color)":"Color"}
-                            value={v.color||""}
-                            onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],color:e.target.value};setForm({...form,size_variants:sv})}}
-                          />
-                        </div>
-                        <div className="col-3">
-                          <input
-                            type="number"
-                            min="0"
-                            className="form-control form-control-sm"
-                            placeholder={lang==="bn"?"পরিমাণ":"Qty"}
-                            value={v.stock||""}
-                            onChange={e=>{const sv=[...form.size_variants];sv[i]={...sv[i],stock:Number(e.target.value)};setForm({...form,size_variants:sv})}}
-                          />
-                        </div>
-                        <div className="col-2">
-                          <button
-                            type="button"
-                            className="btn btn-outline-danger btn-sm w-100"
-                            onClick={()=>{const sv=form.size_variants.filter((_:any,j:number)=>j!==i);setForm({...form,size_variants:sv})}}
-                          >
-                            🗑
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    <button
-                      type="button"
-                      className="btn btn-outline-secondary btn-sm mt-1"
-                      onClick={()=>setForm({...form,size_variants:[...(form.size_variants||[]),{size:"M",color:"",stock:0}]})}
-                    >
-                      + {lang==="bn"?"ভেরিয়েন্ট যোগ করুন":"Add Variant"}
-                    </button>
-                  </div>
+                  {/* Automated Size & Color Variant Matrix */}
+                  <FashionVariantMatrix
+                    variants={form.size_variants || []}
+                    onChange={(newVariants) => {
+                      setForm((f: any) => ({ ...f, size_variants: newVariants }));
+                    }}
+                    parentSku={form.sku}
+                    parentName={form.name}
+                    basePrice={form.selling_price}
+                    lang={lang as any}
+                  />
                 </div>
               </div>
             )}

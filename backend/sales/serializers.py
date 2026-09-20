@@ -15,6 +15,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
     unit_barcodes = serializers.SerializerMethodField()
     unit_warranties = serializers.SerializerMethodField()
     unit_replacement_guarantees = serializers.SerializerMethodField()
+    variation_name = serializers.CharField(source="variation.name", read_only=True, default="")
 
     def _is_quotation(self, obj):
         sale = getattr(obj, "sale", None)
@@ -71,7 +72,7 @@ class SaleItemSerializer(serializers.ModelSerializer):
     class Meta:
         model = SaleItem
         fields = [
-            "id", "product", "product_name", "product_sku", "product_barcode", "product_warranty_months", "product_replacement_guarantee_days", "unit_barcodes", "unit_warranties", "unit_replacement_guarantees", "variation", "quantity",
+            "id", "product", "product_name", "product_sku", "product_barcode", "product_warranty_months", "product_replacement_guarantee_days", "unit_barcodes", "unit_warranties", "unit_replacement_guarantees", "variation", "variation_name", "quantity",
             "unit_price", "unit_cost", "discount", "subtotal",
         ]
         read_only_fields = ["unit_cost", "subtotal"]
@@ -144,6 +145,7 @@ class SaleItemInputSerializer(serializers.Serializer):
     unit_ids = serializers.ListField(
         child=serializers.IntegerField(), required=False, default=list
     )
+    size_variant = serializers.DictField(required=False, allow_null=True)
 
 
 class PaymentInputSerializer(serializers.Serializer):

@@ -246,22 +246,47 @@ export default function BarcodesGeneratorPage() {
     const prod = detailedProduct || selectedProduct;
 
     if (singlePrintMode === "main") {
-      for (let i = 0; i < singleCopies; i++) {
-        queue.push({
-          id: `single-${selectedProduct.id}-${i}`,
-          productId: selectedProduct.id,
-          productName: selectedProduct.name,
-          barcode: mainCode,
-          sku: selectedProduct.sku || "",
-          price: selectedProduct.selling_price || "0",
-          warrantyMonths: selectedProduct.warranty_months,
-          shopName,
-          isUnit: false,
-          fabric: selectedProduct.fabric_material,
-          fit: selectedProduct.fit_type,
-          collection: selectedProduct.collection_name,
-          care: selectedProduct.care_instructions,
+      if (prod.size_variants && Array.isArray(prod.size_variants) && prod.size_variants.length > 0) {
+        prod.size_variants.forEach((sv: any, svIdx: number) => {
+          const vCode = sv.barcode || sv.sku || mainCode;
+          for (let i = 0; i < singleCopies; i++) {
+            queue.push({
+              id: `single-${selectedProduct.id}-sv-${svIdx}-${i}`,
+              productId: selectedProduct.id,
+              productName: selectedProduct.name,
+              barcode: vCode,
+              sku: sv.sku || selectedProduct.sku || "",
+              price: sv.price ? String(sv.price) : (selectedProduct.selling_price || "0"),
+              warrantyMonths: selectedProduct.warranty_months,
+              shopName,
+              isUnit: false,
+              fabric: selectedProduct.fabric_material,
+              fit: selectedProduct.fit_type,
+              collection: selectedProduct.collection_name,
+              care: selectedProduct.care_instructions,
+              size: sv.size,
+              color: sv.color,
+            });
+          }
         });
+      } else {
+        for (let i = 0; i < singleCopies; i++) {
+          queue.push({
+            id: `single-${selectedProduct.id}-${i}`,
+            productId: selectedProduct.id,
+            productName: selectedProduct.name,
+            barcode: mainCode,
+            sku: selectedProduct.sku || "",
+            price: selectedProduct.selling_price || "0",
+            warrantyMonths: selectedProduct.warranty_months,
+            shopName,
+            isUnit: false,
+            fabric: selectedProduct.fabric_material,
+            fit: selectedProduct.fit_type,
+            collection: selectedProduct.collection_name,
+            care: selectedProduct.care_instructions,
+          });
+        }
       }
     } else {
       // Unit-level barcodes
@@ -348,32 +373,63 @@ export default function BarcodesGeneratorPage() {
       const queue: PrintLabelItem[] = [];
 
       targetProducts.forEach((p) => {
-        const code = getPrimaryBarcode(p);
-        let count = 1;
-
-        if (bulkCopiesMode === "stock_quantity") {
-          const st = Math.max(1, Math.min(100, Math.floor(Number(p.current_stock) || 1)));
-          count = st;
-        } else if (bulkCopiesMode === "custom") {
-          count = Math.max(1, bulkCustomCopies);
-        }
-
-        for (let i = 0; i < count; i++) {
-          queue.push({
-            id: `bulk-${p.id}-${i}`,
-            productId: p.id,
-            productName: p.name,
-            barcode: code,
-            sku: p.sku || "",
-            price: p.selling_price || "0",
-            warrantyMonths: p.warranty_months,
-            shopName,
-            isUnit: false,
-            fabric: p.fabric_material,
-            fit: p.fit_type,
-            collection: p.collection_name,
-            care: p.care_instructions,
+        if (p.size_variants && Array.isArray(p.size_variants) && p.size_variants.length > 0) {
+          p.size_variants.forEach((sv: any, svIdx: number) => {
+            const vCode = sv.barcode || sv.sku || getPrimaryBarcode(p);
+            let count = 1;
+            if (bulkCopiesMode === "stock_quantity") {
+              count = Math.max(1, Math.min(100, Math.floor(Number(sv.stock) || 1)));
+            } else if (bulkCopiesMode === "custom") {
+              count = Math.max(1, bulkCustomCopies);
+            }
+            for (let i = 0; i < count; i++) {
+              queue.push({
+                id: `bulk-${p.id}-sv-${svIdx}-${i}`,
+                productId: p.id,
+                productName: p.name,
+                barcode: vCode,
+                sku: sv.sku || p.sku || "",
+                price: sv.price ? String(sv.price) : (p.selling_price || "0"),
+                warrantyMonths: p.warranty_months,
+                shopName,
+                isUnit: false,
+                fabric: p.fabric_material,
+                fit: p.fit_type,
+                collection: p.collection_name,
+                care: p.care_instructions,
+                size: sv.size,
+                color: sv.color,
+              });
+            }
           });
+        } else {
+          const code = getPrimaryBarcode(p);
+          let count = 1;
+
+          if (bulkCopiesMode === "stock_quantity") {
+            const st = Math.max(1, Math.min(100, Math.floor(Number(p.current_stock) || 1)));
+            count = st;
+          } else if (bulkCopiesMode === "custom") {
+            count = Math.max(1, bulkCustomCopies);
+          }
+
+          for (let i = 0; i < count; i++) {
+            queue.push({
+              id: `bulk-${p.id}-${i}`,
+              productId: p.id,
+              productName: p.name,
+              barcode: code,
+              sku: p.sku || "",
+              price: p.selling_price || "0",
+              warrantyMonths: p.warranty_months,
+              shopName,
+              isUnit: false,
+              fabric: p.fabric_material,
+              fit: p.fit_type,
+              collection: p.collection_name,
+              care: p.care_instructions,
+            });
+          }
         }
       });
 
@@ -527,6 +583,11 @@ export default function BarcodesGeneratorPage() {
             {item.productName && (
               <div className="font-bold text-[10px] line-clamp-2 leading-tight mt-0.5">
                 {item.productName}
+              </div>
+            )}
+            {(item.size || item.color) && (
+              <div className="text-[10px] font-black uppercase tracking-wider text-black bg-gray-100 py-0.5 px-2 rounded mt-1 inline-block border border-gray-300">
+                {[item.size && ("SIZE: " + item.size), item.color && ("COLOR: " + item.color)].filter(Boolean).join(" | ")}
               </div>
             )}
             {(item.fabric || item.fit) && (

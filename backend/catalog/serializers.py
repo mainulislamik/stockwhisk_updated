@@ -202,6 +202,78 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
         # Pass context so the nested serializer can apply the same cost-hiding.
         return ProductUnitSerializer(units, many=True, context=self.context).data
 
+    def _sync_size_variations(self, product, size_variants):
+        if not size_variants or not isinstance(size_variants, list):
+            return
+        shop = getattr(product, "shop", None)
+        if not shop:
+            return
+        for sv in size_variants:
+            if not isinstance(sv, dict):
+                continue
+            size = str(sv.get("size", "")).strip()
+            color = str(sv.get("color", "")).strip()
+            if not size and not color:
+                continue
+            name = f"{size} / {color}" if (size and color) else (size or color)
+            sku = str(sv.get("sku", "")).strip()
+            barcode = str(sv.get("barcode", "")).strip()
+            stock = float(sv.get("stock") or 0)
+            price = sv.get("price")
+            try:
+                price_val = float(price) if price else None
+            except (ValueError, TypeError):
+                price_val = None
+
+            var = ProductVariation.all_objects.filter(
+                product=product, shop=shop,
+                attributes__size=size, attributes__color=color
+            ).first()
+
+            if not var and sku:
+                var = ProductVariation.all_objects.filter(product=product, shop=shop, sku=sku).first()
+
+            if var:
+                var.name = name
+                if sku:
+                    var.sku = sku
+                if barcode:
+                    var.barcode = barcode
+                if price_val is not None:
+                    var.selling_price = price_val
+                var.current_stock = stock
+                var.is_active = True
+                var.save(update_fields=["name", "sku", "barcode", "selling_price", "current_stock", "is_active"])
+            else:
+                ProductVariation.objects.create(
+                    product=product,
+                    shop=shop,
+                    name=name,
+                    attributes={"size": size, "color": color},
+                    sku=sku,
+                    barcode=barcode,
+                    selling_price=price_val if price_val is not None else product.selling_price,
+                    cost_price=product.cost_price,
+                    current_stock=stock,
+                    is_active=True,
+                )
+        total_var_stock = sum(float(sv.get("stock") or 0) for sv in size_variants if isinstance(sv, dict))
+        if total_var_stock > 0 and (product.current_stock == 0 or product.current_stock is None):
+            product.current_stock = total_var_stock
+            product.save(update_fields=["current_stock"])
+
+    def create(self, validated_data):
+        instance = super().create(validated_data)
+        if "size_variants" in validated_data:
+            self._sync_size_variations(instance, validated_data["size_variants"])
+        return instance
+
+    def update(self, instance, validated_data):
+        instance = super().update(instance, validated_data)
+        if "size_variants" in validated_data:
+            self._sync_size_variations(instance, validated_data["size_variants"])
+        return instance
+
 
 class ProductUnitSerializer(HideCostMixin, serializers.ModelSerializer):
     effective_cost_price = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True)

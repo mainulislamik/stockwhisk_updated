@@ -47,6 +47,7 @@ type Product = {
   purchase_unit_detail?: { id: number; name: string; short_code: string; measure_type: string } | null;
 };
 type CartLine = { 
+  lineId?: string;
   product: Product; 
   qty: number; 
   price: number; 
@@ -268,11 +269,19 @@ export default function PosPage() {
   }, []);
 
   // ── Cart helpers ────────────────────────────────────────────────────────
-  function addToCart(p: Product, specificUnit?: ProductUnit, explicitQty?: number, variation?: ProductVariation | null) {
+  function addToCart(p: Product, specificUnit?: ProductUnit, explicitQty?: number, variation?: ProductVariation | null, sizeVariant?: any) {
     const addAmount = explicitQty !== undefined ? explicitQty : 1;
-    const itemPrice = variation ? Number(variation.selling_price || p.selling_price) : Number(specificUnit?.effective_selling_price || p.selling_price) || 0;
+    const selectedV = sizeVariant || (p as any)._selectedVariant;
+    const itemPrice = selectedV?.price 
+      ? Number(selectedV.price) 
+      : (variation ? Number(variation.selling_price || p.selling_price) : Number(specificUnit?.effective_selling_price || p.selling_price) || 0);
+
+    const lineKey = selectedV
+      ? `${p.id}-sv-${selectedV.size || ""}-${selectedV.color || ""}`
+      : (variation ? `${p.id}-var-${variation.id}` : String(p.id));
+
     setCart((c) => {
-      const exIndex = c.findIndex((l) => l.product.id === p.id && (!variation || l.selectedVariation?.id === variation.id));
+      const exIndex = c.findIndex((l) => (l.lineId || String(l.product.id)) === lineKey);
       if (exIndex >= 0) {
         const ex = c[exIndex];
         if (specificUnit) {
@@ -288,7 +297,8 @@ export default function PosPage() {
         return newC;
       }
       return [...c, { 
-        product: p, 
+        lineId: lineKey,
+        product: selectedV ? ({ ...p, _selectedVariant: selectedV } as any) : p, 
         qty: addAmount, 
         price: itemPrice, 
         discount: 0, 
@@ -299,9 +309,9 @@ export default function PosPage() {
     });
   }
 
-  function toggleSellMode(id: number, mode: "base" | "bulk") {
+  function toggleSellMode(keyOrId: string | number, mode: "base" | "bulk") {
     setCart((c) => c.map((l) => {
-      if (l.product.id !== id) return l;
+      if ((l.lineId || l.product.id) !== keyOrId && l.product.id !== keyOrId) return l;
       const mult = Number(l.product.purchase_multiplier) || 1;
       const baseSell = Number(l.product.selling_price) || 0;
       const packSell = Number(l.product.full_pack_sell) || (mult > 1 ? Number((baseSell * mult).toFixed(2)) : baseSell);
@@ -324,17 +334,17 @@ export default function PosPage() {
     }));
   }
 
-  function setQty(id: number, qty: number) {
+  function setQty(keyOrId: string | number, qty: number) {
     setCart((c) => c.map((l) => {
-      if (l.product.id !== id) return l;
+      if ((l.lineId || l.product.id) !== keyOrId && l.product.id !== keyOrId) return l;
       const v = Number.isFinite(qty) ? qty : 0;
       return { ...l, qty: Math.max(0, Math.round(v * 1000) / 1000) };
     }));
   }
 
-  function clampQty(id: number) {
+  function clampQty(keyOrId: string | number) {
     setCart((c) => c.map((l) => {
-      if (l.product.id !== id) return l;
+      if ((l.lineId || l.product.id) !== keyOrId && l.product.id !== keyOrId) return l;
       const isBulk = l.sellMode === "bulk";
       const allowDec = !isBulk && !!l.product.unit_detail?.allow_decimal;
       const min = allowDec ? 0.01 : 1;
@@ -343,7 +353,7 @@ export default function PosPage() {
     }));
   }
 
-  function removeLine(id: number) { setCart((c) => c.filter((l) => l.product.id !== id)); }
+  function removeLine(keyOrId: string | number) { setCart((c) => c.filter((l) => (l.lineId || l.product.id) !== keyOrId && l.product.id !== keyOrId)); }
   function clearCart() { setCart([]); sessionStorage.removeItem("pos_cart"); }
 
   function flash(text: string, ok: boolean) {
@@ -541,6 +551,8 @@ export default function PosPage() {
         unit_price: l.price,
         discount: l.discount,
         unit_ids: l.selectedUnits.map((u) => u.id),
+        variation: l.selectedVariation?.id || undefined,
+        size_variant: (l.product as any)._selectedVariant || undefined,
       }));
 
       const res = await api<any>("/pos/checkout/", {
@@ -1245,9 +1257,17 @@ export default function PosPage() {
                       const packSell = Number(l.product.full_pack_sell) || (isBulk ? Number((Number(l.product.selling_price) * mult).toFixed(2)) : Number(l.product.selling_price));
                       
                       return (
-                        <tr key={l.product.id}>
+                        <tr key={l.lineId || String(l.product.id)}>
                           <td className="ps-3">
                             <div className="small fw-semibold">{l.product.name}</div>
+                            {((l.product as any)._selectedVariant || l.selectedVariation) && (
+                              <div className="d-flex align-items-center gap-1 my-0.5">
+                                <span className="badge border" style={{ fontSize: "0.72rem", background: "#f3e8ff", color: "#6b21a8", borderColor: "#d8b4fe" }}>
+                                  👗 {(l.product as any)._selectedVariant?.size || l.selectedVariation?.attributes?.size || l.selectedVariation?.name}
+                                  {((l.product as any)._selectedVariant?.color || l.selectedVariation?.attributes?.color) ? (" / " + ((l.product as any)._selectedVariant?.color || l.selectedVariation?.attributes?.color)) : ""}
+                                </span>
+                              </div>
+                            )}
                             
                             {/* Dual unit switcher pill buttons if product has purchase_multiplier > 1 */}
                             {isBulk ? (
@@ -1257,7 +1277,7 @@ export default function PosPage() {
                                     type="button"
                                     className={`btn btn-xs py-0 px-2 ${l.sellMode !== "bulk" ? "btn-brand text-white fw-bold" : "btn-outline-secondary"}`}
                                     style={{ fontSize: "0.68rem" }}
-                                    onClick={() => toggleSellMode(l.product.id, "base")}
+                                    onClick={() => toggleSellMode(l.lineId || l.product.id, "base")}
                                   >
                                     🟢 {baseUnit || "খুচরা / Loose"} (৳{Number(l.product.selling_price).toFixed(2)})
                                   </button>
@@ -1265,7 +1285,7 @@ export default function PosPage() {
                                     type="button"
                                     className={`btn btn-xs py-0 px-2 ${l.sellMode === "bulk" ? "btn-primary text-white fw-bold" : "btn-outline-secondary"}`}
                                     style={{ fontSize: "0.68rem" }}
-                                    onClick={() => toggleSellMode(l.product.id, "bulk")}
+                                    onClick={() => toggleSellMode(l.lineId || l.product.id, "bulk")}
                                   >
                                     📦 {bulkUnit || "ড্রাম / Drum"} ({mult} {baseUnit} @ ৳{packSell.toFixed(0)})
                                   </button>
@@ -1360,8 +1380,8 @@ export default function PosPage() {
                                   step={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
                                   className="form-control form-control-sm text-center"
                                   value={l.qty === 0 ? "" : l.qty}
-                                  onChange={(e) => setQty(l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
-                                  onBlur={() => clampQty(l.product.id)}
+                                  onChange={(e) => setQty(l.lineId || l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
+                                  onBlur={() => clampQty(l.lineId || l.product.id)}
                                 />
                                 <div className="text-center text-secondary small" style={{ fontSize: "0.65rem" }}>
                                   {l.sellMode === "bulk" ? bulkUnit : (l.product.unit_detail?.short_code || l.product.unit_detail?.name || "")}
@@ -1371,7 +1391,7 @@ export default function PosPage() {
                           </td>
                           <td className="text-end small fw-bold">{money(l.qty * l.price - l.discount)}</td>
                           <td className="text-end pe-2">
-                            <button className="btn btn-link btn-sm text-danger p-0" onClick={() => removeLine(l.product.id)}>✕</button>
+                            <button className="btn btn-link btn-sm text-danger p-0" onClick={() => removeLine(l.lineId || l.product.id)}>✕</button>
                           </td>
                         </tr>
                       );

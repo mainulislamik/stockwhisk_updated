@@ -19,6 +19,7 @@ type SaleItem = {
   id: number;
   product_name: string;
   product_sku: string;
+  variation_name?: string;
   quantity: string;
   unit_price: string;
   discount: string;
@@ -292,6 +293,11 @@ export default function InvoicePage() {
                     <div className="d-flex justify-content-between align-items-start">
                       <div style={{ maxWidth: "60%", wordBreak: "break-word" }}>
                         <span className="fw-bold">{idx + 1}. {item.product_name}</span>
+                        {item.variation_name && (
+                          <div className="fw-semibold" style={{ fontSize: "8pt", color: "#6b21a8" }}>
+                            👗 {item.variation_name}
+                          </div>
+                        )}
                         {item._barcode && <div className="pos-text-muted" style={{ fontSize: "7.5pt" }}>BC: {item._barcode}</div>}
                         {!!item._warranty && <div className="pos-text-muted" style={{ fontSize: "7.5pt" }}>Warranty: {item._warranty} Months</div>}
                         {!!item._guarantee && <div className="pos-text-muted" style={{ fontSize: "7.5pt" }}>Guarantee: {item._guarantee} Days</div>}
@@ -500,6 +506,11 @@ export default function InvoicePage() {
                   <td className="inv-td-center inv-row-no">{String(i + 1).padStart(2, "0")}</td>
                   <td className="inv-product-name">
                     {item.product_name}
+                    {item.variation_name && (
+                      <span style={{ marginLeft: "6px", fontSize: "0.85em", color: "#6b21a8", fontWeight: 600 }}>
+                        (👗 {item.variation_name})
+                      </span>
+                    )}
                     {!!item._warranty && <span style={{ marginLeft: "4px", fontSize: "0.85em", color: "#475569" }}>- Warranty: {item._warranty} Months</span>}
                     {!!item._guarantee && <span style={{ marginLeft: "4px", fontSize: "0.85em", color: "#0ea5e9" }}>- Guarantee: {item._guarantee} Days</span>}
                     {item._barcode && <div style={{ fontSize: "0.85em", color: "#64748b" }}>Barcode: {item._barcode}</div>}

@@ -18,6 +18,7 @@ from inventory.models import MovementType
 from inventory.services import apply_movement
 from notifications.services import alert_low_stock_realtime
 
+from catalog.models import ProductVariation
 from .models import Payment, Sale, SaleItem
 
 ZERO = Decimal("0")
@@ -138,6 +139,43 @@ def create_sale(
         qty = Decimal(row["quantity"])
         unit_price = Decimal(row.get("unit_price", product.selling_price))
         line_discount = Decimal(row.get("discount", 0))
+
+        size_variant = row.get("size_variant")
+        if not variation and size_variant and isinstance(size_variant, dict):
+            sz = str(size_variant.get("size", "")).strip()
+            col = str(size_variant.get("color", "")).strip()
+            var_sku = str(size_variant.get("sku", "")).strip()
+            if var_sku:
+                variation = ProductVariation.all_objects.filter(product=product, shop=shop, sku=var_sku).first()
+            if not variation and sz:
+                variation = ProductVariation.all_objects.filter(
+                    product=product, shop=shop,
+                    attributes__size__iexact=sz, attributes__color__iexact=col
+                ).first()
+            if not variation and sz:
+                name_match = f"{sz} / {col}" if col else sz
+                variation = ProductVariation.all_objects.filter(
+                    product=product, shop=shop, name__iexact=name_match
+                ).first()
+
+        if size_variant and isinstance(size_variant, dict) and product.size_variants:
+            sz = str(size_variant.get("size", "")).strip().lower()
+            col = str(size_variant.get("color", "")).strip().lower()
+            sv_list = list(product.size_variants)
+            updated_sv = False
+            for sv in sv_list:
+                if isinstance(sv, dict):
+                    s_match = str(sv.get("size", "")).strip().lower() == sz
+                    c_match = True if not col else (str(sv.get("color", "")).strip().lower() == col)
+                    if s_match and c_match:
+                        cur_stk = float(sv.get("stock") or 0)
+                        sv["stock"] = max(0, cur_stk - float(qty))
+                        updated_sv = True
+                        break
+            if updated_sv:
+                product.size_variants = sv_list
+                product.save(update_fields=["size_variants"])
+
         # Snapshot cost for honest COGS.
         unit_cost = Decimal(
             variation.effective_cost if variation is not None else product.cost_price

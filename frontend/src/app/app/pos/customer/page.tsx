@@ -13,17 +13,20 @@ import PrintFormatModal from "@/components/PrintFormatModal";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type CartLine = { 
+  lineId?: string;
   product: { 
     id: number; 
     name: string; 
     purchase_multiplier?: string | number; 
     unit_detail?: { id: number; name: string; short_code: string } | null;
     purchase_unit_detail?: { id: number; name: string; short_code: string } | null;
+    _selectedVariant?: any;
   }; 
   qty: number; 
   price: number; 
   discount: number; 
   selectedUnits: ProductUnit[];
+  selectedVariation?: { id: number; name: string; attributes?: any } | null;
   sellMode?: "base" | "bulk";
 };
 type Customer = { id: number; name: string; phone?: string; email?: string; address?: string; loyalty_points?: number; membership_id?: string; };
@@ -205,7 +208,9 @@ export default function PosCustomerPage() {
               quantity: effQty, 
               unit_price: effPrice, 
               discount: l.discount,
-              unit_ids: asQuotation ? [] : (l.selectedUnits ? l.selectedUnits.map(u => u.id) : [])
+              unit_ids: asQuotation ? [] : (l.selectedUnits ? l.selectedUnits.map(u => u.id) : []),
+              variation: l.selectedVariation?.id || undefined,
+              size_variant: (l.product as any)._selectedVariant || undefined,
             };
           }),
           payments: asQuotation ? [] : (finalPaid > 0 ? [{ amount: finalPaid, method }] : []),
@@ -260,9 +265,16 @@ export default function PosCustomerPage() {
                     const isBulk = l.sellMode === "bulk" && mult > 1;
                     const unitLabel = isBulk ? ((l.product as any)?.purchase_unit_detail?.name || "Drum/Pack") : ((l.product as any)?.unit_detail?.short_code || "");
                     return (
-                      <tr key={l.product.id}>
+                      <tr key={(l as any).lineId || l.product.id}>
                         <td className="ps-3">
                           <div className="fw-medium">{formatProductName(l.product, isRepairShop)}</div>
+                          {(l.product as any)._selectedVariant && (
+                            <div className="d-flex align-items-center gap-1 my-0.5">
+                              <span className="badge fw-bold border" style={{ fontSize: "0.68rem", background: "#f3e8ff", color: "#6b21a8", borderColor: "#d8b4fe" }}>
+                                👗 {(l.product as any)._selectedVariant.size} {(l.product as any)._selectedVariant.color ? "/ " + (l.product as any)._selectedVariant.color : ""}
+                              </span>
+                            </div>
+                          )}
                           {isBulk && (
                             <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
                               📦 Full {unitLabel} ({mult} {(l.product as any)?.unit_detail?.short_code || "Unit"})
