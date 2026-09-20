@@ -33,6 +33,7 @@ const SHOP_CATEGORIES = [
   { value: 'general', label: '🛒 General Retail' },
   { value: 'camical', label: '🧪 Chemical & Lab Supplies' },
   { value: 'supershop', label: '🏪 Super Shop & Grocery' },
+  { value: 'printing', label: '🖨️ Printing, Media & Online Services' },
   { value: 'other', label: '📦 Other' }
 ];
 

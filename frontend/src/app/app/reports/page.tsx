@@ -198,7 +198,7 @@ export default function ReportsPage() {
         setReports((rep as any).reports || []);
 
         // Load automated digest config
-        api.get("/notifications/alert-config/").then((cfg: any) => {
+        api("/notifications/alert-config/").then((cfg: any) => {
           if (cfg) {
             setDigestConfig({
               daily_report_enabled: cfg.daily_report_enabled ?? true,
@@ -621,7 +621,7 @@ export default function ReportsPage() {
     async function saveDigestConfig() {
     setDigestSaving(true);
     try {
-      await api.patch("/notifications/alert-config/", digestConfig);
+      await api("/notifications/alert-config/", { method: "PATCH", body: digestConfig });
       toast.success(lang === "bn" ? "রিপোর্ট সেটিংস সফলভাবে সংরক্ষিত হয়েছে!" : "Report preferences saved successfully!");
     } catch (e: any) {
       toast.error(e?.message || "Failed to save settings");
@@ -633,9 +633,12 @@ export default function ReportsPage() {
   async function sendTestDigest() {
     setTestSending(true);
     try {
-      const res: any = await api.post("/notifications/alert-config/send-test-report/", {
-        frequency: selectedFreq,
-        email: digestConfig.report_recipient_email || undefined,
+      const res: any = await api("/notifications/alert-config/send-test-report/", {
+        method: "POST",
+        body: {
+          frequency: selectedFreq,
+          email: digestConfig.report_recipient_email || undefined,
+        },
       });
       if (res?.success) {
         toast.success(
