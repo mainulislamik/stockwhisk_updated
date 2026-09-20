@@ -158,6 +158,11 @@ def create_sale(
                     product=product, shop=shop, name__iexact=name_match
                 ).first()
 
+        if not size_variant and variation and getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
+            size_variant = dict(variation.attributes)
+            if not size_variant.get("sku") and variation.sku:
+                size_variant["sku"] = variation.sku
+
         if size_variant and isinstance(size_variant, dict) and product.size_variants:
             sz = str(size_variant.get("size", "")).strip().lower()
             col = str(size_variant.get("color", "")).strip().lower()
