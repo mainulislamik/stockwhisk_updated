@@ -244,3 +244,30 @@ class SellingDetailsView(APIView):
             "previous": make_url(page_num - 1) if page_num > 1 else None,
             "results": formatted,
         })
+
+
+class DownloadDigestPdfView(APIView):
+    permission_classes = [IsTenantMember, HasPermCode]
+    required_perm = "view_reports"
+    renderer_classes = [PassthroughRenderer]
+
+    def perform_content_negotiation(self, request, force=False):
+        return (PassthroughRenderer(), "*/*")
+
+    def initial(self, request, *args, **kwargs):
+        set_current_tenant(getattr(request.user, "shop", None))
+        request.tenant = getattr(request.user, "shop", None)
+        super().initial(request, *args, **kwargs)
+
+    def get(self, request):
+        frequency = request.query_params.get("frequency", "daily")
+        shop = getattr(request.user, "shop", None)
+        from django.utils import timezone
+        from django.http import HttpResponse
+        from reports.scheduled_digest import get_shop_digest_data, build_digest_pdf
+        data = get_shop_digest_data(shop, frequency=frequency)
+        pdf_bytes = build_digest_pdf(shop, data)
+        today_str = timezone.localtime().strftime("%Y-%m-%d")
+        resp = HttpResponse(pdf_bytes, content_type="application/pdf")
+        resp["Content-Disposition"] = f'attachment; filename="StockWhisk_{frequency.title()}_Report_{today_str}.pdf"'
+        return resp

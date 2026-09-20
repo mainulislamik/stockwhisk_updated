@@ -55,6 +55,21 @@ app.conf.beat_schedule = {
         "task": "sales.tasks.send_due_date_reminders",
         "schedule": crontab(hour=9, minute=0),
     },
+    # Daily Business Health PDF & HTML digest to shop owners at 23:45 (Asia/Dhaka).
+    "send-daily-shop-reports": {
+        "task": "notifications.tasks.send_daily_shop_reports",
+        "schedule": crontab(hour=23, minute=45),
+    },
+    # Weekly Business Digest every Saturday morning at 08:00 AM (Asia/Dhaka).
+    "send-weekly-shop-reports": {
+        "task": "notifications.tasks.send_weekly_shop_reports",
+        "schedule": crontab(hour=8, minute=0, day_of_week=6),
+    },
+    # Monthly Financial Statement on the 1st of every month at 09:00 AM (Asia/Dhaka).
+    "send-monthly-shop-reports": {
+        "task": "notifications.tasks.send_monthly_shop_reports",
+        "schedule": crontab(hour=9, minute=0, day_of_month=1),
+    },
 }
 
 

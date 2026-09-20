@@ -5,7 +5,7 @@ from celery import shared_task
 from django.db.models import Sum
 
 from analytics.services import low_stock_list, out_of_stock_list
-from notifications.models import NotificationType
+from notifications.models import Notification, NotificationType
 from notifications.services import get_alert_config, notify
 from tenants.models import Shop
 

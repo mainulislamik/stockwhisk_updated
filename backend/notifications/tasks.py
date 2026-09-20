@@ -66,3 +66,76 @@ def delete_old_notifications():
     cutoff_date = timezone.now() - timedelta(days=7)
     deleted, _ = Notification.objects.filter(created_at__lt=cutoff_date).delete()
     return deleted
+
+
+import logging
+logger = logging.getLogger(__name__)
+
+@shared_task
+def send_daily_shop_reports():
+    """
+    Automated Daily Night Digest (runs at 23:45 Asia/Dhaka).
+    Dispatches business health PDF & HTML email to all active shops from noreply@stockwhisk.com.
+    """
+    from tenants.models import Shop
+    from .services import get_alert_config
+    from reports.scheduled_digest import send_shop_digest_email
+
+    sent_count = 0
+    for shop in Shop.objects.filter(is_active=True):
+        try:
+            cfg = get_alert_config(shop)
+            if not getattr(cfg, "daily_report_enabled", True):
+                continue
+            res = send_shop_digest_email(shop, frequency="daily")
+            if res.get("success"):
+                sent_count += 1
+        except Exception:
+            logger.exception("Failed sending daily digest for shop %s (%s)", shop.id, shop.name)
+    return {"daily_reports_sent": sent_count}
+
+
+@shared_task
+def send_weekly_shop_reports():
+    """
+    Automated Weekly Digest (runs every Saturday at 08:00 AM Asia/Dhaka).
+    """
+    from tenants.models import Shop
+    from .services import get_alert_config
+    from reports.scheduled_digest import send_shop_digest_email
+
+    sent_count = 0
+    for shop in Shop.objects.filter(is_active=True):
+        try:
+            cfg = get_alert_config(shop)
+            if not getattr(cfg, "weekly_report_enabled", True):
+                continue
+            res = send_shop_digest_email(shop, frequency="weekly")
+            if res.get("success"):
+                sent_count += 1
+        except Exception:
+            logger.exception("Failed sending weekly digest for shop %s (%s)", shop.id, shop.name)
+    return {"weekly_reports_sent": sent_count}
+
+
+@shared_task
+def send_monthly_shop_reports():
+    """
+    Automated Monthly Statement (runs on 1st of every month at 09:00 AM Asia/Dhaka).
+    """
+    from tenants.models import Shop
+    from .services import get_alert_config
+    from reports.scheduled_digest import send_shop_digest_email
+
+    sent_count = 0
+    for shop in Shop.objects.filter(is_active=True):
+        try:
+            cfg = get_alert_config(shop)
+            if not getattr(cfg, "monthly_report_enabled", True):
+                continue
+            res = send_shop_digest_email(shop, frequency="monthly")
+            if res.get("success"):
+                sent_count += 1
+        except Exception:
+            logger.exception("Failed sending monthly digest for shop %s (%s)", shop.id, shop.name)
+    return {"monthly_reports_sent": sent_count}

@@ -80,6 +80,23 @@ def send_html_email(to, subject, text_body, html_body):
         return False
 
 
+def send_email_with_attachment(to, subject, text_body, html_body, attachment_name, attachment_bytes, attachment_type="application/pdf"):
+    """Send an HTML email with an attached file through the platform SMTP server."""
+    if not to:
+        return False
+    connection, from_email = _platform_email()
+    try:
+        msg = EmailMultiAlternatives(subject, text_body, from_email, [to], connection=connection)
+        msg.attach_alternative(html_body, "text/html")
+        if attachment_bytes and attachment_name:
+            msg.attach(attachment_name, attachment_bytes, attachment_type)
+        sent = msg.send(fail_silently=False)
+        return bool(sent)
+    except Exception:
+        logger.exception("send_email_with_attachment failed for %s", to)
+        return False
+
+
 def send_sms(phone, body):
     """Stub. Wire Twilio here when TWILIO_* settings exist."""
     if not getattr(settings, "TWILIO_ACCOUNT_SID", ""):

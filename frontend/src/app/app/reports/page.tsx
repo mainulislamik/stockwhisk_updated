@@ -148,6 +148,24 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [invPage, setInvPage] = useState(1);
+
+  // Automated Digest Reports State
+  const [digestConfig, setDigestConfig] = useState<{
+    daily_report_enabled: boolean;
+    weekly_report_enabled: boolean;
+    monthly_report_enabled: boolean;
+    report_recipient_email: string;
+  }>({
+    daily_report_enabled: true,
+    weekly_report_enabled: true,
+    monthly_report_enabled: true,
+    report_recipient_email: "",
+  });
+  const [digestSaving, setDigestSaving] = useState(false);
+  const [testSending, setTestSending] = useState(false);
+  const [downloadingDigest, setDownloadingDigest] = useState(false);
+  const [selectedFreq, setSelectedFreq] = useState<"daily" | "weekly" | "monthly">("daily");
+  const [showDownloadMenu, setShowDownloadMenu] = useState(false);
   
   const trendChartRef = useRef<HTMLCanvasElement>(null);
   const trendChartInst = useRef<any>(null);
@@ -178,6 +196,18 @@ export default function ReportsPage() {
         setData(dash);
         setOverview(ov);
         setReports((rep as any).reports || []);
+
+        // Load automated digest config
+        api.get("/notifications/alert-config/").then((cfg: any) => {
+          if (cfg) {
+            setDigestConfig({
+              daily_report_enabled: cfg.daily_report_enabled ?? true,
+              weekly_report_enabled: cfg.weekly_report_enabled ?? true,
+              monthly_report_enabled: cfg.monthly_report_enabled ?? true,
+              report_recipient_email: cfg.report_recipient_email || "",
+            });
+          }
+        }).catch(() => {});
       } catch (e: any) {
         setError(e?.message || "Failed to load reports");
       } finally {
@@ -587,6 +617,65 @@ export default function ReportsPage() {
       topProdChartInst.current?.destroy();
     };
   }, [data]);
+
+    async function saveDigestConfig() {
+    setDigestSaving(true);
+    try {
+      await api.patch("/notifications/alert-config/", digestConfig);
+      toast.success(lang === "bn" ? "রিপোর্ট সেটিংস সফলভাবে সংরক্ষিত হয়েছে!" : "Report preferences saved successfully!");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to save settings");
+    } finally {
+      setDigestSaving(false);
+    }
+  }
+
+  async function sendTestDigest() {
+    setTestSending(true);
+    try {
+      const res: any = await api.post("/notifications/alert-config/send-test-report/", {
+        frequency: selectedFreq,
+        email: digestConfig.report_recipient_email || undefined,
+      });
+      if (res?.success) {
+        toast.success(
+          lang === "bn"
+            ? `noreply@stockwhisk.com থেকে ${selectedFreq === "daily" ? "দৈনিক" : selectedFreq === "weekly" ? "সাপ্তাহিক" : "মাসিক"} রিপোর্ট সফলভাবে পাঠানো হয়েছে!`
+            : `Report sent successfully from noreply@stockwhisk.com!`
+        );
+      } else {
+        toast.error("Could not send report email");
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to send test email");
+    } finally {
+      setTestSending(false);
+    }
+  }
+
+  async function downloadDigestPdf(freq: "daily" | "weekly" | "monthly") {
+    setDownloadingDigest(true);
+    setShowDownloadMenu(false);
+    try {
+      const res: Response = await api(`/reports/download-digest-pdf/`, {
+        params: { frequency: freq },
+        raw: true,
+      });
+      if (!res.ok) throw new Error("Could not download report PDF");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `StockWhisk_${freq.charAt(0).toUpperCase() + freq.slice(1)}_Report_${new Date().toISOString().slice(0, 10)}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast.success(lang === "bn" ? "পিডিএফ রিপোর্ট ডাউনলোড সম্পন্ন হয়েছে!" : "PDF report downloaded!");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to download PDF");
+    } finally {
+      setDownloadingDigest(false);
+    }
+  }
 
   async function download(type: string, fmt: string) {
     try {
@@ -1299,6 +1388,168 @@ export default function ReportsPage() {
               </div>
             );
           })()}
+        </div>
+      </div>
+
+      {/* Automated Email & PDF Digest Reports */}
+      <div className="card shadow-sm border-0 bg-white">
+        <div className="card-body p-4">
+          <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <div>
+              <div className="d-flex align-items-center gap-2 mb-1">
+                <span className="badge bg-primary bg-opacity-10 text-primary fs-6 px-2 py-1 rounded">
+                  <i className="bi bi-envelope-paper-fill me-1"></i>
+                  {lang === "bn" ? "স্বয়ংক্রিয় শিডিউলড রিপোর্ট" : "Automated Reports"}
+                </span>
+                <span className="badge bg-dark bg-opacity-10 text-dark font-monospace small">
+                  noreply@stockwhisk.com
+                </span>
+              </div>
+              <h3 className="h5 fw-bold text-dark mb-1">
+                {lang === "bn" ? "দোকান মালিকের দৈনিক, সাপ্তাহিক ও মাসিক বিজনেস হেলথ ডাইজেস্ট" : "Owner Scheduled Business Health & PDF Digest"}
+              </h3>
+              <p className="text-secondary small mb-0">
+                {lang === "bn"
+                  ? "আপনার দোকানের সারাদিনের মোট বিক্রি, লাভ, সেরা বিক্রিত পণ্য এবং লো-স্টক অ্যালার্টসহ পূর্ণাঙ্গ এ-৪ পিডিএফ রিপোর্ট স্বয়ংক্রিয়ভাবে ইমেইলে পাঠানো হয়।"
+                  : "Automatic A4 PDF reports & email summaries with total sales, revenue, top products, and low stock alerts delivered to shop owner."}
+              </p>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="d-flex flex-wrap align-items-center gap-2">
+              <div className="position-relative">
+                <button
+                  className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
+                  type="button"
+                  disabled={downloadingDigest}
+                  onClick={() => setShowDownloadMenu(!showDownloadMenu)}
+                >
+                  <i className="bi bi-file-earmark-pdf-fill text-danger"></i>
+                  {downloadingDigest ? (lang === "bn" ? "ডাউনলোড হচ্ছে..." : "Downloading...") : (lang === "bn" ? "পিডিএফ ডাউনলোড করুন" : "Download PDF")}
+                  <i className="bi bi-chevron-down small ms-1"></i>
+                </button>
+                {showDownloadMenu && (
+                  <div className="dropdown-menu show dropdown-menu-end shadow-sm position-absolute end-0 mt-1 py-1" style={{ zIndex: 1050, minWidth: 220 }}>
+                    <button className="dropdown-item py-2 small" onClick={() => downloadDigestPdf("daily")}>
+                      <i className="bi bi-calendar-day me-2 text-primary"></i>
+                      {lang === "bn" ? "আজকের দৈনিক রিপোর্ট (PDF)" : "Today's Daily Report (PDF)"}
+                    </button>
+                    <button className="dropdown-item py-2 small" onClick={() => downloadDigestPdf("weekly")}>
+                      <i className="bi bi-calendar-week me-2 text-info"></i>
+                      {lang === "bn" ? "সাপ্তাহিক সামারি (PDF)" : "Past 7 Days Summary (PDF)"}
+                    </button>
+                    <button className="dropdown-item py-2 small" onClick={() => downloadDigestPdf("monthly")}>
+                      <i className="bi bi-calendar-month me-2 text-success"></i>
+                      {lang === "bn" ? "মাসিক পূর্ণাঙ্গ বিবরণী (PDF)" : "Monthly Statement (PDF)"}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="d-flex align-items-center gap-1">
+                <select
+                  className="form-select form-select-sm"
+                  style={{ width: "auto" }}
+                  value={selectedFreq}
+                  onChange={(e) => setSelectedFreq(e.target.value as any)}
+                >
+                  <option value="daily">{lang === "bn" ? "দৈনিক (Daily)" : "Daily"}</option>
+                  <option value="weekly">{lang === "bn" ? "সাপ্তাহিক (Weekly)" : "Weekly"}</option>
+                  <option value="monthly">{lang === "bn" ? "মাসিক (Monthly)" : "Monthly"}</option>
+                </select>
+                <button
+                  className="btn btn-sm btn-brand d-flex align-items-center gap-1 text-nowrap"
+                  disabled={testSending}
+                  onClick={sendTestDigest}
+                >
+                  <i className="bi bi-send-fill"></i>
+                  {testSending
+                    ? (lang === "bn" ? "পাঠানো হচ্ছে..." : "Sending...")
+                    : (lang === "bn" ? "টেস্ট ইমেইল পাঠান" : "Send Test Email")}
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <hr className="my-3 text-secondary opacity-25" />
+
+          {/* Configuration Grid */}
+          <div className="row g-3 align-items-center">
+            <div className="col-12 col-md-3">
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="dailyReportToggle"
+                  checked={digestConfig.daily_report_enabled}
+                  onChange={(e) => setDigestConfig({ ...digestConfig, daily_report_enabled: e.target.checked })}
+                />
+                <label className="form-check-label fw-medium small" htmlFor="dailyReportToggle">
+                  {lang === "bn" ? "দৈনিক রিপোর্ট (রাত ১১:৪৫)" : "Daily Night Report (11:45 PM)"}
+                </label>
+              </div>
+            </div>
+
+            <div className="col-12 col-md-3">
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="weeklyReportToggle"
+                  checked={digestConfig.weekly_report_enabled}
+                  onChange={(e) => setDigestConfig({ ...digestConfig, weekly_report_enabled: e.target.checked })}
+                />
+                <label className="form-check-label fw-medium small" htmlFor="weeklyReportToggle">
+                  {lang === "bn" ? "সাপ্তাহিক রিপোর্ট (শনি সকাল ৮:০০)" : "Weekly Report (Sat 8:00 AM)"}
+                </label>
+              </div>
+            </div>
+
+            <div className="col-12 col-md-3">
+              <div className="form-check form-switch">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  role="switch"
+                  id="monthlyReportToggle"
+                  checked={digestConfig.monthly_report_enabled}
+                  onChange={(e) => setDigestConfig({ ...digestConfig, monthly_report_enabled: e.target.checked })}
+                />
+                <label className="form-check-label fw-medium small" htmlFor="monthlyReportToggle">
+                  {lang === "bn" ? "মাসিক স্টেটমেন্ট (১ তারিখ সকাল ৯:০০)" : "Monthly Statement (1st 9:00 AM)"}
+                </label>
+              </div>
+            </div>
+
+            <div className="col-12 col-md-3 text-md-end">
+              <button
+                className="btn btn-sm btn-outline-dark px-3"
+                disabled={digestSaving}
+                onClick={saveDigestConfig}
+              >
+                <i className="bi bi-check2 me-1"></i>
+                {digestSaving ? (lang === "bn" ? "সংরক্ষণ হচ্ছে..." : "Saving...") : (lang === "bn" ? "সেটিংস সংরক্ষণ" : "Save Preferences")}
+              </button>
+            </div>
+
+            <div className="col-12">
+              <div className="input-group input-group-sm">
+                <span className="input-group-text bg-light text-secondary">
+                  <i className="bi bi-envelope me-1"></i>
+                  {lang === "bn" ? "অতিরিক্ত ইমেইল (ঐচ্ছিক)" : "Additional Recipient Email (Optional)"}
+                </span>
+                <input
+                  type="email"
+                  className="form-control"
+                  placeholder="manager@example.com (মালিকের মূল ইমেইল ছাড়াও অতিরিক্ত কাউকে পাঠাতে চাইলে)"
+                  value={digestConfig.report_recipient_email}
+                  onChange={(e) => setDigestConfig({ ...digestConfig, report_recipient_email: e.target.value })}
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 

@@ -48,6 +48,10 @@ class ShopAlertConfig(TenantScopedModel):
     email_enabled = models.BooleanField(default=True)
     sms_enabled = models.BooleanField(default=False)
     whatsapp_enabled = models.BooleanField(default=False)
+    daily_report_enabled = models.BooleanField(default=True)
+    weekly_report_enabled = models.BooleanField(default=True)
+    monthly_report_enabled = models.BooleanField(default=True)
+    report_recipient_email = models.CharField(max_length=255, blank=True)
 
     class Meta:
         constraints = [

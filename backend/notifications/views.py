@@ -77,7 +77,7 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, mixins.DestroyModelMix
 class AlertConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShopAlertConfig
-        fields = ["low_stock_enabled", "mode", "email_enabled", "sms_enabled", "whatsapp_enabled"]
+        fields = ["low_stock_enabled", "mode", "email_enabled", "sms_enabled", "whatsapp_enabled", "daily_report_enabled", "weekly_report_enabled", "monthly_report_enabled", "report_recipient_email"]
 
 
 class AlertConfigView(_Scoped, APIView):
@@ -162,3 +162,15 @@ class WhatsAppWebhookView(APIView):
         import logging
         logging.getLogger("notifications.whatsapp").info("Webhook event: %s", request.data)
         return Response({"received": True})
+
+
+class SendTestReportView(_Scoped, APIView):
+    permission_classes = [IsTenantMember]
+
+    def post(self, request):
+        frequency = request.data.get("frequency", "daily")
+        email = request.data.get("email") or request.user.email
+        shop = getattr(request.user, "shop", None)
+        from reports.scheduled_digest import send_shop_digest_email
+        res = send_shop_digest_email(shop, frequency=frequency, target_email=email)
+        return Response(res)
