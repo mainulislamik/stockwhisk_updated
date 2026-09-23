@@ -235,7 +235,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
           fit_type: '',
           collection_name: '',
           care_instructions: '',
-          size_variants: isFashionShop ? [{ size: 'M', color: '', stock: 0 }] : [],
+          size_variants: [],
         });
       }
     }

@@ -922,6 +922,24 @@ export default function ProductsScreen() {
                           </View>
                         </View>
                       </View>
+
+                      {/* Fashion Size & Color Variant Pills */}
+                      {Array.isArray((product as any).size_variants) && (product as any).size_variants.length > 0 && (
+                        <View style={{ marginTop: 8, paddingTop: 4, borderTopWidth: 1, borderTopColor: isDarkMode ? '#334155' : '#f1f5f9' }}>
+                          <Text style={{ fontSize: 10, color: isDarkMode ? '#a5b4fc' : '#6366f1', fontWeight: 'bold', marginBottom: 4 }}>
+                            {isBN ? '👗 সাইজ ও স্টক ভেরিয়েন্ট:' : '👗 Size & Stock Variants:'}
+                          </Text>
+                          <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 4 }}>
+                            {(product as any).size_variants.map((sv: any, sidx: number) => (
+                              <View key={sidx} style={{ backgroundColor: isDarkMode ? '#1e1b4b' : '#f3e8ff', borderWidth: 1, borderColor: isDarkMode ? '#4338ca' : '#ddd6fe', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 12 }}>
+                                <Text style={{ fontSize: 10, fontWeight: 'bold', color: isDarkMode ? '#c084fc' : '#7c3aed' }}>
+                                  {sv.size || 'STD'}{sv.color ? ` (${sv.color})` : ''} · {sv.stock ?? 0} {isBN ? 'পিস' : 'pcs'}
+                                </Text>
+                              </View>
+                            ))}
+                          </View>
+                        </View>
+                      )}
                     </Card.Content>
                   </Card>
                 );
