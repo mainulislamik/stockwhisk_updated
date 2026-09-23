@@ -1,0 +1,3 @@
+mail._domainkey	IN	TXT	( "v=DKIM1; h=sha256; k=rsa; "
+	  "p=MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAwIkcF0RdrFn+68xBxMPeSg7wnwhgxtIwJy6U/GNmxQvhYLnPNkEsscVCrvB4lxCtY5hxxKVB4XRhxMWG54OdCAqIc7UEWAkuWZDx8ef1Ul2vBQNRPPAtJT9zE48yAv0MOSKhe0thQBZExfQj/AfGb0ETqFZMvL39daiOQMqgLUJU2+FCNJIe9p/FppdV4T/VbLRALsN+CxW3sQ"
+	  "UgjQvfaX1F45rb123DsJIk0fXMujc5fBuEQ8fgokfZOZcQg3R06uhRxK5bcjuhTSkklifmeIBEvt2eLSBGsOf4IP77rI+ghJvjaP1a605uYy6wUEU8ExOkMK68CcRJ/mpp3yZhtwIDAQAB" )  ; ----- DKIM key mail for stockwhisk.com

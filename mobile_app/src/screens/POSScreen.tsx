@@ -1085,28 +1085,48 @@ export default function POSScreen() {
                           cur.count += 1;
                           sizeMap.set(size, cur);
                         });
+                        const hasVariations = sizeMap.size > 0;
                         return (
                           <Surface key={p.id} style={{ padding: 12, borderRadius: 12, marginBottom: 8, backgroundColor: theme.colors.surface, elevation: 2 }}>
-                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 }}>
-                              <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface, flex: 1 }} numberOfLines={2}>{formatProductName(p, isRepairShop)}</Text>
+                            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                              <Text style={{ fontWeight: 'bold', color: theme.colors.onSurface, flex: 1, marginRight: 8 }} numberOfLines={2}>{formatProductName(p, isRepairShop)}</Text>
                               <Text style={{ fontWeight: 'bold', color: theme.colors.primary }}>৳{p.selling_price}</Text>
                             </View>
-                            <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 6 }}>
-                              {isBN ? 'সাইজে ট্যাপ করুন:' : 'Tap a size:'}
-                            </Text>
-                            <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-                              {Array.from(sizeMap.entries()).map(([sz, data]) => (
+
+                            {hasVariations ? (
+                              <>
+                                <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : 'gray', marginBottom: 6 }}>
+                                  {isBN ? 'সাইজে ট্যাপ করুন:' : 'Tap a size:'}
+                                </Text>
+                                <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
+                                  {Array.from(sizeMap.entries()).map(([sz, data]) => (
+                                    <TouchableOpacity
+                                      key={sz}
+                                      onPress={() => { setFashionProduct(p); setFashionSize(sz); }}
+                                      style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, backgroundColor: data.stock <= 0 ? (isDarkMode ? '#1e293b' : '#f1f5f9') : '#f3e8ff', borderWidth: 1, borderColor: '#ddd6fe', marginRight: 6, marginBottom: 6, opacity: data.stock <= 0 ? 0.5 : 1 }}
+                                    >
+                                      <Text style={{ fontSize: 11, fontWeight: 'bold', color: data.stock <= 0 ? '#94a3b8' : '#7c3aed' }}>
+                                        {sz} · {data.stock} {isBN ? 'পিস' : 'pcs'}
+                                      </Text>
+                                    </TouchableOpacity>
+                                  ))}
+                                </View>
+                              </>
+                            ) : (
+                              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                                <Text style={{ fontSize: 11, color: isDarkMode ? '#94a3b8' : 'gray' }}>
+                                  {isBN ? 'স্টক:' : 'Stock:'} <Text style={{ fontWeight: 'bold', color: Number(p.current_stock || 0) > 0 ? '#10b981' : '#ef4444' }}>{p.current_stock || 0} {isBN ? 'পিস' : 'pcs'}</Text>
+                                </Text>
                                 <TouchableOpacity
-                                  key={sz}
-                                  onPress={() => { setFashionProduct(p); setFashionSize(sz); }}
-                                  style={{ paddingHorizontal: 10, paddingVertical: 5, borderRadius: 16, backgroundColor: data.stock <= 0 ? (isDarkMode ? '#1e293b' : '#f1f5f9') : '#f3e8ff', borderWidth: 1, borderColor: '#ddd6fe', marginRight: 6, marginBottom: 6, opacity: data.stock <= 0 ? 0.5 : 1 }}
+                                  onPress={() => addToCart(p, [])}
+                                  style={{ paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8, backgroundColor: theme.colors.primary }}
                                 >
-                                  <Text style={{ fontSize: 11, fontWeight: 'bold', color: data.stock <= 0 ? '#94a3b8' : '#7c3aed' }}>
-                                    {sz} · {data.stock} {isBN ? 'পিস' : 'pcs'}
+                                  <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#fff' }}>
+                                    + {isBN ? 'কার্টে যোগ করুন' : 'Add to Cart'}
                                   </Text>
                                 </TouchableOpacity>
-                              ))}
-                            </View>
+                              </View>
+                            )}
                           </Surface>
                         );
                       })}

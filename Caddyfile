@@ -61,6 +61,13 @@ app.stockwhisk.com {
 trycalc.net, www.trycalc.net {
 	encode gzip zstd
 
+	log {
+		output file /data/trycalc_access.log {
+			roll_size 10MiB
+			roll_keep 5
+		}
+	}
+
 	@backend path /api/* /admin/*
 	handle @backend {
 		reverse_proxy 172.17.0.1:8088
