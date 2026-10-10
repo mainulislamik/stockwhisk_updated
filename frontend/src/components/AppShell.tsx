@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import Nav from "@/components/Nav";
 import UniversalSearch from "@/components/UniversalSearch";
@@ -17,10 +17,11 @@ import { useBranding } from "@/lib/branding";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
-  const { user, loading, logout, billing, can, isOwner } = useAuth();
+  const { user, loading, logout, billing, can, isOwner, hasModule } = useAuth();
   const { t, lang } = useLanguage();
   const branding = useBranding();
   const router = useRouter();
+  const pathname = usePathname();
   const [collapsed, setCollapsed] = useState(false);
   const [openGroup, setOpenGroup] = useState("products");
   const [mounted, setMounted] = useState(false);
@@ -29,18 +30,33 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   const [showPlan, setShowPlan] = useState(false);
   const [showQuick, setShowQuick] = useState(false);
 
-  // Core shortcuts shown in the Quick Access menu (permission-aware).
+  useEffect(() => {
+    if (pathname.startsWith("/app/integrations")) setOpenGroup("integrations");
+    else if (pathname.startsWith("/app/products") || pathname.startsWith("/app/barcodes") || pathname.startsWith("/app/inventory")) setOpenGroup("products");
+    else if (pathname.startsWith("/app/sales") || pathname.startsWith("/app/customers") || pathname.startsWith("/app/dues") || pathname.startsWith("/app/emi")) setOpenGroup("sales");
+    else if (pathname.startsWith("/app/purchases") || pathname.startsWith("/app/suppliers")) setOpenGroup("purchases");
+    else if (pathname.startsWith("/app/manufacturing")) setOpenGroup("manufacturing");
+    else if (pathname.startsWith("/app/service")) setOpenGroup("service");
+    else if (pathname.startsWith("/app/reports")) setOpenGroup("reports");
+    else if (pathname.startsWith("/app/accounting") || pathname.startsWith("/app/expenses")) setOpenGroup("finance");
+    else if (pathname.startsWith("/app/settings") || pathname.startsWith("/app/users") || pathname.startsWith("/app/notifications") || pathname.startsWith("/app/tutorials") || pathname.startsWith("/app/backups")) setOpenGroup("admin");
+  }, [pathname]);
+
+  // Core shortcuts shown in the Quick Access menu (permission-aware and module-aware).
   const QUICK_ITEMS = [
-    { href: "/app/pos", icon: "bi-cart-plus-fill", label: t("nav_new_sale"), color: "#2563eb", perms: ["create_sale"] },
-    { href: "/app/products", icon: "bi-box-seam-fill", label: t("nav_products"), color: "#7c3aed", perms: ["view_products"] },
-    { href: "/app/inventory", icon: "bi-boxes", label: t("nav_inventory"), color: "#0891b2", perms: ["view_inventory"] },
-    { href: "/app/sales", icon: "bi-receipt", label: t("nav_invoices"), color: "#059669", perms: ["view_sales"] },
-    { href: "/app/customers", icon: "bi-people-fill", label: t("nav_customers"), color: "#d97706", perms: ["view_customers", "manage_customers"] },
-    { href: "/app/dues", icon: "bi-cash-coin", label: t("nav_dues"), color: "#e11d48", perms: ["view_customers", "manage_customers"] },
-    { href: "/app/reports", icon: "bi-graph-up-arrow", label: t("nav_reports"), color: "#0ea5e9", perms: ["view_reports"] },
-    { href: "/app/service/tickets", icon: "bi-wrench-adjustable", label: t("nav_service"), color: "#9333ea", perms: ["view_service", "manage_service"] },
+    { href: "/app/pos", icon: "bi-cart-plus-fill", label: t("nav_new_sale"), color: "#2563eb", perms: ["create_sale"], module: "core_pos" },
+    { href: "/app/products", icon: "bi-box-seam-fill", label: t("nav_products"), color: "#7c3aed", perms: ["view_products"], module: "inventory_basic" },
+    { href: "/app/inventory", icon: "bi-boxes", label: t("nav_inventory"), color: "#0891b2", perms: ["view_inventory"], module: "inventory_basic" },
+    { href: "/app/sales", icon: "bi-receipt", label: t("nav_invoices"), color: "#059669", perms: ["view_sales"], module: "sales_crm" },
+    { href: "/app/customers", icon: "bi-people-fill", label: t("nav_customers"), color: "#d97706", perms: ["view_customers", "manage_customers"], module: "sales_crm" },
+    { href: "/app/dues", icon: "bi-cash-coin", label: t("nav_dues"), color: "#e11d48", perms: ["view_customers", "manage_customers"], module: "sales_crm" },
+    { href: "/app/purchases", icon: "bi-box-arrow-in-down", label: lang === "bn" ? "ক্রয় ইনভয়েস" : (t("nav_purchases") || "Purchases"), color: "#0d9488", perms: ["manage_purchasing"], module: "purchasing" },
+    { href: "/app/expenses", icon: "bi-cash-stack", label: lang === "bn" ? "খরচ খাতা" : (t("nav_expenses") || "Expenses"), color: "#dc2626", perms: ["manage_expenses"], module: "expense_management" },
+    { href: "/app/integrations", icon: "bi-diagram-3-fill", label: lang === "bn" ? "ই-কমার্স ও কুরিয়ার" : (t("nav_integrations") || "Integrations"), color: "#6366f1", perms: ["view_integrations", "manage_integrations"], module: "integrations" },
+    { href: "/app/reports", icon: "bi-graph-up-arrow", label: t("nav_reports"), color: "#0ea5e9", perms: ["view_reports"], module: "reports_export" },
+    { href: "/app/service/tickets", icon: "bi-wrench-adjustable", label: t("nav_service"), color: "#9333ea", perms: ["view_service", "manage_service"], module: "service_repair" },
   ];
-  const quickItems = QUICK_ITEMS.filter((q) => isOwner || q.perms.some((p) => can(p)));
+  const quickItems = QUICK_ITEMS.filter((q) => (isOwner || q.perms.some((p) => can(p))) && (!q.module || hasModule(q.module)));
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Quick Access: portal dropdown anchored under its icon. Hover or click opens

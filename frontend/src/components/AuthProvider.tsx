@@ -29,6 +29,7 @@ export type User = {
   shop_finance_enabled?: boolean;
   shop_manufacturing_enabled?: boolean;
   shop_mobile_repair_enabled?: boolean;
+  shop_modules?: Record<string, boolean>;
   branch: number | null;
   is_staff: boolean;
   is_reseller?: boolean;
@@ -53,6 +54,7 @@ type AuthState = {
   loading: boolean;
   isOwner: boolean;
   can: (perm: string) => boolean;
+  hasModule: (moduleKey: string) => boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
   reload: () => Promise<void>;
@@ -146,8 +148,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [isOwner, perms]
   );
 
+  const hasModule = useCallback(
+    (moduleKey: string): boolean => {
+      if (!user) return false;
+      // In shop application (/app/*), enforce real shop modular entitlements.
+      // Platform staff bypass only applies when user has no shop attached (platform-only admin).
+      if (user.is_staff && !user.shop) return true;
+
+      // Handle comma-separated alternatives (e.g. "finance_accounting,expense_management")
+      if (moduleKey.includes(",")) {
+        const keys = moduleKey.split(",").map((k) => k.trim());
+        return keys.some((k) => hasModule(k));
+      }
+
+      // If shop_modules dictionary is returned from backend, strictly resolve boolean
+      if (user.shop_modules && typeof user.shop_modules === "object") {
+        if (moduleKey in user.shop_modules) {
+          return Boolean(user.shop_modules[moduleKey]);
+        }
+      }
+
+      // Fallback backward compatibility for legacy boolean flags
+      if (moduleKey === "manufacturing") return !!user.shop_manufacturing_enabled;
+      if (moduleKey === "mobile_repair_pos") return !!user.shop_mobile_repair_enabled;
+      if (moduleKey === "service_repair") return !!user.shop_service_enabled;
+      if (moduleKey === "finance_accounting") return !!user.shop_finance_enabled;
+      if (moduleKey === "reports_export") return !!user.shop_reports_enabled;
+
+      // Safe default: If not defined, fallback to false for add-on modules, true for core POS
+      if (moduleKey === "core_pos" || moduleKey === "inventory_basic" || moduleKey === "sales_crm") {
+        return true;
+      }
+      return false;
+    },
+    [user]
+  );
+
   return (
-    <Ctx.Provider value={{ user, perms, billing, loading, isOwner, can, login, logout, reload: loadProfile }}>
+    <Ctx.Provider value={{ user, perms, billing, loading, isOwner, can, hasModule, login, logout, reload: loadProfile }}>
       {children}
     </Ctx.Provider>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { api, unwrap } from "@/lib/api";
 import { ErrorState, Spinner } from "@/components/ui";
@@ -60,6 +60,12 @@ export default function ProductEditPage() {
   const [newCollection, setNewCollection] = useState("");
   const [newCare, setNewCare] = useState("");
   const [pricingMode, setPricingMode] = useState<'regular' | 'bulk'>('regular');
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [existingImage, setExistingImage] = useState<string | null>(null);
+  const [removeImageFlag, setRemoveImageFlag] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   const bulkActive = isSpecialShop && Number(form?.purchase_multiplier || 1) > 1 && pricingMode === "bulk";
 
@@ -87,6 +93,7 @@ export default function ProductEditPage() {
         p.purchase_unit = p.purchase_unit ? String(p.purchase_unit) : "";
         p.purchase_multiplier = p.purchase_multiplier ? String(p.purchase_multiplier) : "1";
         setForm(p);
+        setExistingImage(p?.image_url || p?.image || null);
         setCategories(unwrap<Named>(c));
         setBrands(unwrap<Named>(b));
         setUnits(unwrap<UnitT>(u));
@@ -136,6 +143,24 @@ export default function ProductEditPage() {
           track_inventory: form.track_inventory !== false,
         },
       });
+
+      if (removeImageFlag && !imageFile) {
+        try {
+          await api(`/catalog/products/${id}/remove_image/`, { method: "DELETE" });
+        } catch (_) {}
+      } else if (imageFile) {
+        try {
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          await api(`/catalog/products/${id}/upload_image/`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (imgErr: any) {
+          toast.error(lang === "bn" ? "ছবি আপলোড ব্যর্থ হয়েছে" : "Image upload failed: " + (imgErr?.message || ""));
+        }
+      }
+
       toast.success(lang === "bn" ? "প্রোডাক্ট সফলভাবে আপডেট হয়েছে" : "Product updated successfully");
       router.push(`/app/products/${id}`);
 
@@ -701,6 +726,132 @@ export default function ProductEditPage() {
                 </div>
               </div>
             )}
+
+            <div className="col-12">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="d-none"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    if (!file.type.startsWith("image/")) {
+                      toast.error(lang === "bn" ? "শুধুমাত্র ইমেজ ফাইল সিলেক্ট করুন" : "Please select an image file");
+                      return;
+                    }
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    setRemoveImageFlag(false);
+                  }
+                }}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsDragging(true);
+                }}
+                onDragLeave={() => setIsDragging(false)}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsDragging(false);
+                  const file = e.dataTransfer.files?.[0];
+                  if (file) {
+                    if (!file.type.startsWith("image/")) {
+                      toast.error(lang === "bn" ? "শুধুমাত্র ইমেজ ফাইল সিলেক্ট করুন" : "Please select an image file");
+                      return;
+                    }
+                    setImageFile(file);
+                    setImagePreview(URL.createObjectURL(file));
+                    setRemoveImageFlag(false);
+                  }
+                }}
+                className={`card p-3 rounded-3 border-2 border-dashed cursor-pointer transition-all ${
+                  isDragging
+                    ? "border-primary bg-primary bg-opacity-10 shadow-sm"
+                    : "border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-primary shadow-xs"
+                }`}
+                style={{ cursor: "pointer", transition: "all 0.2s ease-in-out" }}
+              >
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                  <div className="d-flex align-items-center gap-3">
+                    {imagePreview || (existingImage && !removeImageFlag) ? (
+                      <div className="position-relative" onClick={(e) => e.stopPropagation()}>
+                        <img
+                          src={imagePreview || existingImage || ""}
+                          alt="Product"
+                          className="rounded-3 border border-slate-300 shadow-xs object-cover"
+                          style={{ width: 72, height: 72, objectFit: "cover" }}
+                        />
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setImageFile(null);
+                            setImagePreview(null);
+                            setRemoveImageFlag(true);
+                            if (fileInputRef.current) fileInputRef.current.value = "";
+                          }}
+                          className="btn btn-danger btn-sm position-absolute top-0 end-0 p-0 rounded-circle d-flex align-items-center justify-content-center shadow-xs"
+                          style={{ width: 22, height: 22, transform: "translate(30%, -30%)" }}
+                          title="Remove picture"
+                        >
+                          ×
+                        </button>
+                      </div>
+                    ) : (
+                      <div
+                        className="rounded-3 border border-dashed border-primary border-opacity-50 bg-white d-flex flex-column align-items-center justify-content-center text-primary shadow-2xs"
+                        style={{ width: 72, height: 72 }}
+                      >
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="8.5" cy="8.5" r="1.5"/>
+                          <polyline points="21 15 16 10 5 21"/>
+                        </svg>
+                      </div>
+                    )}
+                    <div>
+                      <div className="fw-semibold text-slate-800 small mb-0.5 d-flex align-items-center gap-1.5">
+                        <span>{lang === "bn" ? "প্রোডাক্টের ছবি আপলোড করুন" : "Upload Product Picture"}</span>
+                        <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20" style={{ fontSize: "11px" }}>
+                          Auto WebP &lt;80KB
+                        </span>
+                      </div>
+                      <div className="text-secondary small">
+                        {lang === "bn"
+                          ? "সম্পূর্ণ সেকশনে ক্লিক করুন অথবা ইমেজ ড্র্যাগ অ্যান্ড ড্রপ করুন (ক্যাশিয়ারের সুবিধার্থে অতি দ্রুত লোড হবে)।"
+                          : "Click anywhere or drag & drop image here for instant POS card loading."}
+                      </div>
+                      {removeImageFlag && !imageFile && (
+                        <span className="badge bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25 mt-1">
+                          {lang === "bn" ? "ছবি মুছে ফেলা হবে (সংরক্ষণ করলে)" : "Will be removed on save"}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div>
+                    <button
+                      type="button"
+                      className="btn btn-primary btn-sm px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        fileInputRef.current?.click();
+                      }}
+                    >
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                        <polyline points="17 8 12 3 7 8"/>
+                        <line x1="12" y1="3" x2="12" y2="15"/>
+                      </svg>
+                      <span>{imageFile || (existingImage && !removeImageFlag) ? (lang === "bn" ? "ছবি পরিবর্তন করুন" : "Change Picture") : (lang === "bn" ? "ছবি আপলোড করুন" : "Upload Picture")}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="col-12 d-flex gap-2">
               <button className="btn btn-brand btn-sm" disabled={saving}>
                 {saving ? t("pe_btn_saving") : t("pe_btn_save")}

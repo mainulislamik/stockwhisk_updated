@@ -17,10 +17,11 @@ class CustomerViewSet(TenantScopedViewSet):
     # need manage_customers.
     required_perm = "view_customers"
     required_write_perm = "manage_customers"
+    required_module = "sales_crm"
 
     def get_queryset(self):
         qs = Customer.objects.all()
-        params = self.request.query_params
+        params = getattr(self.request, "query_params", getattr(self.request, "GET", {}))
         if segment := params.get("segment"):
             qs = qs.filter(segment=segment)
         if params.get("with_due") in {"1", "true"}:
@@ -29,6 +30,24 @@ class CustomerViewSet(TenantScopedViewSet):
             from django.db.models import Q
             qs = qs.filter(Q(name__icontains=search) | Q(phone__icontains=search))
         return qs
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export_customers(self, request):
+        from core.export_utils import generate_csv_response
+        headers = ["ID", "গ্রাহকের নাম / Name", "মোবাইল / Phone", "ঠিকানা / Address", "সেগমেন্ট", "বকেয়া / Due", "অগ্রিম ব্যালেন্স / Advance", "মোট কেনাকাটা / Total Purchased"]
+        rows = []
+        for c in self.get_queryset():
+            rows.append([
+                c.id,
+                c.name,
+                c.phone or "—",
+                c.address or "—",
+                c.segment or "general",
+                c.due_balance,
+                c.advance_balance,
+                c.total_purchased,
+            ])
+        return generate_csv_response("customers_export.csv", headers, rows)
 
     def create(self, request, *args, **kwargs):
         phone = request.data.get("phone", "").strip()
@@ -113,24 +132,78 @@ class CustomerViewSet(TenantScopedViewSet):
 
     @action(detail=True, methods=["get"], url_path="statement")
     def statement(self, request, pk=None):
-        """Chronological ledger statement of sales and dues for this customer."""
+        """Chronological ledger statement of sales and payments for this customer with running balance."""
         customer = self.get_object()
         from sales.models import Sale
+        from .models import CustomerPayment
+        import dateutil.parser
 
-        sales = Sale.objects.filter(customer=customer).order_by("-sale_date")
-        sales_data = [
-            {
-                "type": "SALE",
+        from_date = request.query_params.get("from_date")
+        to_date = request.query_params.get("to_date")
+
+        sales_qs = Sale.objects.filter(customer=customer)
+        payments_qs = CustomerPayment.objects.filter(customer=customer)
+
+        if from_date:
+            try:
+                dt_from = dateutil.parser.parse(from_date)
+                sales_qs = sales_qs.filter(sale_date__gte=dt_from)
+                payments_qs = payments_qs.filter(payment_date__gte=dt_from)
+            except Exception:
+                pass
+        if to_date:
+            try:
+                dt_to = dateutil.parser.parse(to_date)
+                sales_qs = sales_qs.filter(sale_date__lte=dt_to)
+                payments_qs = payments_qs.filter(payment_date__lte=dt_to)
+            except Exception:
+                pass
+
+        entries = []
+        for s in sales_qs:
+            entries.append({
+                "type": "INVOICE",
                 "id": s.id,
-                "invoice_no": s.invoice_no,
+                "ref_no": s.invoice_no,
                 "date": s.sale_date,
-                "total": s.total,
-                "paid": s.paid,
-                "due": s.due,
-            }
-            for s in sales
-        ]
+                "description": f"Invoice #{s.invoice_no} ({s.status})",
+                "debit": float(s.total or 0),
+                "credit": float(s.paid or 0),
+                "due": float(s.due or 0),
+            })
+
+        for p in payments_qs:
+            entries.append({
+                "type": "PAYMENT",
+                "id": p.id,
+                "ref_no": f"PAY-{p.id}",
+                "date": p.payment_date,
+                "description": f"Due Payment ({p.get_method_display()}) {p.note}".strip(),
+                "debit": 0.0,
+                "credit": float(p.amount or 0),
+                "due": 0.0,
+            })
+
+        # Sort chronologically
+        entries.sort(key=lambda x: x["date"])
+
+        # Calculate running balance
+        running_due = 0.0
+        for item in entries:
+            # Sale increases due by (total - paid); direct payment decreases due by amount
+            if item["type"] == "INVOICE":
+                running_due += (item["debit"] - item["credit"])
+            elif item["type"] == "PAYMENT":
+                running_due -= item["credit"]
+            item["running_balance"] = round(running_due, 2)
+
         return Response({
             "customer": self.get_serializer(customer).data,
-            "transactions": sales_data,
+            "summary": {
+                "total_purchased": float(customer.total_purchased or 0),
+                "current_due": float(customer.due_balance or 0),
+                "advance_balance": float(customer.advance_balance or 0),
+                "total_transactions": len(entries),
+            },
+            "transactions": entries,
         })

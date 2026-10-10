@@ -58,6 +58,7 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     # To support both, we keep owner_name for writing, and add a read-only field for the UI.
     owner_full_name = serializers.SerializerMethodField()
     subscription_info = serializers.SerializerMethodField()
+    modules = serializers.SerializerMethodField()
 
     shop_code = serializers.CharField(read_only=True, default=None)
 
@@ -67,9 +68,13 @@ class ShopAdminSerializer(serializers.ModelSerializer):
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
             "plan", "plan_tier", "is_active", "is_test", "is_demo", "is_free", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
-            "created_at", "owner_name", "owner_password", "subscription_info", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled"
+            "created_at", "owner_name", "owner_password", "subscription_info", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled", "modules"
         ]
         read_only_fields = ["id", "slug", "created_at", "suspended_at", "is_free"]
+
+    def get_modules(self, obj):
+        from tenants.modules import get_shop_modules
+        return get_shop_modules(obj)
 
     def get_owner_email(self, obj):
         owner = User.objects.filter(shop_id=obj.id, role=RoleType.OWNER).first()
@@ -537,6 +542,96 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
             "refresh": str(refresh),
             "shop_name": shop.name,
             "owner_email": owner.email,
+        })
+
+    @action(detail=True, methods=["get", "patch"], url_path="modules")
+    def modules(self, request, pk=None):
+        shop = self.get_object()
+        from tenants.modules import (
+            MODULE_CATALOG,
+            MODULE_DICT,
+            PRESET_PACKAGES,
+            get_shop_modules,
+        )
+        if request.method == "GET":
+            return Response({
+                "shop_id": shop.id,
+                "shop_name": shop.name,
+                "catalog": MODULE_CATALOG,
+                "presets": PRESET_PACKAGES,
+                "modules": get_shop_modules(shop),
+                "custom_overrides": shop.modules or {},
+            })
+        elif request.method == "PATCH":
+            incoming = request.data.get("modules")
+            if not isinstance(incoming, dict):
+                return Response({"detail": "Expected 'modules' dict"}, status=status.HTTP_400_BAD_REQUEST)
+            current = dict(shop.modules or {})
+            for k, v in incoming.items():
+                if k in MODULE_DICT:
+                    current[k] = bool(v)
+            shop.modules = current
+            # Sync legacy flags
+            if "manufacturing" in incoming:
+                shop.manufacturing_enabled = bool(incoming["manufacturing"])
+            if "mobile_repair_pos" in incoming:
+                val = bool(incoming["mobile_repair_pos"])
+                shop.mobile_repair_master_enabled = val
+                shop.mobile_repair_enabled = val
+            if "service_repair" in incoming:
+                shop.service_enabled = bool(incoming["service_repair"])
+            if "finance_accounting" in incoming:
+                shop.finance_enabled = bool(incoming["finance_accounting"])
+            if "reports_export" in incoming:
+                shop.reports_enabled = bool(incoming["reports_export"])
+            if "whatsapp_crm" in incoming:
+                shop.whatsapp_invoice_enabled = bool(incoming["whatsapp_crm"])
+            if "emi_installments" in incoming:
+                shop.emi_enabled = bool(incoming["emi_installments"])
+            if "delivery_tracking" in incoming:
+                shop.delivery_enabled = bool(incoming["delivery_tracking"])
+            shop.save()
+            record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
+                   description=f"Updated modular entitlements for shop '{shop.name}'")
+            return Response({
+                "success": True,
+                "modules": get_shop_modules(shop),
+                "custom_overrides": shop.modules,
+            })
+
+    @action(detail=True, methods=["post"], url_path="apply-preset")
+    def apply_preset(self, request, pk=None):
+        shop = self.get_object()
+        preset_key = request.data.get("preset")
+        from tenants.modules import (
+            MODULE_CATALOG,
+            PRESET_PACKAGES,
+            get_shop_modules,
+        )
+        if preset_key not in PRESET_PACKAGES:
+            return Response({"detail": f"Invalid preset '{preset_key}'"}, status=status.HTTP_400_BAD_REQUEST)
+        preset = PRESET_PACKAGES[preset_key]
+        target_keys = set(preset["modules"])
+        new_modules = {m["key"]: (m["key"] in target_keys) for m in MODULE_CATALOG}
+        shop.modules = new_modules
+        # Sync legacy flags
+        shop.manufacturing_enabled = "manufacturing" in target_keys
+        shop.mobile_repair_master_enabled = "mobile_repair_pos" in target_keys
+        shop.mobile_repair_enabled = "mobile_repair_pos" in target_keys
+        shop.service_enabled = "service_repair" in target_keys
+        shop.finance_enabled = "finance_accounting" in target_keys
+        shop.reports_enabled = "reports_export" in target_keys
+        shop.whatsapp_invoice_enabled = "whatsapp_crm" in target_keys
+        shop.emi_enabled = "emi_installments" in target_keys
+        shop.delivery_enabled = "delivery_tracking" in target_keys
+        shop.save()
+        record(action=AuditLog.Action.UPDATE, actor=request.user, shop=shop, target=shop,
+               description=f"Applied modular preset '{preset['name']}' to shop '{shop.name}'")
+        return Response({
+            "success": True,
+            "preset_applied": preset_key,
+            "preset_name": preset["name"],
+            "modules": get_shop_modules(shop),
         })
 
     def destroy(self, request, *args, **kwargs):
@@ -1985,16 +2080,25 @@ class PublicSiteConfigView(APIView):
 
     def get(self, request):
         config = PlatformConfig.get_solo()
+        def _to_clean_url(f):
+            if not f:
+                return None
+            raw_url = f.url if hasattr(f, "url") else str(f)
+            u = request.build_absolute_uri(raw_url)
+            if u.startswith("http://") and (request.is_secure() or request.headers.get("x-forwarded-proto") == "https"):
+                u = "https://" + u[7:]
+            return u
+
         offer = None
         if config.offer_enabled and config.offer_file:
-            url = request.build_absolute_uri(config.offer_file.url)
+            url = _to_clean_url(config.offer_file)
             offer = {"url": url, "is_pdf": str(config.offer_file.name).lower().endswith(".pdf")}
         return Response({
             "trial_days": config.default_trial_days,
             "offer": offer,
-            "logo": request.build_absolute_uri(config.logo.url) if config.logo else None,
-            "favicon": request.build_absolute_uri(config.favicon.url) if config.favicon else None,
-            "industry_images": {k: request.build_absolute_uri(v) for k, v in (config.industry_images or {}).items() if v},
+            "logo": _to_clean_url(config.logo) or "/logo.png",
+            "favicon": _to_clean_url(config.favicon),
+            "industry_images": {k: _to_clean_url(v) for k, v in (config.industry_images or {}).items() if v},
             "pricing_content": {**DEFAULT_PRICING_CONTENT, **(config.pricing_content or {})},
         })
 

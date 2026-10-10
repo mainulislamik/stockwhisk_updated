@@ -1,9 +1,11 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.parsers import MultiPartParser, FormParser, JSONParser
+from rest_framework import status
 
 from core.api import TenantScopedViewSet
 
-from .models import Brand, Category, Product, ProductVariation, Unit, ProductUnit
+from .models import Brand, Category, Product, ProductVariation, Unit, ProductUnit, ProductImage
 from .serializers import (
     BrandSerializer,
     CategorySerializer,
@@ -11,6 +13,7 @@ from .serializers import (
     ProductVariationSerializer,
     UnitSerializer,
     ProductUnitSerializer,
+    ProductImageSerializer,
 )
 
 
@@ -96,6 +99,7 @@ from .services import ProductService
 
 class ProductViewSet(TenantScopedViewSet):
     serializer_class = ProductSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
     # Browsing/searching/selecting products (POS grid, product lists) only needs
     # read access; creating/editing/deleting still needs manage_products.
     required_perm = "view_products"
@@ -190,6 +194,96 @@ class ProductViewSet(TenantScopedViewSet):
             writer.writerow([p.id, p.name, p.sku, p.barcode or "", cat_name, cost, p.selling_price, stock, inv_val])
 
         return response
+
+    @action(detail=True, methods=["post"], parser_classes=[MultiPartParser, FormParser])
+    def upload_image(self, request, pk=None):
+        product = self.get_object()
+        file_obj = request.FILES.get("image") or request.FILES.get("file")
+        if not file_obj:
+            return Response({"detail": "No image file provided."}, status=status.HTTP_400_BAD_REQUEST)
+
+        from catalog.image_utils import compress_and_convert_to_webp
+        try:
+            webp_file = compress_and_convert_to_webp(file_obj)
+            product.image = webp_file
+            product.save()
+
+            # Ensure ProductImage record exists
+            ProductImage.objects.create(
+                shop=product.shop,
+                product=product,
+                image=product.image,
+                is_primary=True,
+                caption=product.name[:100],
+            )
+        except Exception as e:
+            return Response({"detail": f"Failed to process image: {str(e)}"}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({
+            "status": "success",
+            "image": product.image.url,
+            "image_url": request.build_absolute_uri(product.image.url),
+        })
+
+    @action(detail=True, methods=["delete"])
+    def remove_image(self, request, pk=None):
+        product = self.get_object()
+        if product.image:
+            product.image.delete(save=False)
+            product.image = None
+            product.save()
+        ProductImage.objects.filter(product=product).delete()
+        return Response({"status": "success", "detail": "Image removed."})
+
+    @action(detail=False, methods=["get"], url_path="export")
+    def export_products(self, request):
+        from core.export_utils import generate_csv_response
+        can_see_cost = request.user.role in ["owner", "admin"] or request.user.is_superuser
+        headers = ["ID", "পণ্য / Name", "SKU", "বারকোড", "ক্যাটাগরি", "বিক্রয় মূল্য", "পাইকারি মূল্য", "সর্বনিম্ন মূল্য", "বর্তমান স্টক", "ইউনিট"]
+        if can_see_cost:
+            headers.insert(5, "কেনা দাম")
+
+        rows = []
+        for p in self.get_queryset().select_related("category", "unit"):
+            row = [
+                p.id,
+                p.name,
+                p.sku or "",
+                p.barcode or "",
+                p.category.name if p.category else "—",
+                p.selling_price,
+                p.wholesale_price or "—",
+                p.min_selling_price or "—",
+                p.current_stock,
+                p.unit.short_code if p.unit else "pcs",
+            ]
+            if can_see_cost:
+                row.insert(5, p.cost_price)
+            rows.append(row)
+        return generate_csv_response("products_export.csv", headers, rows)
+
+
+class ProductImageViewSet(TenantScopedViewSet):
+    serializer_class = ProductImageSerializer
+    parser_classes = [MultiPartParser, FormParser, JSONParser]
+    required_perm = "view_products"
+    required_write_perm = "manage_products"
+
+    def get_queryset(self):
+        qs = ProductImage.objects.all()
+        product_id = self.request.query_params.get("product")
+        if product_id:
+            qs = qs.filter(product_id=product_id)
+        return qs
+
+    def perform_create(self, serializer):
+        file_obj = self.request.FILES.get("image")
+        if file_obj:
+            from catalog.image_utils import compress_and_convert_to_webp
+            webp_file = compress_and_convert_to_webp(file_obj)
+            serializer.save(shop=self.request.user.shop, image=webp_file)
+        else:
+            serializer.save(shop=self.request.user.shop)
 
 
 class ProductVariationViewSet(TenantScopedViewSet):

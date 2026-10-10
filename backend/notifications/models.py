@@ -64,8 +64,9 @@ class ShopAlertConfig(TenantScopedModel):
 
 class ShopWhatsAppConfig(TenantScopedModel):
     """
-    Per-shop WhatsApp sender config (9.5). A shop uses either the shared
-    platform number or, for Enterprise, its own Meta Business API credentials.
+    Per-shop WhatsApp sender config. Supports both:
+    1. Direct Baileys QR-Code paired session per shop (1-tap sending inside the app)
+    2. Optional Meta Cloud API (phone_number_id & access_token) or fallback to wa.me browser link.
     """
 
     enabled = models.BooleanField(default=False)
@@ -73,6 +74,19 @@ class ShopWhatsAppConfig(TenantScopedModel):
     # Only used when NOT on the platform number (Enterprise own creds).
     phone_number_id = models.CharField(max_length=60, blank=True)
     access_token = models.CharField(max_length=255, blank=True)
+
+    # Baileys QR-login fields (individual shop session)
+    session_id = models.CharField(max_length=64, blank=True)
+    is_connected = models.BooleanField(default=False)
+    connected_phone = models.CharField(max_length=32, blank=True)
+    connected_name = models.CharField(max_length=100, blank=True)
+    default_mode = models.CharField(
+        max_length=20,
+        default="direct",
+        choices=[("direct", "1-Tap Direct Send"), ("browser", "WhatsApp Web Browser")],
+    )
+    auto_send_pos = models.BooleanField(default=False)
+    last_connected_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         constraints = [

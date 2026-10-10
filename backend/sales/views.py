@@ -71,6 +71,30 @@ class SaleViewSet(
             ).distinct()
         return qs
 
+    @action(detail=False, methods=["get"], url_path="export")
+    def export_sales(self, request):
+        from core.export_utils import generate_csv_response
+        headers = ["ইনভয়েস / Invoice No", "তারিখ / Date", "কাস্টমার / Customer", "মোবাইল / Phone", "মোট মূল্য / Subtotal", "ডিসকাউন্ট / Discount", "ট্যাক্স / Tax", "ডেলিভারি চার্জ", "সর্বমোট / Total", "পরিশোধ / Paid", "বকেয়া / Due", "স্ট্যাটাস / Status"]
+        rows = []
+        for s in self.get_queryset().select_related("customer"):
+            cust_name = s.customer.name if s.customer else (s.customer_name or "সাধারণ ক্রেতা")
+            cust_phone = s.customer.phone if s.customer else (s.customer_phone or "—")
+            rows.append([
+                s.invoice_no,
+                s.sale_date.strftime("%Y-%m-%d %H:%M") if s.sale_date else "",
+                cust_name,
+                cust_phone,
+                s.subtotal,
+                s.discount,
+                s.tax,
+                s.delivery_charge,
+                s.total,
+                s.paid,
+                s.due,
+                s.status,
+            ])
+        return generate_csv_response("sales_export.csv", headers, rows)
+
     def get_serializer_class(self):
         return SaleCreateSerializer if self.action == "create" else SaleSerializer
 
@@ -94,6 +118,7 @@ class SaleViewSet(
                 down_payment=data.get("down_payment", 0),
                 emi_interest_percent=data.get("emi_interest_percent", 0),
                 is_quotation=data.get("is_quotation", False),
+                custom_fields=data.get("custom_fields"),
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -828,6 +853,9 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
     def initial(self, request, *args, **kwargs):
         set_current_tenant(getattr(request.user, "shop", None))
         request.tenant = getattr(request.user, "shop", None)
+        from core.gating import require_module
+        if request.tenant:
+            require_module(request.tenant, "emi_installments")
         super().initial(request, *args, **kwargs)
 
     def get_queryset(self):

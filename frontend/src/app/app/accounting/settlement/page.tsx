@@ -42,6 +42,8 @@ type Settlement = {
 };
 
 
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
+
 export default function DailySettlementPage() {
   const { t, lang } = useLanguage();
   const [current, setCurrent] = useState<Settlement | null>(null);
@@ -74,6 +76,10 @@ export default function DailySettlementPage() {
   const [adjustCash, setAdjustCash] = useState("");
   const [adjustInvestment, setAdjustInvestment] = useState("");
   const [savingAdjust, setSavingAdjust] = useState(false);
+
+  // Opening shift float
+  const [openingCashFloat, setOpeningCashFloat] = useState("");
+  const [injectFloat, setInjectFloat] = useState(true);
 
   const loadData = async () => {
     setLoading(true);
@@ -127,8 +133,12 @@ export default function DailySettlementPage() {
     try {
       await api("/api/accounting/daily-settlements/open/", {
         method: "POST",
-        body: { opening_cash: 0 },
+        body: {
+          opening_cash: Number(openingCashFloat) || 0,
+          inject_float: injectFloat,
+        },
       });
+      setOpeningCashFloat("");
       await loadData();
       showSuccess(t("stl_start_new"));
     } catch (e: any) {
@@ -229,7 +239,8 @@ export default function DailySettlementPage() {
   const currentInvDiscrepancy = actualInvestment !== "" ? currentActualInv - currentExpectedInv : 0;
 
   return (
-    <div className="vstack gap-4">
+    <ModuleRouteGuard module="finance_accounting,expense_management" name={lang === "bn" ? "দৈনিক ক্যাশ সেটেলমেন্ট ও ক্লোজিং" : "Daily Cash Settlement"}>
+      <div className="vstack gap-3 pb-5">
       {error && <div className="alert alert-danger">{error}</div>}
 
       <div className="row g-4">
@@ -250,13 +261,41 @@ export default function DailySettlementPage() {
               </div>
 
               {!current ? (
-                <div className="text-center py-5">
-                  <div className="display-1 text-muted mb-3">🏪</div>
-                  <h4 className="fw-semibold">{t("stl_no_active")}</h4>
-                  <p className="text-muted">{t("stl_no_active_desc")}</p>
-                  <form onSubmit={openShift} className="mt-4" style={{ maxWidth: "300px", margin: "0 auto" }}>
-                    <button type="submit" className="btn btn-brand w-100 fw-bold" disabled={submitting}>
-                      {t("stl_start_new")}
+                <div className="text-center py-4">
+                  <div className="display-4 text-muted mb-2">🏪</div>
+                  <h4 className="fw-semibold mb-1">{lang === "bn" ? "আজকের দিনের শিফট শুরু করুন" : t("stl_no_active")}</h4>
+                  <p className="text-muted small mb-3">{lang === "bn" ? "ক্যাশ ড্রয়ার ওপেন করার পূর্বে ড্রয়ারে রক্ষিত প্রারম্ভিক ক্যাশ ফ্লোট লিখুন।" : t("stl_no_active_desc")}</p>
+                  <form onSubmit={openShift} className="card p-3 shadow-sm border text-start" style={{ maxWidth: "360px", margin: "0 auto" }}>
+                    <label className="form-label fw-bold small text-dark mb-1">
+                      💵 {lang === "bn" ? "প্রারম্ভিক ক্যাশ ড্রয়ার ফ্লোট (৳)" : "Opening Cash Drawer Float (৳)"}
+                    </label>
+                    <input
+                      type="number"
+                      step="any"
+                      min="0"
+                      className="form-control mb-2 fw-bold text-success"
+                      placeholder="0.00"
+                      value={openingCashFloat}
+                      onChange={(e) => setOpeningCashFloat(e.target.value)}
+                    />
+                    <div className="form-check small mb-3 text-secondary">
+                      <input
+                        type="checkbox"
+                        className="form-check-input"
+                        id="injectFloatCheck"
+                        checked={injectFloat}
+                        onChange={(e) => setInjectFloat(e.target.checked)}
+                      />
+                      <label className="form-check-label" htmlFor="injectFloatCheck" style={{ fontSize: "0.8rem" }}>
+                        {lang === "bn" ? "ক্যাশ লেজারে ফ্লোট যোগ করুন (Capital Float)" : "Credit float into Cash Ledger"}
+                      </label>
+                    </div>
+                    <button type="submit" className="btn btn-brand w-100 fw-bold py-2" disabled={submitting}>
+                      {submitting ? (
+                        <span className="spinner-border spinner-border-sm me-1" />
+                      ) : (
+                        <span>🚀 {lang === "bn" ? "শিফট ও ক্যাশ ড্রয়ার ওপেন করুন" : t("stl_start_new")}</span>
+                      )}
                     </button>
                   </form>
                 </div>
@@ -354,8 +393,11 @@ export default function DailySettlementPage() {
                     {/* 1. SETTLE AMOUNT 1: CASH IN DRAWER */}
                     <div className="card border rounded-3 p-3 mb-3 bg-light">
                       <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="fw-bold text-dark small text-uppercase">
-                          1️⃣ 💵 {t("stl_drawer_cash")}
+                        <span className="fw-bold text-dark small text-uppercase d-flex align-items-center">
+                          <span className="badge bg-primary me-2 px-2 py-0.5 rounded-pill" style={{ fontSize: "0.75rem" }}>
+                            {lang === "bn" ? "১" : "1"}
+                          </span>
+                          <span>💵 {t("stl_drawer_cash")}</span>
                         </span>
                         <button
                           type="button"
@@ -387,9 +429,9 @@ export default function DailySettlementPage() {
                         </div>
                         {current.account_balances && (
                           <div className="d-flex flex-wrap align-items-center gap-2 pt-1.5 mt-1 border-top small text-secondary" style={{ fontSize: "0.75rem" }}>
-                            <span>bKash: <strong>{money(current.account_balances.bkash)}</strong></span>
-                            <span>· Nagad: <strong>{money(current.account_balances.nagad)}</strong></span>
-                            <span>· Bank: <strong>{money(current.account_balances.bank)}</strong></span>
+                            <span>{lang === "bn" ? "বিকাশ:" : "bKash:"} <strong>{money(current.account_balances.bkash)}</strong></span>
+                            <span>· {lang === "bn" ? "নগদ:" : "Nagad:"} <strong>{money(current.account_balances.nagad)}</strong></span>
+                            <span>· {lang === "bn" ? "ব্যাংক:" : "Bank:"} <strong>{money(current.account_balances.bank)}</strong></span>
                             <span className="text-success fw-bold ms-auto">
                               {lang === "bn" ? "মোট তরল:" : "Total Liquid:"} {money(current.account_balances.total_liquid)}
                             </span>
@@ -539,8 +581,11 @@ export default function DailySettlementPage() {
                     {/* 2. SETTLE AMOUNT 2: DAILY INVESTMENT */}
                     <div className="card border rounded-3 p-3 mb-4 bg-light">
                       <div className="d-flex justify-content-between align-items-center mb-2">
-                        <span className="fw-bold text-dark small text-uppercase">
-                          2️⃣ 💼 {t("stl_daily_investment")}
+                        <span className="fw-bold text-dark small text-uppercase d-flex align-items-center">
+                          <span className="badge bg-primary me-2 px-2 py-0.5 rounded-pill" style={{ fontSize: "0.75rem" }}>
+                            {lang === "bn" ? "২" : "2"}
+                          </span>
+                          <span>💼 {t("stl_daily_investment")}</span>
                         </span>
                         <button
                           type="button"
@@ -799,6 +844,7 @@ export default function DailySettlementPage() {
         </>
       )}
     </div>
+    </ModuleRouteGuard>
   );
 }
 

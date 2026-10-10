@@ -25,7 +25,7 @@ def shop_a():
     # Operational data
     cat = Category.objects.create(shop=shop, name="Cat A")
     prod = Product.objects.create(shop=shop, name="Prod A", category=cat)
-    sale = Sale.objects.create(shop=shop, total=100)
+    sale = Sale.objects.create(shop=shop, total=100, sale_date=timezone.now())
     
     return shop, owner, prod
 
@@ -42,23 +42,23 @@ def test_shop_data_clear_task(shop_a, shop_b, superadmin):
     sa, owner_a, prod_a = shop_a
     sb, owner_b, prod_b = shop_b
     
-    assert Product.objects.filter(shop=sa).count() == 1
-    assert Sale.objects.filter(shop=sa).count() == 1
-    assert Product.objects.filter(shop=sb).count() == 1
+    assert Product.all_objects.filter(shop=sa).count() == 1
+    assert Sale.all_objects.filter(shop=sa).count() == 1
+    assert Product.all_objects.filter(shop=sb).count() == 1
     
     # Run the clear task
     result = clear_shop_data_task(sa.id, superadmin.id)
     assert result is True
     
     # Verify Shop A operational data is gone
-    assert Product.objects.filter(shop=sa).count() == 0
-    assert Sale.objects.filter(shop=sa).count() == 0
+    assert Product.all_objects.filter(shop=sa).count() == 0
+    assert Sale.all_objects.filter(shop=sa).count() == 0
     
     # Verify Shop A identity data remains
     assert User.objects.filter(shop=sa).count() == 1
     
     # Verify Shop B data remains intact (tenant isolation)
-    assert Product.objects.filter(shop=sb).count() == 1
+    assert Product.all_objects.filter(shop=sb).count() == 1
     
     # Verify backup is created
     backup = ShopDataBackup.objects.get(shop=sa)
@@ -71,7 +71,7 @@ def test_shop_data_restore_task(shop_a, superadmin):
     
     # 1. Clear data
     clear_shop_data_task(sa.id, superadmin.id)
-    assert Product.objects.filter(shop=sa).count() == 0
+    assert Product.all_objects.filter(shop=sa).count() == 0
     
     # 2. Add some new data (should be wiped on restore)
     cat = Category.objects.create(shop=sa, name="New Cat")
@@ -83,9 +83,9 @@ def test_shop_data_restore_task(shop_a, superadmin):
     assert result is True
     
     # 4. Verify original data is back and new data is gone
-    assert Product.objects.filter(shop=sa).count() == 1
-    assert Product.objects.filter(shop=sa).first().name == "Prod A"
-    assert Sale.objects.filter(shop=sa).count() == 1
+    assert Product.all_objects.filter(shop=sa).count() == 1
+    assert Product.all_objects.filter(shop=sa).first().name == "Prod A"
+    assert Sale.all_objects.filter(shop=sa).count() == 1
 
 @pytest.mark.django_db
 def test_cleanup_expired_backups(shop_a, superadmin):

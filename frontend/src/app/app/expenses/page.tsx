@@ -5,6 +5,7 @@ import { api, useApi, useApiAll, Paginated } from "@/lib/api";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 
 type Expense = { id: number; category: number | null; category_name: string | null; amount: string; spent_on: string; payment_method: string; note: string };
 type Cat = { id: number; name: string };
@@ -49,7 +50,8 @@ export default function ExpensesPage() {
   if (error) return <ErrorState error={error} />;
 
   return (
-    <div className="vstack gap-3">
+    <ModuleRouteGuard module="expense_management,finance_accounting" name={lang === "bn" ? "দৈনিক খরচ ও ব্যয় ব্যবস্থাপনা" : "Expense Management"}>
+      <div className="vstack gap-3">
       <div className="card shadow-sm">
         <div className="card-body">
           <div className="fw-semibold mb-3">{t("exp_rec_exp")}</div>
@@ -135,5 +137,6 @@ export default function ExpensesPage() {
         <Pagination page={page} totalPages={totalPages} setPage={setPage} total={rowCount} />
       </div>
     </div>
+    </ModuleRouteGuard>
   );
 }

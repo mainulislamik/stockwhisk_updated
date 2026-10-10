@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
+import { formatApiErrorMessage } from "@/lib/dialogs";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAuth } from "@/components/AuthProvider";
 import ConvertQuotationModal from "@/components/ConvertQuotationModal";
 
 type InvoiceRow = {
@@ -43,6 +45,9 @@ const statusBadge: Record<string, string> = {
 
 export default function SalesPage() {
   const { t, lang } = useLanguage();
+  const { hasModule, can, isOwner } = useAuth();
+  const showPOS = (isOwner || can("create_sale")) && hasModule("core_pos");
+  const showService = (isOwner || can("manage_service") || can("view_service")) && hasModule("service_repair");
   const [rows, setRows] = useState<InvoiceRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,10 +60,18 @@ export default function SalesPage() {
     setLoading(true);
     setError("");
     try {
+      let salesErr: any = null;
       const [salesData, serviceData] = await Promise.all([
-        fetchAll<any>("/sales/sales/").catch(() => []),
+        fetchAll<any>("/sales/sales/").catch((err) => {
+          salesErr = err;
+          return [];
+        }),
         fetchAll<any>("/service/tickets/").catch(() => []),
       ]);
+
+      if (salesErr) {
+        setError(formatApiErrorMessage(salesErr) || (lang === "bn" ? "ইনভয়েস লোড করতে সমস্যা হয়েছে" : "Failed to load invoices"));
+      }
 
       const salesList = (salesData || []).map((s: any) => {
         const isQ = s.status === "quotation" || s.status === "QUOTATION" || (s.note && String(s.note).toLowerCase().includes("quotation"));
@@ -173,12 +186,16 @@ export default function SalesPage() {
           />
         </div>
         <div className="d-flex gap-2">
-          <Link href="/app/service/tickets" className="btn btn-outline-brand btn-sm">
-            🔧 {t("nav_repair_tickets")}
-          </Link>
-          <Link href="/app/pos" className="btn btn-brand btn-sm">
-            {t("sales_list_new")}
-          </Link>
+          {showService && (
+            <Link href="/app/service/tickets" className="btn btn-outline-brand btn-sm">
+              🔧 {t("nav_repair_tickets")}
+            </Link>
+          )}
+          {showPOS && (
+            <Link href="/app/pos" className="btn btn-brand btn-sm">
+              {t("sales_list_new")}
+            </Link>
+          )}
         </div>
       </div>
 

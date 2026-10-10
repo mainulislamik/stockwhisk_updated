@@ -509,9 +509,11 @@ class PublicDemoShopsView(APIView):
             
             # Key feature list
             features = ["POS Thermal Billing", "Barcode Scanning", "Real-Time Stock", "Daily Cash Register", "Customer Dues"]
-            if s.business_type in ["mobile", "computer"] or s.service_enabled:
+            if s.business_type in ["mobile", "computer", "electronics"] or s.service_enabled:
                 features.append("Service & Repair Tickets (with QR Live Tracking)")
                 features.append("Serial Warranty Management")
+            if s.business_type == "electronics" or s.emi_enabled:
+                features.append("EMI & Installment Sales")
             if s.business_type == "supershop":
                 features.append("Barcode Scale Integration (EAN-13)")
                 features.append("Hold & Recall Cart (F8/F9)")

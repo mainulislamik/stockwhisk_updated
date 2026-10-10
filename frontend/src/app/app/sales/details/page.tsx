@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { api } from "@/lib/api";
+import { formatApiErrorMessage } from "@/lib/dialogs";
 import { ErrorState, Spinner, money, fmtDate } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -29,7 +30,7 @@ const PAGE_SIZE = 25;
 
 /* ── Page ───────────────────────────────────────────────────────────── */
 export default function SellingDetailsPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [salesData, setSalesData] = useState<SalesPage | null>(null);
   const [ticketData, setTicketData] = useState<TicketPage | null>(null);
   const [page, setPage] = useState(1);
@@ -67,7 +68,12 @@ export default function SellingDetailsPage() {
         setTicketData(tickets);
         setError("");
       })
-      .catch((e: any) => { if (alive) setError(e?.message || "Failed to load selling details"); })
+      .catch((e: any) => {
+        if (alive) {
+          const msg = formatApiErrorMessage(e);
+          setError(msg || (lang === "bn" ? "বিক্রির বিবরণ লোড করা যায়নি।" : "Failed to load selling details."));
+        }
+      })
       .finally(() => { if (alive) setLoading(false); });
 
     return () => { alive = false; };

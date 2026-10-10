@@ -35,6 +35,9 @@ class ReportExportView(APIView):
     def initial(self, request, *args, **kwargs):
         set_current_tenant(getattr(request.user, "shop", None))
         request.tenant = getattr(request.user, "shop", None)
+        from core.gating import require_module
+        if request.tenant:
+            require_module(request.tenant, "reports_export")
         super().initial(request, *args, **kwargs)
 
     def get(self, request):
@@ -257,6 +260,9 @@ class DownloadDigestPdfView(APIView):
     def initial(self, request, *args, **kwargs):
         set_current_tenant(getattr(request.user, "shop", None))
         request.tenant = getattr(request.user, "shop", None)
+        from core.gating import require_module
+        if request.tenant:
+            require_module(request.tenant, "reports_export")
         super().initial(request, *args, **kwargs)
 
     def get(self, request):

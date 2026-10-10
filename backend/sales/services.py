@@ -38,6 +38,7 @@ def create_sale(
     customer_name="", customer_phone="", customer_address="",
     idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO,
     is_quotation=False, alteration_notes="", alteration_status="", points_redeemed=0,
+    custom_fields=None,
 ):
     """
     ``items``: list of dicts with keys ``product`` (instance), optional
@@ -93,6 +94,20 @@ def create_sale(
                             f"Only {on_hand} of '{product.name}' in stock."
                         )
 
+    # Floor Price Protection: ensure unit price after item discount doesn't violate min_selling_price
+    for row in items:
+        product = row["product"]
+        min_p = getattr(product, "min_selling_price", None)
+        if min_p is not None and Decimal(min_p) > 0:
+            row_qty = Decimal(str(row.get("quantity") or 1))
+            row_price = Decimal(str(row.get("unit_price") or 0))
+            row_disc = Decimal(str(row.get("discount") or 0))
+            eff_price = row_price - (row_disc / row_qty if row_qty > 0 else 0)
+            if eff_price < Decimal(min_p):
+                raise ValueError(
+                    f"'{product.name}'-এর বিক্রয় মূল্য সর্বনিম্ন ৳{min_p}-এর নিচে দেওয়া যাবে না (কার্যকর মূল্য: ৳{eff_price:.2f})।"
+                )
+
     discount = Decimal(discount or 0)
     delivery_charge = Decimal(delivery_charge or 0)
     tax = Decimal(tax or 0)
@@ -108,6 +123,7 @@ def create_sale(
         discount=discount, delivery_charge=delivery_charge, tax=tax, note=note, created_by=created_by,
         alteration_notes=alteration_notes, alteration_status=alteration_status,
         status=Sale.Status.DUE, idempotency_key=idempotency_key,
+        custom_fields=custom_fields or {},
         # Clip walk-in receipt fields to their CharField limits (Postgres/MySQL
         # raise on overflow; SQLite silently truncates — keep both consistent).
         customer_name="" if customer is not None else (customer_name or "")[:150],

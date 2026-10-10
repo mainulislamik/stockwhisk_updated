@@ -5,6 +5,7 @@ import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
@@ -310,7 +311,8 @@ export default function DuesPage() {
   if (error) return <ErrorState error={error} />;
 
   return (
-    <div className="vstack gap-3 pb-5">
+    <ModuleRouteGuard module="sales_crm,purchasing" name={lang === "bn" ? "বকেয়া ও বাকি খাতা (Dues Ledger)" : "Dues & Credit Ledger"}>
+      <div className="vstack gap-3 pb-5">
       {/* Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>
@@ -812,6 +814,7 @@ export default function DuesPage() {
         </div>
       )}
     </div>
+    </ModuleRouteGuard>
   );
 }
 

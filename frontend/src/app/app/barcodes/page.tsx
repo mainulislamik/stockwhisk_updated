@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { createPortal } from "react-dom";
 import Barcode from "react-barcode";
 import { api, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
@@ -110,6 +111,11 @@ export default function BarcodesGeneratorPage() {
   // Active Print Queue & State
   const [printQueue, setPrintQueue] = useState<PrintLabelItem[]>([]);
   const [isPrinting, setIsPrinting] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Debounce search input
   useEffect(() => {
@@ -203,7 +209,28 @@ export default function BarcodesGeneratorPage() {
     }
   }
 
-  // Direct 1-Click Instant Print (Prints 1 single barcode sticker immediately)
+  // Core Unified Print Dispatcher
+  const executePrint = useCallback((queue: PrintLabelItem[]) => {
+    if (queue.length === 0) {
+      toast.error(lang === "bn" ? "প্রিন্ট করার জন্য কোনো বৈধ বারকোড নেই।" : "No valid barcode to print.");
+      return;
+    }
+    setPrintQueue(queue);
+    setIsPrinting(true);
+
+    const onAfterPrint = () => {
+      setIsPrinting(false);
+      window.removeEventListener("afterprint", onAfterPrint);
+    };
+    window.addEventListener("afterprint", onAfterPrint);
+
+    // Give React sufficient time to render the portal DOM tree
+    setTimeout(() => {
+      window.print();
+    }, 200);
+  }, [lang]);
+
+  // Direct 1-Click Instant Print (Prints exactly 1 single barcode sticker on 1 page)
   function instantPrintSingle(product: Product, copies: number = 1) {
     const mainCode = getPrimaryBarcode(product);
     const queue: PrintLabelItem[] = [];
@@ -224,18 +251,39 @@ export default function BarcodesGeneratorPage() {
         care: product.care_instructions,
       });
     }
+    executePrint(queue);
+  }
 
-    if (queue.length === 0) {
-      toast.error(lang === "bn" ? "প্রিন্ট করার জন্য কোনো বৈধ বারকোড নেই।" : "No valid barcode to print.");
+  // 1-Click Print All Barcodes in Current List / Selection
+  function instantPrintAllBarcodes() {
+    let targetProducts = products;
+    if (selectedProductIds.length > 0) {
+      targetProducts = products.filter((p) => selectedProductIds.includes(p.id));
+    }
+    if (targetProducts.length === 0) {
+      toast.error(lang === "bn" ? "প্রিন্ট করার জন্য কোনো পণ্য পাওয়া যায়নি।" : "No products to print.");
       return;
     }
-
-    setPrintQueue(queue);
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 150);
+    const queue: PrintLabelItem[] = [];
+    targetProducts.forEach((p) => {
+      const mainCode = getPrimaryBarcode(p);
+      queue.push({
+        id: `all-${p.id}`,
+        productId: p.id,
+        productName: p.name,
+        barcode: mainCode,
+        sku: p.sku || "",
+        price: p.selling_price || "0",
+        warrantyMonths: p.warranty_months,
+        shopName,
+        isUnit: false,
+        fabric: p.fabric_material,
+        fit: p.fit_type,
+        collection: p.collection_name,
+        care: p.care_instructions,
+      });
+    });
+    executePrint(queue);
   }
 
   // Execute Single Product Modal Print
@@ -331,12 +379,7 @@ export default function BarcodesGeneratorPage() {
     }
 
     setSingleModalOpen(false);
-    setPrintQueue(queue);
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 150);
+    executePrint(queue);
   }
 
   // Open Bulk Modal
@@ -439,12 +482,7 @@ export default function BarcodesGeneratorPage() {
       }
 
       setBulkModalOpen(false);
-      setPrintQueue(queue);
-      setIsPrinting(true);
-      setTimeout(() => {
-        window.print();
-        setIsPrinting(false);
-      }, 150);
+      executePrint(queue);
     } catch (e) {
       toast.error(lang === "bn" ? "বারকোড তৈরি করতে সমস্যা হয়েছে।" : "Error preparing barcodes.");
     } finally {
@@ -482,12 +520,7 @@ export default function BarcodesGeneratorPage() {
         });
       }
     });
-    setPrintQueue(queue);
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 150);
+    executePrint(queue);
   }
 
   function printOneGenerated(index: number) {
@@ -503,12 +536,7 @@ export default function BarcodesGeneratorPage() {
       shopName,
       isUnit: false,
     }];
-    setPrintQueue(queue);
-    setIsPrinting(true);
-    setTimeout(() => {
-      window.print();
-      setIsPrinting(false);
-    }, 150);
+    executePrint(queue);
   }
 
   const pageSizeStr = labelSize === "38x25" ? "38mm 25mm" : labelSize === "50x30" ? "50mm 30mm" : labelSize === "fashion_tag" ? "50mm 75mm" : "A4 portrait";
@@ -520,39 +548,48 @@ export default function BarcodesGeneratorPage() {
         size: ${pageSizeStr};
         margin: ${pageMarginStr};
       }
-      body {
-        margin: 0;
-        padding: 0;
+      html, body {
+        margin: 0 !important;
+        padding: 0 !important;
         background: #ffffff !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
+        height: auto !important;
+        min-height: 0 !important;
+        max-height: none !important;
+        overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
       }
-      body * {
-        visibility: hidden;
+      /* CRITICAL: Completely hide every sibling of #barcode-print-portal from the layout */
+      body > *:not(#barcode-print-portal) {
+        display: none !important;
+        height: 0 !important;
+        max-height: 0 !important;
+        overflow: hidden !important;
       }
-      #print-area, #print-area * {
-        visibility: visible;
-      }
-      #print-area {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100%;
-        margin: 0;
-        padding: 0;
-        background: white;
+      #barcode-print-portal {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #ffffff !important;
       }
       .no-print {
         display: none !important;
       }
       .page-break {
-        page-break-after: always;
-        break-after: page;
+        page-break-after: always !important;
+        break-after: page !important;
+      }
+      .page-break:last-child {
+        page-break-after: auto !important;
+        break-after: auto !important;
       }
     }
   `;
 
-  // Render Label Component
+
+  // Render Label Component (Pure Inline Styles for Cross-Platform / Printer Consistency)
   const renderBarcodeLabel = (item: PrintLabelItem, key: string, isPreview: boolean = false) => {
     const isFashion = labelSize === "fashion_tag";
     const isA4 = labelSize === "a4";
@@ -562,42 +599,47 @@ export default function BarcodesGeneratorPage() {
       return (
         <div
           key={key}
-          className={`${isPreview ? "border rounded shadow-sm bg-white" : "page-break"} flex flex-col justify-between items-center text-center`}
+          className={isPreview ? "border rounded-3 shadow-sm bg-white" : "page-break"}
           style={{
             width: isPreview ? "220px" : "50mm",
             height: isPreview ? "330px" : "75mm",
-            padding: "3.5mm 2.5mm",
+            padding: "4mm 3mm",
             boxSizing: "border-box",
-            backgroundColor: "#fff",
+            backgroundColor: "#ffffff",
             fontFamily: "system-ui, -apple-system, sans-serif",
-            color: "#000",
+            color: "#000000",
             overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-between",
+            alignItems: "center",
+            textAlign: "center",
           }}
         >
-          <div className="w-full">
+          <div style={{ width: "100%", overflow: "hidden" }}>
             {includeShopName && (
-              <div className="font-extrabold text-[12px] uppercase tracking-wider border-b border-black pb-1 mb-1 truncate">
+              <div style={{ fontWeight: 800, fontSize: "11px", textTransform: "uppercase", letterSpacing: "1px", borderBottom: "1px solid #000000", paddingBottom: "2px", marginBottom: "3px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {item.shopName}
               </div>
             )}
             {item.productName && (
-              <div className="font-bold text-[10px] line-clamp-2 leading-tight mt-0.5">
+              <div style={{ fontWeight: 700, fontSize: "11px", lineHeight: "1.2", marginTop: "2px", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
                 {item.productName}
               </div>
             )}
             {(item.size || item.color) && (
-              <div className="text-[10px] font-black uppercase tracking-wider text-black bg-gray-100 py-0.5 px-2 rounded mt-1 inline-block border border-gray-300">
+              <div style={{ fontSize: "10px", fontWeight: 900, textTransform: "uppercase", color: "#000000", backgroundColor: "#f1f5f9", padding: "2px 8px", borderRadius: "4px", marginTop: "4px", display: "inline-block", border: "1px solid #cbd5e1" }}>
                 {[item.size && ("SIZE: " + item.size), item.color && ("COLOR: " + item.color)].filter(Boolean).join(" | ")}
               </div>
             )}
             {(item.fabric || item.fit) && (
-              <div className="text-[8px] text-gray-700 mt-0.5 truncate">
+              <div style={{ fontSize: "8px", color: "#475569", marginTop: "2px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {[item.fabric, item.fit].filter(Boolean).join(" • ")}
               </div>
             )}
           </div>
 
-          <div className="w-full flex flex-col items-center justify-center my-auto">
+          <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", margin: "auto 0" }}>
             <Barcode
               value={item.barcode || "00000000"}
               width={1.2}
@@ -608,25 +650,25 @@ export default function BarcodesGeneratorPage() {
               format="CODE128"
             />
             {includeSku && item.sku && (
-              <div className="text-[8px] font-mono mt-0.5 tracking-wider truncate">
+              <div style={{ fontSize: "9px", fontFamily: "monospace", marginTop: "2px", letterSpacing: "0.5px" }}>
                 SKU: {item.sku}
               </div>
             )}
           </div>
 
-          <div className="w-full border-t border-black pt-1">
+          <div style={{ width: "100%", borderTop: "1px solid #000000", paddingTop: "4px" }}>
             {includePrice && (
-              <div className="font-black text-[13px] tracking-tight">
+              <div style={{ fontWeight: 900, fontSize: "14px", letterSpacing: "-0.5px" }}>
                 ৳{money(item.price)}
               </div>
             )}
             {includeWarranty && item.warrantyMonths && item.warrantyMonths > 0 ? (
-              <div className="text-[8px] font-semibold text-gray-800">
+              <div style={{ fontSize: "9px", fontWeight: 600, color: "#1e293b" }}>
                 {item.warrantyMonths} Months Warranty
               </div>
             ) : null}
             {item.care && (
-              <div className="text-[7px] text-gray-600 truncate mt-0.5">{item.care}</div>
+              <div style={{ fontSize: "7px", color: "#64748b", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", marginTop: "2px" }}>{item.care}</div>
             )}
           </div>
         </div>
@@ -634,44 +676,53 @@ export default function BarcodesGeneratorPage() {
     }
 
     // Standard 38x25mm or 50x30mm or A4 Cell
-    const containerWidth = isPreview ? (is50x30 ? "200px" : "160px") : isA4 ? "48mm" : is50x30 ? "50mm" : "38mm";
-    const containerHeight = isPreview ? (is50x30 ? "120px" : "105px") : isA4 ? "25mm" : is50x30 ? "30mm" : "25mm";
-    const barcodeHeight = is50x30 ? 24 : 18;
-    const barcodeWidth = is50x30 ? 1.2 : 0.95;
+    const containerWidth = isPreview ? (is50x30 ? "210px" : "180px") : isA4 ? "48mm" : is50x30 ? "50mm" : "38mm";
+    const containerHeight = isPreview ? (is50x30 ? "130px" : "115px") : isA4 ? "25mm" : is50x30 ? "30mm" : "25mm";
+    const barcodeHeight = is50x30 ? 22 : 16;
+    const barcodeWidth = is50x30 ? 1.15 : 0.95;
 
     return (
       <div
         key={key}
-        className={`${isPreview ? "border rounded shadow-sm bg-white" : isA4 ? "border border-dashed border-gray-300" : "page-break"} flex flex-col justify-between items-center text-center`}
+        className={isPreview ? "border rounded-3 shadow-sm bg-white" : isA4 ? "border border-dashed border-gray-300" : "page-break"}
         style={{
           width: containerWidth,
           height: containerHeight,
-          padding: is50x30 ? "2mm" : "1.2mm 1mm",
+          padding: is50x30 ? "2.5mm 2mm" : "1.8mm 1.2mm",
           boxSizing: "border-box",
-          backgroundColor: "#fff",
+          backgroundColor: "#ffffff",
           fontFamily: "system-ui, -apple-system, sans-serif",
-          color: "#000",
+          color: "#000000",
           overflow: "hidden",
           margin: isA4 ? "1.5mm" : "0",
           display: "inline-flex",
+          flexDirection: "column",
+          justifyContent: "space-between",
+          alignItems: "center",
+          textAlign: "center",
         }}
       >
         {/* Top: Shop & Product Name */}
-        <div className="w-full">
+        <div style={{ width: "100%", overflow: "hidden" }}>
           {includeShopName && (
-            <div className="font-black text-[8px] uppercase tracking-wider truncate leading-none mb-0.5">
+            <div style={{ fontWeight: 800, fontSize: "8px", textTransform: "uppercase", letterSpacing: "0.5px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", lineHeight: 1.1, marginBottom: "1px" }}>
               {item.shopName}
             </div>
           )}
           {item.productName && (
-            <div className="font-bold text-[7.5px] truncate leading-tight">
+            <div style={{ fontWeight: 700, fontSize: "8.5px", lineHeight: "1.15", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
               {item.productName}
+            </div>
+          )}
+          {(item.size || item.color) && (
+            <div style={{ fontSize: "7.5px", fontWeight: 700, textTransform: "uppercase" }}>
+              {[item.size, item.color].filter(Boolean).join(" - ")}
             </div>
           )}
         </div>
 
-        {/* Middle: Live Barcode */}
-        <div className="w-full flex flex-col items-center justify-center my-auto scale-95">
+        {/* Middle: Barcode & Code */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", margin: "1px 0" }}>
           <Barcode
             value={item.barcode || "00000000"}
             width={barcodeWidth}
@@ -683,18 +734,25 @@ export default function BarcodesGeneratorPage() {
           />
         </div>
 
-        {/* Bottom: SKU & Price & Warranty */}
-        <div className="w-full flex items-center justify-between text-[7px] font-semibold leading-none border-t border-gray-300 pt-0.5">
-          <span className="truncate max-w-[50%]">
-            {includeSku && item.sku ? item.sku : item.isUnit ? "UNIT" : ""}
-          </span>
-          <div className="flex items-center gap-1">
-            {includeWarranty && item.warrantyMonths && item.warrantyMonths > 0 ? (
-              <span className="text-[6.5px] font-bold text-gray-700">{item.warrantyMonths}M Wty</span>
-            ) : null}
+        {/* Bottom: Price, Warranty, SKU */}
+        <div style={{ width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between", borderTop: "0.5px solid #cbd5e1", paddingTop: "2px", lineHeight: 1 }}>
+          {includeSku && item.sku ? (
+            <span style={{ fontSize: "7px", fontFamily: "monospace", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: "45%" }}>
+              {item.sku}
+            </span>
+          ) : <span />}
+
+          <div style={{ display: "flex", alignItems: "baseline", gap: "2px" }}>
             {includePrice && (
-              <span className="font-extrabold text-[8px]">৳{money(item.price)}</span>
+              <span style={{ fontWeight: 800, fontSize: is50x30 ? "10px" : "9px" }}>
+                ৳{money(item.price)}
+              </span>
             )}
+            {includeWarranty && item.warrantyMonths && item.warrantyMonths > 0 ? (
+              <span style={{ fontSize: "6.5px", color: "#475569" }}>
+                ({item.warrantyMonths}m)
+              </span>
+            ) : null}
           </div>
         </div>
       </div>
@@ -704,253 +762,283 @@ export default function BarcodesGeneratorPage() {
   const totalPages = Math.ceil(totalCount / pageSize) || 1;
 
   return (
-    <div className="p-4 md:p-6 space-y-6 max-w-[1600px] mx-auto">
-      <style>{printStyles}</style>
-
-      {/* Hidden Print Container */}
-      <div id="print-area" className="hidden">
-        {labelSize === "a4" ? (
-          <div className="flex flex-wrap items-start justify-start p-2">
-            {printQueue.map((item, idx) => renderBarcodeLabel(item, `print-a4-${idx}`))}
-          </div>
-        ) : (
-          printQueue.map((item, idx) => renderBarcodeLabel(item, `print-single-${idx}`))
-        )}
-      </div>
+    <div className="container-fluid p-3 p-md-4">
+      {/* Hidden Print Container via React Portal */}
+      <style dangerouslySetInnerHTML={{ __html: printStyles }} />
+      {mounted && isPrinting && typeof document !== "undefined" && createPortal(
+        <div id="barcode-print-portal">
+          {labelSize === "a4" ? (
+            <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "flex-start", width: "100%" }}>
+              {printQueue.map((item, idx) => renderBarcodeLabel(item, `print-a4-${idx}`))}
+            </div>
+          ) : (
+            printQueue.map((item, idx) => renderBarcodeLabel(item, `print-single-${idx}`))
+          )}
+        </div>,
+        document.body
+      )}
 
       {/* Page Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm">
-        <div>
-          <div className="flex items-center gap-3">
-            <span className="text-3xl">🏷️</span>
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body p-3 p-md-4 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3">
+          <div className="d-flex align-items-center gap-3">
+            <div className="bg-primary-subtle text-primary p-3 rounded-circle d-flex align-items-center justify-content-center" style={{ width: 48, height: 48, fontSize: "1.5rem" }}>
+              🏷️
+            </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black text-slate-900 dark:text-white">
+              <h1 className="h4 fw-bold mb-1 text-dark">
                 {lang === "bn" ? "বারকোড জেনারেটর ও প্রিন্টিং হাব" : "Barcode Generator & Printing Hub"}
               </h1>
-              <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-muted small mb-0">
                 {lang === "bn"
                   ? "ইনস্ট্যান্ট সার্চ করুন, একক বা সব বারকোডের ভিজ্যুয়াল লিস্ট দেখুন এবং সরাসরি প্রিন্ট করুন"
                   : "Instant search, view all visual barcodes with live preview, and print individually or in bulk"}
               </p>
             </div>
           </div>
-        </div>
 
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-900 p-1.5 rounded-xl border border-slate-200 dark:border-slate-800">
-          <button
-            onClick={() => setActiveTab("all_barcodes")}
-            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === "all_barcodes"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <span>🏷️</span>
-            <span>{lang === "bn" ? "সব বারকোডের ভিজ্যুয়াল হাব" : "All Barcodes Hub"}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("products")}
-            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === "products"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <span>📦</span>
-            <span>{lang === "bn" ? "পণ্য ও ক্যাটালগ টেবিল" : "Product Catalog"}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("generator")}
-            className={`px-4 py-2 text-xs md:text-sm font-bold rounded-lg transition-all flex items-center gap-1.5 ${
-              activeTab === "generator"
-                ? "bg-indigo-600 text-white shadow-sm"
-                : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50"
-            }`}
-          >
-            <span>🎲</span>
-            <span>{lang === "bn" ? "খালি বারকোড জেনারেটর" : "Blank Generator"}</span>
-          </button>
+          {/* Navigation Tabs */}
+          <div className="btn-group p-1 bg-light rounded-pill border" role="group">
+            <button
+              type="button"
+              onClick={() => setActiveTab("all_barcodes")}
+              className={`btn btn-sm rounded-pill px-3 fw-bold ${
+                activeTab === "all_barcodes" ? "btn-primary shadow-sm text-white" : "btn-light text-secondary"
+              }`}
+            >
+              🏷️ {lang === "bn" ? "সব বারকোডের ভিজ্যুয়াল হাব" : "All Barcodes Hub"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("products")}
+              className={`btn btn-sm rounded-pill px-3 fw-bold ${
+                activeTab === "products" ? "btn-primary shadow-sm text-white" : "btn-light text-secondary"
+              }`}
+            >
+              📦 {lang === "bn" ? "পণ্য ও ক্যাটালগ টেবিল" : "Product Catalog"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab("generator")}
+              className={`btn btn-sm rounded-pill px-3 fw-bold ${
+                activeTab === "generator" ? "btn-primary shadow-sm text-white" : "btn-light text-secondary"
+              }`}
+            >
+              🎲 {lang === "bn" ? "খালি বারকোড জেনারেটর" : "Blank Generator"}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Barcode Customization & Print Settings Toolbar */}
-      <div className="bg-white dark:bg-slate-800 p-4 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          {/* Label Size Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-              {lang === "bn" ? "লেবেল সাইজ:" : "Label Size:"}
-            </span>
-            <div className="grid grid-cols-2 sm:flex sm:items-center gap-1.5 bg-slate-100 dark:bg-slate-900 p-1 rounded-xl">
-              {[
-                { id: "38x25", label: "38mm × 25mm (Standard)" },
-                { id: "50x30", label: "50mm × 30mm (Medium)" },
-                { id: "fashion_tag", label: "50mm × 75mm (Hang Tag)" },
-                { id: "a4", label: "A4 Sheet (Portrait)" },
-              ].map((sz) => (
-                <button
-                  key={sz.id}
-                  onClick={() => setLabelSize(sz.id as any)}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                    labelSize === sz.id
-                      ? "bg-indigo-600 text-white shadow-sm"
-                      : "text-slate-600 dark:text-slate-400 hover:bg-white dark:hover:bg-slate-800"
-                  }`}
-                >
-                  {sz.label}
-                </button>
-              ))}
+      <div className="card border-0 shadow-sm mb-4">
+        <div className="card-body p-3 p-md-4">
+          <div className="row g-3 align-items-center justify-content-between">
+            {/* Label Size Selector */}
+            <div className="col-12 col-xl-auto d-flex flex-wrap align-items-center gap-2">
+              <span className="fw-bold text-uppercase small text-muted me-1">
+                {lang === "bn" ? "লেবেল সাইজ:" : "Label Size:"}
+              </span>
+              <div className="btn-group btn-group-sm border rounded-3 p-1 bg-light flex-wrap" role="group">
+                {[
+                  { id: "38x25", label: "38mm × 25mm (Standard)" },
+                  { id: "50x30", label: "50mm × 30mm (Medium)" },
+                  { id: "fashion_tag", label: "50mm × 75mm (Hang Tag)" },
+                  { id: "a4", label: "A4 Sheet (Portrait)" },
+                ].map((sz) => (
+                  <button
+                    key={sz.id}
+                    type="button"
+                    onClick={() => setLabelSize(sz.id as any)}
+                    className={`btn btn-sm rounded-2 fw-semibold px-2 py-1 ${
+                      labelSize === sz.id ? "btn-primary shadow-sm text-white" : "btn-light text-dark"
+                    }`}
+                  >
+                    {sz.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
 
-          {/* Toggle Switches */}
-          <div className="flex flex-wrap items-center gap-4 text-xs font-medium text-slate-700 dark:text-slate-300">
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={includeShopName}
-                onChange={(e) => setIncludeShopName(e.target.checked)}
-                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-              />
-              <span>{lang === "bn" ? "দোকানের নাম" : "Shop Name"}</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={includePrice}
-                onChange={(e) => setIncludePrice(e.target.checked)}
-                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-              />
-              <span>{lang === "bn" ? "মূল্য (৳)" : "Price (৳)"}</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={includeWarranty}
-                onChange={(e) => setIncludeWarranty(e.target.checked)}
-                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-              />
-              <span>{lang === "bn" ? "ওয়ারেন্টি" : "Warranty"}</span>
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={includeSku}
-                onChange={(e) => setIncludeSku(e.target.checked)}
-                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-              />
-              <span>SKU</span>
-            </label>
+            {/* Toggle Switches */}
+            <div className="col-12 col-xl-auto d-flex flex-wrap align-items-center gap-3">
+              <div className="form-check form-switch mb-0">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="includeShopName"
+                  checked={includeShopName}
+                  onChange={(e) => setIncludeShopName(e.target.checked)}
+                />
+                <label className="form-check-label small fw-semibold text-secondary" htmlFor="includeShopName">
+                  {lang === "bn" ? "দোকানের নাম" : "Shop Name"}
+                </label>
+              </div>
+              <div className="form-check form-switch mb-0">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="includePrice"
+                  checked={includePrice}
+                  onChange={(e) => setIncludePrice(e.target.checked)}
+                />
+                <label className="form-check-label small fw-semibold text-secondary" htmlFor="includePrice">
+                  {lang === "bn" ? "মূল্য (৳)" : "Price (৳)"}
+                </label>
+              </div>
+              <div className="form-check form-switch mb-0">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="includeWarranty"
+                  checked={includeWarranty}
+                  onChange={(e) => setIncludeWarranty(e.target.checked)}
+                />
+                <label className="form-check-label small fw-semibold text-secondary" htmlFor="includeWarranty">
+                  {lang === "bn" ? "ওয়ারেন্টি" : "Warranty"}
+                </label>
+              </div>
+              <div className="form-check form-switch mb-0">
+                <input
+                  className="form-check-input"
+                  type="checkbox"
+                  id="includeSku"
+                  checked={includeSku}
+                  onChange={(e) => setIncludeSku(e.target.checked)}
+                />
+                <label className="form-check-label small fw-semibold text-secondary" htmlFor="includeSku">
+                  SKU / কোড
+                </label>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* TAB 1: ALL BARCODES VISUAL HUB (Grid & List View of All Live Barcodes) */}
       {activeTab === "all_barcodes" && (
-        <div className="space-y-4">
+        <div className="mb-4">
           {/* Action & Filter Bar */}
-          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-            {/* Search Input */}
-            <div className="relative flex-1 max-w-md">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={lang === "bn" ? "প্রোডাক্টের নাম, SKU বা বারকোড দিয়ে খুঁজুন..." : "Search by product name, SKU or barcode..."}
-                className="w-full pl-9 pr-8 py-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
-              />
-              {search && (
-                <button
-                  onClick={() => setSearch("")}
-                  className="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600"
-                >
-                  ✕
-                </button>
-              )}
-            </div>
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-body p-3">
+              <div className="row g-3 align-items-center justify-content-between">
+                {/* Search Input */}
+                <div className="col-12 col-md-5 col-lg-4">
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-end-0 text-muted">🔍</span>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={lang === "bn" ? "পণ্যের নাম, SKU বা বারকোড দিয়ে খুঁজুন..." : "Search by product name, SKU or barcode..."}
+                      className="form-control bg-light border-start-0 ps-0"
+                    />
+                    {search && (
+                      <button
+                        className="btn btn-light border border-start-0 text-muted"
+                        type="button"
+                        onClick={() => setSearch("")}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </div>
+                </div>
 
-            {/* View Switcher & Bulk Print Controls */}
-            <div className="flex flex-wrap items-center gap-3">
-              {/* Grid / List Mode */}
-              <div className="flex items-center bg-slate-100 dark:bg-slate-900 p-1 rounded-xl border border-slate-200 dark:border-slate-800">
-                <button
-                  onClick={() => setVisualViewMode("grid")}
-                  title={lang === "bn" ? "গ্রিড কার্ড ভিউ" : "Grid Card View"}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 ${
-                    visualViewMode === "grid"
-                      ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  <span>🖼️</span>
-                  <span>{lang === "bn" ? "কার্ড ভিউ" : "Cards"}</span>
-                </button>
-                <button
-                  onClick={() => setVisualViewMode("list")}
-                  title={lang === "bn" ? "লিস্ট টেবিল ভিউ" : "List Table View"}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1 ${
-                    visualViewMode === "list"
-                      ? "bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 shadow-sm"
-                      : "text-slate-500 hover:text-slate-900"
-                  }`}
-                >
-                  <span>📋</span>
-                  <span>{lang === "bn" ? "লিস্ট ভিউ" : "List"}</span>
-                </button>
+                {/* View Switcher & Action Buttons */}
+                <div className="col-12 col-md-auto d-flex flex-wrap align-items-center gap-2">
+                  <div className="btn-group btn-group-sm border rounded-pill bg-light p-1" role="group">
+                    <button
+                      type="button"
+                      onClick={() => setVisualViewMode("grid")}
+                      className={`btn btn-sm rounded-pill px-3 fw-semibold ${
+                        visualViewMode === "grid" ? "btn-white bg-white shadow-sm text-primary" : "btn-light text-muted"
+                      }`}
+                    >
+                      🖼️ {lang === "bn" ? "কার্ড ভিউ" : "Cards"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setVisualViewMode("list")}
+                      className={`btn btn-sm rounded-pill px-3 fw-semibold ${
+                        visualViewMode === "list" ? "btn-white bg-white shadow-sm text-primary" : "btn-light text-muted"
+                      }`}
+                    >
+                      📋 {lang === "bn" ? "লিস্ট ভিউ" : "List"}
+                    </button>
+                  </div>
+
+                  {/* BUTTON 1: ALL BARCODES IN ONE BUTTON */}
+                  <div className="btn-group shadow-sm">
+                    <button
+                      type="button"
+                      onClick={instantPrintAllBarcodes}
+                      className="btn btn-sm btn-dark fw-bold px-3 d-flex align-items-center gap-1 text-white"
+                      title={lang === "bn" ? "বর্তমান তালিকার সব পণ্যের ১টি করে বারকোড সরাসরি প্রিন্ট করুন" : "Print 1 copy of all barcodes in one click"}
+                    >
+                      <span>📑</span>
+                      <span>{lang === "bn" ? "সকল বারকোড প্রিন্ট" : "Print All Barcodes"}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedProductIds([]);
+                        openBulkModal();
+                      }}
+                      className="btn btn-sm btn-dark dropdown-toggle dropdown-toggle-split text-white border-start border-secondary"
+                      title={lang === "bn" ? "বাল্ক প্রিন্ট কাস্টমাইজেশন (কপি সংখ্যা / স্টক অনুযায়ী)" : "Bulk print customization"}
+                    >
+                      <span className="visually-hidden">Options</span>
+                    </button>
+                  </div>
+
+                  {/* BUTTON 2: ONLY ONE BARCODE IN ANOTHER BUTTON */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (selectedProductIds.length > 0) {
+                        const prod = products.find((p) => p.id === selectedProductIds[0]);
+                        if (prod) instantPrintSingle(prod, 1);
+                      } else if (products.length > 0) {
+                        instantPrintSingle(products[0], 1);
+                      } else {
+                        toast.error(lang === "bn" ? "প্রিন্ট করার মতো কোনো পণ্য পাওয়া যায়নি।" : "No product available to print.");
+                      }
+                    }}
+                    className="btn btn-sm btn-success fw-bold px-3 shadow-sm d-flex align-items-center gap-1 text-white"
+                    title={lang === "bn" ? "নির্বাচিত পণ্যের ঠিক ১টি বারকোড স্টিকার প্রিন্ট করুন (ঠিক ১ পৃষ্ঠা)" : "Print exactly 1 barcode sticker (1 page)"}
+                  >
+                    <span>🖨️</span>
+                    <span>{lang === "bn" ? "১টি বারকোড প্রিন্ট" : "Print 1 Barcode"}</span>
+                  </button>
+                </div>
               </div>
-
-              {/* Print Selected Button */}
-              {selectedProductIds.length > 0 && (
-                <button
-                  onClick={openBulkModal}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-sm transition-all flex items-center gap-2"
-                >
-                  <span>🖨️</span>
-                  <span>
-                    {lang === "bn"
-                      ? `সিলেক্টেড প্রিন্ট করুন (${selectedProductIds.length})`
-                      : `Print Selected (${selectedProductIds.length})`}
-                  </span>
-                </button>
-              )}
-
-              {/* Print All Button */}
-              <button
-                onClick={() => {
-                  setSelectedProductIds([]);
-                  openBulkModal();
-                }}
-                className="px-4 py-2 bg-slate-900 hover:bg-black dark:bg-slate-700 dark:hover:bg-slate-600 text-white rounded-xl text-xs md:text-sm font-bold shadow-sm transition-all flex items-center gap-2"
-              >
-                <span>📑</span>
-                <span>{lang === "bn" ? "এক ক্লিকে সব প্রিন্ট" : "Print All Barcodes"}</span>
-              </button>
             </div>
           </div>
 
-          {/* Barcode Cards Grid or List */}
+          {/* Barcode Content */}
           {loading ? (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center">
-              <span className="spinner-border spinner-border-sm me-2 text-indigo-600 inline-block w-6 h-6 border-2 rounded-full animate-spin" />
-              <p className="text-sm text-slate-500 dark:text-slate-400 mt-2 font-medium">
+            <div className="card border-0 shadow-sm p-5 text-center">
+              <div className="spinner-border text-primary mx-auto mb-2" role="status">
+                <span className="visually-hidden">Loading...</span>
+              </div>
+              <p className="text-muted small mb-0">
                 {lang === "bn" ? "বারকোড ডাটা লোড হচ্ছে..." : "Loading barcode hub..."}
               </p>
             </div>
           ) : error ? (
             <ErrorState error={error} />
           ) : products.length === 0 ? (
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 p-12 text-center text-slate-500">
-              <p className="text-4xl mb-2">🏷️</p>
-              <p className="font-bold text-base">{lang === "bn" ? "কোনো পণ্য পাওয়া যায়নি।" : "No products found."}</p>
-              <p className="text-xs text-slate-400 mt-1">
+            <div className="card border-0 shadow-sm p-5 text-center text-muted">
+              <p className="display-4 mb-2">🏷️</p>
+              <h5 className="fw-bold">{lang === "bn" ? "কোনো পণ্য পাওয়া যায়নি।" : "No products found."}</h5>
+              <p className="small text-muted mb-0">
                 {lang === "bn" ? "অন্য নাম বা SKU লিখে সার্চ করে দেখুন।" : "Try searching with a different keyword."}
               </p>
             </div>
           ) : visualViewMode === "grid" ? (
             /* GRID CARDS VIEW */
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div className="row g-3">
               {products.map((p) => {
                 const isSelected = selectedProductIds.includes(p.id);
                 const code = getPrimaryBarcode(p);
@@ -971,72 +1059,73 @@ export default function BarcodesGeneratorPage() {
                 };
 
                 return (
-                  <div
-                    key={p.id}
-                    className={`bg-white dark:bg-slate-800 rounded-2xl border transition-all p-4 flex flex-col justify-between hover:shadow-md ${
-                      isSelected
-                        ? "border-indigo-600 ring-2 ring-indigo-500/20 shadow-sm"
-                        : "border-slate-200 dark:border-slate-700"
-                    }`}
-                  >
-                    {/* Top: Checkbox & Product Name */}
-                    <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <label className="flex items-start gap-2 cursor-pointer flex-1">
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={() => toggleSelectProduct(p.id)}
-                            className="mt-0.5 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
-                          />
-                          <span className="font-bold text-xs md:text-sm text-slate-900 dark:text-white line-clamp-2 leading-tight">
-                            {p.name}
-                          </span>
-                        </label>
-                        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300">
-                          {p.sku || `#${p.id}`}
-                        </span>
+                  <div key={p.id} className="col-12 col-sm-6 col-lg-4 col-xl-3">
+                    <div className={`card h-100 shadow-sm border transition-all ${isSelected ? "border-primary bg-primary-subtle" : "border-light-subtle"}`}>
+                      <div className="card-body p-3 d-flex flex-column justify-content-between">
+                        {/* Top: Checkbox, Name, SKU */}
+                        <div>
+                          <div className="d-flex align-items-start justify-content-between gap-2 mb-2">
+                            <div className="form-check mb-0 d-flex align-items-start gap-2 flex-grow-1">
+                              <input
+                                className="form-check-input mt-1"
+                                type="checkbox"
+                                id={`chk-${p.id}`}
+                                checked={isSelected}
+                                onChange={() => toggleSelectProduct(p.id)}
+                              />
+                              <label className="form-check-label fw-bold text-dark small text-break mb-0 cursor-pointer" htmlFor={`chk-${p.id}`}>
+                                {p.name}
+                              </label>
+                            </div>
+                            <span className="badge bg-light text-secondary border font-monospace small px-2 py-1 flex-shrink-0">
+                              {p.sku || `#${p.id}`}
+                            </span>
+                          </div>
+
+                          {/* Live Barcode Label Preview Box */}
+                          <div className="p-2 bg-light border rounded-3 d-flex align-items-center justify-content-center my-3" style={{ minHeight: "140px" }}>
+                            {renderBarcodeLabel(labelItem, `preview-card-${p.id}`, true)}
+                          </div>
+                        </div>
+
+                        {/* Bottom: Stock, Price & Actions */}
+                        <div>
+                          <div className="d-flex align-items-center justify-content-between pt-2 border-top small">
+                            <div className="text-muted">
+                              {lang === "bn" ? "স্টক:" : "Stock:"} <span className="fw-bold text-dark">{p.current_stock}</span>
+                            </div>
+                            <div className="fw-bold text-primary fs-6">
+                              ৳{money(p.selling_price)}
+                            </div>
+                          </div>
+
+                          {/* Action Buttons: 1 Barcode Print & Multiple Copies */}
+                          <div className="row g-2 mt-2 pt-2 border-top">
+                            <div className="col-7">
+                              <button
+                                type="button"
+                                onClick={() => instantPrintSingle(p, 1)}
+                                className="btn btn-sm btn-success w-100 fw-bold d-flex align-items-center justify-content-center gap-1 text-white shadow-sm"
+                                title={lang === "bn" ? "এই পণ্যের ঠিক ১টি বারকোড স্টিকার প্রিন্ট করুন (ঠিক ১ পৃষ্ঠা)" : "Print exactly 1 barcode sticker (1 page)"}
+                              >
+                                <span>🖨️</span>
+                                <span>{lang === "bn" ? "১টি বারকোড" : "1 Barcode"}</span>
+                              </button>
+                            </div>
+                            <div className="col-5">
+                              <button
+                                type="button"
+                                onClick={() => openSingleModal(p)}
+                                className="btn btn-sm btn-outline-secondary w-100 fw-semibold d-flex align-items-center justify-content-center gap-1"
+                                title={lang === "bn" ? "কপি সংখ্যা নির্ধারণ ও প্রিন্ট মোডাল" : "Open print customization modal"}
+                              >
+                                <span>⚙️</span>
+                                <span>{lang === "bn" ? "কপি..." : "Copies..."}</span>
+                              </button>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-
-                      {/* Barcode Visual Preview Box */}
-                      <div className="bg-slate-50 dark:bg-slate-900/50 p-3 rounded-xl border border-slate-100 dark:border-slate-700/60 flex items-center justify-center my-2">
-                        {renderBarcodeLabel(labelItem, `preview-card-${p.id}`, true)}
-                      </div>
-
-                      {/* Stock & Price Details */}
-                      <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-2 px-1">
-                        <span>
-                          {lang === "bn" ? "স্টক:" : "Stock:"}{" "}
-                          <strong className="text-slate-800 dark:text-slate-200">{p.current_stock}</strong>
-                        </span>
-                        <span>
-                          {lang === "bn" ? "মূল্য:" : "Price:"}{" "}
-                          <strong className="text-emerald-600 dark:text-emerald-400 font-bold">
-                            ৳{money(p.selling_price)}
-                          </strong>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons: 1-Click Print & Custom Print */}
-                    <div className="grid grid-cols-2 gap-2 mt-4 pt-3 border-t border-slate-100 dark:border-slate-700">
-                      <button
-                        onClick={() => instantPrintSingle(p, 1)}
-                        title={lang === "bn" ? "সরাসরি ১টি বারকোড প্রিন্ট করুন" : "Print 1 copy immediately"}
-                        className="w-full py-2 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 border border-emerald-200 dark:border-emerald-800/60"
-                      >
-                        <span>⚡</span>
-                        <span>{lang === "bn" ? "১-ক্লিক প্রিন্ট" : "1-Click"}</span>
-                      </button>
-
-                      <button
-                        onClick={() => openSingleModal(p)}
-                        title={lang === "bn" ? "কপি সংখ্যা নির্ধারণ ও প্রিন্ট মোডাল" : "Open print customization modal"}
-                        className="w-full py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1 shadow-sm"
-                      >
-                        <span>🖨️</span>
-                        <span>{lang === "bn" ? "প্রিন্ট মোডাল" : "Print"}</span>
-                      </button>
                     </div>
                   </div>
                 );
@@ -1044,27 +1133,27 @@ export default function BarcodesGeneratorPage() {
             </div>
           ) : (
             /* LIST TABLE VIEW WITH LIVE BARCODES */
-            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs md:text-sm">
-                  <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
+            <div className="card border-0 shadow-sm overflow-hidden">
+              <div className="table-responsive">
+                <table className="table table-hover align-middle mb-0 text-sm">
+                  <thead className="table-light fw-bold">
                     <tr>
-                      <th className="p-3 w-10 text-center">
+                      <th className="p-3 text-center" style={{ width: "40px" }}>
                         <input
                           type="checkbox"
+                          className="form-check-input"
                           checked={selectedProductIds.length === products.length && products.length > 0}
                           onChange={toggleSelectAll}
-                          className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                         />
                       </th>
                       <th className="p-3">{lang === "bn" ? "পণ্যের নাম ও তথ্য" : "Product & Info"}</th>
                       <th className="p-3 text-center">{lang === "bn" ? "বারকোড প্রিভিউ" : "Barcode Preview"}</th>
-                      <th className="p-3 text-right">{lang === "bn" ? "মূল্য" : "Price"}</th>
+                      <th className="p-3 text-end">{lang === "bn" ? "মূল্য" : "Price"}</th>
                       <th className="p-3 text-center">{lang === "bn" ? "স্টক" : "Stock"}</th>
-                      <th className="p-3 text-right">{lang === "bn" ? "অ্যাকশন" : "Actions"}</th>
+                      <th className="p-3 text-end">{lang === "bn" ? "অ্যাকশন" : "Actions"}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                  <tbody>
                     {products.map((p) => {
                       const isSelected = selectedProductIds.includes(p.id);
                       const code = getPrimaryBarcode(p);
@@ -1083,53 +1172,54 @@ export default function BarcodesGeneratorPage() {
                       return (
                         <tr
                           key={p.id}
-                          className={`hover:bg-slate-50/80 dark:hover:bg-slate-700/30 transition-all ${
-                            isSelected ? "bg-indigo-50/40 dark:bg-indigo-950/20" : ""
-                          }`}
+                          className={isSelected ? "table-primary" : ""}
                         >
                           <td className="p-3 text-center">
                             <input
                               type="checkbox"
+                              className="form-check-input"
                               checked={isSelected}
                               onChange={() => toggleSelectProduct(p.id)}
-                              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500"
                             />
                           </td>
                           <td className="p-3">
-                            <div className="font-bold text-slate-900 dark:text-white line-clamp-1">{p.name}</div>
-                            <div className="flex items-center gap-2 text-[11px] text-slate-400 mt-0.5">
+                            <div className="fw-bold text-dark">{p.name}</div>
+                            <div className="d-flex align-items-center gap-2 small text-muted mt-1">
                               <span>SKU: {p.sku || "—"}</span>
                               <span>•</span>
-                              <span className="font-mono text-indigo-600 dark:text-indigo-400">{code}</span>
+                              <span className="font-monospace text-primary fw-semibold">{code}</span>
                             </div>
                           </td>
                           <td className="p-3 text-center">
-                            <div className="inline-block transform scale-90">
+                            <div className="d-inline-block">
                               {renderBarcodeLabel(labelItem, `preview-table-${p.id}`, true)}
                             </div>
                           </td>
-                          <td className="p-3 text-right font-bold text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
+                          <td className="p-3 text-end fw-bold text-primary">
                             ৳{money(p.selling_price)}
                           </td>
-                          <td className="p-3 text-center font-semibold text-slate-700 dark:text-slate-300">
+                          <td className="p-3 text-center fw-semibold text-secondary">
                             {p.current_stock}
                           </td>
-                          <td className="p-3 text-right whitespace-nowrap">
-                            <div className="flex items-center justify-end gap-1.5">
+                          <td className="p-3 text-end">
+                            <div className="d-flex align-items-center justify-content-end gap-1">
                               <button
+                                type="button"
                                 onClick={() => instantPrintSingle(p, 1)}
-                                title={lang === "bn" ? "সরাসরি ১টি বারকোড প্রিন্ট করুন" : "Print 1 copy immediately"}
-                                className="px-2.5 py-1.5 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 font-bold text-xs rounded-lg transition-all border border-emerald-200 dark:border-emerald-800 flex items-center gap-1"
-                              >
-                                <span>⚡</span>
-                                <span>{lang === "bn" ? "১-ক্লিক" : "1-Click"}</span>
-                              </button>
-                              <button
-                                onClick={() => openSingleModal(p)}
-                                className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg transition-all flex items-center gap-1 shadow-sm"
+                                title={lang === "bn" ? "এই পণ্যের ঠিক ১টি বারকোড স্টিকার প্রিন্ট করুন (ঠিক ১ পৃষ্ঠা)" : "Print exactly 1 barcode sticker (1 page)"}
+                                className="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1 text-white shadow-sm"
                               >
                                 <span>🖨️</span>
-                                <span>{lang === "bn" ? "প্রিন্ট" : "Print"}</span>
+                                <span>{lang === "bn" ? "১টি বারকোড" : "1 Barcode"}</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => openSingleModal(p)}
+                                title={lang === "bn" ? "একাধিক কপি বা ভ্যারিয়েন্ট নির্ধারণ" : "Multiple copies & options"}
+                                className="btn btn-sm btn-outline-secondary fw-semibold d-flex align-items-center gap-1"
+                              >
+                                <span>⚙️</span>
+                                <span>{lang === "bn" ? "কপি..." : "Copies..."}</span>
                               </button>
                             </div>
                           </td>
@@ -1143,7 +1233,7 @@ export default function BarcodesGeneratorPage() {
           )}
 
           {/* Pagination Controls */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 text-xs md:text-sm text-slate-500">
+          <div className="card border-0 shadow-sm mt-4 p-3 d-flex flex-column flex-sm-row align-items-center justify-content-between gap-3 text-muted small">
             <div>
               {lang === "bn"
                 ? `মোট ${totalCount} টি পণ্যের মধ্যে ${(page - 1) * pageSize + 1} - ${Math.min(
@@ -1155,21 +1245,23 @@ export default function BarcodesGeneratorPage() {
                     totalCount
                   )} of ${totalCount} products`}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="d-flex align-items-center gap-2">
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.max(1, p - 1))}
                 disabled={page <= 1}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold"
+                className="btn btn-sm btn-light border fw-bold"
               >
                 {lang === "bn" ? "← পূর্ববর্তী" : "← Previous"}
               </button>
-              <span className="font-bold text-slate-900 dark:text-white px-2">
+              <span className="fw-bold text-dark px-2">
                 {page} / {totalPages}
               </span>
               <button
+                type="button"
                 onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
                 disabled={page >= totalPages}
-                className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 disabled:opacity-40 hover:bg-slate-50 dark:hover:bg-slate-700 font-bold"
+                className="btn btn-sm btn-light border fw-bold"
               >
                 {lang === "bn" ? "পরবর্তী →" : "Next →"}
               </button>
@@ -1180,81 +1272,93 @@ export default function BarcodesGeneratorPage() {
 
       {/* TAB 2: STANDARD PRODUCT CATALOG TABLE */}
       {activeTab === "products" && (
-        <div className="space-y-4">
-          <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div className="relative flex-1 max-w-md">
-              <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">🔍</span>
-              <input
-                type="text"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder={lang === "bn" ? "পণ্যের নাম বা SKU লিখুন..." : "Filter products by name or SKU..."}
-                className="w-full pl-9 pr-8 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:text-white"
-              />
+        <div className="mb-4">
+          <div className="card border-0 shadow-sm mb-4">
+            <div className="card-body p-3">
+              <div className="row g-3 align-items-center justify-content-between">
+                <div className="col-12 col-md-5 col-lg-4">
+                  <div className="input-group">
+                    <span className="input-group-text bg-light border-end-0 text-muted">🔍</span>
+                    <input
+                      type="text"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      placeholder={lang === "bn" ? "পণ্যের নাম বা SKU লিখুন..." : "Filter products by name or SKU..."}
+                      className="form-control bg-light border-start-0 ps-0"
+                    />
+                  </div>
+                </div>
+                {selectedProductIds.length > 0 && (
+                  <div className="col-12 col-md-auto">
+                    <button
+                      type="button"
+                      onClick={openBulkModal}
+                      className="btn btn-sm btn-primary fw-bold shadow-sm d-flex align-items-center gap-1 text-white"
+                    >
+                      🖨️ {lang === "bn" ? `প্রিন্ট (${selectedProductIds.length})` : `Print (${selectedProductIds.length})`}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-            {selectedProductIds.length > 0 && (
-              <button
-                onClick={openBulkModal}
-                className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs md:text-sm font-bold shadow-sm flex items-center gap-2"
-              >
-                <span>🖨️</span>
-                <span>{lang === "bn" ? `প্রিন্ট (${selectedProductIds.length})` : `Print (${selectedProductIds.length})`}</span>
-              </button>
-            )}
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs md:text-sm">
-                <thead className="bg-slate-50 dark:bg-slate-900/60 border-b border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 font-bold">
+          <div className="card border-0 shadow-sm overflow-hidden">
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0 text-sm">
+                <thead className="table-light fw-bold">
                   <tr>
-                    <th className="p-3 w-10 text-center">
+                    <th className="p-3 text-center" style={{ width: "40px" }}>
                       <input
                         type="checkbox"
+                        className="form-check-input"
                         checked={selectedProductIds.length === products.length && products.length > 0}
                         onChange={toggleSelectAll}
-                        className="w-4 h-4 rounded text-indigo-600"
                       />
                     </th>
                     <th className="p-3">{lang === "bn" ? "পণ্য" : "Product"}</th>
                     <th className="p-3">SKU</th>
                     <th className="p-3">{lang === "bn" ? "বারকোড" : "Barcode"}</th>
-                    <th className="p-3 text-right">{lang === "bn" ? "মূল্য" : "Price"}</th>
+                    <th className="p-3 text-end">{lang === "bn" ? "মূল্য" : "Price"}</th>
                     <th className="p-3 text-center">{lang === "bn" ? "স্টক" : "Stock"}</th>
-                    <th className="p-3 text-right">{lang === "bn" ? "অ্যাকশন" : "Action"}</th>
+                    <th className="p-3 text-end">{lang === "bn" ? "অ্যাকশন" : "Action"}</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 dark:divide-slate-700/60">
+                <tbody>
                   {products.map((p) => {
                     const isSelected = selectedProductIds.includes(p.id);
                     return (
-                      <tr key={p.id} className="hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                      <tr key={p.id}>
                         <td className="p-3 text-center">
                           <input
                             type="checkbox"
+                            className="form-check-input"
                             checked={isSelected}
                             onChange={() => toggleSelectProduct(p.id)}
-                            className="w-4 h-4 rounded text-indigo-600"
                           />
                         </td>
-                        <td className="p-3 font-bold text-slate-900 dark:text-white">{p.name}</td>
-                        <td className="p-3 font-mono text-slate-500">{p.sku || "—"}</td>
-                        <td className="p-3 font-mono text-indigo-600 dark:text-indigo-400 font-semibold">{getPrimaryBarcode(p)}</td>
-                        <td className="p-3 text-right font-bold text-emerald-600">৳{money(p.selling_price)}</td>
-                        <td className="p-3 text-center font-semibold">{p.current_stock}</td>
-                        <td className="p-3 text-right">
-                          <div className="flex items-center justify-end gap-1.5">
+                        <td className="p-3 fw-bold text-dark">{p.name}</td>
+                        <td className="p-3 font-monospace text-muted">{p.sku || "—"}</td>
+                        <td className="p-3 font-monospace text-primary fw-semibold">{getPrimaryBarcode(p)}</td>
+                        <td className="p-3 text-end fw-bold text-primary">৳{money(p.selling_price)}</td>
+                        <td className="p-3 text-center fw-semibold text-secondary">{p.current_stock}</td>
+                        <td className="p-3 text-end">
+                          <div className="d-flex align-items-center justify-content-end gap-1">
                             <button
+                              type="button"
                               onClick={() => instantPrintSingle(p, 1)}
-                              className="px-2.5 py-1.5 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 font-bold rounded-lg border border-emerald-200"
+                              title={lang === "bn" ? "এই পণ্যের ঠিক ১টি বারকোড স্টিকার প্রিন্ট করুন (ঠিক ১ পৃষ্ঠা)" : "Print exactly 1 barcode sticker (1 page)"}
+                              className="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1 text-white shadow-sm"
                             >
-                              ⚡ {lang === "bn" ? "১-ক্লিক" : "1-Click"}
+                              🖨️ {lang === "bn" ? "১টি বারকোড" : "1 Barcode"}
                             </button>
                             <button
+                              type="button"
                               onClick={() => openSingleModal(p)}
-                              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-lg"
+                              title={lang === "bn" ? "একাধিক কপি বা ভ্যারিয়েন্ট নির্ধারণ" : "Multiple copies & options"}
+                              className="btn btn-sm btn-outline-secondary fw-semibold"
                             >
-                              🖨️ {lang === "bn" ? "প্রিন্ট" : "Print"}
+                              ⚙️ {lang === "bn" ? "কপি..." : "Copies..."}
                             </button>
                           </div>
                         </td>
@@ -1270,192 +1374,218 @@ export default function BarcodesGeneratorPage() {
 
       {/* TAB 3: BLANK BARCODE GENERATOR */}
       {activeTab === "generator" && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-            <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-              <span>🎲</span>
-              <span>{lang === "bn" ? "খালি বারকোড কনফিগারেশন" : "Generate Custom Barcodes"}</span>
-            </h2>
-            <div className="space-y-3 text-xs md:text-sm">
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === "bn" ? "কতটি বারকোড তৈরি করবেন?" : "Number of Barcodes:"}
-                </label>
-                <input
-                  type="number"
-                  min="1"
-                  max="200"
-                  value={barcodeCount}
-                  onChange={(e) => setBarcodeCount(Number(e.target.value) || 1)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
-                />
+        <div className="row g-4 mb-4">
+          <div className="col-12 col-lg-4">
+            <div className="card border-0 shadow-sm p-4">
+              <h2 className="h5 fw-bold text-dark d-flex align-items-center gap-2 mb-3">
+                <span>🎲</span>
+                <span>{lang === "bn" ? "খালি বারকোড কনফিগারেশন" : "Generate Custom Barcodes"}</span>
+              </h2>
+              <div className="d-flex flex-column gap-3 small">
+                <div>
+                  <label className="form-label fw-bold text-secondary mb-1">
+                    {lang === "bn" ? "কতটি বারকোড তৈরি করবেন?" : "Number of Barcodes:"}
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="200"
+                    value={barcodeCount}
+                    onChange={(e) => setBarcodeCount(Number(e.target.value) || 1)}
+                    className="form-control"
+                  />
+                </div>
+                <div>
+                  <label className="form-label fw-bold text-secondary mb-1">
+                    {lang === "bn" ? "কোডের দৈর্ঘ্য (ডিজিট):" : "Code Length (Digits):"}
+                  </label>
+                  <input
+                    type="number"
+                    min="4"
+                    max="14"
+                    value={codeLength}
+                    onChange={(e) => setCodeLength(Number(e.target.value) || 8)}
+                    className="form-control"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={generateRandomBarcodes}
+                  className="btn btn-primary fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 mt-2 text-white"
+                >
+                  <span>✨</span>
+                  <span>{lang === "bn" ? "বারকোড তৈরি করুন" : "Generate Barcodes"}</span>
+                </button>
               </div>
-              <div>
-                <label className="block font-bold text-slate-700 dark:text-slate-300 mb-1">
-                  {lang === "bn" ? "কোডের দৈর্ঘ্য (ডিজিট):" : "Code Length (Digits):"}
-                </label>
-                <input
-                  type="number"
-                  min="4"
-                  max="14"
-                  value={codeLength}
-                  onChange={(e) => setCodeLength(Number(e.target.value) || 8)}
-                  className="w-full p-2.5 bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl"
-                />
-              </div>
-              <button
-                onClick={generateRandomBarcodes}
-                className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
-              >
-                <span>✨</span>
-                <span>{lang === "bn" ? "বারকোড তৈরি করুন" : "Generate Barcodes"}</span>
-              </button>
             </div>
           </div>
 
-          <div className="lg:col-span-2 bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-200 dark:border-slate-700 shadow-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-bold text-slate-900 dark:text-white">
-                {lang === "bn" ? `উৎপন্ন বারকোড তালিকা (${generatedCodes.length})` : `Generated Barcodes (${generatedCodes.length})`}
-              </h3>
-              {generatedCodes.length > 0 && (
-                <button
-                  onClick={printAllGenerated}
-                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-sm flex items-center gap-1.5"
-                >
-                  <span>🖨️</span>
-                  <span>{lang === "bn" ? "সবগুলো প্রিন্ট করুন" : "Print All Generated"}</span>
-                </button>
+          <div className="col-12 col-lg-8">
+            <div className="card border-0 shadow-sm p-4">
+              <div className="d-flex align-items-center justify-content-between mb-3">
+                <h3 className="h6 fw-bold text-dark mb-0">
+                  {lang === "bn" ? `উৎপন্ন বারকোড তালিকা (${generatedCodes.length})` : `Generated Barcodes (${generatedCodes.length})`}
+                </h3>
+                {generatedCodes.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={printAllGenerated}
+                    className="btn btn-sm btn-primary fw-bold shadow-sm d-flex align-items-center gap-1 text-white"
+                  >
+                    <span>🖨️</span>
+                    <span>{lang === "bn" ? "সবগুলো প্রিন্ট করুন" : "Print All Generated"}</span>
+                  </button>
+                )}
+              </div>
+
+              {generatedCodes.length === 0 ? (
+                <div className="p-5 text-center text-muted small">
+                  {lang === "bn" ? "বারকোড তৈরি করতে বাম পাশের বাটনে ক্লিক করুন।" : "Click 'Generate Barcodes' to generate blank labels."}
+                </div>
+              ) : (
+                <div className="row g-2 overflow-auto" style={{ maxHeight: "480px" }}>
+                  {generatedCodes.map((code, idx) => (
+                    <div key={idx} className="col-6 col-sm-4">
+                      <div className="p-3 border rounded-3 text-center bg-light d-flex flex-column align-items-center">
+                        <Barcode value={code} width={1} height={26} fontSize={9} margin={0} />
+                        <button
+                          type="button"
+                          onClick={() => printOneGenerated(idx)}
+                          className="btn btn-link btn-sm text-primary fw-bold text-decoration-none p-0 mt-2"
+                        >
+                          🖨️ {lang === "bn" ? "এটি প্রিন্ট করুন" : "Print This"}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
-
-            {generatedCodes.length === 0 ? (
-              <div className="p-8 text-center text-slate-400 text-sm">
-                {lang === "bn" ? "বারকোড তৈরি করতে বাম পাশের বাটনে ক্লিক করুন।" : "Click 'Generate Barcodes' to generate blank labels."}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[500px] overflow-y-auto p-1">
-                {generatedCodes.map((code, idx) => (
-                  <div key={idx} className="p-3 border rounded-xl flex flex-col items-center bg-slate-50 dark:bg-slate-900/50">
-                    <Barcode value={code} width={1} height={26} fontSize={9} margin={0} />
-                    <button
-                      onClick={() => printOneGenerated(idx)}
-                      className="mt-2 text-[10px] font-bold text-indigo-600 hover:text-indigo-800"
-                    >
-                      🖨️ {lang === "bn" ? "এটি প্রিন্ট করুন" : "Print This"}
-                    </button>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       )}
 
       {/* SINGLE PRODUCT PRINT MODAL */}
       {singleModalOpen && selectedProduct && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-5 animate-in fade-in zoom-in duration-150">
-            <div className="flex items-center justify-between border-b pb-3">
-              <div>
-                <h3 className="font-black text-lg text-slate-900 dark:text-white">
-                  {lang === "bn" ? "প্রোডাক্ট বারকোড প্রিন্টার" : "Print Product Barcode"}
-                </h3>
-                <p className="text-xs text-slate-500 line-clamp-1">{selectedProduct.name}</p>
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg rounded-4 p-3">
+              <div className="modal-header border-bottom-0 pb-0">
+                <div>
+                  <h3 className="h5 fw-bold text-dark mb-1">
+                    {lang === "bn" ? "প্রোডাক্ট বারকোড প্রিন্টার" : "Print Product Barcode"}
+                  </h3>
+                  <p className="text-muted small mb-0">{selectedProduct.name}</p>
+                </div>
+                <button type="button" onClick={() => setSingleModalOpen(false)} className="btn-close" />
               </div>
-              <button onClick={() => setSingleModalOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">
-                ✕
-              </button>
-            </div>
 
-            {/* Live Preview */}
-            <div className="flex justify-center p-4 bg-slate-50 dark:bg-slate-900 rounded-2xl border">
-              {renderBarcodeLabel(
-                {
-                  id: "modal-preview",
-                  productId: selectedProduct.id,
-                  productName: selectedProduct.name,
-                  barcode: getPrimaryBarcode(selectedProduct),
-                  sku: selectedProduct.sku || "",
-                  price: selectedProduct.selling_price || "0",
-                  warrantyMonths: selectedProduct.warranty_months,
-                  shopName,
-                  isUnit: singlePrintMode === "units",
-                },
-                "modal-preview",
-                true
-              )}
-            </div>
+              <div className="modal-body py-3">
+                {/* Live Preview */}
+                <div className="d-flex justify-content-center p-3 bg-light rounded-3 border mb-3">
+                  {renderBarcodeLabel(
+                    {
+                      id: "modal-preview",
+                      productId: selectedProduct.id,
+                      productName: selectedProduct.name,
+                      barcode: getPrimaryBarcode(selectedProduct),
+                      sku: selectedProduct.sku || "",
+                      price: selectedProduct.selling_price || "0",
+                      warrantyMonths: selectedProduct.warranty_months,
+                      shopName,
+                      isUnit: singlePrintMode === "units",
+                    },
+                    "modal-preview",
+                    true
+                  )}
+                </div>
 
-            {/* Print Configuration */}
-            <div className="space-y-3 text-xs md:text-sm">
-              <div className="flex items-center justify-between">
-                <span className="font-bold text-slate-700 dark:text-slate-300">
-                  {lang === "bn" ? "কপি সংখ্যা:" : "Number of Copies:"}
-                </span>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setSingleCopies((c) => Math.max(1, c - 1))}
-                    className="w-8 h-8 rounded-lg border font-bold bg-slate-100 hover:bg-slate-200"
-                  >
-                    -
-                  </button>
-                  <input
-                    type="number"
-                    min="1"
-                    max="100"
-                    value={singleCopies}
-                    onChange={(e) => setSingleCopies(Math.max(1, Number(e.target.value) || 1))}
-                    className="w-16 text-center font-bold p-1 border rounded-lg"
-                  />
-                  <button
-                    onClick={() => setSingleCopies((c) => c + 1)}
-                    className="w-8 h-8 rounded-lg border font-bold bg-slate-100 hover:bg-slate-200"
-                  >
-                    +
-                  </button>
+                {/* Print Configuration */}
+                <div className="d-flex flex-column gap-3 small">
+                  <div className="d-flex align-items-center justify-content-between">
+                    <span className="fw-bold text-secondary">
+                      {lang === "bn" ? "কপি সংখ্যা:" : "Number of Copies:"}
+                    </span>
+                    <div className="d-flex align-items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSingleCopies((c) => Math.max(1, c - 1))}
+                        className="btn btn-sm btn-light border fw-bold"
+                        style={{ width: "32px", height: "32px" }}
+                      >
+                        -
+                      </button>
+                      <input
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={singleCopies}
+                        onChange={(e) => setSingleCopies(Math.max(1, Number(e.target.value) || 1))}
+                        className="form-control form-control-sm text-center fw-bold"
+                        style={{ width: "60px" }}
+                      >
+                      </input>
+                      <button
+                        type="button"
+                        onClick={() => setSingleCopies((c) => c + 1)}
+                        className="btn btn-sm btn-light border fw-bold"
+                        style={{ width: "32px", height: "32px" }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+
+                  {detailedProduct?.units && detailedProduct.units.length > 0 && (
+                    <div className="d-flex align-items-center gap-3 pt-2 border-top">
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="singleMode"
+                          id="modeMain"
+                          checked={singlePrintMode === "main"}
+                          onChange={() => setSinglePrintMode("main")}
+                        />
+                        <label className="form-check-label fw-semibold text-secondary" htmlFor="modeMain">
+                          {lang === "bn" ? "প্রধান বারকোড" : "Primary Barcode"}
+                        </label>
+                      </div>
+                      <div className="form-check">
+                        <input
+                          className="form-check-input"
+                          type="radio"
+                          name="singleMode"
+                          id="modeUnits"
+                          checked={singlePrintMode === "units"}
+                          onChange={() => setSinglePrintMode("units")}
+                        />
+                        <label className="form-check-label fw-semibold text-secondary" htmlFor="modeUnits">
+                          {lang === "bn" ? `সিরিয়াল ইউনিট (${detailedProduct.units.length})` : `Serial Units (${detailedProduct.units.length})`}
+                        </label>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
 
-              {detailedProduct?.units && detailedProduct.units.length > 0 && (
-                <div className="flex items-center gap-4 pt-2">
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="singleMode"
-                      checked={singlePrintMode === "main"}
-                      onChange={() => setSinglePrintMode("main")}
-                    />
-                    <span>{lang === "bn" ? "প্রধান বারকোড" : "Primary Barcode"}</span>
-                  </label>
-                  <label className="flex items-center gap-1.5 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="singleMode"
-                      checked={singlePrintMode === "units"}
-                      onChange={() => setSinglePrintMode("units")}
-                    />
-                    <span>{lang === "bn" ? `সিরিয়াল ইউনিট (${detailedProduct.units.length})` : `Serial Units (${detailedProduct.units.length})`}</span>
-                  </label>
-                </div>
-              )}
-            </div>
-
-            {/* Buttons */}
-            <div className="flex items-center gap-3 pt-3">
-              <button
-                onClick={() => setSingleModalOpen(false)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
-              >
-                {lang === "bn" ? "বাতিল" : "Cancel"}
-              </button>
-              <button
-                onClick={triggerSinglePrint}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5"
-              >
-                <span>🖨️</span>
-                <span>{lang === "bn" ? "প্রিন্ট করুন" : "Print Now"}</span>
-              </button>
+              <div className="modal-footer border-top-0 pt-0 d-flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSingleModalOpen(false)}
+                  className="btn btn-light fw-bold flex-fill"
+                >
+                  {lang === "bn" ? "বাতিল" : "Cancel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={triggerSinglePrint}
+                  className="btn btn-primary fw-bold flex-fill shadow-sm d-flex align-items-center justify-content-center gap-1 text-white"
+                >
+                  <span>🖨️</span>
+                  <span>{lang === "bn" ? "প্রিন্ট করুন" : "Print Now"}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -1463,74 +1593,94 @@ export default function BarcodesGeneratorPage() {
 
       {/* BULK PRINT MODAL */}
       {bulkModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl border border-slate-200 dark:border-slate-700 space-y-4">
-            <h3 className="font-black text-lg text-slate-900 dark:text-white">
-              {lang === "bn" ? "একসাথে বারকোড প্রিন্ট" : "Bulk Barcode Print"}
-            </h3>
+        <div className="modal show d-block" style={{ backgroundColor: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }} tabIndex={-1}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg rounded-4 p-3">
+              <div className="modal-header border-bottom-0 pb-0">
+                <h3 className="h5 fw-bold text-dark mb-0">
+                  {lang === "bn" ? "একসাথে বারকোড প্রিন্ট" : "Bulk Barcode Print"}
+                </h3>
+                <button type="button" onClick={() => setBulkModalOpen(false)} className="btn-close" />
+              </div>
 
-            <div className="space-y-3 text-xs md:text-sm">
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                <input
-                  type="radio"
-                  name="bulkMode"
-                  checked={bulkCopiesMode === "1_per_product"}
-                  onChange={() => setBulkCopiesMode("1_per_product")}
-                />
-                <span>{lang === "bn" ? "প্রতিটি প্রোডাক্টের ১টি করে স্টিকার" : "1 sticker per product"}</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                <input
-                  type="radio"
-                  name="bulkMode"
-                  checked={bulkCopiesMode === "stock_quantity"}
-                  onChange={() => setBulkCopiesMode("stock_quantity")}
-                />
-                <span>{lang === "bn" ? "বর্তমান স্টকের পরিমাণ অনুযায়ী" : "According to current stock quantity"}</span>
-              </label>
-
-              <label className="flex items-center gap-2 cursor-pointer p-2 rounded-xl hover:bg-slate-50 dark:hover:bg-slate-700/50">
-                <input
-                  type="radio"
-                  name="bulkMode"
-                  checked={bulkCopiesMode === "custom"}
-                  onChange={() => setBulkCopiesMode("custom")}
-                />
-                <span className="flex items-center gap-2">
-                  <span>{lang === "bn" ? "নির্দিষ্ট কপি:" : "Custom copies:"}</span>
-                  {bulkCopiesMode === "custom" && (
+              <div className="modal-body py-3">
+                <div className="d-flex flex-column gap-2 small">
+                  <div className="form-check p-2 border rounded-3 bg-light">
                     <input
-                      type="number"
-                      min="1"
-                      value={bulkCustomCopies}
-                      onChange={(e) => setBulkCustomCopies(Math.max(1, Number(e.target.value) || 1))}
-                      className="w-16 p-1 border rounded text-center"
+                      className="form-check-input ms-0 me-2"
+                      type="radio"
+                      name="bulkMode"
+                      id="bulk1"
+                      checked={bulkCopiesMode === "1_per_product"}
+                      onChange={() => setBulkCopiesMode("1_per_product")}
                     />
-                  )}
-                </span>
-              </label>
-            </div>
+                    <label className="form-check-label fw-semibold text-dark" htmlFor="bulk1">
+                      {lang === "bn" ? "প্রতিটি প্রোডাক্টের ১টি করে স্টিকার" : "1 sticker per product"}
+                    </label>
+                  </div>
 
-            <div className="flex items-center gap-3 pt-3">
-              <button
-                onClick={() => setBulkModalOpen(false)}
-                className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs"
-              >
-                {lang === "bn" ? "বাতিল" : "Cancel"}
-              </button>
-              <button
-                onClick={() => triggerBulkPrint(selectedProductIds.length === 0)}
-                disabled={bulkLoading}
-                className="flex-1 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl text-xs shadow-sm flex items-center justify-center gap-1.5"
-              >
-                {bulkLoading ? (
-                  <span className="spinner-border spinner-border-sm me-1" />
-                ) : (
-                  <span>🖨️</span>
-                )}
-                <span>{lang === "bn" ? "প্রিন্ট শুরু করুন" : "Start Printing"}</span>
-              </button>
+                  <div className="form-check p-2 border rounded-3 bg-light">
+                    <input
+                      className="form-check-input ms-0 me-2"
+                      type="radio"
+                      name="bulkMode"
+                      id="bulkStock"
+                      checked={bulkCopiesMode === "stock_quantity"}
+                      onChange={() => setBulkCopiesMode("stock_quantity")}
+                    />
+                    <label className="form-check-label fw-semibold text-dark" htmlFor="bulkStock">
+                      {lang === "bn" ? "বর্তমান স্টকের পরিমাণ অনুযায়ী" : "According to current stock quantity"}
+                    </label>
+                  </div>
+
+                  <div className="form-check p-2 border rounded-3 bg-light">
+                    <input
+                      className="form-check-input ms-0 me-2"
+                      type="radio"
+                      name="bulkMode"
+                      id="bulkCustom"
+                      checked={bulkCopiesMode === "custom"}
+                      onChange={() => setBulkCopiesMode("custom")}
+                    />
+                    <label className="form-check-label fw-semibold text-dark d-flex align-items-center gap-2" htmlFor="bulkCustom">
+                      <span>{lang === "bn" ? "নির্দিষ্ট কপি:" : "Custom copies:"}</span>
+                      {bulkCopiesMode === "custom" && (
+                        <input
+                          type="number"
+                          min="1"
+                          value={bulkCustomCopies}
+                          onChange={(e) => setBulkCustomCopies(Math.max(1, Number(e.target.value) || 1))}
+                          className="form-control form-control-sm text-center fw-bold"
+                          style={{ width: "70px" }}
+                        />
+                      )}
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <div className="modal-footer border-top-0 pt-0 d-flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setBulkModalOpen(false)}
+                  className="btn btn-light fw-bold flex-fill"
+                >
+                  {lang === "bn" ? "বাতিল" : "Cancel"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => triggerBulkPrint(selectedProductIds.length === 0)}
+                  disabled={bulkLoading}
+                  className="btn btn-primary fw-bold flex-fill shadow-sm d-flex align-items-center justify-content-center gap-1 text-white"
+                >
+                  {bulkLoading ? (
+                    <span className="spinner-border spinner-border-sm me-1" />
+                  ) : (
+                    <span>🖨️</span>
+                  )}
+                  <span>{lang === "bn" ? "প্রিন্ট শুরু করুন" : "Start Printing"}</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

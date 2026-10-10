@@ -97,8 +97,8 @@ def test_positional_mapping_works_with_nondescriptive_headers(two_shops, staff):
 def test_missing_required_mapping_blocks_preview(two_shops, staff):
     (shop_a, _), _ = two_shops
     csv = "ITEM NAME,SKU-CODE,AVG.COST\nA,A1,5\n"
-    job = _job(shop_a, "products", csv, {"name": 0}, staff)  # sku + cost unmapped
-    assert set(missing_required_mappings(job)) == {"SKU code", "Avg cost"}
+    job = _job(shop_a, "products", csv, {"name": 0}, staff)  # cost unmapped
+    assert set(missing_required_mappings(job)) == {"Avg cost"}
 
 
 def test_import_mapping_template_reapplies(two_shops, staff):

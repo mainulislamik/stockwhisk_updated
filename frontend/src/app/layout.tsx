@@ -162,6 +162,20 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           </ThemeRegistry>
         </LanguageProvider>
         <Toaster position="bottom-center" />
+        {/* Prevent mouse wheel / trackpad scrolling from changing input[type=number] values */}
+        <Script id="disable-number-input-scroll" strategy="afterInteractive">
+          {`
+            document.addEventListener("wheel", function(e) {
+              var target = e.target;
+              if (target && target.tagName === "INPUT" && target.type === "number") {
+                target.blur();
+                e.preventDefault();
+              } else if (document.activeElement && document.activeElement.tagName === "INPUT" && document.activeElement.type === "number") {
+                document.activeElement.blur();
+              }
+            }, { passive: false });
+          `}
+        </Script>
         {/* Bootstrap bundle for offcanvas/modal/dropdown behaviour. */}
         <Script
           src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"

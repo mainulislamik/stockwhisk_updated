@@ -1,5 +1,16 @@
 /* Premium Glassmorphic Theme for StockWhisk */
 
+/* Disable spin buttons on number inputs across entire app */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
 :root, [data-bs-theme="dark"] {
   --brand-50: #0a0c10;  /* Very deep background */
   --brand-100: rgba(22, 27, 34, 0.6); /* Lighter panels */
@@ -228,30 +239,101 @@ a:hover { color: var(--brand-400); }
 
 /* POS Items */
 .pos-item {
-  border: var(--glass-border);
+  border: 1px solid #e2e8f0;
   border-radius: var(--radius);
-  background: var(--pos-item-bg);
-  color: var(--text-muted);
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: var(--shadow-sm);
+  background: #ffffff;
+  color: #0f172a;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .pos-item:hover:not(:disabled) {
-  background: var(--brand-700);
-  border-color: var(--brand-500);
-  color: #fff;
-  transform: translateY(-2px);
-  box-shadow: var(--shadow-glow);
+  border-color: #93c5fd;
+  background: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
 }
-.pos-item:hover:not(:disabled) * { color: #fff !important; }
 .pos-item-active {
-  border-color: var(--brand-400) !important;
-  background: rgba(99,102,241,0.2) !important;
-  box-shadow: inset 0 0 0 1px var(--brand-400);
+  border-color: #2563eb !important;
+  background: #f8faff !important;
+  box-shadow: 0 0 0 1.5px #2563eb, 0 4px 14px rgba(37, 99, 235, 0.12) !important;
+}
+
+/* Quick Cash Action Buttons */
+.quick-cash-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.95rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #1e293b;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.quick-cash-btn:hover {
+  background-color: #eff6ff !important;
+  border-color: #3b82f6 !important;
+  color: #1d4ed8 !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.16) !important;
+}
+
+.quick-cash-btn:active {
+  transform: translateY(0);
+}
+
+.quick-cash-btn.active {
+  background-color: #2563eb !important;
+  border-color: #1d4ed8 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.32) !important;
+}
+
+.quick-cash-btn-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.38rem 0.95rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background-color: #ffffff;
+  border: 1.5px solid #fca5a5;
+  color: #dc2626;
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.quick-cash-btn-due:hover {
+  background-color: #fef2f2 !important;
+  border-color: #ef4444 !important;
+  color: #b91c1c !important;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.16) !important;
+}
+
+.quick-cash-btn-due:active {
+  transform: translateY(0);
+}
+
+.quick-cash-btn-due.active {
+  background-color: #dc2626 !important;
+  border-color: #b91c1c !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 14px rgba(220, 38, 38, 0.32) !important;
 }
 .pos-item-exact {
   border-color: #10b981 !important;
-  background: rgba(16,185,129,0.15) !important;
-  box-shadow: 0 0 0 2px rgba(16,185,129,0.25) !important;
+  background: #f0fdf4 !important;
+  box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.25) !important;
 }
 
 /* Tables */
@@ -341,3 +423,87 @@ a:hover { color: var(--brand-400); }
 
 /* Quick Access hover menu */
 .quick-tile:hover { background: var(--sidebar-hover); }
+
+/* --- macOS Liquid Glass Design Tokens & Interactive Classes --- */
+:root {
+  --canvas-bg: #f8fafc;
+  --glass-panel: rgba(255, 255, 255, 0.85);
+  --glass-card: rgba(255, 255, 255, 0.90);
+  --glass-elevated: rgba(255, 255, 255, 0.96);
+  --glass-border: rgba(226, 232, 240, 0.85);
+  --glass-specular: inset 0 1px 1px 0 rgba(255, 255, 255, 0.95);
+  --glass-blur: blur(20px) saturate(180%);
+  --glass-shadow: 0 8px 30px -4px rgba(15, 23, 42, 0.05);
+  --glass-shadow-hover: 0 16px 36px -6px rgba(15, 23, 42, 0.10);
+  
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  
+  --accent-primary: #2563eb;
+  --accent-hover: #1d4ed8;
+  --success: #16a34a;
+  --warning: #d97706;
+  --danger: #dc2626;
+
+  --spring-easing: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel {
+  background: var(--glass-panel) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-specular) !important;
+}
+
+.glass-card-interactive {
+  background: var(--glass-card) !important;
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border) !important;
+  box-shadow: var(--glass-shadow), var(--glass-specular) !important;
+  transition: transform 0.24s var(--spring-easing), box-shadow 0.24s var(--spring-easing), border-color 0.24s var(--spring-easing) !important;
+}
+
+.glass-card-interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--glass-shadow-hover), var(--glass-specular) !important;
+  border-color: rgba(37, 99, 235, 0.3) !important;
+}
+
+.glass-card-interactive:active {
+  transform: translateY(0) scale(0.99);
+}
+
+.glass-pill {
+  border-radius: 980px !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.2s var(--spring-easing) !important;
+}
+
+.glass-dock {
+  background: var(--glass-elevated) !important;
+  backdrop-filter: blur(24px) saturate(200%);
+  -webkit-backdrop-filter: blur(24px) saturate(200%);
+  border: 1px solid rgba(226, 232, 240, 0.9) !important;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.12), var(--glass-specular) !important;
+  border-radius: 18px !important;
+}
+
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(22, 163, 74, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(22, 163, 74, 0); }
+}
+
+.pulse-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: var(--success);
+  animation: pulseGlow 2s infinite;
+}
+

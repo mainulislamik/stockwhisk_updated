@@ -28,7 +28,7 @@ export default function LoginPage() {
     setError("");
     setBusy(true);
     try {
-      await login(email, password);
+      await login(email.trim(), password.trim());
       const me = await api<{ is_staff: boolean; is_reseller?: boolean; shop: number | null }>("/auth/me/").catch(() => null);
       // Platform staff land on the admin dashboard.
       if (me?.is_staff) { router.push("/platform"); return; }
@@ -42,7 +42,7 @@ export default function LoginPage() {
       const perms = new Set(p.permissions || []);
       router.push(getLandingPath({ isOwner, can: (c) => isOwner || perms.has(c) }));
     } catch (err: any) {
-      setError(err?.data?.detail || "No active account found with the given credentials.");
+      setError(err?.data?.detail || err?.message || "No active account found with the given credentials.");
       setBusy(false);
     }
   }
@@ -157,7 +157,7 @@ export default function LoginPage() {
               {error}
             </Alert>
           )}
-          
+
           <form onSubmit={onSubmit}>
             <Stack spacing={3.5}>
               <TextField
@@ -225,7 +225,7 @@ export default function LoginPage() {
 
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: -2 }}>
                 <Link href="/forgot-password" style={{ color: isDark ? '#94a3b8' : '#64748b', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 500, transition: 'color 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.color = '#4f46e5'} onMouseLeave={(e) => e.currentTarget.style.color = isDark ? '#94a3b8' : '#64748b'}>
-                  setPasswordForm
+                  {lang === 'bn' ? 'পাসওয়ার্ড ভুলে গেছেন?' : 'Forgot password?'}
                 </Link>
               </Box>
 

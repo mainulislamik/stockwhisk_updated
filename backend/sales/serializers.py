@@ -125,7 +125,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone", "bill_address",
             "branch", "sale_date", "due_date",
             "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
-            "note", "alteration_notes", "alteration_status", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
+            "note", "alteration_notes", "alteration_status", "custom_fields", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
         ]
         read_only_fields = fields
 
@@ -178,6 +178,8 @@ class SaleCreateSerializer(serializers.Serializer):
     
     # Quotation / Estimation
     is_quotation = serializers.BooleanField(default=False)
+    idempotency_key = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
+    custom_fields = serializers.JSONField(required=False, default=dict)
 
     def validate_items(self, value):
         if not value:

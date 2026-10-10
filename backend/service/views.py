@@ -29,6 +29,7 @@ class WarrantyViewSet(TenantScopedViewSet):
     # manage_service.
     required_perm = "view_service"
     required_write_perm = "manage_service"
+    required_module = "service_repair,mobile_repair_pos"
 
     def get_queryset(self):
         from datetime import timedelta
@@ -75,6 +76,7 @@ class WarrantyClaimViewSet(TenantScopedViewSet):
     serializer_class = WarrantyClaimSerializer
     required_perm = "view_service"
     required_write_perm = "manage_service"
+    required_module = "service_repair,mobile_repair_pos"
 
     def get_queryset(self):
         return WarrantyClaim.objects.select_related("warranty")
@@ -107,6 +109,7 @@ class ServiceTicketViewSet(TenantScopedViewSet):
     # manage_service.
     required_perm = "view_service"
     required_write_perm = "manage_service"
+    required_module = "service_repair,mobile_repair_pos"
 
     def get_queryset(self):
         qs = ServiceTicket.objects.select_related("customer", "technician").prefetch_related(

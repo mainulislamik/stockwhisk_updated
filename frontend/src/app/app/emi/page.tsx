@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { money } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 
 type Installment = {
   id: number;
@@ -82,7 +83,8 @@ export default function EMIPage() {
   };
 
   return (
-    <div className="container-fluid py-4">
+    <ModuleRouteGuard module="emi_installments" name="কিস্তি ও ইএমআই (EMI & Installments)">
+      <div className="container-fluid py-4">
       <div className="d-flex align-items-center justify-content-between mb-4">
         <div>
           <h1 className="h3 mb-1 fw-bold text-dark">{t("emi_title")}</h1>
@@ -275,5 +277,6 @@ export default function EMIPage() {
         </div>
       </div>
     </div>
+    </ModuleRouteGuard>
   );
 }

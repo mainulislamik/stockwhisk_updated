@@ -6,10 +6,9 @@ import MarketingNav from "@/components/MarketingNav";
 import MarketingFooter from "@/components/MarketingFooter";
 import { useLanguage } from "@/contexts/LanguageContext";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
-import { Hanken_Grotesk, Manrope } from "next/font/google";
 
-const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "700", "800"] });
-const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const hanken = { className: "font-sans", style: { fontFamily: "inherit" } };
+const manrope = { className: "font-sans", style: { fontFamily: "inherit" } };
 
 export default function TermsPage() {
   const { lang, t } = useLanguage();

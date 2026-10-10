@@ -3,7 +3,7 @@
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 
 import Link from "next/link";
-import { Fragment, useEffect, useState } from "react";
+import { Fragment, useEffect, useState, useRef } from "react";
 import { api, fetchAll, useApi, Paginated } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money } from "@/components/ui";
@@ -23,6 +23,8 @@ type Product = {
   current_stock: string;
   is_low_stock: boolean;
   is_active: boolean;
+  image?: string | null;
+  image_url?: string | null;
   track_inventory?: boolean;
   purchase_multiplier?: string | number;
   full_pack_cost?: string | number;
@@ -66,6 +68,7 @@ export default function ProductsPage() {
   const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
+  const [viewMode, setViewMode] = useState<"table" | "brand">("table");
   const [selectedBrandFilter, setSelectedBrandFilter] = useState<number | null>(null);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<number | null>(null);
   const { t, lang } = useLanguage();
@@ -77,6 +80,36 @@ export default function ProductsPage() {
   const [filter, setFilter] = useState("");
   const [expandedProducts, setExpandedProducts] = useState<number[]>([]);
   function toggleExpandedProduct(id: number) { setExpandedProducts((prev) => prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]); }
+
+  function exportCSV() {
+    if (!products.length) {
+      toast.error(lang === "bn" ? "এক্সপোর্ট করার মতো কোনো প্রোডাক্ট নেই" : "No products to export");
+      return;
+    }
+    const headers = ["ID", "Name", "SKU", "Barcode", "Brand", "Category", "Cost Price", "Selling Price", "Current Stock", "Unit", "Warranty Months"];
+    const rows = products.map((p) => [
+      p.id,
+      `"${(p.name || "").replace(/"/g, '""')}"`,
+      `"${p.sku || ""}"`,
+      `"${p.barcode || ""}"`,
+      `"${((p as any).brand_detail?.name || brands.find((b) => b.id === p.brand)?.name || "").replace(/"/g, '""')}"`,
+      `"${((p as any).category_detail?.name || categories.find((c) => c.id === p.category)?.name || "").replace(/"/g, '""')}"`,
+      p.cost_price || 0,
+      p.selling_price || 0,
+      p.current_stock || 0,
+      `"${p.unit_detail?.name || ""}"`,
+      p.warranty_months || 0,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `products_export_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(lang === "bn" ? "প্রোডাক্ট সফলভাবে এক্সপোর্ট হয়েছে" : "Products exported successfully");
+  }
   const [debouncedFilter, setDebouncedFilter] = useState("");
   const [page, setPage] = useState(1);
 
@@ -99,6 +132,10 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const [showAdd, setShowAdd] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
   const [form, setForm] = useState<any>({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", fit_type: "", collection_name: "", care_instructions: "", size_variants: [] });
 
   // Smart size presets based on selected category (fashion only)
@@ -166,7 +203,7 @@ export default function ProductsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await api("/catalog/products/", {
+      const created = await api("/catalog/products/", {
         method: "POST",
         body: {
           name: form.name,
@@ -197,6 +234,20 @@ export default function ProductsPage() {
           size_variants: form.size_variants || [],
         },
       });
+      if (imageFile && created?.id) {
+        try {
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          await api(`/catalog/products/${created.id}/upload_image/`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (imgErr: any) {
+          toast.error(lang === "bn" ? "প্রোডাক্ট সেভ হয়েছে কিন্তু ছবি আপলোড ব্যর্থ হয়েছে" : "Product saved but image upload failed");
+        }
+      }
+      setImageFile(null);
+      setImagePreview(null);
       setForm({ name: "", sku: "", barcode: "", category: "", brand: "", unit: "", purchase_unit: "", purchase_multiplier: "1", full_pack_cost: "", full_pack_sell: "", cost_price: "", selling_price: "", reorder_level: "", warranty_months: "", replacement_guarantee_days: "", expiry_date: "", lot_number: "", mfg_date: "", fabric_material: "", gender_target: "", season: "", style_type: "", fit_type: "", collection_name: "", care_instructions: "", size_variants: [] });
       setShowAdd(false);
       mutate();
@@ -247,23 +298,60 @@ export default function ProductsPage() {
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
-        <input
-          placeholder={t("prod_list_filter")}
-          className="form-control form-control-sm"
-          style={{ maxWidth: "18rem" }}
-          value={filter}
-          onChange={(e) => setFilter(e.target.value)}
-        />
-        {canManage && (
-          <div className="d-flex gap-2">
-            <button onClick={() => setShowAdd((s) => !s)} className="btn btn-outline-brand btn-sm">
-              {t("prod_list_new")}
-            </button>
-            <Link href="/app/products/purchase" className="btn btn-brand btn-sm">
-              {t("prod_list_purchase")}
-            </Link>
-          </div>
-        )}
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <input
+            placeholder={t("prod_list_filter")}
+            className="form-control form-control-sm"
+            style={{ maxWidth: "18rem" }}
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+          />
+
+          {isRepairShop && (
+            <div className="btn-group btn-group-sm shadow-sm" role="group">
+              <button
+                type="button"
+                className={`btn fw-semibold ${viewMode === "table" ? "btn-brand active" : "btn-outline-secondary"}`}
+                onClick={() => {
+                  setViewMode("table");
+                  setSelectedBrandFilter(null);
+                  setSelectedCategoryFilter(null);
+                }}
+              >
+                🗂️ ফ্ল্যাট টেবিল ভিউ
+              </button>
+              <button
+                type="button"
+                className={`btn fw-semibold ${viewMode === "brand" ? "btn-brand active" : "btn-outline-secondary"}`}
+                onClick={() => setViewMode("brand")}
+              >
+                📱 ব্র্যান্ড ড্রিল-ডাউন
+              </button>
+            </div>
+          )}
+        </div>
+
+        <div className="d-flex align-items-center gap-2">
+          <button
+            type="button"
+            className="btn btn-outline-secondary btn-sm shadow-sm d-flex align-items-center gap-1"
+            onClick={exportCSV}
+            title="CSV এক্সপোর্ট"
+          >
+            📥 এক্সপোর্ট (CSV)
+          </button>
+
+          {canManage && (
+            <>
+              <button onClick={() => setShowAdd((s) => !s)} className="btn btn-outline-brand btn-sm shadow-sm">
+                {showAdd ? "✕ ফর্ম বন্ধ করুন" : t("prod_list_new")}
+              </button>
+              <Link href="/app/products/purchase" className="btn btn-brand btn-sm shadow-sm">
+                {t("prod_list_purchase")}
+              </Link>
+            </>
+          )}
+        </div>
       </div>
 
       {showAdd && (
@@ -812,6 +900,122 @@ export default function ProductsPage() {
                 </>
               )}
               <div className="col-12">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="d-none"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      if (!file.type.startsWith("image/")) {
+                        toast.error(lang === "bn" ? "শুধুমাত্র ইমেজ ফাইল সিলেক্ট করুন" : "Please select an image file");
+                        return;
+                      }
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                />
+                <div
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragging(true);
+                  }}
+                  onDragLeave={() => setIsDragging(false)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setIsDragging(false);
+                    const file = e.dataTransfer.files?.[0];
+                    if (file) {
+                      if (!file.type.startsWith("image/")) {
+                        toast.error(lang === "bn" ? "শুধুমাত্র ইমেজ ফাইল সিলেক্ট করুন" : "Please select an image file");
+                        return;
+                      }
+                      setImageFile(file);
+                      setImagePreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className={`card p-3 rounded-3 border-2 border-dashed cursor-pointer transition-all ${
+                    isDragging
+                      ? "border-primary bg-primary bg-opacity-10 shadow-sm"
+                      : "border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-primary shadow-xs"
+                  }`}
+                  style={{ cursor: "pointer", transition: "all 0.2s ease-in-out" }}
+                >
+                  <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div className="d-flex align-items-center gap-3">
+                      {imagePreview ? (
+                        <div className="position-relative" onClick={(e) => e.stopPropagation()}>
+                          <img
+                            src={imagePreview}
+                            alt="Preview"
+                            className="rounded-3 border border-slate-300 shadow-sm object-cover"
+                            style={{ width: 68, height: 68, objectFit: "cover" }}
+                          />
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setImageFile(null);
+                              setImagePreview(null);
+                              if (fileInputRef.current) fileInputRef.current.value = "";
+                            }}
+                            className="btn btn-danger btn-sm position-absolute top-0 end-0 p-0 rounded-circle d-flex align-items-center justify-content-center shadow-xs"
+                            style={{ width: 22, height: 22, transform: "translate(35%, -35%)", fontSize: "14px", lineHeight: 1 }}
+                            title="Remove image"
+                          >
+                            ×
+                          </button>
+                        </div>
+                      ) : (
+                        <div
+                          className="rounded-3 border border-dashed border-primary border-opacity-50 bg-white d-flex flex-column align-items-center justify-content-center text-primary shadow-2xs"
+                          style={{ width: 68, height: 68 }}
+                        >
+                          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                            <circle cx="8.5" cy="8.5" r="1.5"/>
+                            <polyline points="21 15 16 10 5 21"/>
+                          </svg>
+                        </div>
+                      )}
+                      <div>
+                        <div className="fw-semibold text-slate-800 small mb-0.5 d-flex align-items-center gap-1.5">
+                          <span>{lang === "bn" ? "প্রোডাক্টের ছবি আপলোড করুন" : "Upload Product Picture"}</span>
+                          <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-20" style={{ fontSize: "11px" }}>
+                            Auto WebP &lt;80KB
+                          </span>
+                        </div>
+                        <div className="text-secondary small">
+                          {lang === "bn"
+                            ? "সম্পূর্ণ সেকশনে ক্লিক করুন অথবা ইমেজ ড্র্যাগ অ্যান্ড ড্রপ করুন (ক্যাশিয়ারের সুবিধার্থে অতি দ্রুত লোড হবে)।"
+                            : "Click anywhere or drag & drop image here for instant POS card loading."}
+                        </div>
+                      </div>
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm px-3 py-2 fw-semibold shadow-sm d-inline-flex align-items-center gap-2"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          fileInputRef.current?.click();
+                        }}
+                      >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                          <polyline points="17 8 12 3 7 8"/>
+                          <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span>{imageFile ? (lang === "bn" ? "ছবি পরিবর্তন করুন" : "Change Picture") : (lang === "bn" ? "ছবি আপলোড করুন" : "Upload Picture")}</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="col-12">
                 <button className="btn btn-brand btn-sm" disabled={saving}>
                   {saving ? t("prod_list_saving") : t("prod_list_save")}
                 </button>
@@ -826,7 +1030,7 @@ export default function ProductsPage() {
           REPAIR SHOP MODE: STRICT 3-STEP HIERARCHY DRILL-DOWN
           Step 1: Big Brand Cards -> Step 2: Category Cards -> Step 3: Products Table
           ══════════════════════════════════════════════════════════════════════ */}
-      {isRepairShop ? (
+      {isRepairShop && viewMode === "brand" ? (
         <div className="d-flex flex-column gap-3 mb-4">
           {/* Breadcrumb / Navigation Bar */}
           <div className="card shadow-sm border-0 mb-2">
@@ -966,6 +1170,7 @@ export default function ProductsPage() {
                   <table className="table table-striped table-sm align-middle mb-0">
                     <thead className="thead-1">
                       <tr>
+                        <th style={{ width: 68 }} className="text-center">{t("prod_list_col_image")}</th>
                         <th>{t("prod_list_col_name")}</th>
                         <th className="text-end">{t("prod_list_col_cost")}</th>
                         <th className="text-end">{t("prod_list_col_price")}</th>
@@ -977,7 +1182,7 @@ export default function ProductsPage() {
                     <tbody>
                       {products.length === 0 ? (
                         <tr data-empty="">
-                          <td colSpan={6} className="text-center text-secondary py-5">
+                          <td colSpan={7} className="text-center text-secondary py-5">
                             <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
                             <div className="fw-semibold mt-2">{t("prod_list_no_products")}</div>
                             <div className="small mb-3">{t("prod_list_add_first")}</div>
@@ -1000,17 +1205,36 @@ export default function ProductsPage() {
 
                           return (
                             <tr key={p.id} className={p.is_low_stock ? "table-danger" : ""}>
+                              <td className="text-center" style={{ width: 64 }}>
+                                {p.image || p.image_url ? (
+                                  <img
+                                    src={p.image_url || p.image || ""}
+                                    alt={p.name}
+                                    className="rounded-2 border border-slate-200 object-cover shadow-2xs mx-auto d-block"
+                                    style={{ width: 44, height: 44, objectFit: "cover" }}
+                                  />
+                                ) : (
+                                  <div
+                                    className="rounded-2 border border-slate-200 bg-slate-100 text-slate-400 d-flex align-items-center justify-content-center mx-auto shadow-2xs"
+                                    style={{ width: 44, height: 44, fontSize: "1.2rem" }}
+                                  >
+                                    📦
+                                  </div>
+                                )}
+                              </td>
                               <td>
-                                <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium">
-                                  {p.name}
-                                </Link>
-                                <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
-                                  <span>{p.sku || "—"}</span>
-                                  {isBulk && (
-                                    <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                                      📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
-                                    </span>
-                                  )}
+                                <div>
+                                  <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-medium text-slate-900">
+                                    {p.name}
+                                  </Link>
+                                  <div className="text-secondary small d-flex flex-wrap align-items-center gap-2">
+                                    <span>{p.sku || "—"}</span>
+                                    {isBulk && (
+                                      <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                        📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                               </td>
                               <td className="text-end">{money(cost)}</td>
@@ -1055,6 +1279,7 @@ export default function ProductsPage() {
             <table className="table table-striped table-sm align-middle mb-0">
               <thead className="thead-1">
                 <tr>
+                  <th style={{ width: 68 }} className="text-center">{t("prod_list_col_image")}</th>
                   <th>{t("prod_list_col_name")}</th>
                   <th className="text-end">{t("prod_list_col_cost")}</th>
                   <th className="text-end">{t("prod_list_col_price")}</th>
@@ -1066,7 +1291,7 @@ export default function ProductsPage() {
               <tbody>
                 {products.length === 0 ? (
                   <tr data-empty="">
-                    <td colSpan={6} className="text-center text-secondary py-5">
+                    <td colSpan={7} className="text-center text-secondary py-5">
                       <div style={{ fontSize: "2.5rem", lineHeight: 1 }}>📦</div>
                       <div className="fw-semibold mt-2">{t("prod_list_no_products")}</div>
                       <div className="small mb-3">{t("prod_list_add_first")}</div>
@@ -1092,17 +1317,36 @@ export default function ProductsPage() {
                     return (
                       <Fragment key={p.id}>
                         <tr className={p.is_low_stock ? "table-danger" : ""}>
+                          <td className="text-center" style={{ width: 64 }}>
+                            {p.image || p.image_url ? (
+                              <img
+                                src={p.image_url || p.image || ""}
+                                alt={p.name}
+                                className="rounded-2 border border-slate-200 object-cover shadow-2xs mx-auto d-block"
+                                style={{ width: 44, height: 44, objectFit: "cover" }}
+                              />
+                            ) : (
+                              <div
+                                className="rounded-2 border border-slate-200 bg-slate-100 text-slate-400 d-flex align-items-center justify-content-center mx-auto shadow-2xs"
+                                style={{ width: 44, height: 44, fontSize: "1.2rem" }}
+                              >
+                                📦
+                              </div>
+                            )}
+                          </td>
                           <td>
-                            <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-bold text-dark">
-                              {p.name}
-                            </Link>
-                            <div className="text-secondary small d-flex flex-wrap align-items-center gap-2 mt-0.5">
-                              <span>{p.sku || "—"}</span>
-                              {isBulk && (
-                                <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
-                                  📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
-                                </span>
-                              )}
+                            <div>
+                              <Link href={`/app/products/${p.id}`} className="text-decoration-none fw-bold text-dark">
+                                {p.name}
+                              </Link>
+                              <div className="text-secondary small d-flex flex-wrap align-items-center gap-2 mt-0.5">
+                                <span>{p.sku || "—"}</span>
+                                {isBulk && (
+                                  <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
+                                    📦 1 {bulkUnit} = {mult} {baseUnit || "Unit"}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                             {hasVars && (
                               <div className="mt-1">
@@ -1147,7 +1391,7 @@ export default function ProductsPage() {
                         {/* ── Sub-row: Size & Color Stock Matrix ── */}
                         {isExpanded && hasVars && (
                           <tr className="table-light">
-                            <td colSpan={6} className="p-3">
+                            <td colSpan={7} className="p-3">
                               <div className="card border shadow-sm rounded-3 overflow-hidden bg-white">
                                 <div className="card-header py-2 px-3 bg-purple-subtle border-bottom d-flex align-items-center justify-content-between" style={{ backgroundColor: "#f5f3ff" }}>
                                   <span className="fw-bold small" style={{ color: "#7c3aed" }}>

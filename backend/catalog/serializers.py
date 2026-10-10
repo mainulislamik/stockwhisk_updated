@@ -128,27 +128,60 @@ class ProductVariationSerializer(HideCostMixin, serializers.ModelSerializer):
 
 
 class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
+    brand_name = serializers.CharField(source="brand.name", read_only=True, default=None)
+    category_name = serializers.CharField(source="category.name", read_only=True, default=None)
     variations = serializers.SerializerMethodField()
     is_low_stock = serializers.BooleanField(read_only=True)
     unit_detail = serializers.SerializerMethodField()
     purchase_unit_detail = serializers.SerializerMethodField()
     units = serializers.SerializerMethodField()
+    in_stock_units_count = serializers.SerializerMethodField()
     display_name = serializers.SerializerMethodField()
+    image_url = serializers.SerializerMethodField()
+    images = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
         fields = [
-            "id", "name", "sku", "barcode", "category", "brand", "unit",
+            "id", "name", "sku", "barcode", "category", "category_name", "brand", "brand_name", "unit",
             "purchase_unit", "purchase_multiplier",
             "full_pack_cost", "full_pack_sell",
             "description", "cost_price", "selling_price", "tax_percent",
+            "wholesale_price", "min_selling_price", "custom_fields",
             "track_inventory", "reorder_level", "current_stock",
+            "image", "image_url", "images",
             "is_low_stock", "is_active", "variations", "warranty_months",
             "replacement_guarantee_days",
             "expiry_date", "lot_number", "mfg_date", "size_variants", "fabric_material", "gender_target", "season", "style_type", "fit_type", "collection_name", "care_instructions",
-            "units", "unit_detail", "purchase_unit_detail", "display_name",
+            "units", "in_stock_units_count", "unit_detail", "purchase_unit_detail", "display_name",
         ]
-        read_only_fields = ["current_stock", "is_low_stock"]
+        read_only_fields = ["current_stock", "is_low_stock", "image_url", "images", "in_stock_units_count"]
+
+    def get_image_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        url = obj.image.url
+        if request is not None:
+            return request.build_absolute_uri(url)
+        return url
+
+    def get_images(self, obj):
+        if not hasattr(obj, "images"):
+            return []
+        items = []
+        try:
+            for img in obj.images.all():
+                url = img.image.url if img.image else None
+                items.append({
+                    "id": img.id,
+                    "url": url,
+                    "is_primary": img.is_primary,
+                    "caption": img.caption,
+                })
+        except Exception:
+            pass
+        return items
 
 
     def get_display_name(self, obj):
@@ -182,6 +215,13 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "measure_type": getattr(obj.purchase_unit, "measure_type", "count"),
             "allow_decimal": getattr(obj.purchase_unit, "allow_decimal", False),
         }
+
+    def get_in_stock_units_count(self, obj):
+        if not getattr(obj, "track_inventory", True):
+            return 0
+        if hasattr(obj, "prefetched_in_stock_units"):
+            return len(obj.prefetched_in_stock_units)
+        return obj.units.filter(status=ProductUnit.Status.IN_STOCK).count()
 
     def get_units(self, obj):
         if not getattr(obj, "track_inventory", True):
@@ -323,3 +363,22 @@ class ProductUnitSerializer(HideCostMixin, serializers.ModelSerializer):
         t = (ServiceTicket.all_objects.filter(warranty__product_unit_id=obj.id)
              .order_by("-created_at").first())
         return t.status if t else None
+
+
+class ProductImageSerializer(serializers.ModelSerializer):
+    url = serializers.SerializerMethodField()
+
+    class Meta:
+        from .models import ProductImage
+        model = ProductImage
+        fields = ["id", "product", "image", "url", "is_primary", "caption", "created_at"]
+        read_only_fields = ["id", "url", "created_at"]
+
+    def get_url(self, obj):
+        if not obj.image:
+            return None
+        request = self.context.get("request")
+        url = obj.image.url
+        if request is not None:
+            return request.build_absolute_uri(url)
+        return url

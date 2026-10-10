@@ -5,6 +5,9 @@ from django.core.mail import get_connection, send_mail
 
 
 def get_platform_smtp_connection():
+    if getattr(settings, "TESTING", False):
+        return get_connection(backend="django.core.mail.backends.locmem.EmailBackend"), "noreply@stockwhisk.com"
+
     from platform_admin.models import PlatformConfig
 
     config = PlatformConfig.get_solo()

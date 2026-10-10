@@ -5,8 +5,60 @@
 
 import useSWR from 'swr';
 
-// Inlined at build time. In Docker this is set to the published backend origin.
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE || "";
+export function getApiBase(): string {
+  if (typeof window === "undefined") {
+    return process.env.NEXT_PUBLIC_API_BASE || "";
+  }
+  // When accessed via LAN IP or custom domain, route through same origin host
+  // or respect the protocol and host to avoid localhost cross-origin drops
+  if (process.env.NEXT_PUBLIC_API_BASE) {
+    try {
+      const url = new URL(process.env.NEXT_PUBLIC_API_BASE);
+      if (url.hostname === "localhost" && window.location.hostname !== "localhost") {
+        return `${window.location.protocol}//${window.location.hostname}:${url.port || "8090"}`;
+      }
+    } catch {}
+    return process.env.NEXT_PUBLIC_API_BASE;
+  }
+  return "";
+}
+
+export function getFastApiBase(): string {
+  if (typeof window === "undefined") {
+    return process.env.NEXT_PUBLIC_FASTAPI_BASE || "http://localhost:8090";
+  }
+  if (window.location.port === "8090") {
+    return "";
+  }
+  return `${window.location.protocol}//${window.location.hostname}:8090`;
+}
+
+export async function fastapiFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const base = getFastApiBase();
+  const cleanPath = path.startsWith("/") ? path : `/${path}`;
+  const url = `${base}${cleanPath.startsWith("/fastapi") ? cleanPath : `/fastapi${cleanPath}`}`;
+  
+  const headers = new Headers(options.headers || {});
+  if (!headers.has("Content-Type") && !(options.body instanceof FormData)) {
+    headers.set("Content-Type", "application/json");
+  }
+  const token = getAccess();
+  if (token && !headers.has("Authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  const res = await fetch(url, { ...options, headers });
+  if (!res.ok) {
+    let errData: any;
+    try {
+      errData = await res.json();
+    } catch {
+      errData = await res.text();
+    }
+    throw new ApiError(res.status, errData);
+  }
+  return res.json() as Promise<T>;
+}
 
 const ACCESS_KEY = "sw_access";
 const REFRESH_KEY = "sw_refresh";
@@ -32,7 +84,19 @@ export class ApiError extends Error {
   status: number;
   data: any;
   constructor(status: number, data: any) {
-    super(typeof data === "string" ? data : data?.detail || "Request failed");
+    let cleanMsg = "Request failed";
+    if (typeof data === "string") {
+      if (data.includes("<!doctype") || data.includes("<html") || data.startsWith("<")) {
+        cleanMsg = status >= 500
+          ? `সার্ভারে সমস্যা হয়েছে (Server Error ${status})`
+          : `অনুরোধ সম্পন্ন করা যায়নি (Error ${status})`;
+      } else {
+        cleanMsg = data;
+      }
+    } else if (data?.detail) {
+      cleanMsg = String(data.detail);
+    }
+    super(cleanMsg);
     this.status = status;
     this.data = data;
   }
@@ -50,7 +114,8 @@ async function refreshAccess(): Promise<string | null> {
     if (!refresh) return null;
     let res: Response;
     try {
-      res = await fetch(`${API_BASE}/api/auth/token/refresh/`, {
+      const apiBase = getApiBase();
+      res = await fetch(`${apiBase}/api/auth/token/refresh/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ refresh }),
@@ -88,7 +153,8 @@ type Opts = {
 
 export async function api<T = any>(path: string, opts: Opts = {}): Promise<T> {
   const { method = "GET", body, params, raw } = opts;
-  let url = API_BASE + (path.startsWith("/api") ? path : `/api${path}`);
+  const apiBase = getApiBase();
+  let url = apiBase + (path.startsWith("/api") ? path : `/api${path}`);
   if (params) {
     const qs = new URLSearchParams();
     Object.entries(params).forEach(([k, v]) => {

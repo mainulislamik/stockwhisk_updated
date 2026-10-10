@@ -9,27 +9,43 @@ import { api, fetchAll } from "@/lib/api";
 import { Spinner, money } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 import PrintFormatModal from "@/components/PrintFormatModal";
+import WhatsAppInvoiceSender from "@/components/WhatsAppInvoiceSender";
+import {
+  saveOfflineSale,
+  deductCachedStock,
+  clearCartCrashBackup,
+  OfflineSale,
+} from "@/lib/offlineDb";
+import { printOfflineReceipt } from "@/lib/offlinePrint";
 
 type ProductUnit = { id: number; barcode: string; effective_selling_price?: string };
 type CartLine = { 
-  lineId?: string;
   product: { 
     id: number; 
     name: string; 
     purchase_multiplier?: string | number; 
     unit_detail?: { id: number; name: string; short_code: string } | null;
     purchase_unit_detail?: { id: number; name: string; short_code: string } | null;
-    _selectedVariant?: any;
   }; 
   qty: number; 
   price: number; 
   discount: number; 
   selectedUnits: ProductUnit[];
-  selectedVariation?: { id: number; name: string; attributes?: any } | null;
   sellMode?: "base" | "bulk";
 };
-type Customer = { id: number; name: string; phone?: string; email?: string; address?: string; loyalty_points?: number; membership_id?: string; };
+type Customer = { 
+  id: number; 
+  name: string; 
+  phone?: string; 
+  email?: string; 
+  address?: string; 
+  loyalty_points?: number; 
+  membership_id?: string;
+  due_balance?: number | string;
+  advance_balance?: number | string;
+};
 
 const PAY_METHODS = [
   { value: "cash", label: "💵 Cash" },
@@ -118,6 +134,20 @@ export default function PosCustomerPage() {
     d.setMonth(d.getMonth() + 1, 1);
     return d.toISOString().split("T")[0];
   }
+
+
+
+
+
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        router.push("/app/pos");
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [router]);
 
   useEffect(() => {
     const saved = sessionStorage.getItem("pos_cart");
@@ -209,7 +239,7 @@ export default function PosCustomerPage() {
               unit_price: effPrice, 
               discount: l.discount,
               unit_ids: asQuotation ? [] : (l.selectedUnits ? l.selectedUnits.map(u => u.id) : []),
-              variation: l.selectedVariation?.id || undefined,
+              variation: (l as any).selectedVariation?.id || undefined,
               size_variant: (l.product as any)._selectedVariant || undefined,
             };
           }),
@@ -225,6 +255,8 @@ export default function PosCustomerPage() {
       });
 
       sessionStorage.removeItem("pos_cart");
+      await clearCartCrashBackup();
+
       const custPhone = customerMode === "walkin"
         ? walkPhone.trim()
         : (customers.find(c => c.id === Number(customerId))?.phone || "");
@@ -236,8 +268,56 @@ export default function PosCustomerPage() {
         : "";
       setSaleResult({ id: sale.id, invoice_no: sale.invoice_no, phone: custPhone, name: custName, total, pdfUrl });
     } catch (e: any) {
+      const isNetError = !navigator.onLine || !e?.status || e?.status === 0 || e?.status >= 502 || String(e?.message || "").includes("fetch");
+      if (isNetError) {
+        try {
+          const offlineId = `OFF-${user?.shop || 1}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+          const offlineInvoice = `OFF-INV-${Date.now().toString().slice(-6)}`;
+          const custPhone = customerMode === "walkin" ? walkPhone.trim() : (customers.find(c => c.id === Number(customerId))?.phone || "");
+          const custName = customerMode === "walkin" ? (walkName.trim() || "Walk-in Customer") : (customers.find(c => c.id === Number(customerId))?.name || "Customer");
+
+          const offlineItems = cart.map((l) => ({
+            product: l.product.id,
+            quantity: l.qty,
+            unit_price: l.price,
+            discount: l.discount,
+            unit_ids: l.selectedUnits ? l.selectedUnits.map(u => u.id) : [],
+            product_name: l.product.name,
+            barcode: l.selectedUnits[0]?.barcode,
+          }));
+
+          const offlineSaleObj: OfflineSale = {
+            client_offline_id: offlineId,
+            offline_invoice_no: offlineInvoice,
+            sale_date: new Date().toISOString(),
+            customer: customerMode === "existing" && customerId ? Number(customerId) : undefined,
+            customer_name: custName,
+            customer_phone: custPhone,
+            items: offlineItems,
+            payments: [{ method, amount: finalPaid }],
+            paid: finalPaid,
+            discount: discountNum,
+            tax: 0,
+            created_at: Date.now(),
+            status: "pending",
+          };
+
+          await saveOfflineSale(offlineSaleObj);
+          await deductCachedStock(offlineItems);
+          sessionStorage.removeItem("pos_cart");
+          await clearCartCrashBackup();
+
+          toast.success(lang === "bn" ? `⚡ অফলাইনে বিক্রয় সংরক্ষিত! চালান #${offlineInvoice}` : `⚡ Offline sale saved! #${offlineInvoice}`);
+          setSaleResult({ id: 0, invoice_no: offlineInvoice, phone: custPhone, name: custName, total, pdfUrl: "" });
+          printOfflineReceipt(offlineSaleObj, user?.shop_name || "StockWhisk Store", (user as any)?.shop_invoice_settings);
+          return;
+        } catch (offlineErr: any) {
+          console.error("Offline fallback failed:", offlineErr);
+        }
+      }
+
       const msg = formatApiErrorMessage(e) || t("pos_err_checkout_failed");
-      await showError("Transaction Failed", msg);
+      await showError(lang === "bn" ? "অর্ডার সম্পন্ন করা যায়নি" : "Transaction Failed", msg);
     } finally {
       setBusy(false);
     }
@@ -247,7 +327,8 @@ export default function PosCustomerPage() {
   if (cart.length === 0 && !sessionStorage.getItem("pos_cart")) return <Spinner label="Loading…" />;
 
   return (
-    <div className="row g-3">
+    <ModuleRouteGuard module="core_pos" name={lang === "bn" ? "পিওএস টার্মিনাল (POS)" : "POS Terminal"}>
+      <div className="row g-3">
       {/* Order summary */}
       <div className="col-lg-7">
         <div className="fw-semibold mb-2 text-secondary small">{t("pos_checkout_step2")}</div>
@@ -260,20 +341,19 @@ export default function PosCustomerPage() {
                   <tr><th className="ps-3">{t("pos_checkout_product")}</th><th className="text-center">{t("pos_checkout_qty")}</th><th className="text-end">{t("pos_checkout_price")}</th><th className="text-end pe-3">{t("pos_checkout_total")}</th></tr>
                 </thead>
                 <tbody>
-                  {cart.map((l) => {
+                  {cart.map((l, index) => {
                     const mult = Number((l.product as any)?.purchase_multiplier) || 1;
                     const isBulk = l.sellMode === "bulk" && mult > 1;
                     const unitLabel = isBulk ? ((l.product as any)?.purchase_unit_detail?.name || "Drum/Pack") : ((l.product as any)?.unit_detail?.short_code || "");
+                    const vInfo = (l.product as any)._selectedVariant || (l as any).selectedVariation;
                     return (
-                      <tr key={(l as any).lineId || l.product.id}>
+                      <tr key={(l as any).lineId || `${l.product.id}-${index}`}>
                         <td className="ps-3">
                           <div className="fw-medium">{formatProductName(l.product, isRepairShop)}</div>
-                          {(l.product as any)._selectedVariant && (
-                            <div className="d-flex align-items-center gap-1 my-0.5">
-                              <span className="badge fw-bold border" style={{ fontSize: "0.68rem", background: "#f3e8ff", color: "#6b21a8", borderColor: "#d8b4fe" }}>
-                                👗 {(l.product as any)._selectedVariant.size} {(l.product as any)._selectedVariant.color ? "/ " + (l.product as any)._selectedVariant.color : ""}
-                              </span>
-                            </div>
+                          {vInfo && (
+                            <span className="badge border me-1" style={{ fontSize: "0.72rem", background: "#f3e8ff", color: "#6b21a8", borderColor: "#d8b4fe" }}>
+                              👗 {vInfo.size || vInfo.attributes?.size || vInfo.name}{vInfo.color || vInfo.attributes?.color ? ` / ${vInfo.color || vInfo.attributes?.color}` : ""}
+                            </span>
                           )}
                           {isBulk && (
                             <span className="badge bg-primary bg-opacity-10 text-primary border border-primary border-opacity-25" style={{ fontSize: "0.68rem" }}>
@@ -320,10 +400,68 @@ export default function PosCustomerPage() {
                 }}
               >
                 <option value="walkin">{t("pos_checkout_walkin")}</option>
-                {customers.map((c) => <option key={c.id} value={c.id}>👤 {c.name}{c.phone ? ` · ${c.phone}` : ""}</option>)}
+                {customers.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    👤 {c.name}{c.phone ? ` · ${c.phone}` : ""}{Number(c.due_balance || 0) > 0 ? ` (⚠️ বাকি: ৳${c.due_balance})` : ""}
+                  </option>
+                ))}
               </select>
               <label htmlFor="customerMode">{t("pos_checkout_select_cust")}</label>
             </div>
+
+            {/* Active Customer Due & Advance Alert */}
+            {(() => {
+              const activeCust = customerMode === "existing"
+                ? customers.find((c) => c.id === Number(customerId))
+                : (matchedId ? customers.find((c) => c.id === matchedId) : null);
+              if (!activeCust) return null;
+
+              const due = Number(activeCust.due_balance || 0);
+              const adv = Number(activeCust.advance_balance || 0);
+
+              if (due <= 0 && adv <= 0) return null;
+
+              return (
+                <div className="vstack gap-2 my-1">
+                  {due > 0 && (
+                    <div className="alert alert-danger d-flex align-items-center justify-content-between p-3 rounded-3 shadow-sm border border-2 border-danger mb-0">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-3">⚠️</span>
+                        <div>
+                          <div className="fw-bold text-danger">
+                            {lang === "bn" ? "সতর্কতা: এই কাস্টমারের পূর্বের বকেয়া রয়েছে!" : "Warning: Customer Has Outstanding Due!"}
+                          </div>
+                          <div className="small text-secondary">
+                            {lang === "bn" ? "আগের মোট বকেয়া:" : "Previous Due:"} <strong className="text-danger fs-6">{money(due)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="badge bg-danger fs-6 px-3 py-2 rounded-pill">
+                        {money(due)}
+                      </span>
+                    </div>
+                  )}
+                  {adv > 0 && (
+                    <div className="alert alert-success d-flex align-items-center justify-content-between p-3 rounded-3 shadow-sm border border-2 border-success mb-0">
+                      <div className="d-flex align-items-center gap-2">
+                        <span className="fs-3">💰</span>
+                        <div>
+                          <div className="fw-bold text-success">
+                            {lang === "bn" ? "কাস্টমারের অগ্রিম ব্যালেন্স জমা আছে" : "Customer Has Advance Deposit"}
+                          </div>
+                          <div className="small text-secondary">
+                            {lang === "bn" ? "জমা ব্যালেন্স:" : "Advance Balance:"} <strong className="text-success fs-6">{money(adv)}</strong>
+                          </div>
+                        </div>
+                      </div>
+                      <span className="badge bg-success fs-6 px-3 py-2 rounded-pill">
+                        {money(adv)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             {customerMode === "existing" && customerId && (
               <div className="p-3 bg-light rounded-3 border vstack gap-2">
@@ -426,6 +564,7 @@ export default function PosCustomerPage() {
                         className="form-control fw-bold text-warning border-warning shadow-sm"
                         value={serviceCharge}
                         onChange={(e) => setServiceCharge(e.target.value)}
+                        onWheel={(e) => e.currentTarget.blur()}
                         placeholder="0"
                       />
                       <label htmlFor="serviceChargeInput" className="fw-bold text-dark">
@@ -551,25 +690,109 @@ export default function PosCustomerPage() {
             <div className="row g-3">
               <div className={user?.shop_delivery_enabled !== false ? "col-4" : "col-6"}>
                 <div className="form-floating">
-                  <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" />
+                  <input id="discountInput" type="number" min={0} className="form-control fw-bold text-success shadow-sm" value={discount} onChange={(e) => setDiscount(e.target.value)} onWheel={(e) => e.currentTarget.blur()} placeholder="0" />
                   <label htmlFor="discountInput">{t("pos_checkout_discount")}</label>
                 </div>
               </div>
               {user?.shop_delivery_enabled !== false && (
                 <div className="col-4">
                   <div className="form-floating">
-                    <input id="deliveryChargeInput" type="number" min={0} className="form-control fw-bold text-info shadow-sm" value={deliveryCharge} onChange={(e) => setDeliveryCharge(Number(e.target.value) || 0)} />
+                    <input id="deliveryChargeInput" type="number" min={0} className="form-control fw-bold text-info shadow-sm" value={deliveryCharge} onChange={(e) => setDeliveryCharge(Number(e.target.value) || 0)} onWheel={(e) => e.currentTarget.blur()} />
                     <label htmlFor="deliveryChargeInput" style={{ fontSize: "0.8rem" }}>{t("pos_checkout_delivery")}</label>
                   </div>
                 </div>
               )}
               <div className={user?.shop_delivery_enabled !== false ? "col-4" : "col-6"}>
                 <div className="form-floating">
-                  <input id="paidInput" type="number" min={0} className="form-control fw-bold text-primary shadow-sm" value={paid} onChange={(e) => setPaid(e.target.value)} placeholder={String(total)} />
+                  <input id="paidInput" type="number" min={0} className="form-control fw-bold text-primary shadow-sm" value={paid} onChange={(e) => setPaid(e.target.value)} onWheel={(e) => e.currentTarget.blur()} placeholder={String(total)} />
                   <label htmlFor="paidInput">{isEmi ? t("pos_checkout_down_payment") : t("pos_checkout_amount_paid")}</label>
                 </div>
               </div>
             </div>
+
+            {/* Quick Cash Denomination Bubbles & Return Change Display */}
+            {!isEmi && total > 0 && (
+              <div className="bg-light p-3 rounded-3 border">
+                <div className="text-secondary small fw-bold mb-2.5 d-flex align-items-center justify-content-between">
+                  <span>⚡ {lang === "bn" ? "দ্রুত পরিশোধ (Quick Cash):" : "Quick Cash Shortcuts:"}</span>
+                  <span className="text-muted" style={{ fontSize: "0.72rem" }}>
+                    {lang === "bn" ? "এক ক্লিকে পরিশোধ নির্বাচন করুন" : "1-click cash selection"}
+                  </span>
+                </div>
+                <div className="d-flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={`quick-cash-btn ${Number(paid) === total ? "active" : ""}`}
+                    onClick={() => setPaid(String(total))}
+                  >
+                    <span>⚡</span>
+                    <span>{lang === "bn" ? `ঠিক ক্যাশ (৳${total.toLocaleString("en-US")})` : `Exact (৳${total.toLocaleString("en-US")})`}</span>
+                  </button>
+
+                  {(() => {
+                    const candidates = new Set<number>();
+                    if (total < 100) {
+                      [50, 100, 200, 500].filter((n) => n > total).forEach((n) => candidates.add(n));
+                    } else if (total < 500) {
+                      const next50 = Math.ceil(total / 50) * 50;
+                      if (next50 > total) candidates.add(next50);
+                      [200, 500, 1000].filter((n) => n > total).forEach((n) => candidates.add(n));
+                    } else if (total < 1000) {
+                      const next100 = Math.ceil(total / 100) * 100;
+                      if (next100 > total) candidates.add(next100);
+                      candidates.add(1000);
+                    } else {
+                      const next500 = Math.ceil(total / 500) * 500;
+                      if (next500 > total) candidates.add(next500);
+                      const next1000 = Math.ceil(total / 1000) * 1000;
+                      if (next1000 > total) candidates.add(next1000);
+                      const higherThousand = (Math.floor(total / 1000) + 1) * 1000;
+                      if (higherThousand > total) candidates.add(higherThousand);
+                      const nextNextThousand = (Math.floor(total / 1000) + 2) * 1000;
+                      if (candidates.size < 3) candidates.add(nextNextThousand);
+                    }
+                    return Array.from(candidates)
+                      .sort((a, b) => a - b)
+                      .slice(0, 3)
+                      .map((amt) => {
+                        const isActive = Number(paid) === amt;
+                        return (
+                          <button
+                            key={amt}
+                            type="button"
+                            className={`quick-cash-btn ${isActive ? "active" : ""}`}
+                            onClick={() => setPaid(String(amt))}
+                          >
+                            <span>💵</span>
+                            <span>৳{amt.toLocaleString("en-US")}</span>
+                          </button>
+                        );
+                      });
+                  })()}
+
+                  <button
+                    type="button"
+                    className={`quick-cash-btn-due ${Number(paid) === 0 && paid !== "" ? "active" : ""}`}
+                    onClick={() => setPaid("0")}
+                  >
+                    <span>📝</span>
+                    <span>{lang === "bn" ? "সম্পূর্ণ বাকি (৳০)" : "Full Due (৳0)"}</span>
+                  </button>
+                </div>
+
+                {change > 0 && (
+                  <div className="p-3 bg-success bg-opacity-10 border border-success rounded-3 mt-3 d-flex align-items-center justify-content-between shadow-sm">
+                    <div>
+                      <div className="text-secondary small fw-semibold">
+                        {lang === "bn" ? "কাস্টমারকে ফেরত দিন (Change Return):" : "Change to return:"}
+                      </div>
+                      <div className="fs-2 fw-bold text-success">৳{change.toFixed(2)}</div>
+                    </div>
+                    <div className="fs-1">💵</div>
+                  </div>
+                )}
+              </div>
+            )}
 
             {user?.shop_emi_enabled && (
               <div className="form-check form-switch fs-5 mt-2 mb-1">
@@ -596,7 +819,7 @@ export default function PosCustomerPage() {
                   </div>
                   <div className="col-4">
                     <div className="form-floating">
-                      <input id="emiInterest" type="number" min={0} max={100} step="0.1" className="form-control" value={emiInterestPercent} onChange={(e) => setEmiInterestPercent(Number(e.target.value) || 0)} />
+                      <input id="emiInterest" type="number" min={0} max={100} step="0.1" className="form-control" value={emiInterestPercent} onChange={(e) => setEmiInterestPercent(Number(e.target.value) || 0)} onWheel={(e) => e.currentTarget.blur()} />
                       <label htmlFor="emiInterest">{t("pos_checkout_emi_interest")}</label>
                     </div>
                   </div>
@@ -781,14 +1004,15 @@ export default function PosCustomerPage() {
                       <i className="bi bi-printer me-2"></i> {t("pos_checkout_print_btn")}
                     </button>
                     {waEnabled && hasPhone && (
-                      <a
-                        className="btn btn-lg rounded-3 fw-semibold text-white"
-                        style={{ background: "#25D366" }}
-                        href={waUrl}
-                        target="_blank" rel="noreferrer"
-                      >
-                        <i className="bi bi-whatsapp me-2"></i> {t("pos_checkout_wa_btn")}
-                      </a>
+                      <WhatsAppInvoiceSender
+                        saleId={saleResult.id}
+                        invoiceNo={saleResult.invoice_no}
+                        phone={saleResult.phone || walkPhone}
+                        customerName={walkName}
+                        total={saleResult.total}
+                        publicInvoiceUrl={saleResult.pdfUrl}
+                        variant="pos-action"
+                      />
                     )}
                   </div>
                 </div>
@@ -810,6 +1034,7 @@ export default function PosCustomerPage() {
           invoiceId={saleResult.id}
         />
       )}
-    </div>
+      </div>
+    </ModuleRouteGuard>
   );
 }

@@ -22,6 +22,7 @@ def _clear_cache():
 class ScopedWidget(TenantScopedModel):
     """Test-only tenant-scoped model to exercise TenantManager."""
 
+    shop = models.ForeignKey("tenants.Shop", on_delete=models.CASCADE, db_constraint=False)
     name = models.CharField(max_length=50)
 
     class Meta:

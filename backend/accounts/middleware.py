@@ -56,6 +56,13 @@ class DemoReadOnlyMiddleware:
         "/api/auth/resend-otp",
         "/api/auth/password-reset",
         "/api/public/",
+        "/api/notifications/whatsapp/send-invoice",
+        "/api/notifications/whatsapp/disconnect",
+        "/api/auth/shop-settings/",
+        "/api/pos/checkout",
+        "/api/pos/offline-sync",
+        "/api/integrations",
+        "/api/platform/api-keys",
     )
 
     def __init__(self, get_response):

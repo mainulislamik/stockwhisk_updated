@@ -10,6 +10,7 @@ import { useLanguage } from "@/contexts/LanguageContext";
 import InvoiceLockModal from "@/components/InvoiceLockModal";
 import ConvertQuotationModal from "@/components/ConvertQuotationModal";
 import PrintFormatModal from "@/components/PrintFormatModal";
+import WhatsAppInvoiceSender from "@/components/WhatsAppInvoiceSender";
 import toast from "react-hot-toast";
 
 type SaleItem = { id: number; product?: any; product_id?: number; product_name: string; quantity: string; unit_price: string; discount: string; subtotal: string; unit_barcodes?: string[]; product_barcode?: string; product_warranty_months?: number; product_replacement_guarantee_days?: number; unit_warranties?: number[]; unit_replacement_guarantees?: number[] };
@@ -219,34 +220,17 @@ export default function SaleDetailPage() {
                 );
             }
           })()}
-          {user?.shop_whatsapp_enabled !== false && (() => {
-            const digits = (sale.bill_phone || "").replace(/\D/g, "");
-            const intl = digits.startsWith("880") ? digits
-              : digits.startsWith("0") ? "880" + digits.slice(1)
-              : digits.length === 10 ? "880" + digits : digits;
-            const hasPhone = digits.length >= 10;
-            const pdf = sale.public_invoice_url
-              ? (sale.public_invoice_url.startsWith("http") ? sale.public_invoice_url : window.location.origin + sale.public_invoice_url)
-              : "";
-            const msg = t("inv_wa_msg_1", { name: sale.bill_name || sale.customer_name || "", shop: user?.shop_name || "our shop" })
-              + t("inv_wa_msg_2", { invoice: sale.invoice_no })
-              + t("inv_wa_msg_3", { total: Number(sale.total).toFixed(2) })
-              + (pdf ? t("inv_wa_msg_4", { pdf }) : "")
-              + t("inv_wa_msg_5");
-            const waUrl = `https://wa.me/${intl}?text=${encodeURIComponent(msg)}`;
-            if (!hasPhone) return null;
-            return (
-              <a
-                className="btn btn-sm text-white"
-                style={{ background: "#25D366" }}
-                href={waUrl}
-                target="_blank" rel="noreferrer"
-                title={t("inv_wa_tooltip")}
-              >
-                <i className="bi bi-whatsapp me-1"></i> {t("inv_btn_wa")}
-              </a>
-            );
-          })()}
+          {user?.shop_whatsapp_enabled !== false && (
+            <WhatsAppInvoiceSender
+              saleId={sale.id}
+              invoiceNo={sale.invoice_no}
+              phone={sale.bill_phone}
+              customerName={sale.bill_name || sale.customer_name}
+              total={sale.total}
+              publicInvoiceUrl={sale.public_invoice_url}
+              variant="button"
+            />
+          )}
           <button
             className="btn btn-outline-brand btn-sm"
             onClick={() => {

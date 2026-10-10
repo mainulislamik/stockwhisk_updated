@@ -220,12 +220,26 @@ class Product(TenantScopedModel):
     selling_price = models.DecimalField(
         max_digits=12, decimal_places=2, default=0, validators=[MinValueValidator(0)]
     )
+    wholesale_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)],
+        help_text="Wholesale bulk rate"
+    )
+    min_selling_price = models.DecimalField(
+        max_digits=12, decimal_places=2, null=True, blank=True, validators=[MinValueValidator(0)],
+        help_text="Minimum floor price cashiers cannot discount below"
+    )
+    custom_fields = models.JSONField(
+        default=dict, blank=True,
+        help_text="Dynamic metadata e.g. color, size, imei, warranty, location"
+    )
     tax_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
     track_inventory = models.BooleanField(default=True)
     reorder_level = models.PositiveIntegerField(default=5)
     current_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
+    reserved_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
 
+    image = models.ImageField(upload_to="products/%Y/%m/", null=True, blank=True)
     is_active = models.BooleanField(default=True)
 
     class Meta:
@@ -281,6 +295,14 @@ class Product(TenantScopedModel):
     def is_low_stock(self) -> bool:
         return self.track_inventory and (self.current_stock <= self.reorder_level or self.current_stock <= 5)
 
+    @property
+    def available_stock(self):
+        """Available to sell (ATS) = current_stock - reserved_stock (capped at 0)."""
+        from decimal import Decimal
+        current = Decimal(str(self.current_stock or 0))
+        reserved = Decimal(str(self.reserved_stock or 0))
+        return max(Decimal("0.00"), current - reserved)
+
     def save(self, *args, **kwargs):
         if not self.sku:
             import random
@@ -288,7 +310,41 @@ class Product(TenantScopedModel):
             prefix = (self.shop.barcode_prefix if self.shop_id and getattr(self.shop, "barcode_prefix", None) else "SKU").upper()
             rand_suffix = "".join(random.choices(string.digits, k=6))
             self.sku = f"{prefix}-{rand_suffix}"
+
+        # Automatic WebP compression (<80KB) on upload
+        if self.image and hasattr(self.image, "file") and not str(self.image.name).endswith(".webp"):
+            try:
+                from catalog.image_utils import compress_and_convert_to_webp
+                self.image = compress_and_convert_to_webp(self.image)
+            except Exception:
+                pass
+
         super().save(*args, **kwargs)
+
+
+class ProductImage(TenantScopedModel):
+    """
+    Multi-image gallery per product. Stores WebP compressed product photos.
+    """
+    product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name="images")
+    image = models.ImageField(upload_to="products/%Y/%m/")
+    is_primary = models.BooleanField(default=False)
+    caption = models.CharField(max_length=150, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-is_primary", "-id"]
+
+    def save(self, *args, **kwargs):
+        if self.image and hasattr(self.image, "file") and not str(self.image.name).endswith(".webp"):
+            try:
+                from catalog.image_utils import compress_and_convert_to_webp
+                self.image = compress_and_convert_to_webp(self.image)
+            except Exception:
+                pass
+        super().save(*args, **kwargs)
+        if self.is_primary and self.image:
+            Product.all_objects.filter(id=self.product_id).update(image=self.image)
 
 
 class ProductUnit(TenantScopedModel):
@@ -372,10 +428,19 @@ class ProductVariation(TenantScopedModel):
     cost_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     selling_price = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     current_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
+    reserved_stock = models.DecimalField(max_digits=14, decimal_places=2, default=0, editable=False)
     is_active = models.BooleanField(default=True)
 
     def __str__(self):
         return f"{self.product.name} — {self.name}"
+
+    @property
+    def available_stock(self):
+        """Available to sell (ATS) = current_stock - reserved_stock (capped at 0)."""
+        from decimal import Decimal
+        current = Decimal(str(self.current_stock or 0))
+        reserved = Decimal(str(self.reserved_stock or 0))
+        return max(Decimal("0.00"), current - reserved)
 
     @property
     def effective_cost(self):

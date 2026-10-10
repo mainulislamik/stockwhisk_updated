@@ -6,6 +6,7 @@ import { api, fetchAll } from "@/lib/api";
 import { PageHeader, Spinner, EmptyRow, fmtDate } from "@/components/ui";
 import { useAuth } from "@/components/AuthProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 import toast from "react-hot-toast";
 
 type ProductionMaterial = {
@@ -273,7 +274,8 @@ export default function ManufacturingPage() {
   }, [completeBatch, extraCost, outQty]);
 
   return (
-    <div className="container-fluid px-0 pb-5">
+    <ModuleRouteGuard module="manufacturing" name={lang === "bn" ? "ম্যানুফ্যাকচারিং ও প্রোডাকশন" : "Manufacturing & Batch Production"}>
+      <div className="container-fluid px-0 pb-5">
       <PageHeader
         title={lang === "bn" ? "ম্যানুফ্যাকচারিং ও প্রোডাকশন হাব" : "Manufacturing & Production Hub"}
         subtitle={lang === "bn" ? "২-ধাপের ডায়নামিক ব্যাচ উৎপাদন: কাঁচামাল স্টক থেকে কর্তন, প্রসেসিং এবং চূড়ান্ত উৎপাদিত পণ্যের স্বয়ংক্রিয় ইউনিট খরচ গণনা।" : "2-Step Dynamic Batch Production: Commit raw materials, process, and enter final yield with automatic unit cost calculation."}
@@ -908,5 +910,6 @@ export default function ManufacturingPage() {
         </div>
       )}
     </div>
+    </ModuleRouteGuard>
   );
 }

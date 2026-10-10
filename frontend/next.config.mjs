@@ -2,8 +2,41 @@
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
-  // The browser talks to the backend directly at NEXT_PUBLIC_API_BASE (CORS is
-  // enabled on the backend), so no rewrite/proxy is needed here.
+  async rewrites() {
+    return [
+      {
+        source: "/api-docs",
+        destination: "/api-docs.html",
+      },
+      {
+        source: "/docs",
+        destination: "/api-docs.html",
+      },
+      {
+        source: "/docs/api",
+        destination: "/api-docs.html",
+      },
+    ];
+  },
+  async redirects() {
+    return [
+      {
+        source: "/api-docs",
+        destination: "/api-docs.html",
+        permanent: false,
+      },
+      {
+        source: "/docs",
+        destination: "/api-docs.html",
+        permanent: false,
+      },
+      {
+        source: "/docs/api",
+        destination: "/api-docs.html",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

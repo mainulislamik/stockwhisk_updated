@@ -8,6 +8,7 @@ import { startImpersonation } from "@/lib/impersonation";
 import { ErrorState, PageHeader, Spinner, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { MODULE_DETAILS, ModuleDetail } from "@/lib/moduleDetails";
 
 type Shop = {
   id: number;
@@ -46,6 +47,28 @@ type SubInfo = {
 
 type Plan = { id: number; name: string; tier: string; price_monthly: string };
 
+type ModuleItem = {
+  key: string;
+  name_en: string;
+  name_bn: string;
+  category: string;
+  icon: string;
+  description: string;
+  default_enabled: boolean;
+};
+
+type PresetPackage = {
+  name: string;
+  description: string;
+  modules: string[];
+};
+
+type ModuleData = {
+  catalog: ModuleItem[];
+  presets: Record<string, PresetPackage>;
+  modules: Record<string, boolean>;
+};
+
 const DURATIONS = [
   { label: "1 month", days: 30 },
   { label: "3 months", days: 90 },
@@ -59,7 +82,7 @@ const TYPE_LABELS: Record<string, string> = {
   mobile: "Mobile & Accessories",
   general: "General Retail",
   camical: "Chemical & Lab Supplies",
-    supershop: "Super Shop & Grocery",
+  supershop: "Super Shop & Grocery",
   printing: "Printing, Media & Online Services",
   cosmetics: "Cosmetics & Beauty",
 };
@@ -79,6 +102,15 @@ export default function ShopDetailsPage() {
   const [amount, setAmount] = useState<string>("");
   const [showTrialChoice, setShowTrialChoice] = useState(false);
 
+  // 24-Module Dynamic Feature Matrix
+  const [moduleData, setModuleData] = useState<ModuleData | null>(null);
+  const [moduleCategory, setModuleCategory] = useState<string>("all");
+  const [savingModule, setSavingModule] = useState<string | null>(null);
+
+  // Module Details & Impact Info Modal
+  const [infoModalModule, setInfoModalModule] = useState<ModuleDetail | null>(null);
+  const [infoModalLang, setInfoModalLang] = useState<"bn" | "en">("bn");
+
   const load = useCallback(async () => {
     try {
       const data = await api<Shop>(`/platform/shops/${id}/`);
@@ -94,6 +126,71 @@ export default function ShopDetailsPage() {
       setError(e?.message || "Failed to load shop details.");
     }
   }, [id]);
+
+  const loadModules = useCallback(async () => {
+    try {
+      const res = await api<ModuleData>(`/platform/shops/${id}/modules/`);
+      setModuleData(res);
+    } catch {}
+  }, [id]);
+
+  useEffect(() => {
+    load();
+    loadModules();
+  }, [load, loadModules]);
+
+  const toggleModule = useCallback(async (key: string, currentVal: boolean) => {
+    if (!shop) return;
+    const nextVal = !currentVal;
+    setSavingModule(key);
+    setModuleData((prev) =>
+      prev ? { ...prev, modules: { ...prev.modules, [key]: nextVal } } : null
+    );
+    try {
+      await api(`/platform/shops/${shop.id}/modules/`, {
+        method: "PATCH",
+        body: { modules: { [key]: nextVal } },
+      });
+      toast.success(
+        lang === "bn"
+          ? `${key} মডিউল ${nextVal ? "চালু" : "বন্ধ"} করা হয়েছে`
+          : `Module ${key} ${nextVal ? "enabled" : "disabled"}`
+      );
+      if (key === "manufacturing") {
+        setShop((prev) => (prev ? { ...prev, manufacturing_enabled: nextVal } : null));
+      }
+      if (key === "mobile_repair_pos") {
+        setShop((prev) => (prev ? { ...prev, mobile_repair_master_enabled: nextVal } : null));
+      }
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update module.");
+      loadModules();
+    } finally {
+      setSavingModule(null);
+    }
+  }, [shop, lang, loadModules]);
+
+  const applyPreset = useCallback(async (presetKey: string) => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const res = await api<{ success: boolean; preset_name: string; modules: Record<string, boolean> }>(
+        `/platform/shops/${shop.id}/apply-preset/`,
+        { method: "POST", body: { preset: presetKey } }
+      );
+      toast.success(
+        lang === "bn"
+          ? `প্যাকেজ '${res.preset_name}' সফলভাবে শপে অ্যাসাইন করা হয়েছে!`
+          : `Package '${res.preset_name}' assigned to shop successfully!`
+      );
+      await loadModules();
+      await load();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to apply preset package.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop, lang, loadModules, load]);
 
   const grantPlan = useCallback(async (stack: boolean) => {
     if (!shop) return;
@@ -120,8 +217,6 @@ export default function ShopDetailsPage() {
     if (shop.subscription?.state === "trial") { setShowTrialChoice(true); return; }
     grantPlan(true);
   }, [shop, grantPlan]);
-
-  useEffect(() => { load(); }, [load]);
 
   const loginAs = useCallback(async () => {
     if (!shop) return;
@@ -340,50 +435,204 @@ export default function ShopDetailsPage() {
 
                             <hr className="border-secondary my-4 opacity-25" />
 
-              <h5 className="fw-bold text-body mb-3"><i className="bi bi-toggles me-2 text-primary"></i>Module Controls & Features</h5>
-              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 bg-body-tertiary border">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="p-2 rounded-circle bg-primary bg-opacity-25 text-primary fs-4">
-                    <i className="bi bi-gear-wide-connected"></i>
-                  </div>
+              {/* 24-Module Dynamic Feature Matrix & Package Presets */}
+              <div className="mb-4">
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
                   <div>
-                    <h6 className="text-body fw-bold mb-0">Manufacturing & Batch Production</h6>
-                    <p className="text-secondary small mb-0">Enable 2-step dynamic yield production batches, raw material deductions, and automatic unit cost calculation.</p>
+                    <h5 className="fw-bold text-body mb-1">
+                      <i className="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>
+                      {lang === "bn" ? "২৪-মডিউল এন্টারপ্রাইজ ফিচার ম্যাট্রিক্স" : "24-Module Modular Feature Matrix"}
+                    </h5>
+                    <p className="text-secondary small mb-0">
+                      {lang === "bn"
+                        ? "এই শপের জন্য নির্দিষ্ট মডিউলগুলো কাস্টমাইজ করুন অথবা ১-ক্লিকে প্যাকেজ প্রিসেট অ্যাসাইন করুন।"
+                        : "Enable or disable standalone modules per shop, or assign pre-packaged presets with 1-click."}
+                    </p>
                   </div>
+                  {moduleData && (
+                    <div className="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fs-7">
+                      <i className="bi bi-check2-circle me-1"></i>
+                      {Object.values(moduleData.modules || {}).filter(Boolean).length} / {moduleData.catalog?.length || 24} Active
+                    </div>
+                  )}
                 </div>
-                <div className="form-check form-switch fs-4 mb-0">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    role="switch"
-                    checked={!!shop.manufacturing_enabled}
-                    disabled={busy}
-                    onChange={toggleManufacturing}
-                    style={{ cursor: "pointer" }}
-                  />
-                </div>
-              </div>
 
-              <div className="d-flex align-items-center justify-content-between p-3 rounded-3 mb-3 bg-body-tertiary border">
-                <div className="d-flex align-items-center gap-3">
-                  <div className="p-2 rounded-circle bg-info bg-opacity-25 text-info fs-4">
-                    <i className="bi bi-tools"></i>
+                {/* 1-Click Package Presets Dropdown */}
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-3 p-3 bg-body-tertiary rounded-3 border mb-4 shadow-sm">
+                  <div className="d-flex align-items-center gap-2">
+                    <div className="p-2 bg-primary-subtle text-primary rounded-3">
+                      <i className="bi bi-box-seam fs-5"></i>
+                    </div>
+                    <div>
+                      <div className="fw-bold small text-dark">
+                        {lang === "bn" ? "১-ক্লিক প্যাকেজ প্রিসেট" : "1-Click Package Preset"}
+                      </div>
+                      <div className="text-secondary" style={{ fontSize: "0.78rem" }}>
+                        {lang === "bn"
+                          ? "ড্রপডাউন থেকে প্যাকেজ সিলেক্ট করে দ্রুত প্রয়োজনীয় মডিউলগুলো অ্যাসাইন করুন"
+                          : "Select a package preset to instantly configure active modules"}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <h6 className="text-body fw-bold mb-0">Mobile Repair Shop Module</h6>
-                    <p className="text-secondary small mb-0">Enable Brand-first hierarchy (Brand → Category → Model), Repair POS speed-mode, Service Labor items, and Job Sheets.</p>
+
+                  <div className="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0" style={{ minWidth: "270px" }}>
+                    <select
+                      className="form-select form-select-sm fw-semibold shadow-xs"
+                      disabled={busy}
+                      defaultValue=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val) {
+                          applyPreset(val);
+                          e.target.value = "";
+                        }
+                      }}
+                    >
+                      <option value="" disabled>
+                        {busy
+                          ? (lang === "bn" ? "অপেক্ষা করুন..." : "Applying Preset...")
+                          : (lang === "bn" ? "▼ প্যাকেজ প্রিসেট নির্বাচন করুন" : "▼ Choose Package Preset")}
+                      </option>
+                      <option value="starter">🚀 Starter (9 Modules)</option>
+                      <option value="retailer">🏬 Retailer (13 Modules)</option>
+                      <option value="supershop">🛒 SuperShop (17 Modules)</option>
+                      <option value="repair_specialty">🔧 Repair Lab (11 Modules)</option>
+                      <option value="enterprise">⭐ Enterprise Suite (All 26 Modules)</option>
+                      <option value="all">⚡ Unlock All 26 Modules</option>
+                      <option value="minimal">🔒 Minimal Core POS Only</option>
+                    </select>
+                    <div className="d-flex gap-1">
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-success fw-bold px-2 py-1 shadow-xs text-nowrap"
+                        disabled={busy}
+                        onClick={() => applyPreset("all")}
+                        title="Enable All 26 Modules for this shop"
+                      >
+                        <i className="bi-check-all me-1" />
+                        {lang === "bn" ? "সব অন করুন" : "Enable All"}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-sm btn-outline-danger fw-bold px-2 py-1 shadow-xs text-nowrap"
+                        disabled={busy}
+                        onClick={() => applyPreset("minimal")}
+                        title="Disable optional modules"
+                      >
+                        <i className="bi-slash-circle me-1" />
+                        {lang === "bn" ? "মিনিমাল" : "Minimal"}
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="form-check form-switch fs-4 mb-0">
-                  <input
-                    className="form-check-input"
-                    type="checkbox"
-                    role="switch"
-                    checked={!!shop.mobile_repair_master_enabled}
-                    disabled={busy}
-                    onChange={toggleMobileRepair}
-                    style={{ cursor: "pointer" }}
-                  />
+
+                {/* Category Filters */}
+                <div className="d-flex flex-wrap gap-1 mb-3">
+                  {[
+                    { id: "all", label: lang === "bn" ? `সকল মডিউল (${moduleData?.catalog?.length || 26})` : `All Modules (${moduleData?.catalog?.length || 26})` },
+                    { id: "pos", label: "Point of Sale" },
+                    { id: "inventory", label: "Inventory & Purchasing" },
+                    { id: "crm", label: "Sales & CRM" },
+                    { id: "finance", label: "Finance & Accounts" },
+                    { id: "addons", label: "Services & Manufacturing" },
+                    { id: "enterprise", label: "Enterprise & Integrations" },
+                  ].map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      className={`btn btn-sm rounded-pill px-3 ${
+                        moduleCategory === cat.id ? "btn-primary shadow-sm" : "btn-outline-secondary"
+                      }`}
+                      onClick={() => setModuleCategory(cat.id)}
+                    >
+                      {cat.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 24-Module Responsive Grid */}
+                <div className="row g-3">
+                  {(moduleData?.catalog || []).filter((m) => moduleCategory === "all" || m.category === moduleCategory).map((m) => {
+                    const isEnabled = !!moduleData?.modules?.[m.key];
+                    const isSaving = savingModule === m.key;
+                    return (
+                      <div key={m.key} className="col-md-6">
+                        <div
+                          className={`p-3 rounded-3 border h-100 transition-all ${
+                            isEnabled
+                              ? "bg-body border-primary shadow-sm"
+                              : "bg-body-tertiary border-secondary-subtle opacity-75"
+                          }`}
+                          style={{ transition: "all 0.2s ease" }}
+                        >
+                          <div className="d-flex align-items-start justify-content-between gap-2">
+                            <div className="d-flex align-items-start gap-3">
+                              <div
+                                className={`p-2 rounded-circle fs-5 d-flex align-items-center justify-content-center ${
+                                  isEnabled ? "bg-primary text-white" : "bg-secondary bg-opacity-25 text-secondary"
+                                }`}
+                                style={{ width: 42, height: 42, flexShrink: 0 }}
+                              >
+                                <i className={`bi ${m.icon || "bi-puzzle"}`}></i>
+                              </div>
+                              <div>
+                                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                  <h6 className="fw-bold text-body mb-0">{m.name_en}</h6>
+                                  {isEnabled && (
+                                    <span className="badge bg-success-subtle text-success border border-success-subtle py-0 px-2 fs-8 rounded-pill">
+                                      Active
+                                    </span>
+                                  )}
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-info rounded-circle d-inline-flex align-items-center justify-content-center p-0"
+                                    style={{ width: 22, height: 22, flexShrink: 0 }}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setInfoModalLang(lang === "en" ? "en" : "bn");
+                                      setInfoModalModule(MODULE_DETAILS[m.key] || {
+                                        key: m.key,
+                                        name_en: m.name_en || m.key,
+                                        name_bn: m.name_bn || m.key,
+                                        category: m.category || "General",
+                                        icon: m.icon || "bi-puzzle",
+                                        summary_en: m.description || "",
+                                        summary_bn: m.description || "",
+                                        how_it_works_en: m.description || "",
+                                        how_it_works_bn: m.description || "",
+                                        shop_changes_en: ["Enables " + (m.name_en || m.key) + " features across the tenant shop."],
+                                        shop_changes_bn: [(m.name_bn || m.key) + " এর সুবিধাসমূহ দোকানে সক্রিয় হবে।"],
+                                        recommended_for_en: "General retail shops.",
+                                        recommended_for_bn: "সাধারণ খুচরা দোকান।"
+                                      });
+                                    }}
+                                    title={lang === "bn" ? "মডিউলটির বিস্তারিত ও দোকানে কী কী পরিবর্তন হবে দেখুন" : "View how this module works & what changes in shop"}
+                                  >
+                                    <i className="bi bi-info fw-bold" style={{ fontSize: "0.85rem" }}></i>
+                                  </button>
+                                </div>
+                                <div className="text-secondary small fw-medium mb-1">{m.name_bn}</div>
+                                <p className="text-secondary small mb-0 lh-sm" style={{ fontSize: "0.82rem" }}>
+                                  {m.description}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="form-check form-switch fs-4 mb-0 ms-2">
+                              <input
+                                className="form-check-input"
+                                type="checkbox"
+                                role="switch"
+                                checked={isEnabled}
+                                disabled={busy || isSaving}
+                                onChange={() => toggleModule(m.key, isEnabled)}
+                                style={{ cursor: "pointer" }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -594,6 +843,178 @@ export default function ShopDetailsPage() {
                 <div className="small opacity-75">Ignore the remaining trial; the paid period begins now.</div>
               </button>
               <button className="btn btn-link text-secondary" disabled={busy} onClick={() => setShowTrialChoice(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Module Info & Shop Impact Modal Popup */}
+      {infoModalModule && (
+        <div
+          className="position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center p-3"
+          style={{ zIndex: 100050, background: "rgba(15, 23, 42, 0.65)", backdropFilter: "blur(4px)" }}
+          onClick={() => setInfoModalModule(null)}
+        >
+          <div
+            className="bg-body rounded-4 shadow-lg border overflow-hidden d-flex flex-column"
+            style={{ maxWidth: 680, width: "100%", maxHeight: "90vh" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Modal Header */}
+            <div className="p-3 px-4 border-bottom bg-body-tertiary d-flex align-items-center justify-content-between gap-3">
+              <div className="d-flex align-items-center gap-3">
+                <div
+                  className="p-2 rounded-3 bg-primary text-white d-flex align-items-center justify-content-center shadow-sm"
+                  style={{ width: 44, height: 44, flexShrink: 0 }}
+                >
+                  <i className={`bi ${infoModalModule.icon || "bi-puzzle"} fs-4`}></i>
+                </div>
+                <div>
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <h5 className="fw-bold mb-0 text-body">
+                      {infoModalLang === "bn" ? infoModalModule.name_bn : infoModalModule.name_en}
+                    </h5>
+                    {moduleData?.modules?.[infoModalModule.key] ? (
+                      <span className="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2 py-1 fs-8">
+                        Active
+                      </span>
+                    ) : (
+                      <span className="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill px-2 py-1 fs-8">
+                        Inactive
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-secondary small fw-medium">
+                    {infoModalLang === "bn" ? infoModalModule.name_en : infoModalModule.name_bn} • {infoModalModule.category}
+                  </div>
+                </div>
+              </div>
+
+              <div className="d-flex align-items-center gap-2">
+                {/* Language Switcher Buttons */}
+                <div className="btn-group btn-group-sm shadow-xs" role="group">
+                  <button
+                    type="button"
+                    className={`btn ${infoModalLang === "bn" ? "btn-primary fw-bold" : "btn-outline-secondary"}`}
+                    onClick={() => setInfoModalLang("bn")}
+                  >
+                    বাংলা
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn ${infoModalLang === "en" ? "btn-primary fw-bold" : "btn-outline-secondary"}`}
+                    onClick={() => setInfoModalLang("en")}
+                  >
+                    English
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  className="btn-close ms-2"
+                  onClick={() => setInfoModalModule(null)}
+                  aria-label="Close"
+                ></button>
+              </div>
+            </div>
+
+            {/* Modal Scrollable Body */}
+            <div className="p-4 overflow-y-auto">
+              {/* Summary Banner */}
+              <div className="p-3 bg-primary-subtle text-primary-emphasis rounded-3 border border-primary-subtle mb-4">
+                <div className="fw-semibold small d-flex align-items-center gap-2 mb-1">
+                  <i className="bi bi-info-circle-fill"></i>
+                  {infoModalLang === "bn" ? "সারসংক্ষেপ" : "Overview"}
+                </div>
+                <p className="small mb-0">
+                  {infoModalLang === "bn" ? infoModalModule.summary_bn : infoModalModule.summary_en}
+                </p>
+              </div>
+
+              {/* How it works */}
+              <div className="mb-4">
+                <h6 className="fw-bold text-body d-flex align-items-center gap-2 mb-2">
+                  <i className="bi bi-gear-wide-connected text-primary"></i>
+                  {infoModalLang === "bn" ? "কীভাবে এই মডিউলটি কাজ করে:" : "How this module works:"}
+                </h6>
+                <div className="p-3 bg-body-tertiary rounded-3 border">
+                  <p className="text-body small mb-0 lh-base">
+                    {infoModalLang === "bn" ? infoModalModule.how_it_works_bn : infoModalModule.how_it_works_en}
+                  </p>
+                </div>
+              </div>
+
+              {/* What changes in shop */}
+              <div className="mb-4">
+                <h6 className="fw-bold text-body d-flex align-items-center gap-2 mb-2">
+                  <i className="bi bi-shop-window text-success"></i>
+                  {infoModalLang === "bn" ? "চালু করলে দোকানে কী কী যোগ ও পরিবর্তন হবে:" : "What changes in the shop when turned ON:"}
+                </h6>
+                <div className="vstack gap-2">
+                  {(infoModalLang === "bn" ? infoModalModule.shop_changes_bn : infoModalModule.shop_changes_en).map(
+                    (change, idx) => (
+                      <div
+                        key={idx}
+                        className="d-flex align-items-start gap-2 p-2 px-3 rounded-2 bg-body-tertiary border border-secondary-subtle"
+                      >
+                        <i className="bi bi-check-circle-fill text-success mt-1 flex-shrink-0"></i>
+                        <span className="small text-body fw-medium">{change}</span>
+                      </div>
+                    )
+                  )}
+                </div>
+              </div>
+
+              {/* Recommended For */}
+              <div className="p-3 bg-body-tertiary rounded-3 border">
+                <div className="text-secondary small fw-bold text-uppercase mb-1 d-flex align-items-center gap-1">
+                  <i className="bi bi-bullseye text-warning"></i>
+                  {infoModalLang === "bn" ? "যাদের ব্যবসার জন্য সুপারিশকৃত:" : "Recommended for:"}
+                </div>
+                <div className="small text-body fw-medium">
+                  {infoModalLang === "bn" ? infoModalModule.recommended_for_bn : infoModalModule.recommended_for_en}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-3 px-4 border-top bg-body-tertiary d-flex align-items-center justify-content-between gap-2">
+              <div>
+                {(() => {
+                  const isCurrentActive = !!moduleData?.modules?.[infoModalModule.key];
+                  return (
+                    <button
+                      type="button"
+                      className={`btn btn-sm ${isCurrentActive ? "btn-outline-danger" : "btn-success"} px-3 py-2 fw-bold shadow-xs d-flex align-items-center gap-2`}
+                      disabled={busy || savingModule === infoModalModule.key}
+                      onClick={() => {
+                        toggleModule(infoModalModule.key, isCurrentActive);
+                      }}
+                    >
+                      {savingModule === infoModalModule.key ? (
+                        <span className="spinner-border spinner-border-sm" />
+                      ) : (
+                        <i className={`bi ${isCurrentActive ? "bi-toggle-on" : "bi-toggle-off"}`}></i>
+                      )}
+                      <span>
+                        {isCurrentActive
+                          ? infoModalLang === "bn"
+                            ? "মডিউল বন্ধ করুন"
+                            : "Deactivate Module"
+                          : infoModalLang === "bn"
+                          ? "মডিউল চালু করুন"
+                          : "Activate Module"}
+                      </span>
+                    </button>
+                  );
+                })()}
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm px-4 py-2 fw-semibold"
+                onClick={() => setInfoModalModule(null)}
+              >
+                {infoModalLang === "bn" ? "বন্ধ করুন" : "Close"}
+              </button>
             </div>
           </div>
         </div>

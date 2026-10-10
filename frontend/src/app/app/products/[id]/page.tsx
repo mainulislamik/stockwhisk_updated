@@ -20,6 +20,8 @@ type Product = {
   reorder_level: string;
   is_low_stock: boolean;
   is_active: boolean;
+  image?: string | null;
+  image_url?: string | null;
   description: string;
   fabric_material?: string;
   gender_target?: string;
@@ -144,9 +146,26 @@ export default function ProductProfilePage() {
   return (
     <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
-        <div>
-          <h1 className="h4 fw-bold text-brand mb-0">{p.name}</h1>
-          <div className="text-secondary small">SKU {p.sku || "—"}</div>
+        <div className="d-flex align-items-center gap-3">
+          {p.image || p.image_url ? (
+            <img
+              src={p.image_url || p.image || ""}
+              alt={p.name}
+              className="rounded-3 border border-slate-200 shadow-xs object-cover flex-shrink-0"
+              style={{ width: 56, height: 56, objectFit: "cover" }}
+            />
+          ) : (
+            <div
+              className="rounded-3 border border-slate-200 bg-slate-100 text-slate-400 d-flex align-items-center justify-content-center shadow-xs flex-shrink-0"
+              style={{ width: 56, height: 56, fontSize: "1.6rem" }}
+            >
+              📦
+            </div>
+          )}
+          <div>
+            <h1 className="h4 fw-bold text-brand mb-0">{p.name}</h1>
+            <div className="text-secondary small">SKU {p.sku || "—"}</div>
+          </div>
         </div>
         <div className="d-flex gap-2">
           <Link href={`/app/products/${p.id}/edit`} className="btn btn-outline-brand btn-sm">

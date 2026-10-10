@@ -66,7 +66,7 @@ def send_email(to, subject, body):
 
 
 def send_html_email(to, subject, text_body, html_body):
-    """Send a multipart (text + HTML) email through the platform SMTP server."""
+    """Send an HTML email through the platform SMTP server. Returns True on success."""
     if not to:
         return False
     connection, from_email = _platform_email()

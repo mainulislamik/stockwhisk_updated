@@ -93,16 +93,20 @@ export function Spinner({ label = "Loading…" }: { label?: string }) {
 }
 
 export function ErrorState({ error }: { error: any }) {
-  let msg = "An error occurred";
+  let msg = "তথ্য লোড করতে সমস্যা হয়েছে। অনুগ্রহ করে কিছুক্ষণ পর আবার চেষ্টা করুন।";
   if (typeof error === "string") msg = error;
   else if (error?.message) msg = error.message;
   else if (error?.detail) msg = error.detail;
-  else if (error?.status) msg = `Error ${error.status}`;
+  else if (error?.status) msg = `ত্রুটি (Error ${error.status})`;
+
+  if (typeof msg === "string" && (msg.includes("<!doctype") || msg.includes("<html") || msg.startsWith("<"))) {
+    msg = "সার্ভারে অনাকাঙ্ক্ষিত সমস্যা হয়েছে (Server Error 500)। অনুগ্রহ করে পৃষ্ঠাটি রিলোড দিন বা কিছুক্ষণ পর চেষ্টা করুন।";
+  }
   
   return (
-    <div className="alert alert-danger d-flex align-items-center gap-2">
-      <i className="bi bi-exclamation-triangle"></i>
-      <span>{msg}</span>
+    <div className="alert alert-danger d-flex align-items-center gap-2 rounded-3 shadow-xs">
+      <i className="bi bi-exclamation-triangle-fill fs-5 text-danger flex-shrink-0"></i>
+      <span className="fw-medium">{msg}</span>
     </div>
   );
 }

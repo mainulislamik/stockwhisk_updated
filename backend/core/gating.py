@@ -38,3 +38,43 @@ class FeatureRequired(BasePermission):
             return True
         shop = getattr(request, "tenant", None)
         return bool(shop and shop.has_feature(flag))
+
+
+# Backward compatibility alias
+FeatureGate = FeatureRequired
+
+
+def require_module(shop, module_key: str):
+    """Raise PermissionDenied if shop lacks module_key."""
+    from tenants.modules import is_module_enabled
+    from rest_framework.exceptions import PermissionDenied
+    if not is_module_enabled(shop, module_key):
+        raise PermissionDenied(f"Module '{module_key}' is not enabled for your shop.")
+    return True
+
+
+class ModuleRequired(BasePermission):
+    """
+    DRF permission that gates an entire ViewSet or APIView behind a shop's modular entitlement.
+    Example:
+        permission_classes = [IsAuthenticated, ModuleRequired.as_permission("manufacturing")]
+    """
+    module_key: str | None = None
+    message = "This module is not enabled for your shop. Please upgrade your subscription."
+    code = "MODULE_NOT_ENABLED"
+
+    @classmethod
+    def as_permission(cls, module_key: str):
+        return type(f"ModuleRequired_{module_key}", (cls,), {"module_key": module_key})
+
+    def has_permission(self, request, view):
+        key = getattr(view, "module_key", None) or self.module_key
+        if not key:
+            return True
+        shop = getattr(request, "tenant", None) or getattr(getattr(request, "user", None), "shop", None)
+        if not shop:
+            return True  # Non-shop users (superadmins, etc.) bypass tenant module gates
+        from tenants.modules import is_module_enabled
+        keys = [k.strip() for k in key.split(",") if k.strip()]
+        return any(is_module_enabled(shop, k) for k in keys)
+

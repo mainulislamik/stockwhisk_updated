@@ -7,6 +7,7 @@ DB_ENGINE env var so the same codebase runs on a laptop, a cPanel/MySQL host,
 or a Postgres VPS. Core models avoid Postgres-only field types to stay portable.
 """
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 
@@ -76,6 +77,7 @@ INSTALLED_APPS = [
     "public_api",
     "resellers",
     "scanner",
+    "integrations",
     # Server-rendered frontend
     "web",
     # Super-admin bulk data import pipeline
@@ -225,6 +227,10 @@ REST_FRAMEWORK = {
         "public_api_enterprise": "5000/hour",
         # Brute-force guard for the JWT token endpoints (per client IP).
         "auth": env("AUTH_THROTTLE_RATE", "10/min"),
+        # Integration platform throttle rates (Phase 3)
+        "integration_credentials": "20/min",
+        "integration_sync": "30/min",
+        "integration_inbound": "120/min",
     },
 }
 
@@ -305,20 +311,30 @@ CSRF_COOKIE_SAMESITE = "Lax"
 # every POST 403s ("Origin checking failed"). Supply prod domains via env, e.g.
 # CSRF_TRUSTED_ORIGINS="https://app.stockwhisk.com,https://www.stockwhisk.com".
 CSRF_TRUSTED_ORIGINS = env_list("CSRF_TRUSTED_ORIGINS", "")
-if not DEBUG:
+TESTING = (
+    "test" in sys.argv
+    or "pytest" in sys.argv[0]
+    or any("pytest" in arg for arg in sys.argv)
+    or "pytest" in sys.modules
+)
+if not DEBUG and not TESTING:
     SECURE_SSL_REDIRECT = env_bool("SECURE_SSL_REDIRECT", True)
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
-    SESSION_COOKIE_SECURE = True
-    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = env_bool("SESSION_COOKIE_SECURE", True)
+    CSRF_COOKIE_SECURE = env_bool("CSRF_COOKIE_SECURE", True)
     SECURE_CONTENT_TYPE_NOSNIFF = True
     SECURE_HSTS_SECONDS = int(env("SECURE_HSTS_SECONDS", "31536000"))
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+elif TESTING:
+    SECURE_SSL_REDIRECT = False
 
 # --- Email --------------------------------------------------------------------
 # Console backend in dev (prints to stdout); SMTP in prod when a host is set.
-# Notifications degrade gracefully — a missing host just means no email is sent.
-if DEBUG or not env("EMAIL_HOST"):
+# In tests, always use locmem to avoid real network socket connections.
+if TESTING:
+    EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+elif DEBUG or not env("EMAIL_HOST"):
     EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 else:
     EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"

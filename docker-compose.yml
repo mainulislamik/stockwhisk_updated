@@ -76,7 +76,7 @@ services:
       DEFAULT_FROM_EMAIL: "${DEFAULT_FROM_EMAIL:-no-reply@stockwhisk.com}"
       MAILSERVER_CONFIG_DIR: "/app/mailserver-config"
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     volumes:
       - static:/app/staticfiles
       - media:/app/media

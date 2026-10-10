@@ -32,7 +32,7 @@ from analytics.services import (
     sales_trend,
     top_products,
 )
-from catalog.models import Brand, Category, Product
+from catalog.models import Brand, Category, Product, ProductVariation, ProductUnit
 from crm.models import Customer
 from inventory.models import MovementType, StockMovement
 from inventory.services import apply_movement, restock
@@ -1187,6 +1187,11 @@ def pos(request):
 @require_http_methods(["POST"])
 def pos_checkout(request):
     """JSON checkout from the Alpine POS cart (session-auth + CSRF)."""
+    from tenants.modules import get_shop_modules
+    shop = getattr(request.user, "shop", None)
+    if shop and not get_shop_modules(shop).get("core_pos", True):
+        return JsonResponse({"error": "POS module is not enabled for this shop."}, status=403)
+
     payload = _json_body(request)
     if payload is None:
         return JsonResponse({"error": "Invalid request."}, status=400)
@@ -1198,8 +1203,18 @@ def pos_checkout(request):
         qty = _dec(row.get("quantity", 1))
         if qty <= 0:
             return JsonResponse({"error": "Quantity must be greater than zero."}, status=400)
-        items.append({"product": product, "quantity": qty,
-                      "unit_price": _dec_nn(row.get("unit_price", product.selling_price))})
+        unit_ids = [int(u) for u in (row.get("unit_ids") or []) if str(u).isdigit()]
+        var_id = _int_or_none(row.get("variation") or row.get("variation_id"))
+        variation = ProductVariation.all_objects.filter(pk=var_id, shop=request.user.shop).first() if var_id else None
+        items.append({
+            "product": product,
+            "quantity": qty,
+            "unit_price": _dec_nn(row.get("unit_price", product.selling_price)),
+            "discount": _dec_nn(row.get("discount", 0)),
+            "unit_ids": unit_ids,
+            "variation": variation,
+            "size_variant": row.get("size_variant"),
+        })
     if not items:
         return JsonResponse({"error": "Cart is empty."}, status=400)
 
@@ -1453,8 +1468,9 @@ def sale_edit(request, pk):
                 continue
             items.append({"product": product, "quantity": _dec(qty), "unit_price": _dec(price)})
         try:
+            correction_reason = (request.POST.get("correction_reason") or "").strip() or "Updated via sale edit form"
             edit_sale(sale=sale, items=items, discount=_dec(request.POST.get("discount", 0)),
-                      created_by=request.user)
+                      created_by=request.user, correction_reason=correction_reason)
             messages.success(request, f"Sale {sale.invoice_no} updated.")
             return redirect("web:sale_detail", pk=sale.id)
         except ValueError as exc:

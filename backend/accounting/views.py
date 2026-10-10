@@ -7,8 +7,11 @@ from core.api import TenantScopedViewSet
 from core.permissions import HasPermCode, IsTenantMember
 from core.tenant_context import set_current_tenant
 
-from .models import Expense, ExpenseCategory, Investment, AccountTransfer
-from .serializers import ExpenseCategorySerializer, ExpenseSerializer, InvestmentSerializer, AccountTransferSerializer
+from .models import Expense, ExpenseCategory, Investment, AccountTransfer, LedgerEntry
+from .serializers import (
+    ExpenseCategorySerializer, ExpenseSerializer, InvestmentSerializer,
+    AccountTransferSerializer, LedgerEntrySerializer
+)
 from .services import (
     cash_flow, financial_position, profit_summary, record_expense,
     investment_summary, record_investment, record_transfer, resolve_ledger_account
@@ -18,6 +21,7 @@ from .services import (
 class InvestmentViewSet(TenantScopedViewSet):
     serializer_class = InvestmentSerializer
     required_perm = "manage_expenses"
+    required_module = "finance_accounting,expense_management"
 
     def get_queryset(self):
         qs = Investment.objects.select_related("created_by")
@@ -78,6 +82,7 @@ class InvestmentViewSet(TenantScopedViewSet):
 class AccountTransferViewSet(TenantScopedViewSet):
     serializer_class = AccountTransferSerializer
     required_perm = "manage_expenses"
+    required_module = "finance_accounting,expense_management"
 
     def get_queryset(self):
         qs = AccountTransfer.objects.select_related("created_by")
@@ -115,6 +120,7 @@ class AccountTransferViewSet(TenantScopedViewSet):
 class ExpenseCategoryViewSet(TenantScopedViewSet):
     serializer_class = ExpenseCategorySerializer
     required_perm = "manage_expenses"
+    required_module = "expense_management,finance_accounting"
 
     def get_queryset(self):
         return ExpenseCategory.objects.all()
@@ -123,6 +129,7 @@ class ExpenseCategoryViewSet(TenantScopedViewSet):
 class ExpenseViewSet(TenantScopedViewSet):
     serializer_class = ExpenseSerializer
     required_perm = "manage_expenses"
+    required_module = "expense_management,finance_accounting"
 
     def get_queryset(self):
         qs = Expense.objects.select_related("category").exclude(category__name="Product Purchase")
@@ -202,7 +209,7 @@ class CashFlowReportView(_ReportBase):
 CashFlowView = CashFlowReportView
 
 from datetime import datetime, time, timedelta
-from django.db.models import Sum
+from django.db.models import Sum, Q
 from django.utils import timezone
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
@@ -215,6 +222,7 @@ from .serializers import DailySettlementSerializer
 class DailySettlementViewSet(TenantScopedViewSet):
     serializer_class = DailySettlementSerializer
     required_perm = "view_profit"
+    required_module = "finance_accounting,expense_management"
 
     def get_queryset(self):
         return DailySettlement.objects.all().order_by("-opened_at", "-id")
@@ -444,7 +452,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
                 account=LedgerEntry.Account.CASH, 
                 created_at__range=(start_time, end_time),
                 amount__gt=0
-            ).aggregate(t=Sum("amount"))["t"] or 0
+            ).exclude(description__startswith="Opening cash float").aggregate(t=Sum("amount"))["t"] or 0
             
             cash_out = abs(LedgerEntry.objects.filter(
                 shop=request.tenant, 
@@ -465,7 +473,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             capital_inv_sum = Investment.objects.filter(
                 shop=request.tenant,
                 invested_on__range=(start_date, end_date)
-            ).exclude(type=Investment.Type.DRAWING).aggregate(t=Sum("amount"))["t"] or 0
+            ).exclude(type=Investment.Type.DRAWING).exclude(investor_name="Cash Drawer Float").aggregate(t=Sum("amount"))["t"] or 0
             
             expected_investment = float(purchases_sum) + float(capital_inv_sum)
 
@@ -523,6 +531,26 @@ class DailySettlementViewSet(TenantScopedViewSet):
         )
         settlement.opened_at = start_of_day
         settlement.save(update_fields=['opened_at'])
+
+        inject_float = bool(request.data.get("inject_float", False))
+        if inject_float and opening_cash > 0:
+            try:
+                inv = record_investment(
+                    shop=request.tenant,
+                    investor_name="Cash Drawer Float",
+                    amount=opening_cash,
+                    type="capital",
+                    invested_on=today,
+                    payment_method="cash",
+                    reference=f"FLOAT-{today.strftime('%Y%m%d')}",
+                    note=f"Opening cash float for register ({today.strftime('%d %b %Y')})",
+                    created_by=request.user,
+                )
+                float_ts = start_of_day - timedelta(seconds=1)
+                LedgerEntry.all_objects.filter(shop_id=request.tenant.id, source_type="Investment", source_id=str(inv.id)).update(created_at=float_ts)
+            except Exception:
+                pass
+
         return Response(self.get_serializer(settlement).data)
 
     @action(detail=False, methods=["post"])
@@ -546,7 +574,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
             account=LedgerEntry.Account.CASH, 
             created_at__range=(start_time, end_time),
             amount__gt=0
-        ).aggregate(t=Sum("amount"))["t"] or 0
+        ).exclude(description__startswith="Opening cash float").aggregate(t=Sum("amount"))["t"] or 0
         
         cash_out = abs(LedgerEntry.objects.filter(
             shop=request.tenant, 
@@ -569,7 +597,7 @@ class DailySettlementViewSet(TenantScopedViewSet):
         capital_inv_sum = Investment.objects.filter(
             shop=request.tenant,
             invested_on__range=(start_date, end_date)
-        ).exclude(type=Investment.Type.DRAWING).aggregate(t=Sum("amount"))["t"] or 0
+        ).exclude(type=Investment.Type.DRAWING).exclude(investor_name="Cash Drawer Float").aggregate(t=Sum("amount"))["t"] or 0
         
         expected_investment = float(purchases_sum) + float(capital_inv_sum)
 
@@ -652,4 +680,34 @@ class DailySettlementViewSet(TenantScopedViewSet):
         settlement.closed_by = request.user
         settlement.save()
         return Response(self.get_serializer(settlement).data)
+
+
+class LedgerEntryViewSet(TenantScopedViewSet):
+    serializer_class = LedgerEntrySerializer
+    required_perm = "view_profit"
+    required_module = "finance_accounting"
+
+    def get_queryset(self):
+        qs = LedgerEntry.objects.all().order_by("-created_at", "-id")
+        account = self.request.query_params.get("account")
+        if account:
+            qs = qs.filter(account=account)
+        source_type = self.request.query_params.get("source_type")
+        if source_type:
+            qs = qs.filter(source_type=source_type)
+        start_date = self.request.query_params.get("start")
+        if start_date:
+            qs = qs.filter(created_at__date__gte=start_date)
+        end_date = self.request.query_params.get("end")
+        if end_date:
+            qs = qs.filter(created_at__date__lte=end_date)
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(
+                Q(description__icontains=search) |
+                Q(source_type__icontains=search) |
+                Q(source_id__icontains=search)
+            )
+        return qs
+
 

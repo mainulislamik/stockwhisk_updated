@@ -2,6 +2,7 @@
 
 import { confirmAction, showError, showSuccess, showInfo } from "@/lib/dialogs";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 import React, { useEffect, useState } from "react";
 import { api, fetchAll } from "@/lib/api";
 import { useAuth } from "@/components/AuthProvider";
@@ -202,7 +203,8 @@ export default function SuppliersPage() {
   );
 
   return (
-    <div className="vstack gap-3">
+    <ModuleRouteGuard module="purchasing" name={lang === "bn" ? "পণ্য সরবরাহকারী (Suppliers)" : "Suppliers"}>
+      <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input placeholder={t("sup_ph_filter")} className="form-control form-control-sm" style={{ maxWidth: "20rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
@@ -455,5 +457,6 @@ export default function SuppliersPage() {
         </div>
       )}
     </div>
+    </ModuleRouteGuard>
   );
 }

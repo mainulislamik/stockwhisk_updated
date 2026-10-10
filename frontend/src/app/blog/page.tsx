@@ -9,10 +9,9 @@ import PublicThemeProvider from '@/components/PublicThemeProvider';
 import { getAccess, api, unwrap } from "@/lib/api";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { motion } from "framer-motion";
-import { Hanken_Grotesk, Manrope } from "next/font/google";
 
-const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "700", "800"] });
-const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
+const hanken = { className: "font-sans", style: { fontFamily: "inherit" } };
+const manrope = { className: "font-sans", style: { fontFamily: "inherit" } };
 
 type BlogPost = {
   title: string;

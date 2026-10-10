@@ -3,16 +3,41 @@ import { formatProductName } from "@/lib/formatters";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { api, useApi, Paginated } from "@/lib/api";
+import { api, useApi, Paginated, fastapiFetch, fetchAll } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import { ScannerModal } from "@/components/ScannerModal";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 import { useAuth } from "@/components/AuthProvider";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
+import {
+  cacheCatalog,
+  getCachedCatalog,
+  getCachedProduct,
+  searchCachedCatalog,
+  lookupCachedBarcode,
+  deductCachedStock,
+  saveOfflineSale,
+  getPendingOfflineSales,
+  getPendingOfflineSaleCount,
+  markOfflineSalesSynced,
+  saveCartCrashBackup,
+  getCartCrashBackup,
+  clearCartCrashBackup,
+  OfflineSale,
+  CartBackup,
+} from "@/lib/offlineDb";
+import { printOfflineReceipt } from "@/lib/offlinePrint";
 
-type ProductUnit = { id: number; barcode: string; effective_selling_price?: string; effective_cost_price?: string; effective_warranty_months?: number };
+type ProductUnit = { 
+  id: number; 
+  barcode: string; 
+  effective_selling_price?: string; 
+  effective_cost_price?: string; 
+  effective_warranty_months?: number;
+  effective_replacement_guarantee_days?: number;
+};
 type ProductVariation = {
   id: number;
   name: string;
@@ -25,6 +50,9 @@ type ProductVariation = {
 };
 type Product = {
   id: number; name: string; sku: string; barcode?: string;
+  category?: number | null; category_name?: string | null;
+  brand?: number | null; brand_name?: string | null;
+  image?: string | null; image_url?: string | null;
   selling_price: string; cost_price: string; current_stock: string; track_inventory?: boolean;
   warranty_months?: number;
   expiry_date?: string | null;
@@ -42,6 +70,7 @@ type Product = {
   full_pack_cost?: string | number;
   full_pack_sell?: string | number;
   units?: ProductUnit[];
+  in_stock_units_count?: number;
   scanned_unit?: ProductUnit;
   unit_detail?: { id: number; name: string; short_code: string; measure_type: string; allow_decimal: boolean } | null;
   purchase_unit_detail?: { id: number; name: string; short_code: string; measure_type: string } | null;
@@ -61,7 +90,26 @@ type ScanMsg = { text: string; ok: boolean } | null;
 export default function PosPage() {
   const router = useRouter();
   const { t, lang } = useLanguage();
-  const { user } = useAuth();
+  const { user, hasModule } = useAuth();
+  const hasPicturesModule = hasModule("product_pictures");
+  const [viewMode, setViewMode] = useState<"grid" | "table">("grid");
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("pos_view_mode") as "grid" | "table" | null;
+      if (saved === "grid" || saved === "table") {
+        setViewMode(saved);
+      }
+    }
+  }, []);
+
+  function toggleViewMode(mode: "grid" | "table") {
+    setViewMode(mode);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("pos_view_mode", mode);
+    }
+  }
+
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
@@ -80,9 +128,119 @@ export default function PosPage() {
   const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
   const [showHeldModal, setShowHeldModal] = useState(false);
   const [fastCheckingOut, setFastCheckingOut] = useState(false);
+  const [customers, setCustomers] = useState<{ id: number; name: string; phone?: string }[]>([]);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<string>("");
+  const [walkinName, setWalkinName] = useState("");
+  const [walkinPhone, setWalkinPhone] = useState("");
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [selectedFashionProduct, setSelectedFashionProduct] = useState<Product | null>(null);
   const [selectedFashionSize, setSelectedFashionSize] = useState<string | null>(null);
+
+  // ── Offline & Power Outage / Network State ──
+  const [isOnline, setIsOnline] = useState<boolean>(true);
+  const [pendingSyncCount, setPendingSyncCount] = useState<number>(0);
+  const [isSyncing, setIsSyncing] = useState<boolean>(false);
+  const [crashBackupFound, setCrashBackupFound] = useState<CartBackup | null>(null);
+
+  const triggerAutoSync = useCallback(async () => {
+    try {
+      const pending = await getPendingOfflineSales();
+      if (pending.length === 0) {
+        setPendingSyncCount(0);
+        return;
+      }
+      setIsSyncing(true);
+      const res = await api<any>("/pos/offline-sync/", {
+        method: "POST",
+        body: { sales: pending },
+      });
+      if (res?.synced && Array.isArray(res.synced)) {
+        await markOfflineSalesSynced(res.synced);
+        const newCount = await getPendingOfflineSaleCount();
+        setPendingSyncCount(newCount);
+        toast.success(
+          lang === "bn"
+            ? `🎉 ${res.synced.length}টি অফলাইন বিক্রয় সার্ভারে সফলভাবে সিঙ্ক হয়েছে!`
+            : `🎉 ${res.synced.length} offline sale(s) synced to server!`
+        );
+        fetchGrid(1, true); // Refresh catalog with fresh stock
+      }
+    } catch (err) {
+      console.error("Auto sync failed", err);
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [lang]);
+
+  // Pre-cache catalog and listen for online/offline events
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    setIsOnline(navigator.onLine);
+
+    // Refresh pending offline sale count
+    getPendingOfflineSaleCount().then(setPendingSyncCount).catch(() => {});
+
+    // Check for crash backup from power outage
+    getCartCrashBackup().then((backup) => {
+      if (backup && Array.isArray(backup.cart) && backup.cart.length > 0) {
+        setCrashBackupFound(backup);
+      }
+    }).catch(() => {});
+
+    // Pre-cache full catalog in IndexedDB if online
+    if (navigator.onLine && user?.shop) {
+      api<any>("/pos/catalog-cache/").then((data) => {
+        if (data?.products && Array.isArray(data.products)) {
+          cacheCatalog(data.products, user?.shop || 1);
+        }
+      }).catch(() => {});
+    }
+
+    const handleOnline = () => {
+      setIsOnline(true);
+      toast.success(lang === "bn" ? "🌐 ইন্টারনেট সংযোগ ফিরে এসেছে!" : "🌐 Internet connection restored!");
+      triggerAutoSync();
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      toast.error(lang === "bn" ? "⚠️ ইন্টারনেট বিচ্ছিন্ন! অফলাইন মোড সক্রিয়।" : "⚠️ Internet disconnected! Offline mode active.");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    // Initial check for crash recovery backup on mount
+    getCartCrashBackup().then((backup) => {
+      if (backup && backup.cart && backup.cart.length > 0 && cart.length === 0) {
+        setCrashBackupFound(backup);
+      }
+    });
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [user?.shop, lang, triggerAutoSync]);
+
+  const isInitialMount = useRef(true);
+
+  // Power Outage / Crash Recovery: Auto-backup cart state whenever cart updates
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    if (cart.length > 0) {
+      saveCartCrashBackup({
+        cart,
+        customerId: selectedCustomerId,
+        walkinName,
+        walkinPhone,
+        savedAt: Date.now(),
+      });
+    }
+  }, [cart, selectedCustomerId, walkinName, walkinPhone]);
 
   useEffect(() => {
     try {
@@ -90,6 +248,12 @@ export default function PosPage() {
       if (stored) setHeldCarts(JSON.parse(stored));
     } catch {}
   }, [user?.shop]);
+
+  useEffect(() => {
+    fetchAll<{ id: number; name: string; phone?: string }>("/crm/customers/")
+      .then((data) => setCustomers(data || []))
+      .catch(() => {});
+  }, []);
 
   function holdCurrentCart() {
     if (cart.length === 0) {
@@ -134,26 +298,33 @@ export default function PosPage() {
     } catch {}
   }
 
-  // Keyboard Shortcuts (F2 search, F8 hold cart, F9 held list)
+  // Keyboard Shortcuts (F2 search, F4 checkout, F8 hold cart, F9 held list, F12 fast cash)
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "F2") {
         e.preventDefault();
         inputRef.current?.focus();
+      } else if (e.key === "F4") {
+        e.preventDefault();
+        if (cart.length > 0) {
+          goToCheckout();
+        } else {
+          toast.error(lang === "bn" ? "কার্ট খালি! প্রথমে পণ্য যোগ করুন।" : "Cart is empty!");
+        }
       } else if (e.key === "F8" && isSupershop) {
         e.preventDefault();
         holdCurrentCart();
       } else if (e.key === "F9" && isSupershop) {
         e.preventDefault();
         setShowHeldModal(s => !s);
-      } else if (e.key === "F12" && !isElectronicsShop) {
+      } else if (e.key === "F12") {
         e.preventDefault();
         doFastCashCheckout();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cart, heldCarts, isSupershop]);
+  }, [cart, heldCarts, isSupershop, isElectronicsShop, lang]);
 
   const [brands, setBrands] = useState<any[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
@@ -186,6 +357,21 @@ export default function PosPage() {
 
   async function fetchGrid(page: number, replace: boolean) {
     setGridLoading(true);
+
+    // Offline fast-path: if browser is offline, query IndexedDB directly
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      try {
+        const cached = await searchCachedCatalog(debouncedQuery, selectedCategory, selectedBrand);
+        setShown(cached as Product[]);
+        setGridHasMore(false);
+      } catch {
+        if (replace) setShown([]);
+      } finally {
+        setGridLoading(false);
+      }
+      return;
+    }
+
     try {
       const qs = new URLSearchParams({ page: String(page), page_size: String(GRID_PAGE_SIZE), in_stock: "1", light: "1" });
       if (debouncedQuery) qs.set("search", debouncedQuery);
@@ -196,7 +382,13 @@ export default function PosPage() {
       setGridPage(page);
       setGridHasMore(!!d.next);
     } catch {
-      if (replace) setShown([]);
+      // Fallback to IndexedDB cache on network error
+      try {
+        const cached = await searchCachedCatalog(debouncedQuery, selectedCategory, selectedBrand);
+        setShown(cached as Product[]);
+      } catch {
+        if (replace) setShown([]);
+      }
       setGridHasMore(false);
     } finally {
       setGridLoading(false);
@@ -216,17 +408,44 @@ export default function PosPage() {
   // Grid cards are loaded light (no units); fetch this product's units on click,
   // then run the normal add / unit-selection flow.
   async function pickFromGrid(p: Product) {
+    if (p.track_inventory !== false && Number(p.current_stock) <= 0) {
+      flash(t("pos_out_of_stock_alert", { name: p.name }), false);
+      return;
+    }
     if (p.track_inventory === false) { tryAdd(p); return; }
     setUnitLoadingId(p.id);
     try {
-      const full = await api<Product>(`/catalog/products/${p.id}/`);
-      tryAdd({
+      let full: any = null;
+      if (typeof window !== "undefined" && navigator.onLine) {
+        full = await api<Product>(`/catalog/products/${p.id}/`).catch(() => null);
+      }
+      if (!full) {
+        full = await getCachedProduct(p.id).catch(() => null);
+      }
+      const fullProduct: Product = {
         ...p,
-        variations: full.variations || p.variations,
-        units: full.units,
-        unit_detail: full.unit_detail,
-        purchase_unit_detail: full.purchase_unit_detail,
-      });
+        variations: full?.variations || p.variations || [],
+        units: full?.units || p.units || [],
+        unit_detail: full?.unit_detail || p.unit_detail,
+        purchase_unit_detail: full?.purchase_unit_detail || p.purchase_unit_detail,
+        warranty_months: full?.warranty_months !== undefined ? full.warranty_months : p.warranty_months,
+        replacement_guarantee_days: full?.replacement_guarantee_days !== undefined ? full.replacement_guarantee_days : p.replacement_guarantee_days,
+      };
+
+      // 1. If product has serialized barcodes/units: open barcode & warranty selection modal
+      if (fullProduct.units && fullProduct.units.length > 0) {
+        setUnitSelectProduct(fullProduct);
+        return;
+      }
+
+      // 2. If product has size variations: open variation picker
+      if (fullProduct.variations && fullProduct.variations.length > 0) {
+        setVariantModalProduct(fullProduct);
+        return;
+      }
+
+      // 3. If NO serialized barcodes: directly add to cart!
+      tryAdd(fullProduct);
     } catch {
       tryAdd(p);
     } finally {
@@ -256,8 +475,31 @@ export default function PosPage() {
 
   // Unit selection modal
   const [unitSelectProduct, setUnitSelectProduct] = useState<Product | null>(null);
+  const [unitSearch, setUnitSearch] = useState("");
   const [fashionPickProduct, setFashionPickProduct] = useState<Product | null>(null);
   const [fashionPickVariant, setFashionPickVariant] = useState<{size:string,color:string}|null>(null);
+
+  // POS UI layout mode ("standard" vs "visual_grid")
+  const [posLayout, setPosLayout] = useState<"standard" | "visual_grid">(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("stockwhisk_pos_layout");
+      if (saved === "visual_grid" || saved === "standard") return saved;
+    }
+    return "standard";
+  });
+
+  useEffect(() => {
+    const backendLayout = (user as any)?.shop_pos_ui_layout || (user as any)?.shop_invoice_settings?.pos_ui_layout;
+    const local = typeof window !== "undefined" ? localStorage.getItem("stockwhisk_pos_layout") : null;
+    if (!local && backendLayout && (backendLayout === "standard" || backendLayout === "visual_grid")) {
+      setPosLayout(backendLayout);
+    }
+  }, [user]);
+
+  const togglePosLayout = (newLayout: "standard" | "visual_grid") => {
+    setPosLayout(newLayout);
+    try { localStorage.setItem("stockwhisk_pos_layout", newLayout); } catch {}
+  };
 
   // Product picker modal — shown when one scanned barcode matches several products
   const [pickProducts, setPickProducts] = useState<Product[] | null>(null);
@@ -353,10 +595,45 @@ export default function PosPage() {
     }));
   }
 
-  function removeLine(keyOrId: string | number) { setCart((c) => c.filter((l) => (l.lineId || l.product.id) !== keyOrId && l.product.id !== keyOrId)); }
-  function clearCart() { setCart([]); sessionStorage.removeItem("pos_cart"); }
+  function removeLine(keyOrId: string | number) { 
+    setCart((c) => c.filter((l) => (l.lineId || l.product.id) !== keyOrId && l.product.id !== keyOrId)); 
+  }
+  function clearCart() { 
+    setCart([]); 
+    sessionStorage.removeItem("pos_cart"); 
+    clearCartCrashBackup(); 
+  }
+
+  function playAudioBeep(ok: boolean) {
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      const ctx = new AudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      if (ok) {
+        osc.frequency.setValueAtTime(880, ctx.currentTime);
+        gain.gain.setValueAtTime(0.08, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.12);
+      } else {
+        osc.frequency.setValueAtTime(300, ctx.currentTime);
+        gain.gain.setValueAtTime(0.12, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.22);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.22);
+      }
+    } catch {}
+  }
 
   function flash(text: string, ok: boolean) {
+    playAudioBeep(ok);
     setScanMsg({ text, ok });
     if (msgTimer.current) clearTimeout(msgTimer.current);
     msgTimer.current = setTimeout(() => setScanMsg(null), 3000);
@@ -429,8 +706,32 @@ export default function PosPage() {
       }
     }
 
-    // 0. Supershop EAN-13 Weight Scale In-Store Barcode auto-detection (e.g. 20XXXXXWWWWWC)
-    // Scale format: 2-digit prefix (02 or 20-29) + 5-digit PLU/SKU + 5-digit Weight in grams + 1 checksum
+    // 0. Supershop EAN-13 Weight Scale In-Store Barcode auto-detection (FastAPI Sub-millisecond Decoder)
+    if ((isSupershop || code.startsWith("20") || code.startsWith("02")) && /^(02|2[0-9])(\d{4,5})(\d{5})\d$/.test(code) && user?.shop) {
+      try {
+        const decoded = await fastapiFetch<any>(`/fastapi/pos/scale-decode/${user.shop}/${code}`);
+        if (decoded && decoded.product_id) {
+          const matchedPlu: any = shown.find(p => p.id === decoded.product_id) || {
+            id: decoded.product_id,
+            name: decoded.name,
+            barcode: decoded.barcode,
+            sku: decoded.sku,
+            price: String(decoded.unit_price),
+            base_price: String(decoded.unit_price),
+            current_stock: decoded.current_stock,
+            track_inventory: true,
+          };
+          addToCart(matchedPlu as Product, undefined, decoded.quantity);
+          flash(lang === "bn" ? `⚖️ ওজনের পণ্য যোগ হয়েছে: ${decoded.name} (${decoded.quantity} কেজি)` : `⚖️ Weighed item added: ${decoded.name} (${decoded.quantity} kg)`, true);
+          setQuery("");
+          setTimeout(() => inputRef.current?.focus(), 50);
+          return;
+        }
+      } catch (err) {
+        // Fall back to local regex decoding
+      }
+    }
+
     if (isSupershop && /^(02|2[0-9])(\d{5})(\d{5})\d$/.test(code)) {
       const match = code.match(/^(02|2[0-9])(\d{5})(\d{5})\d$/);
       if (match) {
@@ -487,38 +788,6 @@ export default function PosPage() {
       }
     }
 
-    // 2c. Exact match on a specific VARIATION barcode or SKU -> add directly without modal
-    for (const p of shown) {
-      const v = p.variations?.find((varItem) => varItem.barcode === code || (varItem.sku && varItem.sku.toLowerCase() === code.toLowerCase()));
-      if (v) {
-        if (p.track_inventory !== false && Number(v.current_stock || p.current_stock) <= 0) {
-          flash(t("pos_out_of_stock_alert", { name: `${p.name} (${v.name})` }), false);
-          return;
-        }
-        addToCart(p, undefined, multiplier, v, {
-          size: v.attributes?.size || v.name,
-          color: v.attributes?.color || "",
-          price: v.selling_price || p.selling_price,
-          sku: v.sku || p.sku,
-          barcode: v.barcode || ""
-        });
-        flash(t("pos_added_alert", { name: `${p.name} (${v.name})` }), true);
-        setQuery("");
-        setTimeout(() => inputRef.current?.focus(), 50);
-        return;
-      }
-      if (p.size_variants && Array.isArray(p.size_variants)) {
-        const sv = p.size_variants.find((item: any) => item.barcode === code || (item.sku && item.sku.toLowerCase() === code.toLowerCase()));
-        if (sv) {
-          addToCart(p, undefined, multiplier, null, sv);
-          flash(t("pos_added_alert", { name: `${p.name} (${sv.size}${sv.color ? ` / ${sv.color}` : ""})` }), true);
-          setQuery("");
-          setTimeout(() => inputRef.current?.focus(), 50);
-          return;
-        }
-      }
-    }
-
     const gridReflectsCode = debouncedQuery === code && !gridLoading;
 
     // 3. Exactly one filtered result → auto-add
@@ -527,26 +796,75 @@ export default function PosPage() {
     // 4. Multiple results → keep showing (let the user click one)
     if (gridReflectsCode && shown.length > 1 && query === code) return;
 
-    // 5. No local match → backend lookup
+    // 5. No local match in currently rendered view → FastAPI/Django Lookup, or IndexedDB Offline Lookup
     setScanning(true);
     try {
-      const res = await api<any>("/pos/lookup/", { params: { barcode: code } });
-      if (res?.multiple && Array.isArray(res.products)) {
-        setPickCode(code);
-        setPickProducts(res.products as Product[]);
-      } else {
-        tryAdd(res as Product, multiplier);
+      if (typeof window !== "undefined" && navigator.onLine && user?.shop) {
+        try {
+          const fastResults = await fastapiFetch<any[]>(`/fastapi/pos/products/${user.shop}/search?q=${encodeURIComponent(code)}&limit=5`);
+          if (fastResults && fastResults.length === 1) {
+            const p = fastResults[0];
+            tryAdd({
+              ...p,
+              price: String(p.base_price),
+              track_inventory: true,
+            } as Product, multiplier);
+            return;
+          } else if (fastResults && fastResults.length > 1) {
+            setPickCode(code);
+            setPickProducts(fastResults.map(p => ({ ...p, price: String(p.base_price), track_inventory: true } as Product)));
+            return;
+          }
+        } catch {
+          // Fall back to Django /pos/lookup/
+        }
+
+        try {
+          const res = await api<any>("/pos/lookup/", { params: { barcode: code } });
+          if (res?.multiple && Array.isArray(res.products)) {
+            setPickCode(code);
+            setPickProducts(res.products as Product[]);
+            return;
+          } else if (res?.id) {
+            tryAdd(res as Product, multiplier);
+            return;
+          }
+        } catch (e: any) {
+          if (e?.status === 409 || e?.data?.sold_unit) {
+            flash(e?.data?.detail || t("pos_unit_sold_alert", { code }), false);
+            setQuery("");
+            setTimeout(() => inputRef.current?.focus(), 50);
+            return;
+          }
+        }
       }
-    } catch (e: any) {
-      if (e?.status === 409 || e?.data?.sold_unit) {
-        flash(e?.data?.detail || t("pos_unit_sold_alert", { code }), false);
-        setQuery("");
-        setTimeout(() => inputRef.current?.focus(), 50);
-      } else {
-        flash(t("pos_product_not_found"), false);
-        setQuery("");
-        setTimeout(() => inputRef.current?.focus(), 50);
+
+      // 6. Offline IndexedDB Cache Fallback
+      const cached = await lookupCachedBarcode(code);
+      if (cached) {
+        if (cached.unit) {
+          addToCart(cached.product as Product, cached.unit);
+          flash(t("pos_added_unit_alert", { barcode: cached.unit.barcode }), true);
+          setQuery("");
+          setTimeout(() => inputRef.current?.focus(), 50);
+          return;
+        }
+        if (cached.variation) {
+          addToCart(cached.product as Product, undefined, multiplier, cached.variation);
+          flash(t("pos_added_alert", { name: `${cached.product.name} (${cached.variation.name})` }), true);
+          setQuery("");
+          setTimeout(() => inputRef.current?.focus(), 50);
+          return;
+        }
+        if (cached.product) {
+          tryAdd(cached.product as Product, multiplier);
+          return;
+        }
       }
+
+      flash(t("pos_product_not_found"), false);
+      setQuery("");
+      setTimeout(() => inputRef.current?.focus(), 50);
     } finally {
       setScanning(false);
     }
@@ -585,35 +903,102 @@ export default function PosPage() {
     async function doFastCashCheckout() {
     if (cart.length === 0 || fastCheckingOut) return;
     setFastCheckingOut(true);
+
+    const curSubtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
+    const taxAmt = 0;
+    const totalAmt = curSubtotal + taxAmt;
+
+    const itemsPayload = cart.map((l) => ({
+      product: l.product.id,
+      quantity: l.qty,
+      unit_price: l.price,
+      discount: l.discount,
+      unit_ids: l.selectedUnits.map((u) => u.id),
+      variation: l.selectedVariation?.id || undefined,
+      size_variant: (l.product as any)._selectedVariant || undefined,
+      product_name: l.product.name,
+      barcode: l.selectedUnits[0]?.barcode || l.product.barcode,
+    }));
+
+    const activeCust = selectedCustomerId ? customers.find((c) => c.id === Number(selectedCustomerId)) : null;
+    const curCustName = activeCust?.name || walkinName.trim() || (lang === "bn" ? "সাধারণ ক্রেতা" : "Walk-in Customer");
+    const curCustPhone = activeCust?.phone || walkinPhone.trim() || "01700000000";
+    const curCustId = activeCust?.id || undefined;
+
+    // Helper for executing offline sale
+    const executeOfflineSale = async () => {
+      const offlineId = `OFF-${user?.shop || 1}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      const offlineInvoice = `OFF-INV-${Date.now().toString().slice(-6)}`;
+      const offlineSaleObj: OfflineSale = {
+        client_offline_id: offlineId,
+        offline_invoice_no: offlineInvoice,
+        sale_date: new Date().toISOString(),
+        customer: curCustId,
+        customer_name: curCustName,
+        customer_phone: curCustPhone,
+        items: itemsPayload,
+        payments: [{ method: "cash", amount: totalAmt }],
+        paid: totalAmt,
+        discount: 0,
+        tax: taxAmt,
+        created_at: Date.now(),
+        status: "pending",
+      };
+
+      await saveOfflineSale(offlineSaleObj);
+      await deductCachedStock(offlineSaleObj.items);
+      await clearCartCrashBackup();
+
+      setCart([]);
+      setQuery("");
+      const newCount = await getPendingOfflineSaleCount();
+      setPendingSyncCount(newCount);
+
+      flash(
+        lang === "bn"
+          ? `⚡ অফলাইন নগদ বিক্রয় সম্পন্ন! চালান #${offlineInvoice} (৳${totalAmt.toFixed(2)})`
+          : `⚡ Offline Cash Sale Complete! #${offlineInvoice} (৳${totalAmt.toFixed(2)})`,
+        true
+      );
+
+      // Print offline thermal receipt
+      printOfflineReceipt(offlineSaleObj, user?.shop_name || "StockWhisk Store", (user as any)?.shop_invoice_settings);
+    };
+
+    // If browser is explicitly offline
+    if (typeof window !== "undefined" && !navigator.onLine) {
+      try {
+        await executeOfflineSale();
+      } catch (err: any) {
+        toast.error(err?.message || "Offline sale recording failed.");
+      } finally {
+        setFastCheckingOut(false);
+        setTimeout(() => inputRef.current?.focus(), 100);
+      }
+      return;
+    }
+
     try {
-      const curSubtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
-      const isVatOn = !!user?.shop_emi_enabled || false; // or shop settings
-      const taxAmt = 0;
-      const totalAmt = curSubtotal + taxAmt;
-
-      const itemsPayload = cart.map((l) => ({
-        product: l.product.id,
-        quantity: l.qty,
-        unit_price: l.price,
-        discount: l.discount,
-        unit_ids: l.selectedUnits.map((u) => u.id),
-        variation: l.selectedVariation?.id || undefined,
-        size_variant: (l.product as any)._selectedVariant || undefined,
-      }));
-
       const res = await api<any>("/pos/checkout/", {
         method: "POST",
         body: {
           items: itemsPayload,
+          customer: curCustId,
+          customer_name: curCustName,
+          customer_phone: curCustPhone,
           sale_date: new Date().toISOString(),
           tax: taxAmt,
           discount: 0,
+          paid: totalAmt,
           payments: [{ method: "cash", amount: totalAmt }],
         },
       });
 
       setCart([]);
       setQuery("");
+      fetchGrid(1, true);
+      await clearCartCrashBackup();
+
       flash(
         lang === "bn"
           ? `⚡ নগদ বিক্রয় সম্পন্ন! চালান #${res.invoice_no || res.id} (৳${totalAmt.toFixed(2)})`
@@ -624,7 +1009,15 @@ export default function PosPage() {
         window.open(`/invoice/${res.id}`, "_blank", "width=420,height=650");
       }
     } catch (err: any) {
-      toast.error(err?.message || "Fast cash checkout failed.");
+      // Check if network failed or server unreachable (e.g. WiFi cut mid-sale)
+      const isNetError = !navigator.onLine || !err?.status || err?.status === 0 || err?.status >= 502 || String(err?.message || "").includes("fetch");
+      if (isNetError) {
+        setIsOnline(false);
+        toast.error(lang === "bn" ? "⚠️ সার্ভার সংযোগ বিচ্ছিন্ন! অফলাইন মোডে চালান তৈরি হচ্ছে..." : "Server connection lost! Completing offline sale...");
+        await executeOfflineSale();
+      } else {
+        toast.error(err?.message || "Fast cash checkout failed.");
+      }
     } finally {
       setFastCheckingOut(false);
       setTimeout(() => inputRef.current?.focus(), 100);
@@ -633,23 +1026,148 @@ export default function PosPage() {
 
   function goToCheckout() {
     sessionStorage.setItem("pos_cart", JSON.stringify(cart));
+    if (selectedCustomerId) {
+      sessionStorage.setItem("pos_customer_id", selectedCustomerId);
+    }
+    if (walkinName) sessionStorage.setItem("pos_walkin_name", walkinName);
+    if (walkinPhone) sessionStorage.setItem("pos_walkin_phone", walkinPhone);
     router.push("/app/pos/customer");
   }
 
   return (
-    <>
+    <ModuleRouteGuard module="core_pos" name={lang === "bn" ? "পিওএস টার্মিনাল (POS)" : "POS Terminal"}>
       <div className="row g-3">
         {/* ── Left panel ── */}
-        <div className="col-lg-7 d-flex flex-column gap-3">
-          <div className="d-flex align-items-center justify-content-between">
-            <div className="text-secondary small fw-semibold">{t("pos_step1")}</div>
-            <div className="small fw-semibold d-flex align-items-center gap-1">
-              <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
-              <span className={scannerConnected ? 'text-success' : 'text-secondary'}>
-                {scannerConnected ? "Scanner App Connected" : "Scanner App Disconnected"}
-              </span>
+        <div className={`${posLayout === "visual_grid" ? "col-lg-8" : "col-lg-7"} d-flex flex-column gap-3`}>
+          <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div className="d-flex align-items-center gap-2">
+              <div className="text-secondary small fw-semibold">{t("pos_step1")}</div>
+              <div className="d-none d-sm-flex align-items-center gap-1">
+                <span className="badge bg-light text-secondary border"><kbd className="bg-secondary text-white px-1 rounded">F2</kbd> {lang === "bn" ? "সার্চ" : "Search"}</span>
+                <span className="badge bg-light text-secondary border"><kbd className="bg-secondary text-white px-1 rounded">F4</kbd> {lang === "bn" ? "চেকআউট" : "Checkout"}</span>
+                {!isElectronicsShop && (
+                  <span className="badge bg-light text-secondary border"><kbd className="bg-secondary text-white px-1 rounded">F12</kbd> {lang === "bn" ? "নগদ বিক্রি" : "Fast Cash"}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Layout Switcher & Scanner Status */}
+            <div className="d-flex align-items-center gap-2 flex-wrap">
+              <div className="d-inline-flex align-items-center p-0.5 bg-white border rounded-pill shadow-xs">
+                <button
+                  type="button"
+                  className={`btn btn-sm rounded-pill px-2.5 py-1 fw-bold transition-all ${
+                    posLayout === "standard"
+                      ? "btn-primary text-white shadow-xs"
+                      : "btn-light text-secondary border-0 bg-transparent"
+                  }`}
+                  style={{ fontSize: "0.78rem" }}
+                  onClick={() => togglePosLayout("standard")}
+                  title={lang === "bn" ? "স্ট্যান্ডার্ড পিওএস মোড" : "Standard POS Mode"}
+                >
+                  📋 {lang === "bn" ? "স্ট্যান্ডার্ড" : "Standard"}
+                </button>
+                <button
+                  type="button"
+                  className={`btn btn-sm rounded-pill px-2.5 py-1 fw-bold transition-all ${
+                    posLayout === "visual_grid"
+                      ? "btn-primary text-white shadow-xs"
+                      : "btn-light text-secondary border-0 bg-transparent"
+                  }`}
+                  style={{ fontSize: "0.78rem" }}
+                  onClick={() => togglePosLayout("visual_grid")}
+                  title={lang === "bn" ? "ভিজ্যুয়াল প্রোডাক্ট গ্রিড মোড" : "Visual Product Grid Mode"}
+                >
+                  🛍️ {lang === "bn" ? "ভিজ্যুয়াল গ্রিড" : "Visual Grid"}
+                </button>
+              </div>
+
+              {/* Online / Offline Status Badge */}
+              <div className="d-flex align-items-center gap-1.5">
+                {isOnline ? (
+                  <span className="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 d-inline-flex align-items-center gap-1 px-2 py-1 rounded-pill" style={{ fontSize: "0.75rem" }}>
+                    <span className="d-inline-block rounded-circle bg-success" style={{ width: 6, height: 6 }}></span>
+                    {lang === "bn" ? "অনলাইন" : "Online"}
+                  </span>
+                ) : (
+                  <span className="badge bg-warning bg-opacity-20 text-dark border border-warning d-inline-flex align-items-center gap-1 px-2 py-1 rounded-pill" style={{ fontSize: "0.75rem" }}>
+                    <span className="d-inline-block rounded-circle bg-danger" style={{ width: 6, height: 6 }}></span>
+                    {lang === "bn" ? "⚠️ অফলাইন মোড" : "⚠️ Offline"}
+                  </span>
+                )}
+
+                {/* Pending Offline Sync Button */}
+                {pendingSyncCount > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-warning btn-sm py-0.5 px-2.5 rounded-pill fw-bold text-dark d-inline-flex align-items-center gap-1 shadow-xs"
+                    disabled={isSyncing || !isOnline}
+                    onClick={triggerAutoSync}
+                    title={lang === "bn" ? "সার্ভারে সিঙ্ক করুন" : "Sync offline sales to server"}
+                    style={{ fontSize: "0.75rem" }}
+                  >
+                    <span>🔄</span>
+                    <span>{pendingSyncCount} {lang === "bn" ? "টি সিঙ্ক বাকি" : "Pending Sync"}</span>
+                    {isSyncing && <span className="spinner-border spinner-border-sm" style={{ width: "0.7rem", height: "0.7rem" }} />}
+                  </button>
+                )}
+              </div>
+
+              <div className="small fw-semibold d-flex align-items-center gap-1 ms-1">
+                <span className={`d-inline-block rounded-circle ${scannerConnected ? 'bg-success' : 'bg-secondary'}`} style={{ width: 8, height: 8 }}></span>
+                <span className={scannerConnected ? 'text-success' : 'text-secondary'} style={{ fontSize: "0.78rem" }}>
+                  {scannerConnected ? "Scanner" : "Ready"}
+                </span>
+              </div>
             </div>
           </div>
+
+          {/* Sudden Power Outage / Interrupted Cart Recovery Banner */}
+          {crashBackupFound && (
+            <div className="alert alert-warning border border-warning d-flex align-items-center justify-content-between p-2.5 px-3 rounded-3 shadow-xs mb-1" style={{ backgroundColor: "#fefce8" }}>
+              <div className="d-flex align-items-center gap-2">
+                <span className="fs-5">⚡</span>
+                <div>
+                  <strong className="text-dark d-block" style={{ fontSize: "0.88rem" }}>
+                    {lang === "bn" ? "বিদ্যুৎ চলে যাওয়ার পূর্বের অসমাপ্ত কার্ট পাওয়া গেছে!" : "Interrupted Cart Detected!"}
+                  </strong>
+                  <div className="text-secondary" style={{ fontSize: "0.78rem" }}>
+                    {lang === "bn"
+                      ? `${crashBackupFound.cart.length}টি পণ্য (৳${crashBackupFound.cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0).toFixed(2)}) সংরক্ষিত রয়েছে।`
+                      : `${crashBackupFound.cart.length} item(s) preserved from your previous session.`}
+                  </div>
+                </div>
+              </div>
+              <div className="d-flex align-items-center gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-primary fw-bold px-3 py-1 rounded-pill shadow-xs"
+                  style={{ fontSize: "0.8rem" }}
+                  onClick={() => {
+                    setCart(crashBackupFound.cart);
+                    if (crashBackupFound.customerId) setSelectedCustomerId(crashBackupFound.customerId);
+                    if (crashBackupFound.walkinName) setWalkinName(crashBackupFound.walkinName);
+                    if (crashBackupFound.walkinPhone) setWalkinPhone(crashBackupFound.walkinPhone);
+                    setCrashBackupFound(null);
+                    toast.success(lang === "bn" ? "কার্ট সফলভাবে পুনরুদ্ধার করা হয়েছে!" : "Cart restored!");
+                  }}
+                >
+                  {lang === "bn" ? "কার্ট রিস্টোর করুন" : "Restore Cart"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary py-1 px-2.5 rounded-pill"
+                  style={{ fontSize: "0.8rem" }}
+                  onClick={async () => {
+                    await clearCartCrashBackup();
+                    setCrashBackupFound(null);
+                  }}
+                >
+                  {lang === "bn" ? "বাতিল" : "Dismiss"}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* ── Scan / search input ── */}
           <div className="card shadow-sm border-brand">
@@ -702,22 +1220,230 @@ export default function PosPage() {
 
           
 
-          {/* ── Printing & Cyber Cafe Quick Hub Banner ── */}
-          {isPrintingShop && (
-            <div className="card shadow-sm border-0 mb-3" style={{ backgroundColor: "#f0fdf4", borderRadius: "12px", borderLeft: "5px solid #16a34a" }}>
-              <div className="card-body p-2 px-3 d-flex align-items-center justify-content-between flex-wrap gap-2">
-                <div className="d-flex align-items-center gap-2">
-                  <span className="badge bg-success text-white px-2.5 py-1.5 fs-6">🖨️ ডিজিটাল সেবা হাব</span>
-                  <span className="small text-dark fw-medium">পাসপোর্ট, পুলিশ ক্লিয়ারেন্স, ব্যানার ও টোকেন মেমো সরাসরি ইস্যু করুন:</span>
-                </div>
-                <Link href="/app/service/jobs" className="btn btn-sm btn-success fw-bold d-flex align-items-center gap-1 shadow-sm">
-                  <i className="bi bi-file-earmark-plus"></i> সেবা জব শিট ও টোকেন কাউন্টার
-                </Link>
-              </div>
-            </div>
-          )}
+          {posLayout === "visual_grid" ? (
+            /* ══════════════════════════════════════════════════════════════════════
+               VISUAL PRODUCT GRID POS MODE
+               Large visual product cards, in-stock badges, serialized barcode/warranty
+               direct click flow.
+               ══════════════════════════════════════════════════════════════════════ */
+            <div className="d-flex flex-column gap-3">
+              {/* Category Pills & Brand Selector */}
+              <div className="card shadow-xs border-0 bg-white rounded-3 p-3">
+                <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2.5">
+                  <div className="d-flex align-items-center gap-2 flex-wrap">
+                    <span className="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 rounded-pill fw-semibold" style={{ fontSize: "0.78rem" }}>
+                      🟢 {lang === "bn" ? `স্টকে উপলব্ধ: ${shown.length} টি পণ্য` : `Available: ${shown.length} products`}
+                    </span>
+                    {selectedCategory && (
+                      <span className="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1 rounded-pill d-flex align-items-center gap-1" style={{ fontSize: "0.76rem" }}>
+                        <span>{categories.find(c => c.id === selectedCategory)?.name || "Category"}</span>
+                        <button type="button" className="btn-close ms-1" style={{ fontSize: "0.55rem" }} onClick={() => setSelectedCategory(null)} />
+                      </span>
+                    )}
+                  </div>
 
-          {/* ── Quick Category Filter Pills (General POS - hidden for Electronics, Fashion, Repair) ── */}
+                  {brands.length > 0 && (
+                    <div className="d-flex align-items-center gap-1">
+                      <select
+                        className="form-select form-select-sm rounded-pill"
+                        style={{ fontSize: "0.8rem", maxWidth: 170 }}
+                        value={selectedBrand || ""}
+                        onChange={(e) => setSelectedBrand(e.target.value ? Number(e.target.value) : null)}
+                      >
+                        <option value="">{lang === "bn" ? "🏷️ সকল ব্র্যান্ড" : "All Brands"}</option>
+                        {brands.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
+                {/* Horizontal Scrollable Category Pills */}
+                {categories.length > 0 && (
+                  <div className="d-flex align-items-center gap-1.5 overflow-auto pb-1" style={{ whiteSpace: "nowrap", scrollbarWidth: "thin" }}>
+                    <button
+                      type="button"
+                      className={`btn btn-sm rounded-pill px-3 py-1 fw-bold transition-all ${selectedCategory === null ? "btn-dark text-white shadow-xs" : "btn-light text-secondary border bg-white"}`}
+                      style={{ fontSize: "0.8rem", flexShrink: 0 }}
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      ✨ {lang === "bn" ? "সকল পণ্য" : "All Items"}
+                    </button>
+                    {categories.map((c) => (
+                      <button
+                        key={c.id}
+                        type="button"
+                        className={`btn btn-sm rounded-pill px-3 py-1 fw-bold transition-all ${selectedCategory === c.id ? "btn-primary text-white shadow-xs" : "btn-light text-secondary border bg-white"}`}
+                        style={{ fontSize: "0.8rem", flexShrink: 0 }}
+                        onClick={() => setSelectedCategory(selectedCategory === c.id ? null : c.id)}
+                      >
+                        {c.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Visual Product Grid */}
+              {shown.length === 0 && !gridLoading ? (
+                <div className="card shadow-xs border-0 bg-white rounded-3 py-5 text-center">
+                  <div className="fs-1 mb-2">🔍</div>
+                  <h6 className="fw-bold text-dark">{lang === "bn" ? "কোনো পণ্য পাওয়া যায়নি" : "No products found"}</h6>
+                  <p className="text-secondary small mb-3">
+                    {query ? `"${query}" এর সাথে মিলছে না।` : (lang === "bn" ? "বর্তমানে এই ক্যাটাগরিতে কোনো স্টক উপলব্ধ নেই।" : "No in-stock products available.")}
+                  </p>
+                  {(query || selectedCategory || selectedBrand) && (
+                    <div>
+                      <button
+                        type="button"
+                        className="btn btn-outline-primary btn-sm rounded-pill px-3"
+                        onClick={() => { setQuery(""); setSelectedCategory(null); setSelectedBrand(null); }}
+                      >
+                        {lang === "bn" ? "ফিল্টার রিসেট করুন" : "Reset Filters"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div 
+                  className="row g-3" 
+                  style={{ maxHeight: "74vh", overflowY: "auto", paddingBottom: "2rem" }}
+                  onScroll={onGridScroll}
+                >
+                  {shown.map((p) => {
+                    const cartItem = cart.find(l => l.product.id === p.id);
+                    const inCartQty = cartItem ? cartItem.qty : 0;
+                    const hasSerializedUnits = (p.in_stock_units_count && p.in_stock_units_count > 0) || (p.units && p.units.length > 0);
+                    const isLoadingThis = unitLoadingId === p.id;
+
+                    return (
+                      <div key={p.id} className="col-6 col-sm-4 col-md-4 col-xl-3">
+                        <div
+                          className={`card h-100 rounded-3 border transition-all position-relative overflow-hidden ${
+                            inCartQty > 0 ? "border-primary shadow-sm" : "border-slate-200 bg-white hover:border-slate-400 hover:shadow-xs"
+                          }`}
+                          style={{ 
+                            cursor: "pointer",
+                            transition: "transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease",
+                          }}
+                          onClick={() => pickFromGrid(p)}
+                        >
+                          {/* Cart Badge if in cart */}
+                          {inCartQty > 0 && (
+                            <div
+                              className="position-absolute top-0 end-0 m-2 badge bg-primary text-white rounded-pill px-2 py-1 shadow-xs fw-bold"
+                              style={{ zIndex: 3, fontSize: "0.72rem" }}
+                            >
+                              ✓ {inCartQty} {lang === "bn" ? "কার্টে" : "in cart"}
+                            </div>
+                          )}
+
+                          {/* Stock & Serial Badge */}
+                          <div className="position-absolute top-0 start-0 m-2 d-flex flex-column gap-1" style={{ zIndex: 3 }}>
+                            <span 
+                              className={`badge ${Number(p.current_stock) > 0 ? "bg-success text-white" : "bg-danger text-white"} rounded-pill shadow-xs fw-semibold`}
+                              style={{ fontSize: "0.68rem" }}
+                            >
+                              {Number(p.current_stock) > 0 ? `🟢 ${p.current_stock} টি` : "🔴 স্টক শেষ"}
+                            </span>
+                            {hasSerializedUnits && (
+                              <span 
+                                className="badge bg-warning text-dark border border-warning-subtle rounded-pill shadow-xs fw-bold"
+                                style={{ fontSize: "0.65rem" }}
+                              >
+                                🏷️ বারকোড
+                              </span>
+                            )}
+                            {!!p.warranty_months && (
+                              <span 
+                                className="badge bg-dark bg-opacity-75 text-white rounded-pill shadow-xs fw-semibold"
+                                style={{ fontSize: "0.65rem" }}
+                              >
+                                🛡️ {p.warranty_months}ম
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Image Container */}
+                          <div 
+                            className="bg-light d-flex align-items-center justify-content-center position-relative"
+                            style={{ height: 135, width: "100%", overflow: "hidden" }}
+                          >
+                            {isLoadingThis ? (
+                              <div className="spinner-border spinner-border-sm text-primary" role="status" />
+                            ) : p.image || p.image_url ? (
+                              <img 
+                                src={p.image_url || p.image || undefined} 
+                                alt={p.name} 
+                                className="w-100 h-100 object-cover transition-all"
+                                style={{ transition: "transform 0.3s ease" }}
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="text-secondary opacity-50 display-6">
+                                📦
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Card Content */}
+                          <div className="card-body p-2.5 d-flex flex-column justify-content-between">
+                            <div>
+                              {p.category_name && (
+                                <div className="text-secondary text-uppercase fw-semibold" style={{ fontSize: "0.65rem", letterSpacing: "0.5px" }}>
+                                  {p.category_name}
+                                </div>
+                              )}
+                              <h6 
+                                className="fw-bold text-dark mb-1 text-truncate-2" 
+                                style={{ 
+                                  fontSize: "0.85rem", 
+                                  lineHeight: "1.25", 
+                                  minHeight: "2.4rem",
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden"
+                                }}
+                                title={p.name}
+                              >
+                                {p.name}
+                              </h6>
+                              <div className="font-monospace text-secondary" style={{ fontSize: "0.7rem" }}>
+                                {p.barcode ? `🏷️ ${p.barcode}` : (p.sku ? `SKU: ${p.sku}` : "—")}
+                              </div>
+                            </div>
+
+                            <div className="mt-2 pt-1 border-top d-flex align-items-center justify-content-between">
+                              <div>
+                                <div className="fw-bold text-primary fs-6" style={{ letterSpacing: "-0.3px" }}>
+                                  {money(p.selling_price)}
+                                </div>
+                              </div>
+                              <div>
+                                {hasSerializedUnits ? (
+                                  <span className="btn btn-outline-primary btn-sm py-0.5 px-2 rounded-pill fw-semibold" style={{ fontSize: "0.72rem" }}>
+                                    🏷️ বাছুন
+                                  </span>
+                                ) : (
+                                  <span className="btn btn-primary btn-sm py-0.5 px-2 rounded-pill fw-semibold" style={{ fontSize: "0.72rem" }}>
+                                    + যোগ
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div>
+              {/* ── Quick Category Filter Pills (General POS - hidden for Electronics, Fashion, Repair) ── */}
           {!isRepairShop && !isFashionShop && !isElectronicsShop && categories.length > 0 && (
             <div className="d-flex align-items-center gap-2 mb-3 overflow-auto pb-2" style={{ whiteSpace: "nowrap", scrollbarWidth: "thin" }}>
               <button
@@ -1156,26 +1882,63 @@ export default function PosPage() {
                         const out = Number(p.current_stock) <= 0;
                         const inCart = cart.some((l) => l.product.id === p.id);
                         const busy = unitLoadingId === p.id;
+                        const brandName = p.brand_name || brands.find((b) => b.id === p.brand)?.name || "";
+                        const cartItem = cart.find((l) => l.product.id === p.id);
                         return (
                           <div className="col-6 col-md-4" key={p.id}>
                             <button
                               type="button"
-                              className={`pos-item w-100 p-3 text-start rounded-3 shadow-sm ${inCart ? "pos-item-active" : ""}`}
+                              className={`pos-item w-100 p-2.5 text-start rounded-3 ${inCart ? "pos-item-active" : ""}`}
                               disabled={out || busy}
                               onClick={() => pickFromGrid(p)}
                             >
-                              <div className="fw-bold text-truncate" style={{ fontSize: "0.95rem" }}>{formatProductName(p, isRepairShop)}</div>
-                              <div style={{ fontSize: ".72rem", fontFamily: "monospace", color: "var(--text-muted, #64748b)" }}>
-                                {p.sku || p.barcode}
+                              {brandName && (
+                                <div className="mb-1">
+                                  <span
+                                    className="badge px-1.5 py-0.5"
+                                    style={{
+                                      fontSize: "0.65rem",
+                                      backgroundColor: "#eff6ff",
+                                      color: "#1d4ed8",
+                                      border: "1px solid #bfdbfe",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    🏷️ {brandName}
+                                  </span>
+                                </div>
+                              )}
+                              <div className="fw-bold text-truncate" style={{ fontSize: "0.88rem", color: "#0f172a" }}>
+                                {formatProductName(p, isRepairShop)}
                               </div>
-                              <div className="d-flex justify-content-between align-items-center mt-2">
+                              <div style={{ fontSize: ".72rem", fontFamily: "monospace", color: "#64748b" }}>
+                                {p.sku || p.barcode || "—"}
+                              </div>
+                              <div className="d-flex justify-content-between align-items-center mt-2 pt-1 border-top" style={{ borderColor: inCart ? "#dbeafe" : "#f1f5f9" }}>
                                 <div>
-                                  <span className="fw-bold text-primary" style={{ fontSize: "1rem" }}>{money(p.selling_price)}</span>
+                                  <span className="fw-bolder" style={{ fontSize: "0.95rem", color: inCart ? "#1d4ed8" : "#0f172a" }}>
+                                    {money(p.selling_price)}
+                                  </span>
                                   {baseUnit ? <span className="text-secondary" style={{ fontSize: "0.7rem" }}>/{baseUnit}</span> : null}
                                 </div>
-                                <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
-                                      style={{ fontSize: ".72rem" }}>
-                                  {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
+                                <span
+                                  className="badge border px-1.5 py-0.5 fw-bold"
+                                  style={{
+                                    fontSize: "0.68rem",
+                                    backgroundColor: out ? "#fef2f2" : inCart ? "#eff6ff" : "#f0fdf4",
+                                    color: out ? "#dc2626" : inCart ? "#1d4ed8" : "#166534",
+                                    borderColor: out ? "#fecaca" : inCart ? "#bfdbfe" : "#bbf7d0",
+                                  }}
+                                >
+                                  {busy ? (
+                                    <span className="spinner-border spinner-border-sm" role="status" />
+                                  ) : out ? (
+                                    t("pos_out")
+                                  ) : inCart ? (
+                                    `✓ ×${cartItem?.qty}`
+                                  ) : (
+                                    `${lang === "bn" ? "স্টক:" : "Stock:"} ${Math.round(Number(p.current_stock) * 100) / 100} ${baseUnit || (lang === "bn" ? "পিস" : "pcs")}`
+                                  )}
                                 </span>
                               </div>
                             </button>
@@ -1189,6 +1952,48 @@ export default function PosPage() {
             </div>
           ) : (
             <div>
+              {/* ── View Switcher Toolbar & Result Count ── */}
+              <div className="d-flex align-items-center justify-content-between mb-2.5">
+                <div className="small text-secondary fw-semibold">
+                  {query ? (
+                    shown.length > 0 ? (
+                      shown.length > 1 ? t("pos_products_found_plural", { count: shown.length }) : t("pos_products_found_singular")
+                    ) : (
+                      t("pos_no_match")
+                    )
+                  ) : (
+                    <span>
+                      {shown.length} {lang === "bn" ? "পণ্য প্রদর্শিত" : "products listed"}
+                    </span>
+                  )}
+                </div>
+
+                <div className="btn-group btn-group-sm bg-white rounded-pill p-1 border shadow-xs" role="group">
+                  <button
+                    type="button"
+                    className={`btn btn-sm rounded-pill px-2.5 py-1 fw-semibold d-flex align-items-center gap-1.5 ${
+                      viewMode === "grid" ? "btn-primary text-white shadow-xs" : "btn-light text-secondary border-0"
+                    }`}
+                    onClick={() => toggleViewMode("grid")}
+                    title={lang === "bn" ? "ছবিসহ বড় কার্ড ভিউ" : "Visual Picture Cards View"}
+                  >
+                    <span>🎴</span>
+                    <span className="small">{lang === "bn" ? "ছবি কার্ড" : "Grid Cards"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`btn btn-sm rounded-pill px-2.5 py-1 fw-semibold d-flex align-items-center gap-1.5 ${
+                      viewMode === "table" ? "btn-primary text-white shadow-xs" : "btn-light text-secondary border-0"
+                    }`}
+                    onClick={() => toggleViewMode("table")}
+                    title={lang === "bn" ? "কম্প্যাক্ট তালিকা ভিউ" : "Compact Table View"}
+                  >
+                    <span>📋</span>
+                    <span className="small">{lang === "bn" ? "তালিকা" : "Table"}</span>
+                  </button>
+                </div>
+              </div>
+
               {shown.length === 0 && query && !gridLoading ? (
                 <div className="card shadow-sm">
                   <div className="card-body text-center py-4 text-secondary small">
@@ -1198,29 +2003,295 @@ export default function PosPage() {
                     </div>
                   </div>
                 </div>
-              ) : (
-                <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
+              ) : viewMode === "grid" ? (
+                /* ── Visual Picture Cards Grid ── */
+                <div className="row g-2.5" style={{ maxHeight: "56vh", overflowY: "auto" }} onScroll={onGridScroll}>
                   {shown.map((p) => {
-                    const mult = Number(p.purchase_multiplier) || 1;
-                    const isBulk = mult > 1;
                     const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
-                    const bulkUnit = p.purchase_unit_detail?.name || "Pack";
                     const out = Number(p.current_stock) <= 0;
-                    const inCart = cart.some((l) => l.product.id === p.id);
-
+                    const cartItem = cart.find((l) => l.product.id === p.id);
+                    const inCart = !!cartItem;
                     const exactMatch = query.trim() !== "" && p.barcode === query.trim();
                     const busy = unitLoadingId === p.id;
+                    const brandName = p.brand_name || brands.find((b) => b.id === p.brand)?.name || "";
+
+                    return (
+                      <div className="col-6 col-sm-4 col-md-4 col-xl-3" key={p.id}>
+                        <div
+                          onClick={() => { if (!out && !busy) pickFromGrid(p); }}
+                          className={`card h-100 transition-all cursor-pointer user-select-none position-relative overflow-hidden ${
+                            out ? "opacity-60 grayscale cursor-not-allowed" : ""
+                          }`}
+                          style={{
+                            borderRadius: "14px",
+                            backgroundColor: inCart ? "#f8faff" : "#ffffff",
+                            borderColor: inCart ? "#2563eb" : exactMatch ? "#2563eb" : "#e2e8f0",
+                            borderWidth: inCart || exactMatch ? "2px" : "1px",
+                            borderStyle: "solid",
+                            boxShadow: inCart
+                              ? "0 4px 14px -1px rgba(37, 99, 235, 0.16), 0 2px 6px -1px rgba(37, 99, 235, 0.08)"
+                              : exactMatch
+                              ? "0 0 0 2px rgba(37, 99, 235, 0.25), 0 2px 6px rgba(0, 0, 0, 0.04)"
+                              : "0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04)",
+                            transition: "all 0.15s ease-in-out",
+                          }}
+                        >
+                          {/* In-cart counter badge overlay */}
+                          {inCart && (
+                            <div
+                              className="position-absolute top-2 end-2 d-flex align-items-center gap-1 shadow-sm"
+                              style={{
+                                zIndex: 4,
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                backgroundColor: "#0f172a",
+                                color: "#ffffff",
+                                borderRadius: "20px",
+                                padding: "3px 9px",
+                                letterSpacing: "0.2px",
+                                boxShadow: "0 2px 8px rgba(15, 23, 42, 0.25)",
+                                border: "1.5px solid #ffffff",
+                              }}
+                            >
+                              <span style={{ color: "#38bdf8", fontSize: "0.75rem" }}>●</span>
+                              <span>{cartItem?.qty} {lang === "bn" ? "কার্টে" : "in cart"}</span>
+                            </div>
+                          )}
+
+                          {/* Product Picture Container */}
+                          <div
+                            className="w-100 d-flex align-items-center justify-content-center overflow-hidden position-relative border-bottom"
+                            style={{
+                              height: 110,
+                              backgroundColor: inCart ? "#f0f6ff" : "#f8fafc",
+                              borderColor: inCart ? "#dbeafe" : "#f1f5f9",
+                            }}
+                          >
+                            {p.image || p.image_url ? (
+                              <img
+                                src={p.image_url || p.image || ""}
+                                alt={p.name}
+                                className="w-100 h-100 object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="d-flex flex-column align-items-center justify-content-center">
+                                <svg
+                                  width="34"
+                                  height="34"
+                                  viewBox="0 0 24 24"
+                                  fill="none"
+                                  stroke={inCart ? "#3b82f6" : "#94a3b8"}
+                                  strokeWidth="1.5"
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                >
+                                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                                  <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                                  <line x1="12" y1="22.08" x2="12" y2="12"></line>
+                                </svg>
+                              </div>
+                            )}
+                            {busy && (
+                              <div className="position-absolute inset-0 bg-white bg-opacity-75 d-flex align-items-center justify-content-center">
+                                <span className="spinner-border spinner-border-sm text-primary" role="status" />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Product Card Body */}
+                          <div className="p-2.5 d-flex flex-column justify-content-between flex-grow-1" style={{ backgroundColor: inCart ? "#f8faff" : "#ffffff" }}>
+                            <div>
+                              {/* Brand Badge */}
+                              {brandName && (
+                                <div className="d-flex align-items-center justify-content-between gap-1 mb-1">
+                                  <span
+                                    className="badge px-1.5 py-0.5 text-truncate"
+                                    style={{
+                                      fontSize: "0.68rem",
+                                      maxWidth: "100%",
+                                      backgroundColor: "#eff6ff",
+                                      color: "#1d4ed8",
+                                      border: "1px solid #bfdbfe",
+                                      fontWeight: 600,
+                                    }}
+                                    title={brandName}
+                                  >
+                                    🏷️ {brandName}
+                                  </span>
+                                  {p.category_name && (
+                                    <span className="text-secondary text-truncate small" style={{ fontSize: "0.65rem", maxWidth: "45%" }}>
+                                      {p.category_name}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
+                              <div
+                                className="fw-bold"
+                                style={{
+                                  fontSize: "0.85rem",
+                                  lineHeight: "1.25",
+                                  minHeight: brandName ? "auto" : "2.1rem",
+                                  display: "-webkit-box",
+                                  WebkitLineClamp: 2,
+                                  WebkitBoxOrient: "vertical",
+                                  overflow: "hidden",
+                                  color: "#0f172a",
+                                }}
+                                title={brandName ? `${brandName} - ${p.name}` : p.name}
+                              >
+                                {p.name}
+                              </div>
+                              <div className="d-flex align-items-center justify-content-between mt-1.5 pt-0.5" style={{ fontSize: "0.72rem" }}>
+                                <span className="text-secondary font-monospace text-truncate" style={{ maxWidth: "52%" }}>
+                                  {p.barcode || p.sku || "—"}
+                                </span>
+                                {out ? (
+                                  <span
+                                    className="badge border px-1.5 py-0.5 fw-bold"
+                                    style={{
+                                      fontSize: "0.72rem",
+                                      backgroundColor: "#fef2f2",
+                                      color: "#dc2626",
+                                      borderColor: "#fecaca",
+                                    }}
+                                  >
+                                    {t("pos_out")}
+                                  </span>
+                                ) : (
+                                  <span
+                                    className="badge border px-1.5 py-0.5 fw-bold"
+                                    style={{
+                                      fontSize: "0.72rem",
+                                      backgroundColor: "#f0fdf4",
+                                      color: "#166534",
+                                      borderColor: "#bbf7d0",
+                                    }}
+                                    title={`স্টক: ${p.current_stock} ${baseUnit || "pcs"}`}
+                                  >
+                                    {lang === "bn"
+                                      ? `স্টক: ${Math.round(Number(p.current_stock) * 100) / 100} ${baseUnit || "পিস"}`
+                                      : `Stock: ${Math.round(Number(p.current_stock) * 100) / 100} ${baseUnit || "pcs"}`}
+                                  </span>
+                                )}
+                              </div>
+                              {p.variations && p.variations.length > 0 && (
+                                <div className="mt-1">
+                                  <span className="badge rounded-pill" style={{ backgroundColor: "#f3e8ff", color: "#7c3aed", border: "1px solid #d8b4fe", fontSize: "10px", padding: "2px 6px" }}>
+                                    👗 {p.variations.length} ভেরিয়েন্ট
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="d-flex align-items-baseline justify-content-between mt-2 pt-1 border-top" style={{ borderColor: inCart ? "#dbeafe" : "#f1f5f9" }}>
+                              <span className="fw-bolder fs-6" style={{ letterSpacing: "-0.3px", color: inCart ? "#1d4ed8" : "#0f172a" }}>
+                                {money(p.selling_price)}
+                              </span>
+                              {inCart ? (
+                                <span className="badge px-1.5 py-0.5 rounded-pill" style={{ fontSize: "0.68rem", backgroundColor: "#dbeafe", color: "#1d4ed8", fontWeight: 600 }}>
+                                  + আরও যোগ করুন
+                                </span>
+                              ) : (
+                                <span className="text-secondary small" style={{ fontSize: "0.68rem" }}>
+                                  + যোগ করুন
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                /* ── Compact Table / List View ── */
+                <div className="row g-2" style={{ maxHeight: "52vh", overflowY: "auto" }} onScroll={onGridScroll}>
+                  {shown.map((p) => {
+                    const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || "";
+                    const out = Number(p.current_stock) <= 0;
+                    const inCart = cart.some((l) => l.product.id === p.id);
+                    const exactMatch = query.trim() !== "" && p.barcode === query.trim();
+                    const busy = unitLoadingId === p.id;
+                    const brandName = p.brand_name || brands.find((b) => b.id === p.brand)?.name || "";
+                    const isSelectedInCart = inCart;
                     return (
                       <div className="col-6 col-md-4" key={p.id}>
                         <button
                           type="button"
-                          className={`pos-item w-100 p-2 text-start ${inCart ? "pos-item-active" : ""} ${exactMatch ? "pos-item-exact" : ""}`}
+                          className="pos-item w-100 p-2.5 text-start rounded-3 position-relative"
+                          style={{
+                            backgroundColor: isSelectedInCart ? "#f8faff" : "#ffffff",
+                            borderColor: isSelectedInCart ? "#2563eb" : exactMatch ? "#2563eb" : "#e2e8f0",
+                            borderWidth: isSelectedInCart || exactMatch ? "2px" : "1px",
+                            boxShadow: isSelectedInCart
+                              ? "0 4px 14px -1px rgba(37, 99, 235, 0.16), 0 2px 6px -1px rgba(37, 99, 235, 0.08)"
+                              : exactMatch
+                              ? "0 0 0 2px rgba(37, 99, 235, 0.25)"
+                              : "0 1px 3px rgba(0,0,0,0.04)",
+                          }}
                           disabled={out || busy}
                           onClick={() => pickFromGrid(p)}
                         >
-                          <div className="small fw-semibold text-truncate">{p.name}</div>
-                          <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
-                            {p.barcode || p.sku}
+                          {isSelectedInCart && (
+                            <div
+                              className="position-absolute top-2 end-2 d-flex align-items-center gap-1 shadow-sm"
+                              style={{
+                                zIndex: 3,
+                                fontSize: "0.68rem",
+                                fontWeight: 700,
+                                backgroundColor: "#0f172a",
+                                color: "#ffffff",
+                                borderRadius: "20px",
+                                padding: "2px 7px",
+                                letterSpacing: "0.2px",
+                              }}
+                            >
+                              <span style={{ color: "#38bdf8", fontSize: "0.7rem" }}>●</span>
+                              <span>{cart.find((l) => l.product.id === p.id)?.qty} {lang === "bn" ? "কার্টে" : "in cart"}</span>
+                            </div>
+                          )}
+                          <div className="d-flex align-items-center gap-2">
+                            {p.image || p.image_url ? (
+                              <img
+                                src={p.image_url || p.image || ""}
+                                alt={p.name}
+                                className="rounded-2 border border-slate-200 object-cover flex-shrink-0"
+                                style={{ width: 36, height: 36, objectFit: "cover" }}
+                              />
+                            ) : (
+                              <div
+                                className="rounded-2 border border-slate-200 bg-slate-100 text-slate-400 d-flex align-items-center justify-content-center flex-shrink-0"
+                                style={{ width: 36, height: 36, fontSize: "1rem" }}
+                              >
+                                📦
+                              </div>
+                            )}
+                            <div className="overflow-hidden flex-grow-1">
+                              <div className="small fw-semibold text-truncate d-flex align-items-center gap-1">
+                                {brandName && (
+                                  <span
+                                    className="badge px-1 py-0.5 flex-shrink-0"
+                                    style={{
+                                      fontSize: "0.65rem",
+                                      backgroundColor: "#eff6ff",
+                                      color: "#1d4ed8",
+                                      border: "1px solid #bfdbfe",
+                                      fontWeight: 600,
+                                    }}
+                                  >
+                                    {brandName}
+                                  </span>
+                                )}
+                                <span className="text-truncate" title={brandName ? `${brandName} - ${p.name}` : p.name}>
+                                  {p.name}
+                                </span>
+                              </div>
+                              <div style={{ fontSize: ".7rem", fontFamily: "monospace", color: exactMatch ? "var(--brand-700,#1a73e8)" : "#94a3b8" }}>
+                                {p.barcode || p.sku}
+                              </div>
+                            </div>
                           </div>
                           {p.variations && p.variations.length > 0 && (
                             <div className="mt-1">
@@ -1234,9 +2305,24 @@ export default function PosPage() {
                               <span className="small fw-bold">{money(p.selling_price)}</span>
                               {baseUnit ? <span className="text-secondary" style={{ fontSize: "0.68rem" }}>/{baseUnit}</span> : null}
                             </div>
-                            <span className={`small ${out ? "text-danger fw-semibold" : inCart ? "text-success fw-semibold" : "text-secondary"}`}
-                                  style={{ fontSize: ".68rem" }}>
-                              {busy ? <span className="spinner-border spinner-border-sm" role="status" /> : out ? t("pos_out") : inCart ? `✓ ×${cart.find(l => l.product.id === p.id)?.qty}` : t("pos_stock", { count: p.current_stock })}
+                            <span
+                              className="badge border px-1.5 py-0.5 fw-bold"
+                              style={{
+                                fontSize: "0.68rem",
+                                backgroundColor: out ? "#fef2f2" : inCart ? "#eff6ff" : "#f0fdf4",
+                                color: out ? "#dc2626" : inCart ? "#1d4ed8" : "#166534",
+                                borderColor: out ? "#fecaca" : inCart ? "#bfdbfe" : "#bbf7d0",
+                              }}
+                            >
+                              {busy ? (
+                                <span className="spinner-border spinner-border-sm" role="status" />
+                              ) : out ? (
+                                t("pos_out")
+                              ) : inCart ? (
+                                `✓ ×${cart.find((l) => l.product.id === p.id)?.qty}`
+                              ) : (
+                                `${lang === "bn" ? "স্টক:" : "Stock:"} ${Math.round(Number(p.current_stock) * 100) / 100} ${baseUnit || (lang === "bn" ? "পিস" : "pcs")}`
+                              )}
                             </span>
                           </div>
                         </button>
@@ -1247,10 +2333,12 @@ export default function PosPage() {
               )}
             </div>
           )}
+          </div>
+        )}
         </div>
 
         {/* ── Cart ── */}
-        <div className="col-lg-5">
+        <div id="pos-cart-panel" className={`${posLayout === "visual_grid" ? "col-lg-4" : "col-lg-5"}`}>
           <div className="card shadow-sm" style={{ position: "sticky", top: "1rem" }}>
             <div className="card-header d-flex justify-content-between align-items-center">
               <span className="fw-semibold">
@@ -1303,9 +2391,30 @@ export default function PosPage() {
                       const packSell = Number(l.product.full_pack_sell) || (isBulk ? Number((Number(l.product.selling_price) * mult).toFixed(2)) : Number(l.product.selling_price));
                       
                       return (
-                        <tr key={l.lineId || String(l.product.id)}>
+                        <tr key={l.lineId || l.product.id}>
                           <td className="ps-3">
-                            <div className="small fw-semibold">{l.product.name}</div>
+                            {(() => {
+                              const lineBrand = l.product.brand_name || brands.find((b) => b.id === l.product.brand)?.name || "";
+                              return (
+                                <div className="small fw-semibold d-flex align-items-center gap-1">
+                                  {lineBrand && (
+                                    <span
+                                      className="badge px-1 py-0.5 flex-shrink-0"
+                                      style={{
+                                        fontSize: "0.65rem",
+                                        backgroundColor: "#eff6ff",
+                                        color: "#1d4ed8",
+                                        border: "1px solid #bfdbfe",
+                                      }}
+                                    >
+                                      {lineBrand}
+                                    </span>
+                                  )}
+                                  <span>{l.product.name}</span>
+                                </div>
+                              );
+                            })()}
+                            
                             {((l.product as any)._selectedVariant || l.selectedVariation) && (
                               <div className="d-flex align-items-center gap-1 my-0.5">
                                 <span className="badge border" style={{ fontSize: "0.72rem", background: "#f3e8ff", color: "#6b21a8", borderColor: "#d8b4fe" }}>
@@ -1314,7 +2423,7 @@ export default function PosPage() {
                                 </span>
                               </div>
                             )}
-                            
+
                             {/* Dual unit switcher pill buttons if product has purchase_multiplier > 1 */}
                             {isBulk ? (
                               <div className="d-flex flex-wrap align-items-center gap-1 my-1">
@@ -1427,6 +2536,7 @@ export default function PosPage() {
                                   className="form-control form-control-sm text-center"
                                   value={l.qty === 0 ? "" : l.qty}
                                   onChange={(e) => setQty(l.lineId || l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
+                                  onWheel={(e) => e.currentTarget.blur()}
                                   onBlur={() => clampQty(l.lineId || l.product.id)}
                                 />
                                 <div className="text-center text-secondary small" style={{ fontSize: "0.65rem" }}>
@@ -1447,54 +2557,160 @@ export default function PosPage() {
               </div>
 
               <div className="px-3 py-3 border-top">
+                {/* ── Customer Quick Selector ── */}
+                <div className="mb-2.5 p-2 rounded-3 bg-light border border-slate-200 shadow-2xs">
+                  <div className="d-flex align-items-center justify-content-between mb-1">
+                    <span className="small fw-bold text-dark" style={{ fontSize: "0.75rem" }}>
+                      👤 {lang === "bn" ? "ক্রেতা (Quick Customer)" : "Quick Customer"}
+                    </span>
+                    {selectedCustomerId && (
+                      <button
+                        type="button"
+                        className="btn btn-link btn-xs p-0 text-danger text-decoration-none fw-semibold"
+                        onClick={() => { setSelectedCustomerId(""); setWalkinName(""); setWalkinPhone(""); }}
+                      >
+                        ✕ রিসেট
+                      </button>
+                    )}
+                  </div>
+                  <select
+                    className="form-select form-select-sm mb-1.5"
+                    style={{ fontSize: "0.8rem" }}
+                    value={selectedCustomerId}
+                    onChange={(e) => {
+                      setSelectedCustomerId(e.target.value);
+                      if (e.target.value) {
+                        const c = customers.find(item => item.id === Number(e.target.value));
+                        if (c) {
+                          setWalkinName(c.name);
+                          setWalkinPhone(c.phone || "");
+                        }
+                      } else {
+                        setWalkinName("");
+                        setWalkinPhone("");
+                      }
+                    }}
+                  >
+                    <option value="">👤 {lang === "bn" ? "সাধারণ ওয়াক-ইন ক্রেতা (Walk-in)" : "Walk-in Customer"}</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name} {c.phone ? `(${c.phone})` : ""}
+                      </option>
+                    ))}
+                  </select>
+                  {!selectedCustomerId && (
+                    <div className="row g-1">
+                      <div className="col-6">
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          style={{ fontSize: "0.75rem" }}
+                          placeholder={lang === "bn" ? "নাম (ঐচ্ছিক)" : "Name (opt)"}
+                          value={walkinName}
+                          onChange={(e) => setWalkinName(e.target.value)}
+                        />
+                      </div>
+                      <div className="col-6">
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          style={{ fontSize: "0.75rem" }}
+                          placeholder={lang === "bn" ? "মোবাইল নম্বর" : "Phone number"}
+                          value={walkinPhone}
+                          onChange={(e) => setWalkinPhone(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="d-flex justify-content-between small mb-1">
                   <span className="text-secondary">{t("pos_subtotal")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
                 <div className="d-flex justify-content-between fw-bold mb-3">
                   <span>{t("pos_total")}</span>
-                  <span>{money(subtotal)}</span>
+                  <span className="text-primary fs-6">{money(subtotal)}</span>
                 </div>
-                {isElectronicsShop ? (
+
+                <div className="d-flex gap-2">
                   <button
                     type="button"
-                    className="btn btn-brand w-100 py-2.5 fw-semibold shadow-sm"
-                    disabled={cart.length === 0}
-                    onClick={goToCheckout}
+                    className="btn btn-success flex-grow-1 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1"
+                    disabled={cart.length === 0 || fastCheckingOut}
+                    onClick={doFastCashCheckout}
+                    title="Press F12 for instant 1-key cash checkout"
                   >
-                    {t("pos_continue")} →
+                    {fastCheckingOut ? (
+                      <span className="spinner-border spinner-border-sm me-1" />
+                    ) : (
+                      <span>⚡ {lang === "bn" ? "নগদ পে (F12)" : "Fast Cash (F12)"}</span>
+                    )}
                   </button>
-                ) : (
-                  <div className="d-flex gap-2">
-                    <button
-                      type="button"
-                      className="btn btn-success flex-grow-1 py-2 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1"
-                      disabled={cart.length === 0 || fastCheckingOut}
-                      onClick={doFastCashCheckout}
-                      title="Press F12 for instant 1-key cash checkout"
-                    >
-                      {fastCheckingOut ? (
-                        <span className="spinner-border spinner-border-sm me-1" />
-                      ) : (
-                        <span>⚡ {lang === "bn" ? "ক্যাশ পে (F12)" : "Fast Cash (F12)"}</span>
-                      )}
-                    </button>
 
-                    <button
-                      type="button"
-                      className="btn btn-brand flex-grow-1 py-2 fw-semibold shadow-sm"
-                      disabled={cart.length === 0 || fastCheckingOut}
-                      onClick={goToCheckout}
-                    >
-                      {t("pos_continue")} →
-                    </button>
-                  </div>
-                )}
+                  <button
+                    type="button"
+                    className="btn btn-brand flex-grow-1 py-2 fw-semibold shadow-sm"
+                    disabled={cart.length === 0 || fastCheckingOut}
+                    onClick={goToCheckout}
+                    title="Press F4 for customer & details checkout"
+                  >
+                    {t("pos_continue")} (F4) →
+                  </button>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* ── Mobile Floating Bottom Cart Bar (Thumb Zone UX) ── */}
+      {cart.length > 0 && (
+        <div
+          className="d-lg-none position-fixed start-0 end-0 bottom-0 p-3 bg-white border-top shadow-lg"
+          style={{ zIndex: 1040 }}
+        >
+          <div className="d-flex align-items-center justify-content-between gap-2">
+            <div
+              style={{ cursor: "pointer" }}
+              onClick={() => {
+                document.getElementById("pos-cart-panel")?.scrollIntoView({ behavior: "smooth" });
+              }}
+              title={lang === "bn" ? "কার্ট দেখতে ট্যাপ করুন" : "Tap to view cart"}
+            >
+              <div className="text-secondary small fw-medium">
+                🛒 {cart.reduce((s, l) => s + l.qty, 0)} {lang === "bn" ? "টি পণ্য (কার্ট দেখুন)" : "items (view cart)"}
+              </div>
+              <div className="fs-5 fw-bold text-dark">
+                {money(subtotal)}
+              </div>
+            </div>
+            <div className="d-flex gap-2">
+              {!isElectronicsShop && (
+                <button
+                  type="button"
+                  className="btn btn-success fw-bold py-2 px-3 shadow-sm d-flex align-items-center gap-1"
+                  disabled={fastCheckingOut}
+                  onClick={doFastCashCheckout}
+                >
+                  {fastCheckingOut ? (
+                    <span className="spinner-border spinner-border-sm" />
+                  ) : (
+                    <span>⚡ {lang === "bn" ? "ক্যাশ" : "Cash"}</span>
+                  )}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-brand fw-bold py-2 px-3 shadow-sm d-flex align-items-center gap-1"
+                onClick={goToCheckout}
+              >
+                <span>{lang === "bn" ? "চেকআউট" : "Checkout"} →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Assign-barcode modal ── */}
       {showAssign && (
@@ -1628,71 +2844,171 @@ export default function PosPage() {
       )}
 
       {unitSelectProduct && (
-        <div className="modal d-block" style={{ background: "rgba(0,0,0,.45)" }}>
-          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable">
-            <div className="modal-content">
-              <div className="modal-header">
-                <h5 className="modal-title">{t("pos_unit_title")}</h5>
+        <div className="modal d-block" style={{ background: "rgba(15,23,42,0.65)", zIndex: 1060 }}>
+          <div className="modal-dialog modal-dialog-centered modal-dialog-scrollable modal-lg">
+            <div className="modal-content shadow-lg border-0 rounded-4 overflow-hidden">
+              <div className="modal-header bg-light py-3 px-4 border-bottom">
+                <div className="d-flex align-items-center gap-3">
+                  <div 
+                    className="rounded-3 bg-white border d-flex align-items-center justify-content-center shadow-xs overflow-hidden"
+                    style={{ width: 48, height: 48, flexShrink: 0 }}
+                  >
+                    {unitSelectProduct.image || unitSelectProduct.image_url ? (
+                      <img src={unitSelectProduct.image_url || unitSelectProduct.image || undefined} alt="" className="w-100 h-100 object-cover" />
+                    ) : (
+                      <span className="fs-4">📦</span>
+                    )}
+                  </div>
+                  <div>
+                    <h5 className="modal-title fw-bold text-dark mb-0">{unitSelectProduct.name}</h5>
+                    <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                      <span className="badge bg-primary-subtle text-primary border border-primary-subtle" style={{ fontSize: "0.72rem" }}>
+                        {lang === "bn" ? "বারকোড ও সিরিয়াল নির্বাচন" : "Select Serial / Barcode"}
+                      </span>
+                      {!!unitSelectProduct.warranty_months && (
+                        <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style={{ fontSize: "0.72rem" }}>
+                          🛡️ {lang === "bn" ? `${unitSelectProduct.warranty_months} মাস অফিসিয়াল ওয়ারেন্টি` : `${unitSelectProduct.warranty_months} Mo Warranty`}
+                        </span>
+                      )}
+                      {!!unitSelectProduct.replacement_guarantee_days && (
+                        <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle" style={{ fontSize: "0.72rem" }}>
+                          🔄 {lang === "bn" ? `${unitSelectProduct.replacement_guarantee_days} দিন রিপ্লেসমেন্ট গ্যারান্টি` : `${unitSelectProduct.replacement_guarantee_days}d Replacement`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <button className="btn-close" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }} />
               </div>
-              <div className="modal-body">
-                <div className="mb-3 small text-secondary">
-                  <strong>{unitSelectProduct.name}</strong> {t("pos_unit_desc")}
+              
+              <div className="modal-body p-4">
+                <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+                  <div className="small text-secondary fw-semibold">
+                    {lang === "bn"
+                      ? `স্টকে উপলব্ধ বারকোড তালিকা (${unitSelectProduct.units?.length || 0} টি ইউনিট):`
+                      : `Available Barcodes in Stock (${unitSelectProduct.units?.length || 0} units):`}
+                  </div>
+                  <div className="small fw-bold text-dark">
+                    {lang === "bn" ? "মূল্য: " : "Price: "} 
+                    <span className="text-primary">{money(unitSelectProduct.selling_price)}</span>
+                  </div>
                 </div>
-                <div className="d-flex flex-column gap-2">
-                  {unitSelectProduct.units?.map((u) => {
-                    const line = cart.find(l => l.product.id === unitSelectProduct.id);
-                    const isSelected = line?.selectedUnits.some(su => su.id === u.id);
-                    return (
-                      <label key={u.id} className={`d-flex justify-content-between align-items-center p-2 border rounded cursor-pointer ${isSelected ? 'border-brand bg-brand bg-opacity-10' : ''}`}>
-                        <div className="d-flex align-items-center">
-                          <input 
-                            type="checkbox" 
-                            className="form-check-input mt-0 me-2" 
-                            checked={!!isSelected}
-                            onChange={(e) => {
-                              if (e.target.checked) {
-                                addToCart(unitSelectProduct, u);
-                              } else {
-                                setCart(c => {
-                                  const newC = [...c];
-                                  const idx = newC.findIndex(l => l.product.id === unitSelectProduct.id);
-                                  if (idx >= 0) {
-                                    const ex = newC[idx];
-                                    const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
-                                    if (updatedUnits.length === 0 && ex.qty === 1) {
-                                      return newC.filter(l => l.product.id !== unitSelectProduct.id);
-                                    }
-                                    newC[idx] = { ...ex, qty: ex.qty - 1, selectedUnits: updatedUnits };
+
+                {/* Live Barcode Search Filter */}
+                <div className="input-group input-group-sm mb-3">
+                  <span className="input-group-text bg-white border-end-0">🔍</span>
+                  <input
+                    type="text"
+                    className="form-control border-start-0"
+                    placeholder={lang === "bn" ? "বারকোড নাম্বার দিয়ে খুঁজুন..." : "Filter barcode or serial number..."}
+                    value={unitSearch}
+                    onChange={(e) => setUnitSearch(e.target.value)}
+                  />
+                  {unitSearch && (
+                    <button className="btn btn-outline-secondary" onClick={() => setUnitSearch("")}>✕</button>
+                  )}
+                </div>
+
+                <div className="d-flex flex-column gap-2" style={{ maxHeight: "45vh", overflowY: "auto" }}>
+                  {unitSelectProduct.units
+                    ?.filter((u) => !unitSearch.trim() || u.barcode.toLowerCase().includes(unitSearch.trim().toLowerCase()))
+                    .map((u) => {
+                      const line = cart.find(l => l.product.id === unitSelectProduct.id);
+                      const isSelected = line?.selectedUnits.some(su => su.id === u.id);
+                      const warrantyMo = u.effective_warranty_months || unitSelectProduct.warranty_months;
+                      const replaceDays = u.effective_replacement_guarantee_days || unitSelectProduct.replacement_guarantee_days;
+                      const unitPrice = u.effective_selling_price || unitSelectProduct.selling_price || 0;
+
+                      return (
+                        <div
+                          key={u.id}
+                          className={`p-3 border rounded-3 transition-all d-flex align-items-center justify-content-between ${
+                            isSelected ? "border-primary bg-primary bg-opacity-10 shadow-xs" : "border-slate-200 bg-white"
+                          }`}
+                          style={{ cursor: "pointer" }}
+                          onClick={() => {
+                            if (isSelected) {
+                              setCart(c => {
+                                const newC = [...c];
+                                const idx = newC.findIndex(l => l.product.id === unitSelectProduct.id);
+                                if (idx >= 0) {
+                                  const ex = newC[idx];
+                                  const updatedUnits = ex.selectedUnits.filter(su => su.id !== u.id);
+                                  if (updatedUnits.length === 0 && ex.qty <= 1) {
+                                    return newC.filter(l => l.product.id !== unitSelectProduct.id);
                                   }
-                                  return newC;
-                                });
-                              }
-                            }}
-                          />
-                          <div className="font-monospace small fw-medium">{u.barcode}</div>
+                                  newC[idx] = { ...ex, qty: Math.max(1, ex.qty - 1), selectedUnits: updatedUnits };
+                                }
+                                return newC;
+                              });
+                            } else {
+                              addToCart(unitSelectProduct, u);
+                            }
+                          }}
+                        >
+                          <div className="d-flex align-items-center gap-3">
+                            <input
+                              type="checkbox"
+                              className="form-check-input m-0"
+                              checked={!!isSelected}
+                              readOnly
+                              style={{ cursor: "pointer", width: 18, height: 18 }}
+                            />
+                            <div>
+                              <div className="font-monospace fw-bold text-dark d-flex align-items-center gap-2">
+                                <span>🏷️ {u.barcode}</span>
+                                <span className="badge bg-success-subtle text-success border border-success-subtle" style={{ fontSize: "0.68rem" }}>
+                                  {lang === "bn" ? "ইন-স্টক" : "In Stock"}
+                                </span>
+                              </div>
+                              <div className="d-flex align-items-center gap-2 mt-1 flex-wrap">
+                                {!!warrantyMo && (
+                                  <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle" style={{ fontSize: "0.72rem" }}>
+                                    🛡️ {warrantyMo} {lang === "bn" ? "মাস ওয়ারেন্টি" : "Mo Warranty"}
+                                  </span>
+                                )}
+                                {!!replaceDays && (
+                                  <span className="badge bg-info-subtle text-info-emphasis border border-info-subtle" style={{ fontSize: "0.72rem" }}>
+                                    🔄 {replaceDays} {lang === "bn" ? "দিন রিপ্লেসমেন্ট" : "d Replacement"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-end">
+                            <div className="fw-bold text-dark fs-6">{money(unitPrice)}</div>
+                            <div className="mt-1">
+                              {isSelected ? (
+                                <span className="badge bg-success text-white py-1 px-2.5 rounded-pill fw-semibold" style={{ fontSize: "0.75rem" }}>
+                                  ✓ {lang === "bn" ? "কার্টে যুক্ত" : "In Cart"}
+                                </span>
+                              ) : (
+                                <span className="badge bg-primary text-white py-1 px-2.5 rounded-pill fw-semibold" style={{ fontSize: "0.75rem" }}>
+                                  + {lang === "bn" ? "যোগ করুন" : "Add"}
+                                </span>
+                              )}
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-end" style={{ fontSize: '.7rem' }}>
-                          {!!u.effective_warranty_months && (
-                            <span className="badge bg-warning-subtle text-warning-emphasis rounded-pill me-2 border border-warning-subtle">
-                              <i className="bi bi-shield-check me-1"></i>
-                              {t("pos_unit_warranty", { months: u.effective_warranty_months })}
-                            </span>
-                          )}
-                          <span className="text-secondary">{t("pos_unit_cost", { amount: money(u.effective_cost_price || unitSelectProduct.cost_price || 0) })}</span>
-                          <span className="ms-2 fw-semibold text-body">{t("pos_unit_price", { amount: money(u.effective_selling_price || unitSelectProduct.selling_price || 0) })}</span>
-                        </div>
-                      </label>
-                    );
-                  })}
+                      );
+                    })}
                 </div>
               </div>
-              <div className="modal-footer d-flex justify-content-between">
-                <div className="small fw-semibold text-brand">
-                  {t("pos_unit_selected", { count: cart.find(l => l.product.id === unitSelectProduct.id)?.selectedUnits.length || 0 })}
+
+              <div className="modal-footer bg-light py-2 px-4 d-flex align-items-center justify-content-between">
+                <div className="small fw-bold text-primary">
+                  {lang === "bn" ? "নির্বাচিত বারকোড সংখ্যা: " : "Selected Barcodes: "}
+                  <span className="badge bg-primary text-white rounded-pill ms-1">
+                    {cart.find(l => l.product.id === unitSelectProduct.id)?.selectedUnits.length || 0}
+                  </span>
                 </div>
-                <button className="btn btn-brand btn-sm" onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }}>
-                  {t("pos_unit_done")}
+                <button
+                  type="button"
+                  className="btn btn-primary px-4 fw-bold rounded-pill"
+                  onClick={() => { setUnitSelectProduct(null); setTimeout(() => inputRef.current?.focus(), 50); }}
+                >
+                  ✓ {lang === "bn" ? "সম্পন্ন (Done)" : "Done"}
                 </button>
               </div>
             </div>
@@ -1729,15 +3045,35 @@ export default function PosPage() {
                         }}
                       >
                         <div>
-                          <div className="fw-semibold">{p.name}</div>
+                          {(() => {
+                            const pBrand = p.brand_name || brands.find((b) => b.id === p.brand)?.name || "";
+                            return (
+                              <div className="fw-semibold d-flex align-items-center gap-1">
+                                {pBrand && (
+                                  <span
+                                    className="badge px-1 py-0.5"
+                                    style={{
+                                      fontSize: "0.65rem",
+                                      backgroundColor: "#eff6ff",
+                                      color: "#1d4ed8",
+                                      border: "1px solid #bfdbfe",
+                                    }}
+                                  >
+                                    {pBrand}
+                                  </span>
+                                )}
+                                <span>{p.name}</span>
+                              </div>
+                            );
+                          })()}
                           <div className="small text-secondary">
                             {p.sku ? t("pos_pick_sku", { sku: p.sku }) : t("pos_pick_barcode", { barcode: pickCode })}
                           </div>
                         </div>
                         <div className="text-end">
                           <div className="fw-semibold">{money(p.selling_price || 0)}</div>
-                          <div className={`small ${oos ? "text-danger" : "text-secondary"}`}>
-                            {oos ? t("pos_pick_out_of_stock") : t("pos_stock", { count: p.current_stock })}
+                          <div className={`small ${oos ? "text-danger fw-bold" : "text-success fw-bold"}`}>
+                            {oos ? t("pos_pick_out_of_stock") : `${lang === "bn" ? "স্টক:" : "Stock:"} ${p.current_stock}`}
                           </div>
                         </div>
                       </button>
@@ -1806,6 +3142,6 @@ export default function PosPage() {
           onClose={() => setShowScanner(false)}
         />
       )}
-    </>
+    </ModuleRouteGuard>
   );
 }

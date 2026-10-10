@@ -1,10 +1,22 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
+import Link from "next/link";
 import { api, fetchAll } from "@/lib/api";
 import { Card, ErrorState, Spinner, money, usePagination, Pagination } from "@/components/ui";
 import { useLanguage } from "@/contexts/LanguageContext";
 import toast from "react-hot-toast";
+
+type LedgerEntryItem = {
+  id: number;
+  account: string;
+  account_display?: string;
+  amount: string | number;
+  source_type: string;
+  source_id: string;
+  description: string;
+  created_at: string;
+};
 
 type Profit = {
   revenue: string;
@@ -83,9 +95,11 @@ type PurchaseOrder = {
   created_at: string;
 };
 
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
+
 export default function AccountingPage() {
   const { t, lang } = useLanguage();
-  const [activeTab, setActiveTab] = useState<"overview" | "investment" | "transfers">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "ledger" | "investment" | "transfers">("overview");
 
   // Overview states
   const [profit, setProfit] = useState<Profit | null>(null);
@@ -97,6 +111,80 @@ export default function AccountingPage() {
   const today = new Date().toISOString().split("T")[0];
   const [startDate, setStartDate] = useState(today);
   const [endDate, setEndDate] = useState(today);
+
+  // Ledger states
+  const [ledgerEntries, setLedgerEntries] = useState<LedgerEntryItem[]>([]);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [ledgerAccountFilter, setLedgerAccountFilter] = useState("");
+  const [ledgerSearch, setLedgerSearch] = useState("");
+  const [ledgerStartDate, setLedgerStartDate] = useState("");
+  const [ledgerEndDate, setLedgerEndDate] = useState("");
+
+  const loadLedgerEntries = async () => {
+    setLedgerLoading(true);
+    try {
+      const params: Record<string, string> = {};
+      if (ledgerAccountFilter) params.account = ledgerAccountFilter;
+      if (ledgerSearch) params.search = ledgerSearch;
+      if (ledgerStartDate) params.start = ledgerStartDate;
+      if (ledgerEndDate) params.end = ledgerEndDate;
+      const list = await fetchAll<LedgerEntryItem>("/api/accounting/ledger-entries/", params);
+      setLedgerEntries(list || []);
+    } catch {
+      setLedgerEntries([]);
+    } finally {
+      setLedgerLoading(false);
+    }
+  };
+
+  const {
+    paged: pagedLedgerEntries,
+    page: ledgerPage,
+    setPage: setLedgerPage,
+    totalPages: ledgerTotalPages,
+    total: ledgerTotal,
+  } = usePagination(ledgerEntries, [
+    ledgerAccountFilter,
+    ledgerStartDate,
+    ledgerEndDate,
+    ledgerSearch,
+    ledgerEntries,
+  ]);
+
+  useEffect(() => {
+    if (activeTab === "ledger") {
+      loadLedgerEntries();
+    }
+  }, [activeTab, ledgerAccountFilter, ledgerStartDate, ledgerEndDate]);
+
+  function exportLedgerCSV() {
+    if (!ledgerEntries.length) {
+      toast.error(lang === "bn" ? "এক্সপোর্ট করার মতো কোনো লেজার ডাটা নেই" : "No ledger entries to export");
+      return;
+    }
+    const headers = ["ID", "Date & Time", "Account", "Type", "Source ID", "Description", "Inflow (+)", "Outflow (-)"];
+    const rows = ledgerEntries.map((e) => {
+      const amt = Number(e.amount) || 0;
+      return [
+        e.id,
+        new Date(e.created_at).toLocaleString(),
+        `"${e.account_display || e.account}"`,
+        `"${e.source_type || ""}"`,
+        `"${e.source_id || ""}"`,
+        `"${(e.description || "").replace(/"/g, '""')}"`,
+        amt > 0 ? amt.toFixed(2) : "0.00",
+        amt < 0 ? Math.abs(amt).toFixed(2) : "0.00",
+      ];
+    });
+    const csvContent = "data:text/csv;charset=utf-8,\uFEFF" + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `ledger_statement_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success(lang === "bn" ? "লেজার স্টেটমেন্ট সফলভাবে এক্সপোর্ট হয়েছে" : "Ledger exported successfully");
+  }
 
   // Investment states
   const [investments, setInvestments] = useState<Investment[]>([]);
@@ -344,45 +432,71 @@ export default function AccountingPage() {
   }
 
   return (
-    <div className="vstack gap-3 pb-5">
+    <ModuleRouteGuard module="finance_accounting,expense_management" name={lang === "bn" ? "হিসাব ও অর্থায়ন" : "Finance & Accounting"}>
+      <div className="vstack gap-3 pb-5">
       {/* Header with Title & Tab Switcher */}
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <div>
           <h4 className="fw-bold mb-1 text-dark">
-            {activeTab === "overview" ? `📊 ${t("nav_accounting")}` : activeTab === "investment" ? `💼 ${t("invest_title") || "Investment & Drawings"}` : `🔄 ${lang === "bn" ? "অ্যাকাউন্ট ট্রান্সফার" : "Account Transfers"}`}
+            {activeTab === "overview"
+              ? `📊 ${t("nav_accounting")}`
+              : activeTab === "ledger"
+              ? `📖 ${lang === "bn" ? "আইটেমাইজড লেজার ও ট্রানজ্যাকশন" : "Itemized Ledger Transactions"}`
+              : activeTab === "investment"
+              ? `💼 ${t("invest_title") || "Investment & Drawings"}`
+              : `🔄 ${lang === "bn" ? "অ্যাকাউন্ট ট্রান্সফার" : "Account Transfers"}`}
           </h4>
           <div className="text-secondary small">
             {activeTab === "overview"
               ? (t("acc_desc") || "Profit & loss, actual liquid account balances, and capital overview")
+              : activeTab === "ledger"
+              ? (lang === "bn" ? "বিক্রয়, খরচ, ক্রয়, ইনভেস্টমেন্ট ও ট্রান্সফারের প্রতিটি আয়-ব্যয় অডিট হিস্ট্রি।" : "Detailed chronological audit trail of all money in/out across accounts.")
               : activeTab === "investment"
               ? (t("invest_desc") || "Track capital additions, partner equity, and owner drawings.")
               : (lang === "bn" ? "ক্যাশ ড্রয়ার, বিকাশ, ব্যাংক ও নগদ অ্যাকাউন্টের মধ্যকার অভ্যন্তরীণ ফান্ড ট্রান্সফার।" : "Transfer liquid funds between cash drawer, bKash, bank, and Nagad.")}
           </div>
         </div>
 
-        {/* Tab Switcher */}
-        <div className="btn-group shadow-sm bg-white p-1 rounded-3 border" role="group">
-          <button
-            type="button"
-            className={`btn btn-sm rounded-2 ${activeTab === "overview" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
-            onClick={() => setActiveTab("overview")}
+        {/* Tab Switcher & Quick Settlement Button */}
+        <div className="d-flex flex-wrap align-items-center gap-2">
+          <div className="btn-group shadow-sm bg-white p-1 rounded-3 border" role="group">
+            <button
+              type="button"
+              className={`btn btn-sm rounded-2 ${activeTab === "overview" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
+              onClick={() => setActiveTab("overview")}
+            >
+              📊 {t("invest_tab_overview") || "P&L & Position"}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm rounded-2 ${activeTab === "ledger" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
+              onClick={() => setActiveTab("ledger")}
+            >
+              📖 {lang === "bn" ? "লেজার খতিয়ান" : "Ledger"}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm rounded-2 ${activeTab === "investment" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
+              onClick={() => setActiveTab("investment")}
+            >
+              💼 {t("invest_tab_investment") || "Capital & Drawings"}
+            </button>
+            <button
+              type="button"
+              className={`btn btn-sm rounded-2 ${activeTab === "transfers" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
+              onClick={() => setActiveTab("transfers")}
+            >
+              🔄 {lang === "bn" ? "ফান্ড ট্রান্সফার" : "Fund Transfers"}
+            </button>
+          </div>
+
+          <Link
+            href="/app/accounting/settlement"
+            className="btn btn-sm btn-outline-success fw-bold d-flex align-items-center gap-1 shadow-sm px-2.5 py-1.5"
           >
-            📊 {t("invest_tab_overview") || "P&L & Position"}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm rounded-2 ${activeTab === "investment" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
-            onClick={() => setActiveTab("investment")}
-          >
-            💼 {t("invest_tab_investment") || "Capital & Drawings"}
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm rounded-2 ${activeTab === "transfers" ? "btn-brand fw-bold shadow-sm" : "btn-light text-secondary"}`}
-            onClick={() => setActiveTab("transfers")}
-          >
-            🔄 {lang === "bn" ? "অ্যাকাউন্ট ট্রান্সফার" : "Fund Transfers"}
-          </button>
+            <span>💵</span>
+            <span>{lang === "bn" ? "ক্যাশ ক্লোজিং" : "Settlement"}</span>
+          </Link>
         </div>
       </div>
 
@@ -590,6 +704,178 @@ export default function AccountingPage() {
               </div>
             </>
           )}
+        </div>
+      )}
+
+      {/* ── TAB: ITEMIZED LEDGER TRANSACTIONS ── */}
+      {activeTab === "ledger" && (
+        <div className="vstack gap-3">
+          {/* Controls: Account Filter, Date Range, Search & Export */}
+          <div className="card shadow-sm border-0 rounded-3 bg-white p-3">
+            <div className="row g-2 align-items-center">
+              <div className="col-12 col-md-3">
+                <label className="form-label small fw-semibold text-secondary mb-1">
+                  {lang === "bn" ? "অ্যাকাউন্ট ফিল্টার" : "Filter Account"}
+                </label>
+                <select
+                  className="form-select form-select-sm"
+                  value={ledgerAccountFilter}
+                  onChange={(e) => setLedgerAccountFilter(e.target.value)}
+                >
+                  <option value="">{lang === "bn" ? "সকল অ্যাকাউন্ট (All)" : "All Accounts"}</option>
+                  <option value="cash">💵 ক্যাশ (Cash)</option>
+                  <option value="bkash">📱 বিকাশ (bKash)</option>
+                  <option value="nagad">📱 নগদ (Nagad)</option>
+                  <option value="bank">🏦 ব্যাংক (Bank)</option>
+                  <option value="card">💳 কার্ড (Card)</option>
+                </select>
+              </div>
+
+              <div className="col-6 col-md-2">
+                <label className="form-label small fw-semibold text-secondary mb-1">
+                  {lang === "bn" ? "হতে (Start Date)" : "Start Date"}
+                </label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={ledgerStartDate}
+                  onChange={(e) => setLedgerStartDate(e.target.value)}
+                />
+              </div>
+
+              <div className="col-6 col-md-2">
+                <label className="form-label small fw-semibold text-secondary mb-1">
+                  {lang === "bn" ? "পর্যন্ত (End Date)" : "End Date"}
+                </label>
+                <input
+                  type="date"
+                  className="form-control form-control-sm"
+                  value={ledgerEndDate}
+                  onChange={(e) => setLedgerEndDate(e.target.value)}
+                />
+              </div>
+
+              <div className="col-12 col-md-3">
+                <label className="form-label small fw-semibold text-secondary mb-1">
+                  {lang === "bn" ? "অনুসন্ধান (সার্চ)" : "Search"}
+                </label>
+                <div className="input-group input-group-sm">
+                  <input
+                    type="text"
+                    className="form-control"
+                    placeholder={lang === "bn" ? "বিবরণ বা ভাউচার..." : "Search voucher/desc..."}
+                    value={ledgerSearch}
+                    onChange={(e) => setLedgerSearch(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") loadLedgerEntries(); }}
+                  />
+                  <button className="btn btn-outline-secondary" type="button" onClick={loadLedgerEntries}>
+                    🔍
+                  </button>
+                </div>
+              </div>
+
+              <div className="col-12 col-md-2 d-flex align-items-end gap-1">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-primary w-100 fw-semibold d-flex align-items-center justify-content-center gap-1"
+                  onClick={exportLedgerCSV}
+                  disabled={ledgerEntries.length === 0}
+                >
+                  <span>📥</span>
+                  <span>{lang === "bn" ? "CSV এক্সপোর্ট" : "Export CSV"}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Ledger Table */}
+          <div className="card shadow-sm border-0 rounded-3 bg-white overflow-hidden">
+            <div className="card-header bg-white py-3 border-bottom d-flex align-items-center justify-content-between">
+              <span className="fw-bold text-dark">
+                📖 {lang === "bn" ? "লেজার খতিয়ান ও লেনদেন তালিকা" : "General Ledger Audit Trail"}
+              </span>
+              <span className="badge bg-light text-secondary border">
+                {ledgerEntries.length} {lang === "bn" ? "টি এন্ট্রি" : "entries"}
+              </span>
+            </div>
+
+            <div className="table-responsive">
+              <table className="table table-hover align-middle mb-0" style={{ fontSize: "0.875rem" }}>
+                <thead className="table-light text-secondary text-uppercase small" style={{ fontSize: "0.75rem" }}>
+                  <tr>
+                    <th>#</th>
+                    <th>{lang === "bn" ? "তারিখ ও সময়" : "Date & Time"}</th>
+                    <th>{lang === "bn" ? "অ্যাকাউন্ট" : "Account"}</th>
+                    <th>{lang === "bn" ? "ধরন" : "Source Type"}</th>
+                    <th>{lang === "bn" ? "রেফারেন্স" : "Source ID"}</th>
+                    <th>{lang === "bn" ? "বিবরণ / নোট" : "Description"}</th>
+                    <th className="text-end">{lang === "bn" ? "জমা / ইনফ্লো (+)" : "Inflow (+)"}</th>
+                    <th className="text-end">{lang === "bn" ? "খরচ / আউটফ্লো (-)" : "Outflow (-)"}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {ledgerLoading ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-4 text-muted">
+                        <Spinner /> {lang === "bn" ? "লেজার ডাটা লোড হচ্ছে..." : "Loading ledger entries..."}
+                      </td>
+                    </tr>
+                  ) : ledgerEntries.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="text-center py-5 text-muted">
+                        <div className="fs-3 mb-2">📜</div>
+                        <div>{lang === "bn" ? "কোনো লেজার লেনদেন রেকর্ড পাওয়া যায়নি" : "No ledger transactions found"}</div>
+                      </td>
+                    </tr>
+                  ) : (
+                    pagedLedgerEntries.map((e) => {
+                      const amt = Number(e.amount) || 0;
+                      const isInflow = amt > 0;
+                      const isCash = e.account === "cash";
+                      const isBank = e.account === "bank";
+                      const isMobile = e.account === "bkash" || e.account === "nagad";
+
+                      return (
+                        <tr key={e.id}>
+                          <td className="text-muted small">#{e.id}</td>
+                          <td className="text-nowrap small">
+                            {new Date(e.created_at).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                            <div className="text-muted" style={{ fontSize: "0.7rem" }}>
+                              {new Date(e.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </div>
+                          </td>
+                          <td>
+                            <span className={`badge ${isCash ? "bg-success bg-opacity-10 text-success border border-success border-opacity-25" : isBank ? "bg-info bg-opacity-10 text-info border border-info border-opacity-25" : isMobile ? "bg-danger bg-opacity-10 text-danger border border-danger border-opacity-25" : "bg-secondary bg-opacity-10 text-secondary"}`}>
+                              {e.account === "cash" ? "💵 Cash" : e.account === "bkash" ? "📱 bKash" : e.account === "nagad" ? "📱 Nagad" : e.account === "bank" ? "🏦 Bank" : e.account === "card" ? "💳 Card" : e.account_display || e.account}
+                            </span>
+                          </td>
+                          <td>
+                            <span className="badge bg-light text-dark border">
+                              {e.source_type || "General"}
+                            </span>
+                          </td>
+                          <td className="text-muted font-monospace small">
+                            {e.source_id || "—"}
+                          </td>
+                          <td className="text-dark fw-medium" style={{ maxWidth: "280px" }}>
+                            {e.description || "—"}
+                          </td>
+                          <td className="text-end fw-bold text-success">
+                            {isInflow ? `+${money(amt)}` : "—"}
+                          </td>
+                          <td className="text-end fw-bold text-danger">
+                            {!isInflow ? `-${money(Math.abs(amt))}` : "—"}
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            <Pagination page={ledgerPage} totalPages={ledgerTotalPages} setPage={setLedgerPage} total={ledgerTotal} />
+          </div>
         </div>
       )}
 
@@ -1228,5 +1514,6 @@ export default function AccountingPage() {
         </div>
       )}
     </div>
+    </ModuleRouteGuard>
   );
 }

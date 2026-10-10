@@ -10,7 +10,7 @@ class CustomerSerializer(serializers.ModelSerializer):
         model = Customer
         fields = [
             "id", "name", "phone", "email", "address", "segment",
-            "due_balance", "credit_limit", "total_purchased", "last_purchase_at",
+            "due_balance", "advance_balance", "credit_limit", "total_purchased", "last_purchase_at",
             "date_of_birth", "anniversary_date",
             "days_since_last_purchase", "is_active",
         ]

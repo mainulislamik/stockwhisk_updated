@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Box, Container, Stack, Button, Typography, IconButton, Menu, MenuItem } from "@mui/material";
+import { Box, Container, Stack, Button, Typography, IconButton } from "@mui/material";
 import { getAccess } from "@/lib/api";
 import { M } from "@/lib/marketing";
 import { useBranding } from "@/lib/branding";
@@ -17,15 +17,17 @@ export default function MarketingNav() {
   const { lang, t } = useLanguage();
   const [mounted, setMounted] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const menuOpen = Boolean(anchorEl);
-  const openMenu = (e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget);
-  const closeMenu = () => setAnchorEl(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     setIsLoggedIn(!!getAccess());
   }, []);
+
+  // Auto-close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
 
   const getLinkStyle = (isActive: boolean) => ({
     color: isActive ? M.primary : M.textMuted, 
@@ -47,6 +49,7 @@ export default function MarketingNav() {
     { href: "/pricing", label: t("nav_pricing") },
     { href: "/demo", label: t("nav_demo") },
     { href: "/software", label: lang === 'bn' ? "সফটওয়্যার" : "Software" },
+    { href: "/api-docs.html", label: lang === 'bn' ? "API ডক" : "API Docs" },
     { href: "/tutorials", label: lang === 'bn' ? "ভিডিও" : "Videos" },
     { href: "/reseller", label: t("nav_reseller") },
     { href: "/blog", label: t("nav_blog") },
@@ -69,17 +72,12 @@ export default function MarketingNav() {
                   display: "flex", alignItems: "center", gap: 1, letterSpacing: "-0.02em" }}>
             {branding.logo ? (
               <Box sx={{ bgcolor: "#fff", borderRadius: "10px", px: 1, py: 0.5, display: "inline-flex", boxShadow: "0 1px 6px rgba(15,23,42,.12)" }}>
-                <Box component="img" src={branding.logo} alt="Logo" sx={{ height: { xs: 32, sm: 46 }, maxWidth: { xs: 140, sm: 220 }, objectFit: "contain", display: "block" }} />
+                <Box component="img" src={branding.logo} alt="StockWhisk" sx={{ height: { xs: 32, sm: 46 }, maxWidth: { xs: 140, sm: 220 }, objectFit: "contain", display: "block" }} />
               </Box>
             ) : (
-              <>
-                <Box component="span" sx={{
-                  width: 30, height: 30, borderRadius: "8px", display: "inline-flex",
-                  alignItems: "center", justifyContent: "center", fontSize: 16,
-                  background: `linear-gradient(135deg, ${M.accent}, ${M.primaryDark})`,
-                }}>📦</Box>
-                StockWhisk
-              </>
+              <Box sx={{ bgcolor: "#fff", borderRadius: "10px", px: 1, py: 0.5, display: "inline-flex", boxShadow: "0 1px 6px rgba(15,23,42,.12)" }}>
+                <Box component="img" src="/logo.png" alt="StockWhisk" sx={{ height: { xs: 32, sm: 46 }, maxWidth: { xs: 140, sm: 220 }, objectFit: "contain", display: "block" }} />
+              </Box>
             )}
           </Typography>
 
@@ -87,6 +85,19 @@ export default function MarketingNav() {
           <Stack direction="row" spacing={1} sx={{ alignItems: "center", display: { xs: "none", md: "flex" } }}>
             {navLinks.map((l) => {
               const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              const isHtml = l.href.endsWith(".html");
+              if (isHtml) {
+                return (
+                  <Button
+                    key={l.href}
+                    component="a"
+                    href={l.href}
+                    sx={getLinkStyle(isActive)}
+                  >
+                    {l.label}
+                  </Button>
+                );
+              }
               return (
                 <Button key={l.href} component={Link} href={l.href} sx={getLinkStyle(isActive)}>
                   {l.label}
@@ -108,55 +119,191 @@ export default function MarketingNav() {
             <LanguageToggle />
           </Stack>
 
-          {/* Mobile nav: Language + hamburger menu */}
+          {/* Mobile nav: Language + instant-response hamburger menu */}
           <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center", gap: 1 }}>
             <LanguageToggle />
-            <IconButton onClick={openMenu} aria-label="Open menu" sx={{ color: M.text, ml: 1 }}>
-              <i className="bi bi-list" style={{ fontSize: "1.6rem", lineHeight: 1 }} />
-            </IconButton>
-            <Menu
-              anchorEl={anchorEl}
-              open={menuOpen}
-              onClose={closeMenu}
-              anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-              transformOrigin={{ vertical: "top", horizontal: "right" }}
-              slotProps={{ paper: { sx: { mt: 1, minWidth: 180, borderRadius: 3, boxShadow: "0 12px 32px -12px rgba(15,23,42,.3)" } } }}
+            <IconButton
+              onClick={() => setMobileOpen((prev) => !prev)}
+              aria-label={mobileOpen ? "Close menu" : "Open menu"}
+              aria-expanded={mobileOpen}
+              sx={{
+                color: M.text,
+                ml: 0.5,
+                width: 44,
+                height: 44,
+                minWidth: 44,
+                minHeight: 44,
+                touchAction: "manipulation",
+                borderRadius: "10px",
+                bgcolor: mobileOpen ? "rgba(15, 23, 42, 0.08)" : "transparent",
+                "&:hover": { bgcolor: "rgba(15, 23, 42, 0.08)" },
+              }}
             >
-              {navLinks.map((l) => {
-                const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
-                return (
-                  <MenuItem key={l.href} component={Link} href={l.href} onClick={closeMenu}
-                    sx={{ 
-                      fontWeight: isActive ? 700 : 600, 
-                      color: isActive ? M.primary : M.text, 
-                      bgcolor: isActive ? "rgba(37, 99, 235, 0.05)" : "transparent",
-                      py: 1.2 
-                    }}>
-                    {l.label}
-                  </MenuItem>
-                );
-              })}
-              {mounted && isLoggedIn ? (
-                <MenuItem component={Link} href="/app" onClick={closeMenu}
-                  sx={{ fontWeight: 700, color: M.primary, py: 1.5, mt: 1, borderTop: `1px solid ${M.border}` }}>
-                  {t("nav_dashboard")}
-                </MenuItem>
-              ) : (
-                <>
-                  <MenuItem component={Link} href="/login" onClick={closeMenu}
-                    sx={{ fontWeight: 600, color: M.text, py: 1.5, mt: 1, borderTop: `1px solid ${M.border}` }}>
-                    {t("nav_login")}
-                  </MenuItem>
-                  <MenuItem component={Link} href="/register" onClick={closeMenu}
-                    sx={{ fontWeight: 700, color: M.primary, py: 1.5 }}>
-                    {t("nav_signup")}
-                  </MenuItem>
-                </>
-              )}
-            </Menu>
+              <i className={mobileOpen ? "bi bi-x-lg" : "bi bi-list"} style={{ fontSize: "1.6rem", lineHeight: 1 }} />
+            </IconButton>
           </Box>
         </Box>
       </Container>
+
+      {/* Lightweight Instant Mobile Drawer / Popover (Zero Popper.js overhead) */}
+      {mobileOpen && (
+        <>
+          <Box
+            onClick={() => setMobileOpen(false)}
+            sx={{
+              position: "fixed",
+              inset: 0,
+              top: 66,
+              zIndex: 1250,
+              bgcolor: "rgba(15, 23, 42, 0.2)",
+              backdropFilter: "blur(2px)",
+              touchAction: "manipulation",
+            }}
+          />
+          <Box
+            sx={{
+              position: "fixed",
+              top: 72,
+              right: 12,
+              left: { xs: 12, sm: "auto" },
+              width: { xs: "calc(100% - 24px)", sm: 270 },
+              maxHeight: "calc(100vh - 88px)",
+              overflowY: "auto",
+              bgcolor: "#ffffff",
+              borderRadius: "16px",
+              boxShadow: "0 20px 40px -12px rgba(15, 23, 42, 0.35), 0 0 1px rgba(15, 23, 42, 0.15)",
+              border: "1px solid rgba(15, 23, 42, 0.08)",
+              p: 1.25,
+              zIndex: 1260,
+              display: "flex",
+              flexDirection: "column",
+              gap: 0.5,
+              animation: "mobileNavDrop 0.15s cubic-bezier(0.16, 1, 0.3, 1)",
+              "@keyframes mobileNavDrop": {
+                from: { opacity: 0, transform: "translateY(-6px) scale(0.98)" },
+                to: { opacity: 1, transform: "translateY(0) scale(1)" },
+              },
+            }}
+          >
+            {navLinks.map((l) => {
+              const isActive = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+              const isHtml = l.href.endsWith(".html");
+              const linkSx = {
+                display: "flex",
+                alignItems: "center",
+                minHeight: 44,
+                px: 2,
+                py: 1,
+                borderRadius: "10px",
+                fontSize: "0.95rem",
+                fontWeight: isActive ? 700 : 600,
+                color: isActive ? M.primary : M.text,
+                bgcolor: isActive ? "rgba(37, 99, 235, 0.08)" : "transparent",
+                textDecoration: "none",
+                touchAction: "manipulation",
+                transition: "background-color 0.1s ease",
+                "&:active": { bgcolor: "rgba(37, 99, 235, 0.12)" },
+              };
+              if (isHtml) {
+                return (
+                  <Box
+                    key={l.href}
+                    component="a"
+                    href={l.href}
+                    onClick={() => setMobileOpen(false)}
+                    sx={linkSx}
+                  >
+                    {l.label}
+                  </Box>
+                );
+              }
+              return (
+                <Box
+                  key={l.href}
+                  component={Link}
+                  href={l.href}
+                  prefetch={true}
+                  onClick={() => setMobileOpen(false)}
+                  sx={linkSx}
+                >
+                  {l.label}
+                </Box>
+              );
+            })}
+            <Box sx={{ my: 0.5, borderTop: "1px solid rgba(15, 23, 42, 0.08)" }} />
+            {mounted && isLoggedIn ? (
+              <Box
+                component={Link}
+                href="/app"
+                prefetch={true}
+                onClick={() => setMobileOpen(false)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  minHeight: 44,
+                  px: 2,
+                  borderRadius: "10px",
+                  fontSize: "0.95rem",
+                  fontWeight: 700,
+                  bgcolor: M.primary,
+                  color: M.onPrimary,
+                  textDecoration: "none",
+                  touchAction: "manipulation",
+                }}
+              >
+                {t("nav_dashboard")}
+              </Box>
+            ) : (
+              <>
+                <Box
+                  component={Link}
+                  href="/login"
+                  prefetch={true}
+                  onClick={() => setMobileOpen(false)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    minHeight: 44,
+                    px: 2,
+                    borderRadius: "10px",
+                    fontSize: "0.95rem",
+                    fontWeight: 600,
+                    color: M.text,
+                    textDecoration: "none",
+                    touchAction: "manipulation",
+                    "&:active": { bgcolor: "rgba(15, 23, 42, 0.04)" },
+                  }}
+                >
+                  {t("nav_login")}
+                </Box>
+                <Box
+                  component={Link}
+                  href="/register"
+                  prefetch={true}
+                  onClick={() => setMobileOpen(false)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 44,
+                    px: 2,
+                    borderRadius: "10px",
+                    fontSize: "0.95rem",
+                    fontWeight: 700,
+                    bgcolor: M.primary,
+                    color: M.onPrimary,
+                    textDecoration: "none",
+                    touchAction: "manipulation",
+                  }}
+                >
+                  {t("nav_signup")}
+                </Box>
+              </>
+            )}
+          </Box>
+        </>
+      )}
     </Box>
   );
 }

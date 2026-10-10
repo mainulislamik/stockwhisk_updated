@@ -28,7 +28,8 @@ type Product = {
 
 export default function ItemLookupPage() {
   const { t, lang } = useLanguage();
-  const { user } = useAuth();
+  const { user, hasModule, can, isOwner } = useAuth();
+  const showPOS = (isOwner || can("create_sale")) && hasModule("core_pos");
   const [q, setQ] = useState("");
   const [rows, setRows] = useState<Product[]>([]);
   const [searched, setSearched] = useState(false);
@@ -258,13 +259,15 @@ export default function ItemLookupPage() {
                               >
                                 👁️ {lang === "bn" ? "প্রোফাইল" : "Profile"}
                               </Link>
-                              <Link
-                                href="/app/pos"
-                                className="btn btn-sm btn-brand py-1 px-2.5 fw-semibold shadow-2xs"
-                                style={{ fontSize: "0.8rem" }}
-                              >
-                                🛒 POS
-                              </Link>
+                              {showPOS && (
+                                <Link
+                                  href="/app/pos"
+                                  className="btn btn-sm btn-brand py-1 px-2.5 fw-semibold shadow-2xs"
+                                  style={{ fontSize: "0.8rem" }}
+                                >
+                                  🛒 POS
+                                </Link>
+                              )}
                             </div>
                           </td>
                         </tr>

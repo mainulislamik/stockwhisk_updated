@@ -25,6 +25,7 @@ class ProductionBatchViewSet(TenantScopedViewSet):
     CRUD and lifecycle operations for 2-step dynamic yield production batches.
     """
     serializer_class = ProductionBatchSerializer
+    required_module = "manufacturing"
     required_perm = "view_inventory"
     required_write_perm = "manage_inventory"
 

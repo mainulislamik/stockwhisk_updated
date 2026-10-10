@@ -18,6 +18,7 @@ from .services import create_purchase_order, receive_purchase_order
 class SupplierViewSet(TenantScopedViewSet):
     serializer_class = SupplierSerializer
     required_perm = "manage_purchasing"
+    required_module = "purchasing"
 
     def get_queryset(self):
         qs = Supplier.objects.all()
@@ -130,6 +131,7 @@ class SupplierViewSet(TenantScopedViewSet):
 
 class PurchaseOrderViewSet(TenantScopedViewSet):
     required_perm = "manage_purchasing"
+    required_module = "purchasing"
 
     def get_queryset(self):
         qs = PurchaseOrder.objects.select_related("supplier").prefetch_related("items")

@@ -64,17 +64,78 @@ class UserSerializer(serializers.ModelSerializer):
     shop_finance_enabled = serializers.BooleanField(source="shop.finance_enabled", read_only=True, default=True)
     shop_manufacturing_enabled = serializers.BooleanField(source="shop.manufacturing_enabled", read_only=True, default=False)
     shop_mobile_repair_enabled = serializers.SerializerMethodField()
+    shop_modules = serializers.SerializerMethodField()
+
+    def get_shop_modules(self, obj):
+        shop = getattr(obj, "shop", None)
+        if not shop:
+            return {}
+        from tenants.modules import get_shop_modules
+        return get_shop_modules(shop)
 
     def get_shop_mobile_repair_enabled(self, obj):
         shop = getattr(obj, "shop", None)
         if not shop:
             return False
-        # Effective only when superadmin master license is ON and owner switch is ON
+        from tenants.modules import is_module_enabled
+        if is_module_enabled(shop, "mobile_repair_pos"):
+            return True
         return bool(getattr(shop, "mobile_repair_master_enabled", False)) and bool(getattr(shop, "mobile_repair_enabled", False))
     # True when this user is an approved (active) reseller — lets the normal login
     # panel route them to the reseller portal instead of the (shop-less) app.
     is_reseller = serializers.SerializerMethodField()
+    permissions = serializers.SerializerMethodField()
+    shop_invoice_settings = serializers.SerializerMethodField()
+    shop_pos_ui_layout = serializers.SerializerMethodField()
 
+    def get_shop_pos_ui_layout(self, obj):
+        shop = getattr(obj, "shop", None)
+        if not shop:
+            return "standard"
+        return getattr(shop, "pos_ui_layout", "standard") or (shop.invoice_settings or {}).get("pos_ui_layout", "standard")
+
+    def get_permissions(self, obj):
+        if obj.is_superuser or obj.role == "owner":
+            return {
+                "can_see_cost_price": True,
+                "can_give_discount": True,
+                "can_delete_invoice": True,
+                "can_view_reports": True,
+                "can_edit_product": True,
+                "can_manage_users": True,
+                "can_manage_settings": True,
+            }
+        role = obj.role or "staff"
+        if role == "manager":
+            return {
+                "can_see_cost_price": True,
+                "can_give_discount": True,
+                "can_delete_invoice": False,
+                "can_view_reports": True,
+                "can_edit_product": True,
+                "can_manage_users": False,
+                "can_manage_settings": False,
+            }
+        # Cashier / Staff defaults
+        return {
+            "can_see_cost_price": False,
+            "can_give_discount": getattr(obj, "can_give_discount", False),
+            "can_delete_invoice": False,
+            "can_view_reports": False,
+            "can_edit_product": False,
+            "can_manage_users": False,
+            "can_manage_settings": False,
+        }
+
+    def get_shop_invoice_settings(self, obj):
+        shop = getattr(obj, "shop", None)
+        if not shop:
+            return {}
+        from tenants.views import DEFAULT_INVOICE_SETTINGS
+        merged = dict(DEFAULT_INVOICE_SETTINGS)
+        if shop.invoice_settings:
+            merged.update(shop.invoice_settings)
+        return merged
 
     def get_shop_business_type(self, obj):
         return obj.shop.business_type if obj.shop else ""
@@ -84,10 +145,10 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
-            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "shop_manufacturing_enabled", "shop_mobile_repair_enabled", "branch", "is_staff",
-            "is_reseller",
+            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "shop_manufacturing_enabled", "shop_mobile_repair_enabled", "shop_modules", "branch", "is_staff",
+            "is_reseller", "permissions", "shop_invoice_settings", "shop_pos_ui_layout",
         ]
-        read_only_fields = ["id", "email", "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo", "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "shop_manufacturing_enabled", "shop_mobile_repair_enabled", "branch", "is_staff", "is_reseller"]
+        read_only_fields = fields
 
     def get_is_reseller(self, obj):
         profile = getattr(obj, "reseller_profile", None)
@@ -119,7 +180,7 @@ class ShopSettingsSerializer(serializers.ModelSerializer):
             "id", "shop_code", "name", "phone", "email", "address", "business_type",
             "currency", "vat_enabled", "vat_percent", "vat_registration_no",
             "invoice_settings", "logo", "emi_enabled", "delivery_enabled", "whatsapp_invoice_enabled", "barcode_prefix", "offline_sale_mode",
-            "pos_print_mode", "pos_receipt_enabled", "service_enabled", "reports_enabled", "finance_enabled", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled"
+            "pos_print_mode", "pos_receipt_enabled", "pos_ui_layout", "service_enabled", "reports_enabled", "finance_enabled", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled"
         ]
         read_only_fields = ["id", "shop_code", "mobile_repair_master_enabled"]
 

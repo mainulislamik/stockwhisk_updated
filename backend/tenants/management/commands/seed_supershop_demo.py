@@ -1,3 +1,4 @@
+from django.core.management.base import BaseCommand
 import os
 import sys
 import random
@@ -494,3 +495,8 @@ with transaction.atomic():
     print(f"✅ Generated {sales_created} realistic POS sales with weight-scale & You Saved discounts!")
 
 print("🎉 Super Shop & Grocery Demo Store successfully populated and ready!")
+
+class Command(BaseCommand):
+    help = "Seed Super Shop & Grocery Demo Shop"
+    def handle(self, *args, **options):
+        pass

@@ -13,13 +13,23 @@ def api():
 
 
 def test_register_endpoint_returns_tokens(api, plan):
+    from accounts.models import PendingRegistration
+
     resp = api.post("/api/auth/register/", {
         "shop_name": "New Shop", "owner_email": "new@ex.com",
         "owner_password": "pass12345", "business_type": "mobile",
     }, format="json")
-    assert resp.status_code == 201
-    assert "access" in resp.data and "refresh" in resp.data
-    assert resp.data["user"]["role"] == "owner"
+    assert resp.status_code == 200
+    assert resp.data["detail"] == "OTP sent to email."
+
+    pending = PendingRegistration.objects.get(email="new@ex.com")
+    resp_verify = api.post("/api/auth/verify-otp/", {
+        "email": "new@ex.com",
+        "otp": pending.otp,
+    }, format="json")
+    assert resp_verify.status_code == 201
+    assert "access" in resp_verify.data and "refresh" in resp_verify.data
+    assert resp_verify.data["user"]["role"] == "owner"
 
 
 def test_me_endpoint_requires_auth(api):

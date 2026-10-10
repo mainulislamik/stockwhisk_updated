@@ -130,6 +130,10 @@ export default function PurchaseProductPage() {
   });
   const [newPricingMode, setNewPricingMode] = useState<"regular" | "bulk">("regular");
   const [savingProd, setSavingProd] = useState(false);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Sidebar / payment
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
@@ -295,6 +299,21 @@ export default function PurchaseProductPage() {
         },
       });
 
+      if (imageFile && p?.id) {
+        try {
+          const formData = new FormData();
+          formData.append("image", imageFile);
+          await api(`/catalog/products/${p.id}/upload_image/`, {
+            method: "POST",
+            body: formData,
+          });
+        } catch (imgErr: any) {
+          toast.error(lang === "bn" ? "প্রোডাক্ট সেভ হয়েছে কিন্তু ছবি আপলোড ব্যর্থ হয়েছে" : "Product saved but image upload failed");
+        }
+      }
+
+      setImageFile(null);
+      setImagePreview(null);
       setShowNewProduct(false);
       setNewProd({
         name: "",
@@ -318,10 +337,6 @@ export default function PurchaseProductPage() {
       });
 
       selectProduct(p);
-      setLines((prev) => [
-        ...prev,
-        { product: p, quantity: 1, unit_cost: drumCostFor(p), barcodes: autoGenerateBarcodes ? generateBarcodesHelper(p, 1) : [] },
-      ]);
       toast.success(t("pp_success_create_prod") || (lang === "bn" ? "পণ্য সফলভাবে তৈরি হয়েছে!" : "Product created successfully"));
     } catch (e: any) {
       toast.error(e?.message || t("pp_err_create_prod"));
@@ -405,8 +420,8 @@ export default function PurchaseProductPage() {
         const existing = newLines.find((l) => l.product.id === selected.id);
 
         if (existing) {
-          existing.quantity += qty;
-          existing.barcodes = [...existing.barcodes, ...finalBarcodes];
+          existing.quantity = qty;
+          existing.barcodes = finalBarcodes;
         } else {
           newLines.push({
             product: selected,
@@ -486,7 +501,7 @@ export default function PurchaseProductPage() {
       if (existing) {
         return prev.map((l) =>
           l.product.id === selected.id
-            ? { ...l, quantity: l.quantity + qty, barcodes: [...l.barcodes, ...finalBarcodes] }
+            ? { ...l, quantity: qty, barcodes: finalBarcodes }
             : l
         );
       }
@@ -820,7 +835,7 @@ export default function PurchaseProductPage() {
                   </span>
                   {Number(selected.cost_price || 0) > 0 && Number(selected.selling_price || 0) > 0 && (
                     <span className="badge rounded-pill text-bg-info bg-opacity-75">
-                      📈 Margin: {(((Number(selected.selling_price) - Number(selected.cost_price)) / Number(selected.cost_price)) * 100).toFixed(1)}%
+                      📈 {lang === "bn" ? "মার্জিন" : "Margin"}: {(((Number(selected.selling_price) - Number(selected.cost_price)) / Number(selected.selling_price)) * 100).toFixed(1)}%
                     </span>
                   )}
                 </div>
@@ -1892,6 +1907,120 @@ export default function PurchaseProductPage() {
                         </div>
                       </>
                     ) : null}
+
+                    {/* 14. Product Image Dropzone */}
+                    <div className="col-12 mt-2">
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        className="d-none"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            if (!file.type.startsWith("image/")) {
+                              toast.error(lang === "bn" ? "শুধুমাত্র ইমেজ ফাইল সিলেক্ট করুন" : "Please select an image file");
+                              return;
+                            }
+                            setImageFile(file);
+                            setImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                      />
+                      <div
+                        onClick={() => fileInputRef.current?.click()}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setIsDragging(true);
+                        }}
+                        onDragLeave={() => setIsDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setIsDragging(false);
+                          const file = e.dataTransfer.files?.[0];
+                          if (file) {
+                            if (!file.type.startsWith("image/")) {
+                              toast.error(lang === "bn" ? "শুধুমাত্র ইমেজ ফাইল সিলেক্ট করুন" : "Please select an image file");
+                              return;
+                            }
+                            setImageFile(file);
+                            setImagePreview(URL.createObjectURL(file));
+                          }
+                        }}
+                        className={`card p-3 rounded-3 border-2 border-dashed cursor-pointer transition-all ${
+                          isDragging
+                            ? "border-primary bg-primary bg-opacity-10 shadow-sm"
+                            : "border-slate-300 bg-slate-50 hover:bg-slate-100 hover:border-primary shadow-xs"
+                        }`}
+                        style={{ cursor: "pointer", transition: "all 0.2s ease-in-out" }}
+                      >
+                        <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                          <div className="d-flex align-items-center gap-3">
+                            {imagePreview ? (
+                              <div className="position-relative" onClick={(e) => e.stopPropagation()}>
+                                <img
+                                  src={imagePreview}
+                                  alt="Preview"
+                                  className="rounded-3 border border-slate-300 shadow-sm object-cover"
+                                  style={{ width: 64, height: 64, objectFit: "cover" }}
+                                />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setImageFile(null);
+                                    setImagePreview(null);
+                                  }}
+                                  className="btn btn-danger btn-sm position-absolute top-0 end-0 translate-middle-y rounded-circle p-0 d-flex align-items-center justify-content-center shadow"
+                                  style={{ width: 22, height: 22, fontSize: 11, marginRight: -6, marginTop: -2 }}
+                                  title={lang === "bn" ? "ছবি মুছুন" : "Remove"}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            ) : (
+                              <div
+                                className="rounded-3 d-flex align-items-center justify-content-center bg-white border border-slate-200 text-slate-400 shadow-xs"
+                                style={{ width: 56, height: 56 }}
+                              >
+                                <i className="bi bi-image fs-3 text-secondary"></i>
+                              </div>
+                            )}
+                            <div>
+                              <div className="fw-semibold text-slate-800 small">
+                                {imagePreview
+                                  ? (lang === "bn" ? "ছবি সংযুক্ত হয়েছে" : "Image Selected")
+                                  : (lang === "bn" ? "প্রোডাক্টের ছবি আপলোড করুন" : "Upload Product Image")}
+                              </div>
+                              <div className="text-secondary" style={{ fontSize: "0.78rem" }}>
+                                {imageFile
+                                  ? `${imageFile.name} (${(imageFile.size / 1024).toFixed(1)} KB)`
+                                  : (lang === "bn"
+                                      ? "এখানে ক্লিক করুন অথবা ছবি টেনে এনে (Drag & Drop) ছেড়ে দিন (JPG, PNG, WebP)"
+                                      : "Click anywhere or drag & drop image here (JPG, PNG, WebP)")}
+                              </div>
+                            </div>
+                          </div>
+                          <div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                fileInputRef.current?.click();
+                              }}
+                              className="btn btn-primary btn-sm rounded-pill px-3 shadow-sm d-flex align-items-center gap-1.5"
+                            >
+                              <i className="bi bi-cloud-arrow-up-fill"></i>
+                              <span>
+                                {imagePreview
+                                  ? (lang === "bn" ? "ছবি পরিবর্তন করুন" : "Change Image")
+                                  : (lang === "bn" ? "ছবি আপলোড করুন" : "Upload Image")}
+                              </span>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   </form>
                 </div>
 

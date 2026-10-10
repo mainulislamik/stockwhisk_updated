@@ -31,6 +31,17 @@ class TenantScopedViewSet(viewsets.ModelViewSet):
     ordering = ["-id"]
     required_perm: str | None = None
     feature_flag: str | None = None
+    required_module: str | None = None
+
+    def get_permissions(self):
+        perms = super().get_permissions()
+        if self.required_module:
+            from .gating import ModuleRequired
+            perms.append(ModuleRequired.as_permission(self.required_module)())
+        elif self.feature_flag:
+            from .gating import FeatureRequired
+            perms.append(FeatureRequired.as_permission(self.feature_flag)())
+        return perms
 
     def initial(self, request, *args, **kwargs):
         # Re-resolve tenant now that JWT auth has populated request.user.

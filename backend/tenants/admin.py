@@ -20,6 +20,29 @@ class ShopAdmin(admin.ModelAdmin):
     list_filter = ("business_type", "is_active", "plan")
     search_fields = ("name", "slug", "email", "phone")
     prepopulated_fields = {"slug": ("name",)}
+    fieldsets = (
+        ("Basic Information", {
+            "fields": ("name", "slug", "business_type", "email", "phone", "address", "is_active", "plan", "trial_ends_at", "suspended_at")
+        }),
+        ("Modular Entitlements & Overrides", {
+            "fields": ("modules",),
+            "description": "JSON map of specific module keys enabled/disabled for this shop."
+        }),
+        ("Legacy Feature Flags", {
+            "fields": (
+                "manufacturing_enabled",
+                "service_enabled",
+                "finance_enabled",
+                "reports_enabled",
+                "mobile_repair_master_enabled",
+                "mobile_repair_enabled",
+                "emi_enabled",
+                "delivery_enabled",
+                "whatsapp_invoice_enabled",
+            ),
+            "classes": ("collapse",),
+        }),
+    )
     inlines = [BranchInline]
 
 

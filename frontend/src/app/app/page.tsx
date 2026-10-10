@@ -40,6 +40,15 @@ type SubStatus = {
   billing_details?: { bkash?: string; nagad?: string; bank?: string };
 };
 
+type DailySettlementSummary = {
+  id: number;
+  status: "open" | "closed";
+  opening_cash: number;
+  expected_cash: number;
+  actual_cash?: number;
+  opened_at: string;
+};
+
 function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
   const { t } = useLanguage();
   const { user } = useAuth();
@@ -123,14 +132,15 @@ function SubscriptionBanner({ sub }: { sub: SubStatus | null }) {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: authLoading, can, isOwner } = useAuth();
-  const { t } = useLanguage();
+  const { user, loading: authLoading, can, isOwner, hasModule } = useAuth();
+  const { t, lang } = useLanguage();
   const canDashboard = isOwner || can("view_reports");
   const canProfit = isOwner || can("view_profit");
   const [data, setData] = useState<Summary | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [sub, setSub] = useState<SubStatus | null>(null);
+  const [settlement, setSettlement] = useState<DailySettlementSummary | null>(null);
   const [profitRange, setProfitRange] = useState("today");
   const [topData, setTopData] = useState<any>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
@@ -148,6 +158,11 @@ export default function DashboardPage() {
       try {
         const d = await api<Summary>("/analytics/dashboard/", { params: { days: 30 } });
         setData(d);
+        if (hasModule("finance_accounting")) {
+          api<DailySettlementSummary | null>("/api/accounting/daily-settlements/current/")
+            .then((s) => setSettlement(s || null))
+            .catch(() => setSettlement(null));
+        }
       } catch (e: any) {
         setError(e?.message || "Failed to load dashboard");
       } finally {
@@ -266,58 +281,200 @@ export default function DashboardPage() {
             </Card>
           </div>
         )}
-        <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("dash_out_low_stock")}</div>
-            <div className="fs-4 fw-bold text-danger">
-              {data.out_of_stock_count} / {data.low_stock_count}
+        {hasModule("inventory_basic") && (
+          <div className="col-6 col-lg-3">
+            <Card>
+              <div className="small text-secondary">{t("dash_out_low_stock")}</div>
+              <div className="fs-4 fw-bold text-danger">
+                {data.out_of_stock_count} / {data.low_stock_count}
+              </div>
+            </Card>
+          </div>
+        )}
+        {hasModule("dues_ledger") && (
+          <div className="col-6 col-lg-3">
+            <Card>
+              <div className="small text-secondary">{t("dash_receivables")} (Total Due)</div>
+              <div className="fs-4 fw-bold text-warning">
+                {money(data.position.receivables)}
+              </div>
+            </Card>
+          </div>
+        )}
+        {(hasModule("finance_accounting") || hasModule("purchasing")) && (
+          <div className="col-6 col-lg-3">
+            <Card>
+              <div className="d-flex justify-content-between align-items-center">
+                <div className="small text-secondary">{t("dash_investment") || "Total Investment"}</div>
+                <a href="/app/accounting" className="small text-primary text-decoration-none fw-semibold" style={{ fontSize: "0.72rem" }}>
+                  {t("invest_tbl_actions") || "Details"} →
+                </a>
+              </div>
+              <div className="fs-4 fw-bold text-primary">
+                {topData && topData.summary?.total_investment !== undefined
+                  ? money(topData.summary.total_investment)
+                  : data.position?.total_investment !== undefined
+                  ? money(data.position.total_investment)
+                  : "..."}
+              </div>
+              <div className="small text-muted text-truncate mt-0.5" style={{ fontSize: "0.72rem" }}>
+                Purchases: {money(topData?.summary?.purchase_investment ?? data.position?.purchase_investment ?? 0)}
+              </div>
+            </Card>
+          </div>
+        )}
+        {hasModule("finance_accounting") && (
+          <div className="col-6 col-lg-3">
+            <Card>
+              <div className="d-flex justify-content-between align-items-center">
+                <div className="small text-secondary fw-semibold">
+                  💵 {lang === "bn" ? "দৈনিক ক্যাশ ড্রয়ার" : "Cash Drawer Shift"}
+                </div>
+                <a
+                  href="/app/accounting/settlement"
+                  className="small text-success text-decoration-none fw-bold"
+                  style={{ fontSize: "0.72rem" }}
+                >
+                  {lang === "bn" ? "সেটেলমেন্ট" : "Settlement"} →
+                </a>
+              </div>
+              <div className="fs-4 fw-bold text-dark d-flex align-items-center justify-content-between mt-1">
+                <span>
+                  {settlement
+                    ? money(settlement.expected_cash ?? settlement.opening_cash ?? 0)
+                    : money(data.position?.cash_balance ?? 0)}
+                </span>
+                <span
+                  className={`badge rounded-pill small ${
+                    settlement?.status === "open"
+                      ? "bg-success bg-opacity-15 text-success border border-success border-opacity-25"
+                      : settlement?.status === "closed"
+                      ? "bg-secondary bg-opacity-15 text-secondary border"
+                      : "bg-warning bg-opacity-15 text-warning border"
+                  }`}
+                  style={{ fontSize: "0.68rem" }}
+                >
+                  {settlement?.status === "open"
+                    ? (lang === "bn" ? "● ওপেন শিফট" : "● Open")
+                    : settlement?.status === "closed"
+                    ? (lang === "bn" ? "🔒 ক্লোজড" : "🔒 Closed")
+                    : (lang === "bn" ? "⚠️ শুরু হয়নি" : "⚠️ Shift Pending")}
+                </span>
+              </div>
+              <div className="small text-muted d-flex justify-content-between align-items-center mt-0.5" style={{ fontSize: "0.72rem" }}>
+                <span>
+                  {lang === "bn" ? "ওপেনিং:" : "Opening:"} {money(settlement?.opening_cash ?? 0)}
+                </span>
+                <a
+                  href="/app/accounting/settlement"
+                  className="text-primary text-decoration-none fw-semibold"
+                >
+                  {settlement?.status === "open"
+                    ? (lang === "bn" ? "ক্লোজিং করুন" : "Close Shift")
+                    : (lang === "bn" ? "শিফট শুরু করুন" : "Open Shift")}
+                </a>
+              </div>
+            </Card>
+          </div>
+        )}
+        {hasModule("returns") && (
+          <>
+            <div className="col-6 col-lg-3">
+              <Card>
+                <div className="small text-secondary">{t("dash_return_count", { prefix: filterPrefix })}</div>
+                <div className="fs-4 fw-bold text-danger">
+                  {topData ? (topData.summary.return_count ?? 0) : (data?.today?.returns_count ?? 0)}
+                </div>
+              </Card>
             </div>
-          </Card>
-        </div>
-        <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("dash_receivables")} (Total Due)</div>
-            <div className="fs-4 fw-bold text-warning">
-              {money(data.position.receivables)}
+            <div className="col-6 col-lg-3">
+              <Card>
+                <div className="small text-secondary">{t("dash_return_amount", { prefix: filterPrefix })}</div>
+                <div className="fs-4 fw-bold text-danger">
+                  {topData ? money(topData.summary.return_amount ?? 0) : money(data?.today?.returns ?? 0)}
+                </div>
+              </Card>
             </div>
-          </Card>
-        </div>
-        <div className="col-6 col-lg-3">
-          <Card>
-            <div className="d-flex justify-content-between align-items-center">
-              <div className="small text-secondary">{t("dash_investment") || "Total Investment"}</div>
-              <a href="/app/accounting" className="small text-primary text-decoration-none fw-semibold" style={{ fontSize: "0.72rem" }}>
-                {t("invest_tbl_actions") || "Details"} →
-              </a>
-            </div>
-            <div className="fs-4 fw-bold text-primary">
-              {topData && topData.summary?.total_investment !== undefined
-                ? money(topData.summary.total_investment)
-                : data.position?.total_investment !== undefined
-                ? money(data.position.total_investment)
-                : "..."}
-            </div>
-            <div className="small text-muted text-truncate mt-0.5" style={{ fontSize: "0.72rem" }}>
-              Purchases: {money(topData?.summary?.purchase_investment ?? data.position?.purchase_investment ?? 0)}
-            </div>
-          </Card>
-        </div>
-        <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("dash_return_count", { prefix: filterPrefix })}</div>
-            <div className="fs-4 fw-bold text-danger">
-              {topData ? (topData.summary.return_count ?? 0) : (data?.today?.returns_count ?? 0)}
-            </div>
-          </Card>
-        </div>
-        <div className="col-6 col-lg-3">
-          <Card>
-            <div className="small text-secondary">{t("dash_return_amount", { prefix: filterPrefix })}</div>
-            <div className="fs-4 fw-bold text-danger">
-              {topData ? money(topData.summary.return_amount ?? 0) : money(data?.today?.returns ?? 0)}
-            </div>
-          </Card>
-        </div>
+          </>
+        )}
+      </div>
+
+      {/* ── Active Module Quick-Access Highlights Ribbon ── */}
+      <div className="d-flex flex-wrap gap-2 mb-3">
+        {hasModule("integrations") && (
+          <a
+            href="/app/integrations"
+            className="btn btn-sm btn-outline-primary d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+          >
+            <i className="bi-diagram-3-fill" />
+            <span className="fw-semibold">{lang === "bn" ? "ই-কমার্স ও কুরিয়ার ইন্টিগ্রেশন" : "E-Commerce & Couriers"}</span>
+          </a>
+        )}
+        {hasModule("purchasing") && (
+          <a
+            href="/app/purchases"
+            className="btn btn-sm d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+            style={{ color: "#0d9488", borderColor: "#0d9488", border: "1px solid" }}
+          >
+            <i className="bi-truck" />
+            <span className="fw-semibold">{lang === "bn" ? "ক্রয় ও সরবরাহকারী" : "Purchases & Suppliers"}</span>
+          </a>
+        )}
+        {hasModule("service_repair") && (
+          <a
+            href="/app/service/tickets"
+            className="btn btn-sm d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+            style={{ color: "#9333ea", borderColor: "#9333ea", border: "1px solid" }}
+          >
+            <i className="bi-wrench-adjustable" />
+            <span className="fw-semibold">{lang === "bn" ? "সার্ভিস ও মেরামত টিকেট" : "Service & Repair"}</span>
+          </a>
+        )}
+        {hasModule("emi_installments") && (
+          <a
+            href="/app/emi"
+            className="btn btn-sm btn-outline-warning d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+          >
+            <i className="bi-calendar-check" />
+            <span className="fw-semibold">{lang === "bn" ? "কিস্তি ও ইএমআই" : "EMI & Installments"}</span>
+          </a>
+        )}
+        {hasModule("manufacturing") && (
+          <a
+            href="/app/manufacturing"
+            className="btn btn-sm btn-outline-secondary d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+          >
+            <i className="bi-gear-wide-connected" />
+            <span className="fw-semibold">{lang === "bn" ? "ম্যানুফ্যাকচারিং" : "Manufacturing"}</span>
+          </a>
+        )}
+        {hasModule("finance_accounting") && (
+          <a
+            href="/app/accounting"
+            className="btn btn-sm btn-outline-success d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+          >
+            <i className="bi-journal-bookmark-fill" />
+            <span className="fw-semibold">{lang === "bn" ? "অ্যাকাউন্টিং খাতা" : "Accounting Ledger"}</span>
+          </a>
+        )}
+        {hasModule("expense_management") && (
+          <a
+            href="/app/expenses"
+            className="btn btn-sm btn-outline-danger d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+          >
+            <i className="bi-cash-stack" />
+            <span className="fw-semibold">{lang === "bn" ? "খরচ ও ব্যয়" : "Expenses"}</span>
+          </a>
+        )}
+        {hasModule("backup_drive") && (
+          <a
+            href="/app/backups"
+            className="btn btn-sm btn-outline-info d-flex align-items-center gap-1.5 rounded-pill px-3 py-1 shadow-xs text-decoration-none"
+          >
+            <i className="bi-cloud-arrow-up" />
+            <span className="fw-semibold">{lang === "bn" ? "ক্লাউড ব্যাকআপ" : "Cloud Backups"}</span>
+          </a>
+        )}
       </div>
 
       <div className="row g-3 mb-3">

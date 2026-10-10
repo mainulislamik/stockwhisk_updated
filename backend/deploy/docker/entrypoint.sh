@@ -25,11 +25,11 @@ PY
 # Only the web container runs migrations + collectstatic (avoids races between
 # worker/beat starting at the same time).
 case "$1" in
-  gunicorn)
+  gunicorn|daphne|python)
     echo "==> Applying migrations"
-    python manage.py migrate --noinput --fake-initial
+    python manage.py migrate --noinput
     echo "==> Collecting static files"
-    python manage.py collectstatic --noinput
+    python manage.py collectstatic --noinput --clear || true
     ;;
 esac
 

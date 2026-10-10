@@ -191,14 +191,23 @@ def sales_rollups(shop):
 
 
 def sales_overview(shop):
-    """The 8 headline sales KPIs for the report page (total / this-month /
-    today / last-month × sales-amount & order-count)."""
+    """The headline sales KPIs for the report page (total / this-month /
+    today / last-month × sales-amount, order-count, paid-amount, due-selling-amount)."""
     from datetime import datetime, time
+    from decimal import Decimal
+    from django.db.models import Sum, DecimalField
+    from django.db.models.functions import Coalesce
     from accounting.services import profit_summary
+    from crm.models import Customer
+    from purchasing.models import Supplier
+
+    _DEC = DecimalField(max_digits=14, decimal_places=2)
+    ZERO = Decimal("0")
 
     now = timezone.now()
     today = timezone.localdate()
     today_start = timezone.make_aware(datetime.combine(today, time.min))
+    today_end = now
     month_start = timezone.make_aware(datetime.combine(today.replace(day=1), time.min))
     last_month_day = today.replace(day=1) - relativedelta(months=1)
     last_month_start = timezone.make_aware(datetime.combine(last_month_day, time.min))
@@ -210,16 +219,173 @@ def sales_overview(shop):
     def _sales(start, end):
         return profit_summary(shop, start=start, end=end)["revenue"]
 
+    total_paid, total_due = _due_and_paid(shop, None, None)
+    this_month_paid, this_month_due = _due_and_paid(shop, month_start, now)
+    today_paid, today_due = _due_and_paid(shop, today_start, now)
+    last_month_paid, last_month_due = _due_and_paid(shop, last_month_start, last_month_end)
+
+    customer_due_balance = Customer.all_objects.filter(shop_id=shop.id).aggregate(
+        v=Coalesce(Sum("due_balance", output_field=_DEC), ZERO, output_field=_DEC)
+    )["v"]
+    supplier_due_balance = Supplier.all_objects.filter(shop_id=shop.id).aggregate(
+        v=Coalesce(Sum("due_balance", output_field=_DEC), ZERO, output_field=_DEC)
+    )["v"]
+
+    stock_info = _stock_and_flow(shop, today_start, today_end)
+
     return {
         "total_sales": _sales(None, None),
         "total_orders": _orders(None, None),
+        "total_paid": total_paid,
+        "total_due": total_due,
+        "customer_due_balance": customer_due_balance,
+        "supplier_due_balance": supplier_due_balance,
         "this_month_sales": _sales(month_start, now),
         "this_month_orders": _orders(month_start, now),
+        "this_month_paid": this_month_paid,
+        "this_month_due": this_month_due,
         "today_sales": _sales(today_start, now),
         "today_orders": _orders(today_start, now),
+        "today_paid": today_paid,
+        "today_due": today_due,
         "last_month_sales": _sales(last_month_start, last_month_end),
         "last_month_orders": _orders(last_month_start, last_month_end),
+        "last_month_paid": last_month_paid,
+        "last_month_due": last_month_due,
+
+        # Stock Information & Daily Flow
+        "stock_cost_value": stock_info["stock_cost_value"],
+        "stock_retail_value": stock_info["stock_retail_value"],
+        "potential_profit": stock_info["potential_profit"],
+        "total_stock_quantity": stock_info["total_stock_quantity"],
+        "total_products_count": stock_info["total_products_count"],
+        "low_stock_count": stock_info["low_stock_count"],
+        "out_of_stock_count": stock_info["out_of_stock_count"],
+        "today_added_stock_qty": stock_info["today_added_stock_qty"],
+        "today_added_stock_value": stock_info["today_added_stock_value"],
+        "today_sold_stock_qty": stock_info["today_sold_stock_qty"],
+        "today_selling_stock_amount": stock_info["today_selling_stock_amount"],
+        "today_sold_cost_amount": stock_info["today_sold_cost_amount"],
+        "today_paid_amount": today_paid,
+        "today_due_amount": today_due,
     }
+
+
+def _stock_and_flow(shop, today_start, today_end):
+    from catalog.models import Product
+    from inventory.models import StockMovement
+    from sales.models import Sale, SaleItem
+    from django.db.models import Sum, F, DecimalField
+    from django.db.models.functions import Coalesce
+    from decimal import Decimal
+
+    _DEC = DecimalField(max_digits=14, decimal_places=2)
+    ZERO = Decimal("0")
+
+    # 1. Shop Stock Valuation
+    prods = Product.all_objects.filter(shop_id=shop.id, is_active=True)
+    stock_cost_value = prods.aggregate(
+        v=Coalesce(Sum(F("current_stock") * F("cost_price"), output_field=_DEC), ZERO)
+    )["v"]
+    stock_retail_value = prods.aggregate(
+        v=Coalesce(Sum(F("current_stock") * F("selling_price"), output_field=_DEC), ZERO)
+    )["v"]
+    total_stock_qty = prods.aggregate(
+        q=Coalesce(Sum("current_stock", output_field=_DEC), ZERO)
+    )["q"]
+    total_prods_count = prods.count()
+    low_stock_count = prods.filter(
+        track_inventory=True, current_stock__gt=0, current_stock__lte=F("reorder_level")
+    ).count()
+    out_of_stock_count = prods.filter(track_inventory=True, current_stock__lte=0).count()
+
+    # 2. Today Added Products / Inward Stock
+    inward_movements = StockMovement.all_objects.filter(
+        shop_id=shop.id,
+        created_at__range=(today_start, today_end),
+        quantity__gt=0,
+    )
+    today_added_qty = inward_movements.aggregate(
+        q=Coalesce(Sum("quantity", output_field=_DEC), ZERO)
+    )["q"]
+    today_added_val = inward_movements.aggregate(
+        v=Coalesce(Sum(F("quantity") * F("unit_cost"), output_field=_DEC), ZERO)
+    )["v"]
+
+    # Also account for new products added today with initial stock
+    new_prods_today = prods.filter(created_at__range=(today_start, today_end))
+    if inward_movements.count() == 0 and new_prods_today.exists():
+        new_q = new_prods_today.aggregate(q=Coalesce(Sum("current_stock", output_field=_DEC), ZERO))["q"]
+        new_v = new_prods_today.aggregate(v=Coalesce(Sum(F("current_stock") * F("cost_price"), output_field=_DEC), ZERO))["v"]
+        today_added_qty += new_q
+        today_added_val += new_v
+
+    # 3. Today Selling Stock (Outward)
+    today_sales = Sale.all_objects.filter(
+        shop_id=shop.id,
+        sale_date__range=(today_start, today_end),
+    ).exclude(status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION])
+
+    today_items = SaleItem.objects.filter(sale__in=today_sales)
+    today_sold_qty = today_items.aggregate(
+        q=Coalesce(Sum("quantity", output_field=_DEC), ZERO)
+    )["q"]
+    today_selling_stock_amount = today_sales.aggregate(
+        t=Coalesce(Sum("total", output_field=_DEC), ZERO)
+    )["t"]
+    today_sold_cost_amount = today_items.aggregate(
+        c=Coalesce(Sum(F("quantity") * F("unit_cost"), output_field=_DEC), ZERO)
+    )["c"]
+
+    return {
+        "stock_cost_value": stock_cost_value,
+        "stock_retail_value": stock_retail_value,
+        "potential_profit": max(ZERO, stock_retail_value - stock_cost_value),
+        "total_stock_quantity": total_stock_qty,
+        "total_products_count": total_prods_count,
+        "low_stock_count": low_stock_count,
+        "out_of_stock_count": out_of_stock_count,
+        "today_added_stock_qty": today_added_qty,
+        "today_added_stock_value": today_added_val,
+        "today_sold_stock_qty": today_sold_qty,
+        "today_selling_stock_amount": today_selling_stock_amount,
+        "today_sold_cost_amount": today_sold_cost_amount,
+    }
+
+
+def _due_and_paid(shop, start=None, end=None):
+    from sales.models import Sale
+    from service.models import ServiceTicket
+    from django.db.models import Sum, DecimalField
+    from django.db.models.functions import Coalesce
+    from decimal import Decimal
+
+    _DEC = DecimalField(max_digits=14, decimal_places=2)
+    ZERO = Decimal("0")
+    sales_qs = Sale.all_objects.filter(shop_id=shop.id).exclude(
+        status__in=[Sale.Status.CANCELLED, Sale.Status.QUOTATION]
+    )
+    tickets_qs = ServiceTicket.all_objects.filter(shop_id=shop.id).exclude(
+        status=ServiceTicket.Status.CANCELLED
+    )
+    if start is not None:
+        sales_qs = sales_qs.filter(sale_date__gte=start)
+        tickets_qs = tickets_qs.filter(received_at__gte=start)
+    if end is not None:
+        sales_qs = sales_qs.filter(sale_date__lte=end)
+        tickets_qs = tickets_qs.filter(received_at__lte=end)
+
+    s_total = sales_qs.aggregate(v=Coalesce(Sum("total", output_field=_DEC), ZERO, output_field=_DEC))["v"]
+    s_paid = sales_qs.aggregate(v=Coalesce(Sum("paid", output_field=_DEC), ZERO, output_field=_DEC))["v"]
+    s_due = max(ZERO, s_total - s_paid)
+
+    t_paid = ZERO
+    t_due = ZERO
+    for t in tickets_qs:
+        t_paid += (t.paid or ZERO)
+        t_due += (t.due or ZERO)
+
+    return s_paid + t_paid, s_due + t_due
 
 
 def _completed_orders(shop, start=None, end=None):

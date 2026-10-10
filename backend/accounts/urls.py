@@ -23,12 +23,15 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
 
     def validate(self, attrs):
         try:
-            return super().validate(attrs)
+            data = super().validate(attrs)
         except AuthenticationFailed:
             raise AuthenticationFailed(
                 'ব্যবহারকারীর নাম বা পাসওয়ার্ড সঠিক নয়। অনুগ্রহ করে আবার চেষ্টা করুন।',
                 code='no_active_account'
             )
+        from .serializers import UserSerializer
+        data["user"] = UserSerializer(self.user).data
+        return data
 
 class ThrottledTokenObtainPairView(TokenObtainPairView):
     serializer_class = CustomTokenObtainPairSerializer

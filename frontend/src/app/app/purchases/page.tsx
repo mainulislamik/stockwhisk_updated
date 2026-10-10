@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate, usePagination } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 
 type PO = {
   id: number;
@@ -160,7 +161,8 @@ export default function PurchasesPage() {
   if (error) return <ErrorState error={error} />;
 
   return (
-    <div className="vstack gap-3">
+    <ModuleRouteGuard module="purchasing" name={lang === "bn" ? "পণ্য ক্রয় ও সরবরাহকারী" : "Purchasing & Supplies"}>
+      <div className="vstack gap-3">
       <div className="card shadow-sm">
         <div className="table-responsive">
           <table className="table table-striped table-sm align-middle mb-0">
@@ -391,5 +393,6 @@ export default function PurchasesPage() {
         </div>
       )}
     </div>
+    </ModuleRouteGuard>
   );
 }

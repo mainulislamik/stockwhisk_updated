@@ -10,6 +10,7 @@ from .views import (
     DailySettlementViewSet,
     InvestmentViewSet,
     AccountTransferViewSet,
+    LedgerEntryViewSet,
 )
 
 router = DefaultRouter()
@@ -18,6 +19,7 @@ router.register("expenses", ExpenseViewSet, basename="expense")
 router.register("investments", InvestmentViewSet, basename="investment")
 router.register("transfers", AccountTransferViewSet, basename="account-transfer")
 router.register("daily-settlements", DailySettlementViewSet, basename="daily-settlement")
+router.register("ledger-entries", LedgerEntryViewSet, basename="ledger-entry")
 
 urlpatterns = [
     path("reports/profit/", ProfitReportView.as_view(), name="profit-report"),

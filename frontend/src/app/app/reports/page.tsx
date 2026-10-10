@@ -7,6 +7,7 @@ import { api } from "@/lib/api";
 import { ErrorState, Spinner, money } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 
 type DayTrend = { day: string; revenue: string; discount: string; tax: string };
 type PaymentMethod = { method: string; total: string };
@@ -20,9 +21,30 @@ type RecentTransaction = { id: number; invoice_number: string; created_at: strin
 type LowStock = { id: number; name: string; sku: string; current_stock: number; reorder_level: number };
 type SalesOverview = {
   total_sales: string; total_orders: number;
+  total_paid?: string; total_due?: string;
+  customer_due_balance?: string; supplier_due_balance?: string;
   this_month_sales: string; this_month_orders: number;
+  this_month_paid?: string; this_month_due?: string;
   today_sales: string; today_orders: number;
+  today_paid?: string; today_due?: string;
   last_month_sales: string; last_month_orders: number;
+  last_month_paid?: string; last_month_due?: string;
+
+  // Stock & Inventory flow metrics
+  stock_cost_value?: string;
+  stock_retail_value?: string;
+  potential_profit?: string;
+  total_stock_quantity?: string | number;
+  total_products_count?: number;
+  low_stock_count?: number;
+  out_of_stock_count?: number;
+  today_added_stock_qty?: string | number;
+  today_added_stock_value?: string;
+  today_sold_stock_qty?: string | number;
+  today_selling_stock_amount?: string;
+  today_sold_cost_amount?: string;
+  today_paid_amount?: string;
+  today_due_amount?: string;
 };
 type ProfitPoint = { date: string; revenue: number; cost: number; profit: number; orders: number; margin: number; avg_profit: number };
 type ProfitOverview = {
@@ -714,42 +736,321 @@ export default function ReportsPage() {
   };
 
   const overviewCards = overview ? [
-    { icon: "bi-cash-stack", label: "Total Sales", value: money(overview.total_sales), accent: "primary" },
-    { icon: "bi-receipt", label: "Total Orders", value: Number(overview.total_orders).toLocaleString(), accent: "info" },
-    { icon: "bi-calendar3", label: "This Month Sales", value: money(overview.this_month_sales), accent: "primary" },
-    { icon: "bi-calendar-check", label: "This Month Orders", value: Number(overview.this_month_orders).toLocaleString(), accent: "info" },
-    { icon: "bi-cash-coin", label: "Today's Sales", value: money(overview.today_sales), accent: "success" },
-    { icon: "bi-bag-check", label: "Today's Orders", value: Number(overview.today_orders).toLocaleString(), accent: "success" },
-    { icon: "bi-clock-history", label: "Last Month's Sales", value: money(overview.last_month_sales), accent: "secondary" },
-    { icon: "bi-archive", label: "Last Month's Orders", value: Number(overview.last_month_orders).toLocaleString(), accent: "secondary" },
+    { icon: "bi-cash-stack", label: t("rep_total_sales") || "Total Sales", value: money(overview.total_sales), accent: "primary" },
+    { icon: "bi-check2-circle", label: t("rep_ov_total_paid") || "Paid / Received", value: money(overview.total_paid || "0"), accent: "success" },
+    { icon: "bi-exclamation-triangle", label: t("rep_ov_total_due") || "Due Selling Amount", value: money(overview.total_due || "0"), accent: "danger" },
+    { icon: "bi-receipt", label: t("rep_total_orders") || "Total Orders", value: Number(overview.total_orders).toLocaleString(), accent: "info" },
+    { icon: "bi-calendar3", label: t("rep_ov_this_month_sales") || "This Month Sales", value: money(overview.this_month_sales), accent: "primary", subtitle: overview.this_month_due && Number(overview.this_month_due) > 0 ? `বাকি: ${money(overview.this_month_due)}` : undefined },
+    { icon: "bi-calendar-check", label: t("rep_ov_this_month_orders") || "This Month Orders", value: Number(overview.this_month_orders).toLocaleString(), accent: "info" },
+    { icon: "bi-cash-coin", label: t("rep_ov_today_sales") || "Today's Sales", value: money(overview.today_sales), accent: "success", subtitle: overview.today_due && Number(overview.today_due) > 0 ? `বাকি: ${money(overview.today_due)}` : undefined },
+    { icon: "bi-bag-check", label: t("rep_ov_today_orders") || "Today's Orders", value: Number(overview.today_orders).toLocaleString(), accent: "success" },
+    { icon: "bi-person-exclamation", label: t("rep_ov_cust_due") || "Customer Receivables", value: money(overview.customer_due_balance || "0"), accent: "warning" },
+    { icon: "bi-truck", label: t("rep_ov_supp_due") || "Supplier Payables", value: money(overview.supplier_due_balance || "0"), accent: "danger" },
+    { icon: "bi-clock-history", label: t("rep_ov_last_month_sales") || "Last Month's Sales", value: money(overview.last_month_sales), accent: "secondary" },
+    { icon: "bi-archive", label: t("rep_ov_last_month_orders") || "Last Month's Orders", value: Number(overview.last_month_orders).toLocaleString(), accent: "secondary" },
   ] : [];
 
   return (
-    <div className="vstack gap-4">
+    <ModuleRouteGuard module="reports_export" name={lang === "bn" ? "অ্যানালিটিক্স ও রিপোর্টস" : "Reports & Analytics"}>
+      <div className="vstack gap-4">
       {/* Sales Overview — headline KPI cards */}
       <section aria-labelledby="sales-overview-heading">
         <h2 id="sales-overview-heading" className="h5 fw-bold mb-3">{t("rep_sales_over")}</h2>
         {!overview ? (
           <div className="text-secondary small">{t("rep_sales_over_err")}</div>
         ) : (
-          <div className="row g-3">
-            {overviewCards.map((c) => (
-              <div key={c.label} className="col-12 col-sm-6 col-xl-3">
-                <div className="card shadow-sm h-100 border-0">
-                  <div className="card-body d-flex align-items-center gap-3">
-                    <span className={`d-inline-flex align-items-center justify-content-center rounded-3 bg-${c.accent} bg-opacity-10 text-${c.accent}`}
-                          style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
-                      <i className={`bi ${c.icon} fs-5`}></i>
-                    </span>
-                    <div style={{ minWidth: 0 }}>
-                      <div className="small text-secondary text-truncate">{c.label}</div>
-                      <div className="fs-4 fw-bold text-body lh-1 mt-1">{c.value}</div>
+          <>
+            <div className="row g-3">
+              {overviewCards.map((c) => (
+                <div key={c.label} className="col-12 col-sm-6 col-xl-3">
+                  <div className="card shadow-sm h-100 border-0">
+                    <div className="card-body d-flex align-items-center gap-3">
+                      <span className={`d-inline-flex align-items-center justify-content-center rounded-3 bg-${c.accent} bg-opacity-10 text-${c.accent}`}
+                            style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                        <i className={`bi ${c.icon} fs-5`}></i>
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="small text-secondary text-truncate">{c.label}</div>
+                        <div className="fs-4 fw-bold text-body lh-1 mt-1">{c.value}</div>
+                        {c.subtitle && (
+                          <div className="badge bg-danger-subtle text-danger border border-danger-subtle mt-1 font-monospace" style={{ fontSize: "0.7rem" }}>
+                            {c.subtitle}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="card border-0 shadow-sm mt-3 bg-light-subtle border">
+              <div className="card-body p-3">
+                <div className="row g-3 align-items-center justify-content-between">
+                  <div className="col-12 col-md-auto d-flex align-items-center gap-3">
+                    <div className="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style={{ width: 40, height: 40 }}>
+                      <i className="bi bi-wallet2 fs-5"></i>
+                    </div>
+                    <div>
+                      <div className="fw-bold text-dark">
+                        {lang === "bn" ? "বিক্রয় ও বকেয়া বাকি আদায় সারসংক্ষেপ" : "Sales & Dues Collection Summary"}
+                      </div>
+                      <div className="small text-muted">
+                        {lang === "bn" ? "মোট বিক্রয়, আদায়কৃত নগদ অর্থ এবং বকেয়া বাকি অবস্থানের লাইভ বিবরণ" : "Live summary of total sales, paid collections and outstanding dues"}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="col-12 col-md-auto d-flex flex-wrap align-items-center gap-4">
+                    <div>
+                      <div className="text-muted small">{lang === "bn" ? "পরিশোধ / আদায়কৃত" : "Collected / Paid"}</div>
+                      <div className="fw-bold text-success fs-6">৳{money(overview.total_paid || "0")}</div>
+                    </div>
+                    <div className="border-start ps-3">
+                      <div className="text-muted small">{lang === "bn" ? "বাকি বিক্রয় (পাওনা)" : "Due Selling Amount"}</div>
+                      <div className="fw-bold text-danger fs-6">৳{money(overview.total_due || "0")}</div>
+                    </div>
+                    <div className="border-start ps-3">
+                      <div className="text-muted small">{lang === "bn" ? "সাপ্লায়ার দেনা" : "Supplier Payable"}</div>
+                      <div className="fw-bold text-secondary fs-6">৳{money(overview.supplier_due_balance || "0")}</div>
+                    </div>
+                    <div className="border-start ps-3">
+                      <Link href="/app/dues" className="btn btn-sm btn-outline-primary fw-semibold">
+                        {lang === "bn" ? "বাকি ম্যানেজমেন্ট খুলুন →" : "Open Dues Hub →"}
+                      </Link>
                     </div>
                   </div>
                 </div>
               </div>
-            ))}
+            </div>
+          </>
+        )}
+      </section>
+
+      {/* Stock Information & Daily Flow — Shop stock valuation, today's additions, sales & collections */}
+      <section aria-labelledby="stock-overview-heading">
+        <div className="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+          <div>
+            <h2 id="stock-overview-heading" className="h5 fw-bold mb-0">
+              {t("rep_stock_info_heading") || (lang === "bn" ? "দোকানের স্টক ও আজকের অপারেশনাল ফ্লো" : "Shop Stock & Daily Flow")}
+            </h2>
+            <div className="small text-secondary">
+              {t("rep_stock_info_desc") || (lang === "bn" ? "দোকানের বর্তমান ইনভেন্টরি মূল্যায়ন, আজকের নতুন যুক্ত স্টক, বিক্রিত স্টক ও দৈনিক লেনদেন হিসাব।" : "Current inventory valuation, stock level, today's additions, sales and payment collection.")}
+            </div>
           </div>
+          <Link href="/app/inventory" className="btn btn-sm btn-outline-primary fw-semibold d-inline-flex align-items-center gap-1">
+            <i className="bi bi-boxes"></i>
+            <span>{lang === "bn" ? "ইনভেন্টরি দেখুন →" : "View Inventory →"}</span>
+          </Link>
+        </div>
+
+        {!overview ? (
+          <div className="text-secondary small">{t("rep_sales_over_err")}</div>
+        ) : (
+          <>
+            <div className="row g-3">
+              {/* Shop Stock Value Card */}
+              <div className="col-12 col-sm-6 col-xl-4">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body">
+                    <div className="d-flex align-items-center gap-3">
+                      <span className="d-inline-flex align-items-center justify-content-center rounded-3 bg-primary bg-opacity-10 text-primary"
+                            style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                        <i className="bi bi-boxes fs-5"></i>
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="small text-secondary text-truncate">
+                          {t("rep_stock_retail_value") || (lang === "bn" ? "দোকানের মোট স্টক ভ্যালু" : "Shop Stock Value")}
+                        </div>
+                        <div className="fs-4 fw-bold text-body lh-1 mt-1">
+                          ৳{money(overview.stock_retail_value || "0")}
+                        </div>
+                        <div className="small text-muted mt-1">
+                          {lang === "bn" ? "বিক্রয় মূল্যে মূল্যায়ন" : "At retail selling price"}
+                        </div>
+                      </div>
+                    </div>
+                    <hr className="my-2 opacity-25" />
+                    <div className="d-flex justify-content-between align-items-center small">
+                      <span className="text-secondary">{lang === "bn" ? "ক্রয়মূল্য (ইনভেস্টমেন্ট):" : "Cost Value:"}</span>
+                      <span className="fw-semibold text-dark">৳{money(overview.stock_cost_value || "0")}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center small mt-1">
+                      <span className="text-secondary">{lang === "bn" ? "মোট স্টক কোয়ান্টিটি:" : "Total Stock Qty:"}</span>
+                      <span className="badge bg-primary-subtle text-primary border border-primary-subtle font-monospace">
+                        {Number(overview.total_stock_quantity || 0).toLocaleString()} {lang === "bn" ? "টি পণ্য" : "units"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today Added to Stock */}
+              <div className="col-12 col-sm-6 col-xl-4">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body">
+                    <div className="d-flex align-items-center gap-3">
+                      <span className="d-inline-flex align-items-center justify-content-center rounded-3 bg-info bg-opacity-10 text-info"
+                            style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                        <i className="bi bi-box-arrow-in-down fs-5"></i>
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="small text-secondary text-truncate">
+                          {t("rep_today_added_stock") || (lang === "bn" ? "আজকে স্টকে যুক্ত পণ্য" : "Today Added Stock")}
+                        </div>
+                        <div className="fs-4 fw-bold text-body lh-1 mt-1">
+                          {Number(overview.today_added_stock_qty || 0).toLocaleString()} <span className="fs-6 fw-normal text-muted">{lang === "bn" ? "টি ইউনিট" : "units"}</span>
+                        </div>
+                        <div className="small text-muted mt-1">
+                          {lang === "bn" ? "আজকের নতুন রিস্টক বা পারচেজ" : "New inward stock today"}
+                        </div>
+                      </div>
+                    </div>
+                    <hr className="my-2 opacity-25" />
+                    <div className="d-flex justify-content-between align-items-center small">
+                      <span className="text-secondary">{lang === "bn" ? "ইনওয়ার্ড ক্রয়মূল্য:" : "Inward Cost Value:"}</span>
+                      <span className="fw-semibold text-dark">৳{money(overview.today_added_stock_value || "0")}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center small mt-1">
+                      <span className="text-secondary">{lang === "bn" ? "নতুন পণ্য ক্যাটালগ:" : "New Catalog Items:"}</span>
+                      <span className="text-secondary">{lang === "bn" ? "আজকের এন্ট্রি" : "Today"}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Selling Stock Amount */}
+              <div className="col-12 col-sm-6 col-xl-4">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body">
+                    <div className="d-flex align-items-center gap-3">
+                      <span className="d-inline-flex align-items-center justify-content-center rounded-3 bg-secondary bg-opacity-10 text-secondary"
+                            style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                        <i className="bi bi-box-arrow-up-right fs-5"></i>
+                      </span>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="small text-secondary text-truncate">
+                          {t("rep_today_selling_stock") || (lang === "bn" ? "আজকের বিক্রিত পণ্যের স্টক ও মূল্য" : "Today Sold Stock Amount")}
+                        </div>
+                        <div className="fs-4 fw-bold text-body lh-1 mt-1">
+                          {Number(overview.today_sold_stock_qty || 0).toLocaleString()} <span className="fs-6 fw-normal text-muted">{lang === "bn" ? "টি ইউনিট" : "units"}</span>
+                        </div>
+                        <div className="small text-muted mt-1">
+                          {lang === "bn" ? "বিক্রয় থেকে কমা স্টক" : "Outward stock sold"}
+                        </div>
+                      </div>
+                    </div>
+                    <hr className="my-2 opacity-25" />
+                    <div className="d-flex justify-content-between align-items-center small">
+                      <span className="text-secondary">{lang === "bn" ? "মোট বিক্রয় মূল্য:" : "Total Selling Value:"}</span>
+                      <span className="fw-semibold text-success">৳{money(overview.today_selling_stock_amount || overview.today_sales || "0")}</span>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center small mt-1">
+                      <span className="text-secondary">{lang === "bn" ? "বিক্রিত পণ্যের ক্রয়মূল্য:" : "Cost of Sold Goods:"}</span>
+                      <span className="fw-semibold text-danger">৳{money(overview.today_sold_cost_amount || "0")}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today's Paid Amount */}
+              <div className="col-12 col-sm-6 col-xl-4">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body d-flex align-items-center gap-3">
+                    <span className="d-inline-flex align-items-center justify-content-center rounded-3 bg-success bg-opacity-10 text-success"
+                          style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                      <i className="bi bi-cash-coin fs-5"></i>
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="small text-secondary text-truncate">
+                        {t("rep_today_paid_amount") || (lang === "bn" ? "আজকের পরিশোধ / নগদ আদায়" : "Today Paid / Received")}
+                      </div>
+                      <div className="fs-4 fw-bold text-success lh-1 mt-1">
+                        ৳{money(overview.today_paid_amount || overview.today_paid || "0")}
+                      </div>
+                      <div className="small text-muted mt-1">
+                        {lang === "bn" ? "নগদ ও ডিজিটাল মাধ্যমে আদায়" : "Cash / Bank collections today"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Today Due Amount */}
+              <div className="col-12 col-sm-6 col-xl-4">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body d-flex align-items-center gap-3">
+                    <span className="d-inline-flex align-items-center justify-content-center rounded-3 bg-danger bg-opacity-10 text-danger"
+                          style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                      <i className="bi bi-hourglass-split fs-5"></i>
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="small text-secondary text-truncate">
+                        {t("rep_today_due_amount") || (lang === "bn" ? "আজকের বাকি বিক্রয়" : "Today Due Amount")}
+                      </div>
+                      <div className="fs-4 fw-bold text-danger lh-1 mt-1">
+                        ৳{money(overview.today_due_amount || overview.today_due || "0")}
+                      </div>
+                      <div className="small text-muted mt-1">
+                        {lang === "bn" ? "আজকের নতুন বকেয়া পাওনা" : "New receivables created today"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Potential Profit in Current Stock */}
+              <div className="col-12 col-sm-6 col-xl-4">
+                <div className="card shadow-sm h-100 border-0">
+                  <div className="card-body d-flex align-items-center gap-3">
+                    <span className="d-inline-flex align-items-center justify-content-center rounded-3 bg-warning bg-opacity-10 text-warning"
+                          style={{ width: 46, height: 46, flex: "0 0 auto" }} aria-hidden="true">
+                      <i className="bi bi-graph-up-arrow fs-5"></i>
+                    </span>
+                    <div style={{ minWidth: 0 }}>
+                      <div className="small text-secondary text-truncate">
+                        {t("rep_potential_profit") || (lang === "bn" ? "স্টকে সম্ভাব্য মোট লাভ" : "Potential Stock Profit")}
+                      </div>
+                      <div className="fs-4 fw-bold text-dark lh-1 mt-1">
+                        ৳{money(overview.potential_profit || "0")}
+                      </div>
+                      <div className="small text-muted mt-1">
+                        {lang === "bn" ? "বর্তমান স্টক বিক্রয়ের মোট প্রত্যাশিত লাভ" : "Unrealized gross profit in inventory"}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Quick stock status pill footer */}
+            <div className="card border-0 shadow-sm mt-3 bg-body-tertiary">
+              <div className="card-body py-2 px-3">
+                <div className="d-flex flex-wrap align-items-center justify-content-between gap-3 text-secondary small">
+                  <div className="d-flex flex-wrap align-items-center gap-3">
+                    <span>
+                      <i className="bi bi-tag me-1"></i>
+                      {lang === "bn" ? "মোট পণ্য ক্যাটালগ:" : "Total Products:"} <strong className="text-dark">{overview.total_products_count || 0} টি</strong>
+                    </span>
+                    <span className="border-start ps-3">
+                      <i className="bi bi-exclamation-circle text-warning me-1"></i>
+                      {lang === "bn" ? "লো-স্টক পণ্য:" : "Low Stock Items:"} <strong className={overview.low_stock_count && overview.low_stock_count > 0 ? "text-warning" : "text-dark"}>{overview.low_stock_count || 0} টি</strong>
+                    </span>
+                    <span className="border-start ps-3">
+                      <i className="bi bi-x-circle text-danger me-1"></i>
+                      {lang === "bn" ? "স্টক শেষ (Out of Stock):" : "Out of Stock:"} <strong className={overview.out_of_stock_count && overview.out_of_stock_count > 0 ? "text-danger" : "text-dark"}>{overview.out_of_stock_count || 0} টি</strong>
+                    </span>
+                  </div>
+
+                  <div className="d-flex align-items-center gap-2">
+                    <Link href="/app/inventory" className="btn btn-sm btn-link text-decoration-none p-0 fw-semibold">
+                      {lang === "bn" ? "স্টক অ্যাডজাস্টমেন্ট ও লেজার →" : "Stock Ledger →"}
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
         )}
       </section>
 
@@ -1597,5 +1898,6 @@ export default function ReportsPage() {
         </div>
       </div>
     </div>
+    </ModuleRouteGuard>
   );
 }

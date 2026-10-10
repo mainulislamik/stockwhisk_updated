@@ -6,6 +6,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { ErrorState, Pagination, Spinner, money, fmtDate } from "@/components/ui";
 import toast from "react-hot-toast";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 import Link from "next/link";
 
 type Customer = {
@@ -23,7 +24,7 @@ type Customer = {
 
 export default function CustomersPage() {
   const { can, isOwner } = useAuth();
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const canManage = isOwner || can("manage_customers");
   const [filter, setFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -94,7 +95,8 @@ export default function CustomersPage() {
   if (error) return <ErrorState error={error} />;
 
   return (
-    <div className="vstack gap-3">
+    <ModuleRouteGuard module="sales_crm" name={lang === "bn" ? "কাস্টমার ও কাস্টমার সম্পর্ক (CRM)" : "Customers & CRM"}>
+      <div className="vstack gap-3">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
         <input placeholder={t("cust_filter")} className="form-control form-control-sm" style={{ maxWidth: "18rem" }} value={filter} onChange={(e) => setFilter(e.target.value)} />
         {canManage && (
@@ -229,5 +231,6 @@ export default function CustomersPage() {
         <Pagination page={page} totalPages={totalPages} setPage={setPage} total={total} />
       </div>
     </div>
+    </ModuleRouteGuard>
   );
 }

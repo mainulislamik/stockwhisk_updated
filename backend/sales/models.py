@@ -47,6 +47,10 @@ class Sale(TenantScopedModel):
     is_corrected = models.BooleanField(default=False)
     correction_reason = models.CharField(max_length=255, blank=True)
     original_total = models.DecimalField(max_digits=14, decimal_places=2, null=True, blank=True)
+    custom_fields = models.JSONField(
+        default=dict, blank=True,
+        help_text="Dynamic sale metadata e.g. delivery_method, vehicle_no, custom_notes"
+    )
     # Client-supplied token that makes checkout idempotent: a rapid double-click
     # (or a refresh/retry mid-request) reuses the same key, so the second request
     # returns the first sale instead of creating a duplicate.

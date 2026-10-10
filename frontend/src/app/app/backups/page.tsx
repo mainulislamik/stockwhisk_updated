@@ -2,10 +2,11 @@
 
 import { useState } from "react";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 import { api } from "@/lib/api";
 
 export default function BackupsPage() {
-  const { t } = useLanguage();
+  const { t, lang } = useLanguage();
   const [downloading, setDownloading] = useState(false);
 
   const handleDownload = async () => {
@@ -30,7 +31,8 @@ export default function BackupsPage() {
   };
 
   return (
-    <div className="vstack gap-3" style={{ maxWidth: "48rem" }}>
+    <ModuleRouteGuard module="backup_drive" name={lang === "bn" ? "ক্লাউড ও লোকাল ব্যাকআপ" : "Automated Backups"}>
+      <div className="vstack gap-3" style={{ maxWidth: "48rem" }}>
       <h1 className="h4 fw-bold text-brand mb-0">{t("bku_title")}</h1>
       <div className="card shadow-sm">
         <div className="card-body">
@@ -51,5 +53,6 @@ export default function BackupsPage() {
         </div>
       </div>
     </div>
+    </ModuleRouteGuard>
   );
 }

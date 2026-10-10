@@ -102,8 +102,8 @@ class Shop(TimeStampedModel):
         GENERAL = "general", "General Retail"
         CAMICAL = "camical"
         SUPERSHOP = "supershop"
+        PRINTING = "printing", "Printing, Media & Cyber Seba"
         COSMETICS = "cosmetics", "Chemical & Lab Supplies"
-        PRINTING = "printing", "Printing, Media & Online Services"
         OTHER = "other", "Other"
 
     name = models.CharField(max_length=150)
@@ -143,6 +143,8 @@ class Shop(TimeStampedModel):
     # Print preferences: "ask" (prompt every time for Normal vs POS), "pos" (always POS thermal receipt), "regular" (always standard A4)
     pos_print_mode = models.CharField(max_length=20, default="ask")
     pos_receipt_enabled = models.BooleanField(default=True)
+    # POS interface UI design mode: "standard" (classic search/barcode cashier view) vs "visual_grid" (rich product cards grid with barcode/warranty drawer)
+    pos_ui_layout = models.CharField(max_length=30, default="standard", help_text="POS UI layout mode: 'standard' or 'visual_grid'")
 
     # Section module switches (shop owner can toggle on/off)
     service_enabled = models.BooleanField(default=True, help_text="Enable/disable Service section (Tickets, Warranties)")
@@ -151,6 +153,10 @@ class Shop(TimeStampedModel):
     manufacturing_enabled = models.BooleanField(default=False, help_text="Enable/disable Manufacturing & Batch Production section")
     mobile_repair_enabled = models.BooleanField(default=False, help_text="Owner-controlled Mobile Repair module switch (repair POS fields, brand-first hierarchy) — effective only when master license is on")
     mobile_repair_master_enabled = models.BooleanField(default=False, help_text="Superadmin-controlled master license for the Mobile Repair Shop module")
+    modules = models.JSONField(
+        default=dict, blank=True,
+        help_text="Dynamic 24-module entitlement dictionary {module_key: boolean}"
+    )
 
     # Short 2–5 char code prefixed to generated barcodes so labels are unique
     # per shop (e.g. "VSE" for Vision Electronics). Auto-derived from the name
@@ -236,6 +242,9 @@ class Shop(TimeStampedModel):
         """Central feature check used by the FeatureGate permission/decorator."""
         if not self.is_active:
             return False
+        from .modules import is_module_enabled
+        if is_module_enabled(self, flag):
+            return True
         if self.plan is None:
             return False
         return self.plan.has_feature(flag)

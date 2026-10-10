@@ -1,0 +1,2209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <script>
+    (function() {
+      try {
+        var savedLang = localStorage.getItem('site_lang') || 'bn';
+        document.documentElement.setAttribute('data-lang', savedLang);
+      } catch (e) {}
+    })();
+  </script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StockWhisk Developer API & Webhook Documentation</title>
+  <meta name="description" content="Official integration guide and live interactive demo for connecting custom coded websites (Next.js, React, Node, Laravel) and WordPress WooCommerce to StockWhisk.">
+  <link rel="icon" href="/favicon.ico">
+  <!-- Bootstrap 5 CSS & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&family=Hind+Siliguri:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-dark: #1d4ed8;
+      --slate-900: #0f172a;
+      --slate-800: #1e293b;
+      --slate-700: #334155;
+      --slate-100: #f1f5f9;
+      --slate-50: #f8fafc;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --sidebar-width: 270px;
+      --nav-height: 66px;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      color: #334155;
+      background-color: #f8fafc;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .font-bn {
+      font-family: 'Hind Siliguri', sans-serif;
+    }
+
+    .font-mono {
+      font-family: 'Fira Code', monospace;
+    }
+
+    /* Single Clean Top Navbar (MarketingNav Parity) */
+    .top-nav {
+      height: var(--nav-height);
+      background: rgba(248, 250, 252, 0.90);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 1040;
+    }
+
+    .logo-card-pill {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 4px 10px;
+      display: inline-flex;
+      align-items: center;
+      box-shadow: 0 1px 6px rgba(15, 23, 42, 0.12);
+      border: 1px solid rgba(15, 23, 42, 0.06);
+      transition: transform 0.15s ease;
+    }
+    .logo-card-pill:hover {
+      transform: scale(1.02);
+    }
+
+    .top-nav-link {
+      color: #475569;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 0.42rem 0.72rem;
+      border-radius: 8px;
+      transition: color 0.15s ease, background 0.15s ease;
+      white-space: nowrap;
+      font-family: 'Inter', sans-serif;
+    }
+    .top-nav-link:hover {
+      color: var(--primary);
+      background: rgba(37, 99, 235, 0.08);
+    }
+    .top-nav-link.active {
+      color: var(--primary);
+      background: rgba(37, 99, 235, 0.08);
+      font-weight: 700;
+    }
+
+    .btn-login-nav {
+      color: #475569;
+      font-size: 0.88rem;
+      font-weight: 600;
+      text-decoration: none;
+      padding: 0.42rem 0.85rem;
+      border-radius: 8px;
+      transition: color 0.15s ease;
+      white-space: nowrap;
+    }
+    .btn-login-nav:hover {
+      color: var(--primary);
+    }
+
+    .btn-signup-nav {
+      background: var(--primary);
+      color: #ffffff !important;
+      font-size: 0.86rem;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 0.48rem 1.15rem;
+      border-radius: 10px;
+      box-shadow: 0 6px 16px -6px rgba(37, 99, 235, 0.6);
+      transition: background 0.15s ease, transform 0.1s ease;
+      white-space: nowrap;
+    }
+    .btn-signup-nav:hover {
+      background: var(--primary-dark);
+      transform: translateY(-1px);
+    }
+
+    
+    /* Language Toggle Component (Exact Parity with MarketingNav & LanguageToggle.tsx) */
+    .lang-toggle-btn {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      width: 76px;
+      height: 32px;
+      border-radius: 16px;
+      cursor: pointer;
+      background: rgba(15, 23, 42, 0.06);
+      border: 1px solid rgba(15, 23, 42, 0.1);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      overflow: hidden;
+      user-select: none;
+      flex-shrink: 0;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+    .lang-toggle-btn:hover {
+      background: rgba(15, 23, 42, 0.09);
+      border-color: rgba(15, 23, 42, 0.18);
+    }
+    .lang-toggle-pill {
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 26px;
+      height: 26px;
+      border-radius: 13px;
+      background: linear-gradient(135deg, #a855f7 0%, #3b82f6 100%);
+      box-shadow: 0 2px 8px rgba(168, 85, 247, 0.4);
+      z-index: 1;
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    [data-lang="en"] .lang-toggle-pill {
+      transform: translateX(44px);
+    }
+    [data-lang="bn"] .lang-toggle-pill {
+      transform: translateX(0);
+    }
+    .lang-toggle-labels {
+      display: flex;
+      width: 100%;
+      justify-content: space-between;
+      padding: 0 2px;
+      z-index: 2;
+      pointer-events: none;
+    }
+    .lang-label-bn, .lang-label-en {
+      font-size: 0.7rem;
+      font-weight: 700;
+      width: 50%;
+      text-align: center;
+      line-height: 26px;
+      transition: color 0.25s ease;
+    }
+    [data-lang="bn"] .lang-label-bn {
+      color: #ffffff;
+    }
+    [data-lang="bn"] .lang-label-en {
+      color: rgba(15, 23, 42, 0.5);
+    }
+    [data-lang="en"] .lang-label-bn {
+      color: rgba(15, 23, 42, 0.5);
+    }
+    [data-lang="en"] .lang-label-en {
+      color: #ffffff;
+    }
+
+    /* Bilingual Switching System */
+    [data-lang="en"] .t-bn {
+      display: none !important;
+    }
+    [data-lang="bn"] .t-en {
+      display: none !important;
+    }
+
+    /* Mobile Public Floating Dropdown Menu (Parity with MarketingNav Menu) */
+    .public-menu-card {
+      position: fixed;
+      top: calc(var(--nav-height) + 6px);
+      right: 12px;
+      width: min(88vw, 260px);
+      max-height: calc(100vh - 84px);
+      overflow-y: auto;
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 20px 40px -12px rgba(15, 23, 42, 0.35), 0 0 1px rgba(15, 23, 42, 0.15);
+      border: 1px solid rgba(15, 23, 42, 0.08);
+      padding: 0.6rem 0.5rem;
+      z-index: 1260;
+      display: none;
+      flex-direction: column;
+      gap: 2px;
+      touch-action: manipulation;
+      transform: translate3d(0, 0, 0);
+      will-change: transform, opacity;
+      animation: menuFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .public-menu-card.show {
+      display: flex;
+    }
+    .public-menu-backdrop {
+      position: fixed;
+      inset: 0;
+      top: var(--nav-height);
+      z-index: 1250;
+      display: none;
+      background: rgba(15, 23, 42, 0.2);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+      touch-action: manipulation;
+    }
+    .public-menu-backdrop.show {
+      display: block;
+    }
+
+    .public-menu-card .menu-item {
+      display: flex;
+      align-items: center;
+      min-height: 44px;
+      padding: 0.5rem 0.85rem;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: #0f172a;
+      text-decoration: none;
+      border-radius: 10px;
+      touch-action: manipulation;
+      transition: background-color 0.1s ease, color 0.1s ease;
+    }
+    .public-menu-card .menu-item:hover,
+    .public-menu-card .menu-item:active {
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--primary);
+    }
+    .public-menu-card .menu-item.active {
+      background: rgba(37, 99, 235, 0.08);
+      color: var(--primary);
+      font-weight: 700;
+    }
+
+    /* Sidebar Navigation Drawer */
+    .sidebar {
+      width: min(85vw, 300px);
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      background: #ffffff;
+      border-right: 1px solid #e2e8f0;
+      overflow-y: auto;
+      padding: 1.25rem 1rem 3rem 1.25rem;
+      z-index: 1050;
+      transform: translateX(-100%);
+      transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 0 40px rgba(0,0,0,0.2);
+    }
+    @media (min-width: 992px) {
+      .sidebar {
+        top: var(--nav-height);
+        transform: translateX(0);
+        width: var(--sidebar-width);
+        box-shadow: none;
+        z-index: 1020;
+      }
+    }
+    .sidebar.show {
+      transform: translateX(0);
+    }
+
+    /* Backdrop Overlay */
+    .sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1045;
+      display: none;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+    .sidebar-overlay.show {
+      display: block;
+      opacity: 1;
+    }
+
+    .sidebar .nav-header {
+      font-size: 0.7rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #94a3b8;
+      margin-top: 1.1rem;
+      margin-bottom: 0.4rem;
+      padding-left: 0.6rem;
+    }
+
+    .sidebar .nav-link {
+      font-size: 0.85rem;
+      color: #475569;
+      border-radius: 6px;
+      padding: 0.4rem 0.65rem;
+      display: flex;
+      align-items: center;
+      gap: 0.55rem;
+      transition: all 0.12s ease-in-out;
+      font-weight: 500;
+      text-decoration: none;
+    }
+
+    .sidebar .nav-link:hover {
+      color: var(--primary);
+      background-color: #eff6ff;
+    }
+
+    .sidebar .nav-link.active {
+      color: var(--primary);
+      background-color: #dbeafe;
+      font-weight: 600;
+    }
+
+    /* Main Content Area */
+    .main-content {
+      margin-left: var(--sidebar-width);
+      padding: calc(var(--nav-height) + 1.75rem) 2.5rem 5rem 2.5rem;
+      max-width: 1100px;
+    }
+
+    @media (max-width: 991.98px) {
+      .main-content {
+        margin-left: 0;
+        padding: calc(var(--nav-height) + 1.25rem) 1rem 3.5rem 1rem;
+      }
+    }
+
+    /* Universal Public Footer Parity (MarketingFooter.tsx) */
+    .universal-footer {
+      background-color: #0f172a;
+      color: #94a3b8;
+      padding-top: 3.5rem;
+      padding-bottom: 3rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      position: relative;
+      z-index: 1010;
+      margin-left: var(--sidebar-width);
+    }
+    @media (max-width: 991.98px) {
+      .universal-footer {
+        margin-left: 0;
+        padding-top: 2.75rem;
+        padding-bottom: 2.5rem;
+      }
+    }
+    .footer-logo-card {
+      background: #ffffff;
+      border-radius: 10px;
+      padding: 6px 14px;
+      display: inline-flex;
+      align-items: center;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+    }
+    .footer-desc {
+      color: #94a3b8;
+      font-size: 0.88rem;
+      line-height: 1.7;
+      max-width: 360px;
+    }
+    .footer-heading {
+      color: #ffffff;
+      font-weight: 700;
+      font-size: 0.92rem;
+      letter-spacing: -0.01em;
+    }
+    .footer-links .footer-link {
+      color: #94a3b8;
+      text-decoration: none;
+      font-size: 0.88rem;
+      transition: color 0.15s ease;
+    }
+    .footer-links .footer-link:hover {
+      color: #ffffff;
+    }
+    .footer-bottom-bar {
+      border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    }
+    .footer-copyright {
+      color: #94a3b8;
+      font-size: 0.84rem;
+    }
+    .footer-legal .footer-link {
+      color: rgba(255, 255, 255, 0.7);
+      text-decoration: none;
+      font-size: 0.84rem;
+      transition: color 0.15s ease;
+    }
+    .footer-legal .footer-link:hover {
+      color: #ffffff;
+    }
+
+    /* Cards & Containers */
+    .doc-section {
+      margin-bottom: 3.5rem;
+      scroll-margin-top: calc(var(--nav-height) + 16px);
+    }
+
+    .doc-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+      padding: 1.35rem;
+      margin-top: 1.15rem;
+    }
+    @media (max-width: 767.98px) {
+      .doc-card {
+        padding: 1rem;
+        border-radius: 10px;
+      }
+    }
+
+    /* Feature Cards */
+    .feature-card {
+      color: inherit;
+    }
+    .feature-card-inner {
+      transition: all 0.15s ease-in-out;
+      border-radius: 10px;
+    }
+    .feature-card:hover .feature-card-inner,
+    .feature-card:active .feature-card-inner {
+      border-color: #2563eb !important;
+      background: #f8fafc !important;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);
+    }
+    .feature-icon {
+      width: 38px;
+      height: 38px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .text-truncate-2 {
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    /* Platform Chips */
+    .platform-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 0.76rem;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    .page-title {
+      font-size: clamp(1.35rem, 4vw, 2.1rem);
+      line-height: 1.25;
+      letter-spacing: -0.02em;
+    }
+    .lead-text {
+      font-size: clamp(0.88rem, 2.2vw, 1rem);
+      line-height: 1.55;
+    }
+
+    code {
+      word-break: break-word;
+      overflow-wrap: anywhere;
+    }
+
+    .endpoint-box {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 0.65rem 0.85rem;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      color: #1e293b;
+      margin-bottom: 1rem;
+      word-break: break-all;
+      overflow-wrap: anywhere;
+      line-height: 1.5;
+    }
+
+    .endpoint-box .method {
+      display: inline-block;
+      font-weight: 700;
+      font-size: 0.72rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 4px;
+      margin-right: 0.5rem;
+      vertical-align: middle;
+      color: #ffffff;
+    }
+    .endpoint-box .method.get {
+      background: #10b981;
+    }
+    .endpoint-box .method.post {
+      background: #2563eb;
+    }
+
+    /* Code Blocks & Tabs */
+    .code-container {
+      background: #0f172a;
+      border-radius: 10px;
+      overflow: hidden;
+      margin-top: 1rem;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+      border: 1px solid #334155;
+    }
+
+    .code-header {
+      background: #1e293b;
+      padding: 0.45rem 0.75rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+    }
+
+    .code-tabs {
+      display: flex !important;
+      gap: 4px;
+      overflow-x: auto;
+      white-space: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      max-width: calc(100% - 80px);
+    }
+    .code-tabs::-webkit-scrollbar {
+      display: none;
+    }
+
+    .code-tabs .btn {
+      color: #94a3b8;
+      border: none;
+      font-size: 0.76rem;
+      font-weight: 600;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      white-space: nowrap;
+    }
+
+    .code-tabs .btn.active {
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+    }
+
+    pre.code-block {
+      margin: 0;
+      padding: 1.15rem;
+      color: #e2e8f0;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    @media (max-width: 767.98px) {
+      pre.code-block {
+        font-size: 0.74rem;
+        padding: 0.85rem;
+      }
+    }
+
+    /* Badges */
+    .badge-method-get {
+      background-color: #10b981;
+      color: white;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.25em 0.55em;
+      border-radius: 4px;
+    }
+
+    .badge-method-post {
+      background-color: #2563eb;
+      color: white;
+      font-weight: 700;
+      font-size: 0.75rem;
+      padding: 0.25em 0.55em;
+      border-radius: 4px;
+    }
+
+    /* Copy Button */
+    .copy-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #cbd5e1;
+      font-size: 0.74rem;
+      padding: 0.25rem 0.6rem;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.2s;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+
+    .copy-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      color: #ffffff;
+    }
+
+    .copy-btn.copied {
+      background: #10b981;
+      border-color: #10b981;
+      color: white;
+    }
+
+    /* Toast Notification */
+    #toast-notification {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: #0f172a;
+      color: white;
+      padding: 0.75rem 1.25rem;
+      border-radius: 8px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      display: none;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.88rem;
+      z-index: 2000;
+      border: 1px solid #334155;
+    }
+
+    .param-table {
+      width: 100%;
+      margin-top: 0.5rem;
+      font-size: 0.85rem;
+    }
+    .param-table th {
+      border-bottom: 2px solid #e2e8f0;
+      padding: 0.55rem 0.5rem;
+      color: #475569;
+      white-space: nowrap;
+    }
+    .param-table td {
+      border-bottom: 1px solid #f1f5f9;
+      padding: 0.55rem 0.5rem;
+      vertical-align: top;
+    }
+
+    .interactive-badge {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 0.8; }
+      50% { opacity: 1; transform: scale(1.02); }
+      100% { opacity: 0.8; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation (StockWhisk Marketing Parity) -->
+  <nav class="top-nav d-flex align-items-center justify-content-between px-3 px-md-4">
+    <!-- Brand / Logo in white card pill matching MarketingNav -->
+    <div class="d-flex align-items-center gap-2 gap-sm-3">
+      <a href="/" class="text-decoration-none d-flex align-items-center">
+        <div class="logo-card-pill">
+          <img class="brand-logo-img" src="/logo.png" alt="StockWhisk" style="height: 44px; width: 44px; object-fit: contain; display: block;" onerror="this.src='/logo.png'">
+        </div>
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle ms-2 fw-semibold d-none d-sm-inline-block" style="font-size: 0.72rem; letter-spacing: 0.02em;">API Docs</span>
+      </a>
+    </div>
+
+    <!-- Desktop Navigation Links (Public Site Parity) -->
+    <div class="d-none d-lg-flex align-items-center gap-1">
+      <a href="/" class="top-nav-link"><span class="t-bn">হোম</span><span class="t-en">Home</span></a>
+      <a href="/pricing" class="top-nav-link"><span class="t-bn">প্রাইসিং</span><span class="t-en">Pricing</span></a>
+      <a href="/demo" class="top-nav-link"><span class="t-bn">লাইভ ডেমো</span><span class="t-en">Live Demo</span></a>
+      <a href="/software" class="top-nav-link"><span class="t-bn">সফটওয়্যার</span><span class="t-en">Software</span></a>
+      <a href="/api-docs.html" class="top-nav-link active"><span class="t-bn">API ডক</span><span class="t-en">API Docs</span></a>
+      <a href="/tutorials" class="top-nav-link"><span class="t-bn">ভিডিও</span><span class="t-en">Videos</span></a>
+      <a href="/reseller" class="top-nav-link"><span class="t-bn">রিসেলার</span><span class="t-en">Reseller</span></a>
+      <a href="/blog" class="top-nav-link"><span class="t-bn">ব্লগ</span><span class="t-en">Blog</span></a>
+      <a href="/contact" class="top-nav-link"><span class="t-bn">যোগাযোগ</span><span class="t-en">Contact</span></a>
+    </div>
+
+    <!-- Desktop Action Buttons & Language Toggle -->
+    <div class="d-none d-lg-flex align-items-center gap-2">
+      <a href="/login" class="btn-login-nav"><span class="t-bn">লগইন</span><span class="t-en">Login</span></a>
+      <a href="/register" class="btn-signup-nav"><span class="t-bn">১৪-দিনের ফ্রি ট্রায়াল</span><span class="t-en">14-Day Free Trial</span></a>
+      <div class="lang-toggle-btn ms-1" id="lang-toggle-desktop" onclick="toggleLanguage()" role="button" aria-label="Toggle language" title="English / বাংলা">
+        <div class="lang-toggle-pill"></div>
+        <div class="lang-toggle-labels">
+          <span class="lang-label-bn">BN</span>
+          <span class="lang-label-en">EN</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile Navigation Bar Controls (< 992px) -->
+    <div class="d-flex d-lg-none align-items-center gap-2">
+      <!-- Language Toggle Component for Mobile -->
+      <div class="lang-toggle-btn" id="lang-toggle-mobile" onclick="toggleLanguage()" role="button" aria-label="Toggle language" title="English / বাংলা">
+        <div class="lang-toggle-pill"></div>
+        <div class="lang-toggle-labels">
+          <span class="lang-label-bn">BN</span>
+          <span class="lang-label-en">EN</span>
+        </div>
+      </div>
+
+      <!-- Button to Open Docs Sidebar Drawer -->
+      <button class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1.5 rounded-pill" id="mobile-toggle" aria-label="Documentation Sections" style="min-height: 40px; padding: 0.35rem 0.85rem; touch-action: manipulation;">
+        <i class="bi bi-layout-sidebar-inset"></i>
+        <span class="small fw-semibold"><span class="t-bn">ডক মেনু</span><span class="t-en">Docs Menu</span></span>
+      </button>
+
+      <!-- Button to Open Public Site Dropdown (Exact Parity with MarketingNav) -->
+      <button class="btn btn-light border d-flex align-items-center justify-content-center rounded-3" id="public-menu-toggle" aria-label="Toggle Public Website Menu" style="width: 44px; height: 44px; min-width: 44px; min-height: 44px; padding: 0; touch-action: manipulation;">
+        <i class="bi bi-list fs-3 text-dark" style="line-height: 1;"></i>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Public Site Mobile Dropdown Popover (Parity with MarketingNav) -->
+  <div class="public-menu-backdrop" id="public-menu-backdrop"></div>
+  <div class="public-menu-card" id="public-menu-dropdown">
+    <a href="/" class="menu-item"><i class="bi bi-house me-2"></i><span class="t-bn">হোম</span><span class="t-en">Home</span></a>
+    <a href="/pricing" class="menu-item"><i class="bi bi-tag me-2"></i><span class="t-bn">প্রাইসিং</span><span class="t-en">Pricing</span></a>
+    <a href="/demo" class="menu-item"><i class="bi bi-play-circle me-2"></i><span class="t-bn">লাইভ ডেমো</span><span class="t-en">Live Demo</span></a>
+    <a href="/software" class="menu-item"><i class="bi bi-laptop me-2"></i><span class="t-bn">সফটওয়্যার</span><span class="t-en">Software</span></a>
+    <a href="/api-docs.html" class="menu-item active"><i class="bi bi-code-slash me-2"></i><span class="t-bn">API ডক</span><span class="t-en">API Docs</span></a>
+    <a href="/tutorials" class="menu-item"><i class="bi bi-camera-video me-2"></i><span class="t-bn">ভিডিও</span><span class="t-en">Videos</span></a>
+    <a href="/reseller" class="menu-item"><i class="bi bi-people me-2"></i><span class="t-bn">রিসেলার</span><span class="t-en">Reseller</span></a>
+    <a href="/blog" class="menu-item"><i class="bi bi-journal-text me-2"></i><span class="t-bn">ব্লগ</span><span class="t-en">Blog</span></a>
+    <a href="/contact" class="menu-item"><i class="bi bi-envelope me-2"></i><span class="t-bn">যোগাযোগ</span><span class="t-en">Contact</span></a>
+    <hr class="my-1 border-secondary-subtle">
+    <a href="/login" class="menu-item fw-semibold text-dark"><i class="bi bi-box-arrow-in-right me-2"></i><span class="t-bn">লগইন</span><span class="t-en">Login</span></a>
+    <a href="/register" class="menu-item fw-bold text-primary"><i class="bi bi-lightning-charge me-2"></i><span class="t-bn">১৪-দিনের ফ্রি ট্রায়াল</span><span class="t-en">14-Day Free Trial</span></a>
+  </div>
+
+  <!-- Sidebar Overlay Backdrop for Mobile -->
+  <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+  <!-- Sidebar Navigation -->
+  <aside class="sidebar" id="sidebar">
+    <div class="d-flex align-items-center justify-content-between pb-3 mb-2 border-bottom d-lg-none">
+      <div class="d-flex align-items-center gap-2">
+        <div class="logo-card-pill" style="padding: 2px 6px;">
+          <img class="brand-logo-img" src="/logo.png" alt="StockWhisk" style="height: 32px; width: 32px; object-fit: contain; display: block;" onerror="this.src='/logo.png'">
+        </div>
+        <span class="fw-bold text-dark small">ডক মেনু</span>
+      </div>
+      <button class="btn btn-sm btn-outline-secondary p-1 px-2" id="sidebar-close" aria-label="Close sidebar">
+        <i class="bi bi-x-lg"></i>
+      </button>
+    </div>
+    
+    <div class="d-lg-none mb-3">
+      <a href="/" class="btn btn-outline-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1.5 mb-2">
+        <i class="bi bi-arrow-left"></i>
+        <span>মূল ওয়েবসাইট (Home)</span>
+      </a>
+      <a href="/login" class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1.5">
+        <i class="bi bi-box-arrow-in-right"></i>
+        <span>ড্যাশবোর্ড লগইন</span>
+      </a>
+    </div>
+
+    <div class="nav-header">Getting Started</div>
+    <a href="#overview" class="nav-link"><i class="bi bi-info-circle"></i> Overview & Architecture</a>
+    <a href="#quickstart" class="nav-link"><i class="bi bi-rocket-takeoff"></i> 5-Minute Quickstart</a>
+    <a href="#auth" class="nav-link"><i class="bi bi-shield-lock"></i> Authentication & Security</a>
+
+    <div class="nav-header">Core REST Endpoints</div>
+    <a href="#check-stock" class="nav-link">
+      <span class="badge-method-get">GET</span> Real-Time Stock Check
+    </a>
+    <a href="#order-webhook" class="nav-link">
+      <span class="badge-method-post">POST</span> Order Ingestion Webhook
+    </a>
+    <a href="#order-cancellation" class="nav-link"><i class="bi bi-arrow-counterclockwise"></i> Cancellation & Stock Release</a>
+
+    <div class="nav-header">Integration Guidelines</div>
+    <a href="#custom-websites" class="nav-link"><i class="bi bi-code-slash"></i> Custom Websites (Next.js/PHP)</a>
+    <a href="#wordpress-guide" class="nav-link"><i class="bi bi-wordpress"></i> WordPress & WooCommerce</a>
+    <a href="#atomic-reservation" class="nav-link"><i class="bi bi-cpu"></i> Atomic Locking (Anti-Oversell)</a>
+
+    <div class="nav-header">Interactive Tools</div>
+    <a href="#live-playground" class="nav-link text-primary fw-semibold"><i class="bi bi-joystick"></i> Live API Simulator</a>
+    <a href="#troubleshooting" class="nav-link"><i class="bi bi-question-circle"></i> Error Codes & FAQ</a>
+  </aside>
+
+  <!-- Main Content -->
+  <main class="main-content">
+
+    <!-- SECTION: OVERVIEW -->
+    <section id="overview" class="doc-section">
+      <div class="mb-2">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2.5 py-1 fw-semibold">REST API & Webhooks v1.0</span>
+      </div>
+      <h1 class="page-title fw-bold text-dark mb-2">
+        <span class="t-bn">ডেভেলপার API ও ইন্টিগ্রেশন নির্দেশিকা</span>
+        <span class="t-en">Developer API & Integration Guide</span>
+      </h1>
+      <p class="lead-text text-secondary mb-3">
+        <span class="t-bn">আপনার কাস্টম ওয়েব অ্যাপ্লিকেশন বা উকমার্স (WooCommerce) স্টোরকে সরাসরি StockWhisk-এর সাথে যুক্ত করুন। লাইভ স্টক ব্যালেন্স সিঙ্ক করুন, ডাটাবেস রো-লকিং ব্যবহারের মাধ্যমে ফ্ল্যাশ সেলে অতিরিক্ত অর্ডার (ওভারসেলিং) রোধ করুন এবং স্বয়ংক্রিয়ভাবে রিটেল সেলস ইনভয়েস তৈরি করুন।</span>
+        <span class="t-en">Connect your custom web application or WooCommerce store directly to StockWhisk. Synchronize live stock balances, prevent flash-sale overselling using database row locks, and automate retail sales invoicing.</span>
+      </p>
+
+      <!-- Supported Platform Chips -->
+      <div class="d-flex align-items-center gap-1.5 flex-wrap mb-3">
+        <span class="text-uppercase small fw-bold text-muted me-1" style="font-size: 0.72rem; letter-spacing: 0.04em;">
+          <span class="t-bn">সাপোর্টেড:</span>
+          <span class="t-en">Supported:</span>
+        </span>
+        <span class="platform-chip">Next.js / React</span>
+        <span class="platform-chip">Node.js</span>
+        <span class="platform-chip">Laravel (PHP)</span>
+        <span class="platform-chip">Django (Python)</span>
+        <span class="platform-chip">WooCommerce</span>
+      </div>
+
+      <!-- Quick Action CTA Buttons -->
+      <div class="d-flex gap-2 flex-wrap mb-4">
+        <a href="#quickstart" class="btn btn-primary btn-sm px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1">
+          <i class="bi bi-lightning-charge-fill"></i>
+          <span class="t-bn">৫-মিনিটের কুইকস্টার্ট</span>
+          <span class="t-en">5-Min Quickstart</span>
+        </a>
+        <a href="#live-playground" class="btn btn-outline-secondary btn-sm px-3 py-1.5 fw-semibold d-inline-flex align-items-center gap-1">
+          <i class="bi bi-joystick"></i>
+          <span class="t-bn">লাইভ সিমুলেটর টেস্টার</span>
+          <span class="t-en">Live Interactive Tester</span>
+        </a>
+      </div>
+
+      <!-- Compact 3-Feature Cards -->
+      <div class="row g-2 mb-2">
+        <div class="col-md-4">
+          <a href="#check-stock" class="feature-card text-decoration-none">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white border rounded-3 h-100 feature-card-inner">
+              <div class="feature-icon bg-primary-subtle text-primary rounded-3 flex-shrink-0">
+                <i class="bi bi-box-seam-fill fs-5"></i>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-bold text-dark small">
+                  <span class="t-bn">রিয়েল-টাইম স্টক কুয়েরি</span>
+                  <span class="t-en">Real-Time Stock Query</span>
+                </div>
+                <div class="text-muted text-truncate-2 small" style="font-size: 0.8rem; line-height: 1.35;">
+                  <span class="t-bn">গ্রাহকের চেকআউটের পূর্বেই লাইভ Available-to-Sell স্টক যাচাই করুন।</span>
+                  <span class="t-en">Check live Available-to-Sell stock before customer checkout.</span>
+                </div>
+              </div>
+              <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+            </div>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a href="#atomic-reservation" class="feature-card text-decoration-none">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white border rounded-3 h-100 feature-card-inner">
+              <div class="feature-icon bg-primary-subtle text-primary rounded-3 flex-shrink-0">
+                <i class="bi bi-shield-lock-fill fs-5"></i>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-bold text-dark small">
+                  <span class="t-bn">অ্যাটমিক স্টক লকিং</span>
+                  <span class="t-en">Atomic Stock Locking</span>
+                </div>
+                <div class="text-muted text-truncate-2 small" style="font-size: 0.8rem; line-height: 1.35;">
+                  <span class="t-bn">রো-লেভেল ডাটাবেস লক নিশ্চিত করে ফ্ল্যাশ সেলে কোনো ওভারসেলিং হবে না।</span>
+                  <span class="t-en">Row-level DB locks ensure zero flash-sale overselling.</span>
+                </div>
+              </div>
+              <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+            </div>
+          </a>
+        </div>
+        <div class="col-md-4">
+          <a href="#order-webhook" class="feature-card text-decoration-none">
+            <div class="d-flex align-items-center gap-3 p-3 bg-white border rounded-3 h-100 feature-card-inner">
+              <div class="feature-icon bg-primary-subtle text-primary rounded-3 flex-shrink-0">
+                <i class="bi bi-receipt-cutoff fs-5"></i>
+              </div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-bold text-dark small">
+                  <span class="t-bn">স্বয়ংক্রিয় ইনভয়েস ও লেজার</span>
+                  <span class="t-en">Auto Invoicing & Ledger</span>
+                </div>
+                <div class="text-muted text-truncate-2 small" style="font-size: 0.8rem; line-height: 1.35;">
+                  <span class="t-bn">অর্ডার আসার সাথে সাথে স্বয়ংক্রিয় ইনভয়েস এবং স্টক মুভমেন্ট তৈরি হয়।</span>
+                  <span class="t-en">Instant invoice creation and stock movement entries.</span>
+                </div>
+              </div>
+              <i class="bi bi-chevron-right text-muted flex-shrink-0"></i>
+            </div>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: QUICKSTART -->
+    <section id="quickstart" class="doc-section">
+      <h2 class="h3 fw-bold text-dark mb-2">
+        <span class="t-bn">৫-মিনিটের কুইকস্টার্ট গাইড</span>
+        <span class="t-en">5-Minute Quickstart Guide</span>
+      </h2>
+      <p class="text-muted">
+        <span class="t-bn">যেকোনো ওয়েবসাইটকে ৫ মিনিটের মধ্যে যুক্ত করতে নিচের ৩টি ধাপ অনুসরণ করুন:</span>
+        <span class="t-en">Follow these 3 steps to connect any website in under 5 minutes:</span>
+      </p>
+
+      <div class="doc-card">
+        <div class="vstack gap-4">
+          <div class="d-flex gap-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; min-width: 32px;">1</div>
+            <div>
+              <h6 class="fw-bold text-dark mb-1">
+                <span class="t-bn">StockWhisk-এ ওয়েবসাইট চ্যানেল তৈরি করুন</span>
+                <span class="t-en">Create Website Channel in StockWhisk</span>
+              </h6>
+              <p class="text-muted small mb-0">
+                <span class="t-bn">StockWhisk ড্যাশবোর্ডে লগইন করে <strong>ইন্টিগ্রেশন > ওয়েবসাইট ও ই-কমার্স</strong> (<a href="/app/integrations/websites" target="_blank">/app/integrations/websites</a>)-এ গিয়ে <strong>"কানেক্ট ওয়েবসাইট"</strong>-এ ক্লিক করুন। এরপর <strong>"কাস্টম ওয়েবসাইট (API ও ওয়েব হুক প্রোভাইডার)"</strong> নির্বাচন করুন।</span>
+                <span class="t-en">Log in to StockWhisk, navigate to <strong>Integrations > Website & E-Commerce</strong> (<a href="/app/integrations/websites" target="_blank">/app/integrations/websites</a>), and click <strong>"Connect Website"</strong>. Choose <strong>"Custom Website (API & Webhook Provider)"</strong>.</span>
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; min-width: 32px;">2</div>
+            <div class="flex-grow-1 min-w-0">
+              <h6 class="fw-bold text-dark mb-1">
+                <span class="t-bn">আপনার এন্ডপয়েন্ট URL ও সিক্রেট কি কপি করুন</span>
+                <span class="t-en">Copy Your Endpoint URL & Secret Key</span>
+              </h6>
+              <p class="text-muted small mb-0">
+                <span class="t-bn">StockWhisk তাৎক্ষণিকভাবে আপনার ডেডিকেটেড এন্ডপয়েন্ট তৈরি করবে:</span>
+                <span class="t-en">StockWhisk will instantly provision your dedicated endpoint:</span>
+                <br>
+                <code class="text-primary font-mono small d-inline-block text-break">Webhook URL: https://stockwhisk.com/api/integrations/webhooks/{UUID}/</code>
+                <br>
+                <code class="text-success font-mono small d-inline-block text-break">Secret Key: whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code>
+              </p>
+            </div>
+          </div>
+
+          <div class="d-flex gap-3">
+            <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center fw-bold" style="width: 32px; height: 32px; min-width: 32px;">3</div>
+            <div>
+              <h6 class="fw-bold text-dark mb-1">
+                <span class="t-bn">আপনার কোড বা উকমার্সে ওয়েবহুক কনফিগার করুন</span>
+                <span class="t-en">Configure Webhook in your Code or WooCommerce</span>
+              </h6>
+              <p class="text-muted small mb-0">
+                <span class="t-bn">আপনার ওয়েব অ্যাপের এনভায়রনমেন্ট ভেরিয়েবল বা উকমার্স ওয়েবহুক সেটিংসে এই URL এবং Secret Key যুক্ত করুন। এরপর একটি টেস্ট অর্ডার পাঠিয়ে যাচাই করুন!</span>
+                <span class="t-en">Paste the URL and Secret Key into your web app environment variables or WooCommerce webhook settings. Send a test order or execute a live stock check!</span>
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: AUTHENTICATION -->
+    <section id="auth" class="doc-section">
+      <h2 class="h3 fw-bold text-dark mb-2">
+        <span class="t-bn">অথেনটিকেশন ও নিরাপত্তা</span>
+        <span class="t-en">Authentication & Security</span>
+      </h2>
+      <p class="text-muted">
+        <span class="t-bn">StockWhisk ওয়েবহুক এন্ডপয়েন্টে পাঠানো প্রতিটি রিকোয়েস্টে আপনার সিক্রেট কি (Secret Key) দ্বারা অথেনটিকেশন নিশ্চিত করতে হবে। আপনি নিচের যেকোনো একটি HTTP হেডার ব্যবহার করে কি পাঠাতে পারেন:</span>
+        <span class="t-en">Every request made to your StockWhisk Webhook endpoint requires authentication via your secret key. You can pass the key using either of the following HTTP headers:</span>
+      </p>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">
+            <span class="t-bn">HTTP হেডার স্পেসিফিকেশন</span>
+            <span class="t-en">HTTP Headers Specification</span>
+          </span>
+          <button class="copy-btn" onclick="copySnippet(this, 'header-snippet')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+        </div>
+        <pre class="code-block" id="header-snippet"># Option 1: Dedicated Webhook Header (Recommended)
+X-Webhook-Secret: whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Option 2: Standard Bearer Token Authorization
+Authorization: Bearer whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
+      </div>
+
+      <div class="alert alert-warning border-0 rounded-3 mt-3 small d-flex gap-2">
+        <i class="bi bi-exclamation-triangle-fill fs-5 text-warning"></i>
+        <div>
+          <strong class="t-bn">নিরাপত্তা সতর্কতা:</strong><strong class="t-en">Security Notice:</strong>
+          <span class="t-bn"> আপনার Secret Key সবসময় গোপন রাখুন। ব্রাউজারের ক্লায়েন্ট-সাইড জাভাস্ক্রিপ্ট কোডে (যেমন সরাসরি প্লেইন React/Vue SPA) এটি কখনো উন্মুক্ত করবেন না। সর্বদা আপনার নিরাপদ সার্ভার-সাইড ব্যাকএন্ড (Next.js Server Actions/Route Handlers, Node.js, Laravel বা WordPress PHP) থেকে API কল করুন।</span>
+          <span class="t-en"> Keep your Secret Key private. Never expose your secret key in client-side browser bundles (like plain React/Vue SPAs). Always make API calls from your secure server-side backend (Next.js Server Actions/Route Handlers, Node.js, Laravel, or WordPress PHP).</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: REAL-TIME STOCK CHECK -->
+    <section id="check-stock" class="doc-section">
+            <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-method-get">GET</span>
+        <h2 class="h4 fw-bold text-dark mb-0">
+          <span class="t-bn">রিয়েল-টাইম Available-to-Sell (ATS) স্টক যাচাই</span>
+          <span class="t-en">Real-Time Available-to-Sell (ATS) Stock Check</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">পণ্য প্রদর্শন বা চেকআউটের সময় লাইভ স্টক ব্যালেন্স পেতে এই এন্ডপয়েন্টটি ব্যবহার করুন। এটি স্বয়ংক্রিয়ভাবে হিসাব করে:</span>
+        <span class="t-en">Use this endpoint during product viewing or checkout steps to retrieve live availability. It calculates:</span>
+        <br>
+        <code class="text-dark fw-bold font-mono text-break">available_stock = current_on_hand - active_reservations</code>
+      </p>
+
+      <div class="endpoint-box">
+        <span class="method get">GET</span>https://stockwhisk.com/api/integrations/webhooks/{ENDPOINT_ID}/?sku={SKU_OR_BARCODE}
+      </div>
+
+      <div class="table-responsive">
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th><span class="t-bn">কুয়েরি প্যারামিটার</span><span class="t-en">Query Parameter</span></th>
+              <th><span class="t-bn">টাইপ</span><span class="t-en">Type</span></th>
+              <th><span class="t-bn">আবশ্যক</span><span class="t-en">Required</span></th>
+              <th><span class="t-bn">বিবরণ</span><span class="t-en">Description</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code class="font-mono text-primary">sku</code></td>
+              <td><code>string</code></td>
+              <td>Optional*</td>
+              <td><span class="t-bn">পণ্যের SKU (যেমন <code>GDO-273540</code>)। খালি রাখলে দোকানের সক্রিয় আইটেম রিটার্ন করবে।</span><span class="t-en">Product SKU (e.g. <code>GDO-273540</code>). If omitted, returns active items for the shop.</span></td>
+            </tr>
+            <tr>
+              <td><code class="font-mono text-primary">barcode</code></td>
+              <td><code>string</code></td>
+              <td>Optional</td>
+              <td><span class="t-bn">আপনার ক্যাটালগে বারকোড দিয়ে সার্চ করতে চাইলে বারকোড স্ট্রিং।</span><span class="t-en">Barcode string if your catalog queries via barcode.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Code Snippets for Stock Check -->
+      <div class="code-container">
+        <div class="code-header">
+          <div class="code-tabs d-flex gap-1" id="stock-tabs">
+            <button class="btn active" onclick="switchTab(this, 'stock-curl')">cURL</button>
+            <button class="btn" onclick="switchTab(this, 'stock-js')">JavaScript (Node/Next.js)</button>
+            <button class="btn" onclick="switchTab(this, 'stock-php')">PHP / Laravel</button>
+            <button class="btn" onclick="switchTab(this, 'stock-py')">Python</button>
+          </div>
+          <button class="copy-btn" onclick="copyActiveCode(this, '#stock-code-area')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+        </div>
+        <div id="stock-code-area">
+          <pre class="code-block" id="stock-curl">curl -X GET "https://stockwhisk.com/api/integrations/webhooks/YOUR_ENDPOINT_UUID/?sku=GDO-273540" \
+  -H "X-Webhook-Secret: whsec_YOUR_SECRET_TOKEN"</pre>
+
+          <pre class="code-block d-none" id="stock-js">// Next.js Route Handler / Node.js
+export async function checkProductStock(sku) {
+  const endpoint = process.env.STOCKWHISK_WEBHOOK_URL;
+  const secret = process.env.STOCKWHISK_SECRET_TOKEN;
+
+  const res = await fetch(`${endpoint}?sku=${encodeURIComponent(sku)}`, {
+    method: "GET",
+    headers: {
+      "X-Webhook-Secret": secret,
+    },
+    cache: "no-store", // Ensure real-time query
+  });
+
+  if (!res.ok) throw new Error("Stock query failed");
+  const data = await res.json();
+  
+  // Returns: { id, name, sku, selling_price, on_hand, reserved, available, in_stock }
+  return data;
+}</pre>
+
+          <pre class="code-block d-none" id="stock-php">// PHP / Laravel Http Client
+use Illuminate\Support\Facades\Http;
+
+function getStockWhiskAvailability($sku) {
+    $response = Http::withHeaders([
+        'X-Webhook-Secret' => config('services.stockwhisk.secret'),
+    ])->get(config('services.stockwhisk.webhook_url'), [
+        'sku' => $sku,
+    ]);
+
+    if ($response->successful()) {
+        $item = $response->json();
+        return $item['available'] > 0;
+    }
+    return false;
+}</pre>
+
+          <pre class="code-block d-none" id="stock-py"># Python (Requests / FastAPI / Django)
+import requests
+
+def check_stock(sku: str) -> dict:
+    url = "https://stockwhisk.com/api/integrations/webhooks/YOUR_ENDPOINT_UUID/"
+    headers = {"X-Webhook-Secret": "whsec_YOUR_SECRET_TOKEN"}
+    
+    response = requests.get(url, params={"sku": sku}, headers=headers, timeout=5)
+    response.raise_for_status()
+    return response.json()</pre>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <h6 class="fw-bold text-dark mb-2">
+          <span class="t-bn">চূড়ান্ত API রেসপন্স (JSON রেজাল্ট):</span>
+          <span class="t-en">Final API Result (JSON Response):</span>
+        </h6>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="text-success small fw-bold font-mono">HTTP 200 OK</span>
+            <button class="copy-btn" onclick="copySnippet(this, 'stock-res')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+          </div>
+          <pre class="code-block" id="stock-res">{
+  "id": 81,
+  "name": "Anker 20W Fast Charger",
+  "sku": "GDO-273540",
+  "barcode": "",
+  "selling_price": 1450.00,
+  "on_hand": 15.0,
+  "reserved": 3.0,
+  "available": 12.0,
+  "in_stock": true
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: ORDER INGESTION WEBHOOK -->
+    <section id="order-webhook" class="doc-section">
+            <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-method-post">POST</span>
+        <h2 class="h4 fw-bold text-dark mb-0">
+          <span class="t-bn">অর্ডার ইনজেশন ওয়েবহুক</span>
+          <span class="t-en">Order Ingestion Webhook</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">গ্রাহক যখন আপনার ওয়েবসাইটে অর্ডার প্লেস করবেন, তখন অর্ডারের বিস্তারিত তথ্য এই এন্ডপয়েন্টে POST করুন। StockWhisk স্বয়ংক্রিয়ভাবে অ্যাটমিক স্টক রিজার্ভেশন, ডুপ্লিকেট অর্ডার ফিল্টারিং এবং রিটেল সেলস ইনভয়েস তৈরি সম্পন্ন করবে।</span>
+        <span class="t-en">When a customer places an order on your website, send the order details to this endpoint. StockWhisk will automatically execute atomic stock reservation, deduplicate requests, and create the retail sale invoice.</span>
+      </p>
+
+      <div class="endpoint-box">
+        <span class="method post">POST</span>https://stockwhisk.com/api/integrations/webhooks/{ENDPOINT_ID}/?sync=true
+      </div>
+
+      <div class="alert alert-info border-0 rounded-3 small d-flex gap-2">
+        <i class="bi bi-info-circle-fill fs-5 text-info"></i>
+        <div>
+          <strong class="t-bn">সিঙ্ক্রোনাস মোড:</strong><strong class="t-en">Synchronous Mode:</strong>
+          <span class="t-bn"> URL-এ <code>?sync=true</code> যুক্ত করলে StockWhisk তাৎক্ষণিকভাবে অর্ডার প্রসেস করে রেসপন্সে <code>invoice_no</code> এবং <code>sale_id</code> রিটার্ন করে। <code>?sync=true</code> ছাড়া অর্ডারগুলো ব্যাকগ্রাউন্ডে কিউতে জমা হয়ে প্রসেস হয়।</span>
+          <span class="t-en"> Adding <code>?sync=true</code> causes StockWhisk to process the order immediately and respond with the created <code>invoice_no</code> and <code>sale_id</code>. Without <code>?sync=true</code>, orders are queued for high-throughput asynchronous processing.</span>
+        </div>
+      </div>
+
+      <div class="code-container">
+        <div class="code-header">
+          <div class="code-tabs d-flex gap-1" id="order-tabs">
+            <button class="btn active" onclick="switchTab(this, 'order-payload')">JSON Payload</button>
+            <button class="btn" onclick="switchTab(this, 'order-curl')">cURL</button>
+            <button class="btn" onclick="switchTab(this, 'order-js')">Next.js / Node.js</button>
+            <button class="btn" onclick="switchTab(this, 'order-laravel')">Laravel / PHP</button>
+          </div>
+          <button class="copy-btn" onclick="copyActiveCode(this, '#order-code-area')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+        </div>
+        <div id="order-code-area">
+          <pre class="code-block" id="order-payload">{
+  "event": "order.created",
+  "id": "WEB-ORD-9005",
+  "order_number": "9005",
+  "total": 1450.00,
+  "customer": {
+    "name": "Mahmudul Hasan",
+    "phone": "01819998877",
+    "address": "House 12, Road 4, Banani, Dhaka"
+  },
+  "items": [
+    {
+      "sku": "GDO-273540",
+      "quantity": 1,
+      "unit_price": 1450.00
+    }
+  ]
+}</pre>
+
+          <pre class="code-block d-none" id="order-curl">curl -X POST "https://stockwhisk.com/api/integrations/webhooks/YOUR_ENDPOINT_UUID/?sync=true" \
+  -H "X-Webhook-Secret: whsec_YOUR_SECRET_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "event": "order.created",
+    "id": "WEB-ORD-9005",
+    "order_number": "9005",
+    "total": 1450.00,
+    "customer": {
+      "name": "Mahmudul Hasan",
+      "phone": "01819998877",
+      "address": "House 12, Road 4, Banani, Dhaka"
+    },
+    "items": [
+      {
+        "sku": "GDO-273540",
+        "quantity": 1,
+        "unit_price": 1450.00
+      }
+    ]
+  }'</pre>
+
+          <pre class="code-block d-none" id="order-js">// Next.js / Node.js Checkout Completion Handler
+export async function pushOrderToStockWhisk(order) {
+  const endpoint = `${process.env.STOCKWHISK_WEBHOOK_URL}?sync=true`;
+  const secret = process.env.STOCKWHISK_SECRET_TOKEN;
+
+  const payload = {
+    event: "order.created",
+    id: String(order.id),
+    order_number: String(order.orderNumber),
+    total: Number(order.totalAmount),
+    customer: {
+      name: order.customerName,
+      phone: order.customerPhone,
+      address: order.shippingAddress,
+    },
+    items: order.lineItems.map(item => ({
+      sku: item.sku,
+      quantity: Number(item.qty),
+      unit_price: Number(item.price),
+    })),
+  };
+
+  const res = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "X-Webhook-Secret": secret,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+
+  const data = await res.json();
+  if (!res.ok) {
+    throw new Error(data.error || "Order placement failed");
+  }
+
+  // data = { status: "success", invoice_no: "INV-000005", sale_id: 215, ... }
+  return data;
+}</pre>
+
+          <pre class="code-block d-none" id="order-laravel">// Laravel Controller or Order Observer
+use Illuminate\Support\Facades\Http;
+
+public function handleOrderPlaced($order) {
+    $webhookUrl = config('services.stockwhisk.url') . '?sync=true';
+    $secret = config('services.stockwhisk.secret');
+
+    $response = Http::withHeaders([
+        'X-Webhook-Secret' => $secret,
+        'Content-Type' => 'application/json',
+    ])->post($webhookUrl, [
+        'event' => 'order.created',
+        'id' => (string) $order->id,
+        'order_number' => $order->order_number,
+        'total' => (float) $order->total,
+        'customer' => [
+            'name' => $order->shipping_name,
+            'phone' => $order->billing_phone,
+            'address' => $order->shipping_address,
+        ],
+        'items' => collect($order->items)->map(fn($item) => [
+            'sku' => $item->sku,
+            'quantity' => $item->quantity,
+            'unit_price' => $item->price,
+        ])->toArray(),
+    ]);
+
+    if ($response->successful()) {
+        $result = $response->json();
+        // Save StockWhisk invoice number to local order record
+        $order->update(['stockwhisk_invoice' => $result['invoice_no']]);
+    }
+}</pre>
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <h6 class="fw-bold text-dark mb-2">
+          <span class="t-bn">চূড়ান্ত API রেসপন্স (ইনভয়েস তৈরি রেজাল্ট):</span>
+          <span class="t-en">Final API Result (JSON Invoicing Response):</span>
+        </h6>
+        <div class="code-container">
+          <div class="code-header">
+            <span class="text-success small fw-bold font-mono">HTTP 200 OK</span>
+            <button class="copy-btn" onclick="copySnippet(this, 'order-res')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+          </div>
+          <pre class="code-block" id="order-res">{
+  "status": "success",
+  "event_id": 5,
+  "external_order_id": "WEB-ORD-9005",
+  "invoice_no": "INV-000006",
+  "sale_id": 216,
+  "total_amount": 1450.00,
+  "message": "Order successfully processed and sale created."
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: ORDER CANCELLATION & RELEASE -->
+    <section id="order-cancellation" class="doc-section">
+      <h2 class="h3 fw-bold text-dark mb-2">
+        <span class="t-bn">অর্ডার বাতিল ও স্বয়ংক্রিয় স্টক রিলিজ</span>
+        <span class="t-en">Order Cancellation & Automatic Stock Release</span>
+      </h2>
+      <p class="text-muted">
+        <span class="t-bn">আপনার ওয়েবসাইট বা ড্যাশবোর্ডে কোনো অর্ডার বাতিল হলে StockWhisk স্বয়ংক্রিয়ভাবে রিজার্ভ করা ইনভেন্টরি অবমুক্ত করে এবং সংশ্লিষ্ট ইনভয়েসটি বাতিল করে দেয়।</span>
+        <span class="t-en">When an order is cancelled on your website or dashboard, StockWhisk automatically releases the reserved inventory and marks the associated invoice cancelled.</span>
+      </p>
+
+      <div class="doc-card">
+        <h6 class="fw-bold text-dark mb-2">
+          <i class="bi bi-arrow-repeat text-primary me-2"></i>
+          <span class="t-bn">স্টক রিলিজ যেভাবে কাজ করে</span>
+          <span class="t-en">How Stock Release Works</span>
+        </h6>
+        <ul class="text-muted small mb-3">
+          <li>
+            <strong><span class="t-bn">ওয়েবহুক ইভেন্ট:</span><span class="t-en">Webhook Event:</span></strong>
+            <span class="t-bn"> আপনার ওয়েবসাইট যদি ওয়েবহুকে <code>order.cancelled</code> ইভেন্ট পাঠায়, তবে StockWhisk মূল রিজার্ভেশন চিহ্নিত করে তা অবমুক্ত করে।</span>
+            <span class="t-en"> If your website sends an <code>order.cancelled</code> event to the webhook URL, StockWhisk instantly identifies the original reservation and releases it.</span>
+          </li>
+          <li>
+            <strong><span class="t-bn">API ট্রিগার:</span><span class="t-en">API Trigger:</span></strong>
+            <span class="t-bn"> বিকল্প হিসেবে মার্চেন্ট ক্রেডেনশিয়াল সহ <code>POST /api/integrations/orders/{id}/cancel/</code> কল করে স্টক রিলিজ করা যায়।</span>
+            <span class="t-en"> Alternatively, call <code>POST /api/integrations/orders/{id}/cancel/</code> with merchant credentials to release stock programmatically.</span>
+          </li>
+          <li>
+            <strong><span class="t-bn">উপলব্ধ স্টক পুনরুদ্ধার:</span><span class="t-en">Available Stock Restoration:</span></strong>
+            <span class="t-bn"> কোনো ম্যানুয়াল লেজার সমন্বয় ছাড়াই <code>available_stock</code> তৎক্ষণাৎ পূর্বের মূল মানে ফিরে আসে।</span>
+            <span class="t-en"> <code>available_stock</code> immediately increases back to its original pre-order value without manual ledger adjustments.</span>
+          </li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- SECTION: WORDPRESS & WOOCOMMERCE -->
+    <section id="wordpress-guide" class="doc-section">
+            <div class="d-flex align-items-center gap-2 mb-2">
+        <i class="bi bi-wordpress fs-3 text-primary"></i>
+        <h2 class="h3 fw-bold text-dark mb-0">
+          <span class="t-bn">ওয়ার্ডপ্রেস ও উকমার্স ইন্টিগ্রেশন নির্দেশিকা</span>
+          <span class="t-en">WordPress & WooCommerce Integration Guide</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">আপনার ওয়েবসাইট যদি ওয়ার্ডপ্রেস এবং উকমার্স দিয়ে তৈরি হয়ে থাকে, তবে StockWhisk কানেক্ট করার জন্য দুটি সহজ পদ্ধতি রয়েছে:</span>
+        <span class="t-en">If your website is built on WordPress with WooCommerce, you have two flexible methods to connect StockWhisk:</span>
+      </p>
+
+      <!-- METHOD 1: NATIVE WOOCOMMERCE WEBHOOKS -->
+      <div class="doc-card mb-4">
+        <span class="badge bg-success-subtle text-success border border-success-subtle mb-2"><span class="t-bn">পদ্ধতি ১ (কোনো কোডিং প্রয়োজন নেই)</span><span class="t-en">Method 1 (No Code Required)</span></span>
+        <h5 class="fw-bold text-dark mb-2"><span class="t-bn">নেটিভ উকমার্স ওয়েবহুক</span><span class="t-en">Native WooCommerce Webhooks</span></h5>
+        <p class="text-muted small">
+          <span class="t-bn">উকমার্সে বিল্ট-ইন ওয়েবহুক প্রেরণের ব্যবস্থা রয়েছে। কোনো PHP কোড লেখা ছাড়াই মাত্র ২ মিনিটে এটি কানেক্ট করা সম্ভব:</span>
+          <span class="t-en">WooCommerce has built-in webhook dispatching. You can connect it in 2 minutes without writing a single line of PHP:</span>
+        </p>
+
+        <ol class="small text-muted vstack gap-2 ps-3 mb-3">
+          <li>
+            <span class="t-bn">আপনার ওয়ার্ডপ্রেস অ্যাডমিন ড্যাশবোর্ডে লগইন করুন।</span>
+            <span class="t-en">Log in to your WordPress Admin dashboard.</span>
+          </li>
+          <li>
+            <span class="t-bn"><strong>WooCommerce</strong> &gt; <strong>Settings</strong> &gt; <strong>Advanced</strong> &gt; <strong>Webhooks</strong>-এ যান।</span>
+            <span class="t-en">Go to <strong>WooCommerce</strong> &gt; <strong>Settings</strong> &gt; <strong>Advanced</strong> &gt; <strong>Webhooks</strong>.</span>
+          </li>
+          <li>
+            <span class="t-bn"><strong>"Add webhook"</strong> বাটনে ক্লিক করুন।</span>
+            <span class="t-en">Click the <strong>"Add webhook"</strong> button.</span>
+          </li>
+          <li>
+            <span class="t-bn">নিচের ফিল্ডগুলো সঠিকভাবে পূরণ করুন:</span>
+            <span class="t-en">Fill in the fields exactly as follows:</span>
+            <ul class="mt-1">
+              <li><strong>Name:</strong> <code>StockWhisk Order Sync</code></li>
+              <li><strong>Status:</strong> Select <code>Active</code></li>
+              <li><strong>Topic:</strong> Select <code>Order created</code></li>
+              <li><strong>Delivery URL:</strong> <span class="t-bn">আপনার StockWhisk ওয়েবহুক URL পেস্ট করুন</span><span class="t-en">Paste your StockWhisk Webhook URL</span> (<code class="text-break">https://stockwhisk.com/api/integrations/webhooks/{UUID}/</code>)</li>
+              <li><strong>Secret:</strong> <span class="t-bn">আপনার Secret Key পেস্ট করুন</span><span class="t-en">Paste your StockWhisk Secret Key</span> (<code>whsec_xxxxxxxx</code>)</li>
+              <li><strong>API Version:</strong> <code>WP REST API Integration v3</code></li>
+            </ul>
+          </li>
+          <li>
+            <span class="t-bn"><strong>"Save Webhook"</strong> বাটনে ক্লিক করুন।</span>
+            <span class="t-en">Click <strong>"Save Webhook"</strong>.</span>
+          </li>
+        </ol>
+
+        <div class="alert alert-success border-0 rounded-3 small mb-0">
+          <i class="bi bi-check-circle-fill me-1"></i>
+          <strong><span class="t-bn">সম্পন্ন!</span><span class="t-en">Done!</span></strong>
+          <span class="t-bn"> এখন থেকে উকমার্স স্টোরে প্রতিটি নতুন চেকআউট হওয়া মাত্রই StockWhisk লাইভ স্টক যাচাই করবে, রিটেল ইনভয়েস তৈরি করবে এবং ইনভেন্টরি সমন্বয় করবে।</span>
+          <span class="t-en"> Every new WooCommerce checkout will automatically trigger StockWhisk to verify stock, create the retail invoice, and adjust inventory.</span>
+        </div>
+      </div>
+
+      <!-- METHOD 2: CUSTOM PHP SNIPPET -->
+      <div class="doc-card">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle mb-2"><span class="t-bn">পদ্ধতি ২ (অ্যাডভান্সড PHP কোড)</span><span class="t-en">Method 2 (Advanced PHP Code)</span></span>
+        <h5 class="fw-bold text-dark mb-2"><span class="t-bn">কার্টে লাইভ স্টক ভ্যালিডেশন সহ কাস্টম ওয়ার্ডপ্রেস হুক</span><span class="t-en">Custom WordPress Hook with Live Cart Stock Validation</span></h5>
+        <p class="text-muted small">
+          <span class="t-bn">উন্নত উকমার্স স্টোরের জন্য এই কোড স্নিপেটটি আপনার চাইল্ড থিমের <code>functions.php</code> অথবা কাস্টম প্লাগইনে পেস্ট করুন। এটি পেমেন্টের পূর্বেই রিয়েল-টাইম স্টক ভ্যালিডেশন করে এবং অর্ডার নিশ্চিত হওয়ার সাথে সাথে তাৎক্ষণিক StockWhisk-এ পুশ করে:</span>
+          <span class="t-en">For advanced WooCommerce stores, paste this snippet into your child theme's <code>functions.php</code> or a custom plugin. It checks live StockWhisk inventory <em>before</em> payment and sends the order immediately upon confirmation:</span>
+        </p>
+
+        <div class="code-container">
+          <div class="code-header">
+            <span class="text-white small fw-bold font-mono">functions.php snippet</span>
+            <button class="copy-btn" onclick="copySnippet(this, 'wp-snippet')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+          </div>
+          <pre class="code-block" id="wp-snippet">&lt;?php
+/**
+ * StockWhisk WooCommerce Integration Snippet
+ * Paste into your child theme's functions.php
+ */
+
+define('STOCKWHISK_WEBHOOK_URL', 'https://stockwhisk.com/api/integrations/webhooks/YOUR_ENDPOINT_UUID/?sync=true');
+define('STOCKWHISK_SECRET_KEY', 'whsec_YOUR_SECRET_TOKEN');
+
+// 1. Verify StockWhisk live inventory during checkout submission
+add_action('woocommerce_check_cart_items', 'stockwhisk_verify_live_stock');
+function stockwhisk_verify_live_stock() {
+    if (is_cart() || is_checkout()) {
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $product = $cart_item['data'];
+            $sku = $product->get_sku();
+            if (!$sku) continue;
+
+            $qty_needed = $cart_item['quantity'];
+
+            // Query StockWhisk live available stock
+            $url = add_query_arg('sku', $sku, strtok(STOCKWHISK_WEBHOOK_URL, '?'));
+            $response = wp_remote_get($url, [
+                'headers' => ['X-Webhook-Secret' => STOCKWHISK_SECRET_KEY],
+                'timeout' => 4,
+            ]);
+
+            if (!is_wp_error($response) && wp_remote_retrieve_response_code($response) === 200) {
+                $stock_data = json_decode(wp_remote_retrieve_body($response), true);
+                if (isset($stock_data['available']) && $stock_data['available'] < $qty_needed) {
+                    wc_add_notice(sprintf(
+                        __('দুঃখিত! "%s" পণ্যটির পর্যাপ্ত স্টক নেই। স্টকে রয়েছে মাত্র %d টি।', 'woocommerce'),
+                        $product->get_name(),
+                        $stock_data['available']
+                    ), 'error');
+                }
+            }
+        }
+    }
+}
+
+// 2. Transmit confirmed order to StockWhisk
+add_action('woocommerce_checkout_order_processed', 'stockwhisk_push_order_on_checkout', 10, 3);
+function stockwhisk_push_order_on_checkout($order_id, $posted_data, $order) {
+    $items = [];
+    foreach ($order->get_items() as $item) {
+        $product = $item->get_product();
+        $items[] = [
+            'sku' => $product ? $product->get_sku() : '',
+            'quantity' => $item->get_quantity(),
+            'unit_price' => (float) $order->get_item_subtotal($item, false),
+        ];
+    }
+
+    $payload = [
+        'event' => 'order.created',
+        'id' => (string) $order_id,
+        'order_number' => (string) $order->get_order_number(),
+        'total' => (float) $order->get_total(),
+        'customer' => [
+            'name' => $order->get_formatted_billing_full_name(),
+            'phone' => $order->get_billing_phone(),
+            'address' => $order->get_shipping_address_1() . ', ' . $order->get_shipping_city(),
+        ],
+        'items' => $items,
+    ];
+
+    $response = wp_remote_post(STOCKWHISK_WEBHOOK_URL, [
+        'headers' => [
+            'X-Webhook-Secret' => STOCKWHISK_SECRET_KEY,
+            'Content-Type' => 'application/json',
+        ],
+        'body' => wp_json_encode($payload),
+        'timeout' => 6,
+    ]);
+
+    if (!is_wp_error($response)) {
+        $body = json_decode(wp_remote_retrieve_body($response), true);
+        if (!empty($body['invoice_no'])) {
+            $order->update_meta_data('_stockwhisk_invoice_no', $body['invoice_no']);
+            $order->add_order_note('StockWhisk Retail Invoice Created: ' . $body['invoice_no']);
+            $order->save();
+        }
+    }
+}</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: ATOMIC CONCURRENCY GUARANTEE -->
+    <section id="atomic-reservation" class="doc-section">
+      <h2 class="h3 fw-bold text-dark mb-2">
+        <span class="t-bn">অ্যাটমিক কনকারেন্সি ও অ্যান্টি-ওভারসেল ইঞ্জিন</span>
+        <span class="t-en">Atomic Concurrency & Anti-Oversell Engine</span>
+      </h2>
+      <p class="text-muted">
+        <span class="t-bn">কেন StockWhisk ফ্ল্যাশ সেলে ইনভেন্টরি বিচ্যুতির বিরুদ্ধে গাণিতিক নিশ্চয়তা প্রদান করে:</span>
+        <span class="t-en">Why StockWhisk provides a mathematical guarantee against flash-sale inventory corruption:</span>
+      </p>
+
+      <div class="row g-3">
+        <div class="col-md-6">
+          <div class="p-3 bg-white border rounded-3 h-100">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="bi bi-lock-fill text-danger me-2"></i>
+              <span class="t-bn">রো-লেভেল ডাটাবেস লক (Row-Level Locks)</span>
+              <span class="t-en">Row-Level Database Locks</span>
+            </h6>
+            <p class="text-muted small mb-0">
+              <span class="t-bn">যখন কোনো অর্ডার StockWhisk-এ পৌঁছায়, এটি <code>Product.objects.select_for_update()</code> ব্যবহার করে একটি <code>transaction.atomic()</code> ব্লকের ভেতরে কার্যকর হয়। সমান্তরাল ডাটাবেস কুয়েরিগুলো একটি কঠোর সারিতে অপেক্ষা করে।</span>
+              <span class="t-en">When an order request reaches StockWhisk, it executes inside a <code>transaction.atomic()</code> block using <code>Product.objects.select_for_update()</code>. Parallel database queries wait in a strict queue.</span>
+            </p>
+          </div>
+        </div>
+
+        <div class="col-md-6">
+          <div class="p-3 bg-white border rounded-3 h-100">
+            <h6 class="fw-bold text-dark mb-2">
+              <i class="bi bi-shield-slash-fill text-success me-2"></i>
+              <span class="t-bn">শূন্য রেস কন্ডিশন (Zero Race Conditions)</span>
+              <span class="t-en">Zero Race Conditions</span>
+            </h6>
+            <p class="text-muted small mb-0">
+              <span class="t-bn">যদি স্টক থাকে ১ এবং দুজন ব্যবহারকারী একসাথে অর্ডার কনফার্ম করেন: ট্রানজ্যাকশন A রো লক করে, স্টক = ১ যাচাই করে স্টক কমায় এবং কমিট করে। এরপর ট্রানজ্যাকশন B স্টক = ০ দেখতে পায় এবং স্বয়ংক্রিয়ভাবে HTTP 409 Conflict সহ বাতিল হয়।</span>
+              <span class="t-en">If stock is 1 and two users submit payment simultaneously: Transaction A locks the row, verifies availability = 1, deducts stock, and commits. Transaction B then reads availability = 0 and is safely rejected with HTTP 409 Conflict.</span>
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: INTERACTIVE LIVE PLAYGROUND / TESTER -->
+    <section id="live-playground" class="doc-section">
+            <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge bg-warning text-dark fw-bold interactive-badge"><i class="bi bi-play-circle-fill me-1"></i> <span class="t-bn">ইন্টারেক্টিভ স্যান্ডবক্স</span><span class="t-en">Interactive Sandbox</span></span>
+        <h2 class="h3 fw-bold text-dark mb-0">
+          <span class="t-bn">লাইভ API সিমুলেটর</span>
+          <span class="t-en">Live API Simulator</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">সরাসরি আপনার ব্রাউজারের ভেতর থেকেই টেস্ট করুন। আপনার এন্ডপয়েন্ট URL ও সিক্রেট কি দিয়ে লাইভ API কল এক্সিকিউট করুন:</span>
+        <span class="t-en">Test your provisioned endpoint right here inside the browser. Enter your Endpoint URL and Secret Key, and execute live API calls:</span>
+      </p>
+
+      <div class="doc-card border-primary-subtle bg-white">
+        <div class="row g-3">
+          <div class="col-md-7">
+            <label class="form-label small fw-bold text-dark"><span class="t-bn">আপনার StockWhisk ওয়েবহুক URL:</span><span class="t-en">Your StockWhisk Webhook URL:</span></label>
+            <input type="text" id="sim-url" class="form-control form-control-sm font-mono" placeholder="https://stockwhisk.com/api/integrations/webhooks/YOUR_UUID/" value="/api/integrations/webhooks/00b2ff3a-803e-444d-8402-f1a5ef1c0464/">
+          </div>
+          <div class="col-md-5">
+            <label class="form-label small fw-bold text-dark"><span class="t-bn">সিক্রেট টোকেন (whsec_...):</span><span class="t-en">Secret Token (whsec_...):</span></label>
+            <input type="password" id="sim-secret" class="form-control form-control-sm font-mono" placeholder="whsec_..." value="whsec_a6dbcb5a0d06bab27f071e3aa3ffa4d31b472c35">
+          </div>
+        </div>
+
+        <div class="row g-3 mt-1 align-items-end">
+          <div class="col-md-4">
+            <label class="form-label small fw-bold text-dark"><span class="t-bn">পণ্যের SKU:</span><span class="t-en">Product SKU:</span></label>
+            <input type="text" id="sim-sku" class="form-control form-control-sm font-mono" value="GDO-273540">
+          </div>
+          <div class="col-md-8 d-flex flex-column flex-sm-row gap-2">
+            <button class="btn btn-outline-primary btn-sm flex-fill py-2 py-sm-1" id="btn-test-stock" onclick="runLiveStockTest()">
+              <i class="bi bi-box-seam me-1"></i> <span class="t-bn">১. লাইভ স্টক চেক করুন (GET)</span><span class="t-en">1. Test Live Stock Check (GET)</span>
+            </button>
+            <button class="btn btn-success btn-sm flex-fill py-2 py-sm-1" id="btn-test-order" onclick="runLiveOrderTest()">
+              <i class="bi bi-bag-plus-fill me-1"></i> <span class="t-bn">২. টেস্ট অর্ডার প্লেস করুন (POST)</span><span class="t-en">2. Test Order Placement (POST)</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Live Output Box -->
+        <div class="mt-4">
+          <div class="d-flex justify-content-between align-items-center mb-1 flex-wrap gap-2">
+            <span class="small fw-bold text-dark"><span class="t-bn">সিমুলেটর ও ডেমো API আউটপুট:</span><span class="t-en">Simulator & Demo API Output:</span></span>
+            <span id="sim-status" class="badge bg-success-subtle text-success border border-success-subtle">HTTP 200 OK (Demo Result)</span>
+          </div>
+          <div class="code-container mt-1">
+            <div class="code-header">
+              <div class="code-tabs d-flex gap-1" id="sim-tabs">
+                <button class="btn active" id="tab-demo-order" onclick="showDemoJson('order')"><span class="t-bn">অর্ডার রেজাল্ট (POST ডেমো)</span><span class="t-en">Order Result (POST Demo)</span></button>
+                <button class="btn" id="tab-demo-stock" onclick="showDemoJson('stock')"><span class="t-bn">স্টক রেজাল্ট (GET ডেমো)</span><span class="t-en">Stock Result (GET Demo)</span></button>
+              </div>
+              <button class="copy-btn" onclick="copySnippet(this, 'sim-output')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+            </div>
+            <pre class="code-block" id="sim-output" style="max-height: 290px;">{
+  "status": "success",
+  "event_id": 5,
+  "external_order_id": "WEB-ORD-9005",
+  "invoice_no": "INV-000006",
+  "sale_id": 216,
+  "total_amount": 1450.00,
+  "message": "Order successfully processed and sale created."
+}</pre>
+          </div>
+          <div class="d-flex justify-content-between align-items-center mt-1 px-1 flex-wrap gap-1">
+            <span class="text-muted font-mono" id="sim-method" style="font-size: 0.75rem;">POST /api/integrations/webhooks/{ENDPOINT_ID}/?sync=true</span>
+            <span class="text-muted" style="font-size: 0.75rem;"><i class="bi bi-info-circle me-1"></i><span class="t-bn">প্রিলোডেড ডেমো JSON ডেটা। লাইভ রিকোয়েস্ট পাঠাতে উপরের বাটনগুলোতে ক্লিক করুন।</span><span class="t-en">Preloaded demo JSON. Click buttons above to execute live against backend.</span></span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SECTION: TROUBLESHOOTING & ERROR CODES -->
+    <section id="troubleshooting" class="doc-section">
+            <h2 class="h3 fw-bold text-dark mb-2">
+        <span class="t-bn">এরর কোড ও সাধারণ জিজ্ঞাসা (FAQ)</span>
+        <span class="t-en">Error Codes & Troubleshooting</span>
+      </h2>
+      <p class="text-muted">
+        <span class="t-bn">স্ট্যান্ডার্ড HTTP স্ট্যাটাস কোড এবং সমাধানের উপায়:</span>
+        <span class="t-en">Standard HTTP status codes and resolution steps:</span>
+      </p>
+
+      <div class="table-responsive">
+        <table class="param-table">
+          <thead>
+            <tr>
+              <th><span class="t-bn">স্ট্যাটাস কোড</span><span class="t-en">Status Code</span></th>
+              <th><span class="t-bn">এরর মেসেজ</span><span class="t-en">Error Message</span></th>
+              <th><span class="t-bn">সমাধানের নির্দেশিকা</span><span class="t-en">Resolution</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><span class="badge bg-danger">401 Unauthorized</span></td>
+              <td><code>Invalid or missing secret key</code></td>
+              <td><span class="t-bn">হেডারে পাঠানো <code>X-Webhook-Secret</code> টোকেনটি ড্যাশবোর্ডের টোকেনের সাথে মিলিয়ে নিন।</span><span class="t-en">Verify the <code>X-Webhook-Secret</code> header matches your dashboard token.</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-warning text-dark">409 Conflict</span></td>
+              <td><code>Insufficient available stock</code></td>
+              <td><span class="t-bn">অনুমোদিত অর্ডার বা পেন্ডিং রিজার্ভেশনের কারণে পণ্যটির স্টক ০ হয়ে গেছে।</span><span class="t-en">The requested item has 0 available units due to other confirmed orders or holds.</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-info text-dark">200 Deduplicated</span></td>
+              <td><code>Event already received and processed</code></td>
+              <td><span class="t-bn">স্বাভাবিক আচরণ: পুনঃপ্রেরিত অর্ডারের ক্ষেত্রে StockWhisk ডুপ্লিকেট ইনভয়েস তৈরি বন্ধ করেছে।</span><span class="t-en">Normal behavior: StockWhisk prevented duplicate invoice generation for a retried order.</span></td>
+            </tr>
+            <tr>
+              <td><span class="badge bg-danger">422 Unprocessable</span></td>
+              <td><code>Product SKU not found</code></td>
+              <td><span class="t-bn">যাচাই করুন যে SKU-টি StockWhisk-এ রয়েছে এবং চ্যানেলটির সাথে সঠিকভাবে ম্যাপ করা আছে।</span><span class="t-en">Check that the SKU exists in StockWhisk and is mapped to the external channel.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Universal Public Footer (MarketingFooter.tsx Parity) -->
+  <footer class="universal-footer">
+    <div class="container-fluid px-4 px-lg-5" style="max-width: 1200px;">
+      <div class="row g-4 justify-content-between">
+        <!-- Col 1: Brand Logo & Subtitle -->
+        <div class="col-12 col-md-5">
+          <div class="footer-logo-card mb-3">
+            <img class="brand-logo-img" src="/logo.png" alt="StockWhisk" style="height: 44px; width: 44px; object-fit: contain; display: block;" onerror="this.src='/logo.png'" />
+          </div>
+          <p class="footer-desc mb-0">
+            <span class="t-bn">স্পষ্টতা, গতি এবং নির্ভুলতার জন্য তৈরি আধুনিক রিটেইল ড্যাশবোর্ড। ইনভেন্টরি ম্যানেজ করুন, সেলস ট্র্যাক করুন এবং ঝামেলা ছাড়াই আপনার ব্যবসা প্রসারিত করুন।</span>
+            <span class="t-en">Modern retail dashboard built for clarity, speed, and accuracy. Manage inventory, track sales, and grow your business without the hassle.</span>
+          </p>
+        </div>
+
+        <!-- Col 2: Product Links -->
+        <div class="col-6 col-md-3">
+          <h6 class="footer-heading mb-3">
+            <span class="t-bn">প্রোডাক্ট</span>
+            <span class="t-en">Product</span>
+          </h6>
+          <ul class="list-unstyled footer-links vstack gap-2 mb-0">
+            <li><a href="/pricing" class="footer-link"><span class="t-bn">প্রাইসিং</span><span class="t-en">Pricing</span></a></li>
+            <li><a href="/api-docs.html" class="footer-link"><span class="t-bn">ডেভেলপার API ডক</span><span class="t-en">Developer API Docs</span></a></li>
+            <li><a href="/tutorials" class="footer-link"><span class="t-bn">ভিডিও টিউটোরিয়াল</span><span class="t-en">Video Tutorials</span></a></li>
+            <li><a href="/blog" class="footer-link"><span class="t-bn">ব্লগ</span><span class="t-en">Blog</span></a></li>
+            <li><a href="/contact" class="footer-link"><span class="t-bn">যোগাযোগ</span><span class="t-en">Contact</span></a></li>
+          </ul>
+        </div>
+
+        <!-- Col 3: Get Started Links -->
+        <div class="col-6 col-md-3">
+          <h6 class="footer-heading mb-3">
+            <span class="t-bn">শুরু করুন</span>
+            <span class="t-en">Get started</span>
+          </h6>
+          <ul class="list-unstyled footer-links vstack gap-2 mb-0">
+            <li><a href="/register" class="footer-link"><span class="t-bn">১৪-দিনের ফ্রি ট্রায়াল</span><span class="t-en">14-Day Free Trial</span></a></li>
+            <li><a href="/login" class="footer-link"><span class="t-bn">লগইন</span><span class="t-en">Login</span></a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Bottom Bar: Copyright & Terms -->
+      <div class="footer-bottom-bar mt-5 pt-3 d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <div class="footer-copyright">
+          <span class="t-bn">© <span class="footer-year">2026</span> StockWhisk. সর্বস্বত্ব সংরক্ষিত।</span>
+          <span class="t-en">© <span class="footer-year">2026</span> StockWhisk. All rights reserved.</span>
+        </div>
+        <div class="footer-legal d-flex gap-3">
+          <a href="/terms" class="footer-link">
+            <span class="t-bn">শর্তাবলী ও নীতিমালা</span>
+            <span class="t-en">Terms & Conditions</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification -->
+  <div id="toast-notification">
+    <i class="bi bi-check-circle-fill text-success fs-5"></i>
+    <span id="toast-text">Copied to clipboard!</span>
+  </div>
+
+  <!-- JavaScript for Tabs, Copying, and Live Simulator -->
+  <script>
+    
+    // Language Management (Sync with site_lang in localStorage)
+    function getActiveLanguage() {
+      try {
+        var saved = localStorage.getItem('site_lang');
+        if (saved === 'en' || saved === 'bn') return saved;
+      } catch (e) {}
+      return 'bn';
+    }
+
+    function applyLanguage(lang) {
+      if (lang !== 'en' && lang !== 'bn') lang = 'bn';
+      try {
+        localStorage.setItem('site_lang', lang);
+      } catch (e) {}
+      document.documentElement.setAttribute('data-lang', lang);
+      document.body.setAttribute('data-lang', lang);
+
+      // Update placeholders
+      var simUrl = document.getElementById('sim-url');
+      if (simUrl) {
+        simUrl.placeholder = (lang === 'bn') 
+          ? "https://stockwhisk.com/api/integrations/webhooks/আপনার_UUID/"
+          : "https://stockwhisk.com/api/integrations/webhooks/YOUR_UUID/";
+      }
+    }
+
+    function toggleLanguage() {
+      var current = getActiveLanguage();
+      var next = (current === 'bn') ? 'en' : 'bn';
+      applyLanguage(next);
+      showToast(next === 'bn' ? "ভাষা পরিবর্তন: বাংলা" : "Language Switched: English");
+    }
+
+    // Auto-init language on load
+    applyLanguage(getActiveLanguage());
+
+    // Auto-set copyright year
+    try {
+      document.querySelectorAll('.footer-year').forEach(function(el) {
+        el.textContent = String(new Date().getFullYear());
+      });
+    } catch (e) {}
+
+    // Dynamic Platform Branding Loader (Syncs with /api/platform/public/site-config/)
+    (function loadPlatformBranding() {
+      fetch('/api/platform/public/site-config/')
+        .then(function(res) {
+          if (!res.ok) throw new Error('Failed to load branding');
+          return res.json();
+        })
+        .then(function(data) {
+          if (data && data.logo) {
+            var logoUrl = data.logo;
+            document.querySelectorAll('.brand-logo-img').forEach(function(img) {
+              img.src = logoUrl;
+            });
+          }
+          if (data && data.favicon) {
+            var iconLink = document.querySelector("link[rel*='icon']");
+            if (iconLink) iconLink.href = data.favicon;
+          }
+        })
+        .catch(function() {
+          document.querySelectorAll('.brand-logo-img').forEach(function(img) {
+            if (!img.src || img.src.includes('logo_simple.svg')) {
+              img.src = '/logo.png';
+            }
+          });
+        });
+    })();
+
+    // Mobile Drawer Controls
+    const mobileToggle = document.getElementById('mobile-toggle');
+    const sidebarClose = document.getElementById('sidebar-close');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+
+    // Public Site Mobile Menu Controls
+    const publicMenuToggle = document.getElementById('public-menu-toggle');
+    const publicMenuDropdown = document.getElementById('public-menu-dropdown');
+    const publicMenuBackdrop = document.getElementById('public-menu-backdrop');
+
+    function openSidebar() {
+      closePublicMenu();
+      if (sidebar) sidebar.classList.add('show');
+      if (overlay) overlay.classList.add('show');
+      document.body.style.overflow = 'hidden';
+    }
+
+    function closeSidebar() {
+      if (sidebar) sidebar.classList.remove('show');
+      if (overlay) overlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+
+    function togglePublicMenu(e) {
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      const isOpen = publicMenuDropdown && publicMenuDropdown.classList.contains('show');
+      if (isOpen) {
+        closePublicMenu();
+      } else {
+        openPublicMenu();
+      }
+    }
+
+    function openPublicMenu() {
+      closeSidebar();
+      if (publicMenuDropdown) publicMenuDropdown.classList.add('show');
+      if (publicMenuBackdrop) publicMenuBackdrop.classList.add('show');
+    }
+
+    function closePublicMenu() {
+      if (publicMenuDropdown) publicMenuDropdown.classList.remove('show');
+      if (publicMenuBackdrop) publicMenuBackdrop.classList.remove('show');
+    }
+
+    if (mobileToggle) mobileToggle.addEventListener('click', openSidebar);
+    if (sidebarClose) sidebarClose.addEventListener('click', closeSidebar);
+    if (overlay) overlay.addEventListener('click', closeSidebar);
+
+    if (publicMenuToggle) {
+      publicMenuToggle.addEventListener('click', togglePublicMenu);
+      // Fast response for touch devices
+      publicMenuToggle.addEventListener('touchstart', function(e) {
+        // Fast response naturally supported via touch-action: manipulation
+      }, { passive: true });
+    }
+    if (publicMenuBackdrop) {
+      publicMenuBackdrop.addEventListener('click', closePublicMenu);
+      publicMenuBackdrop.addEventListener('touchstart', closePublicMenu, { passive: true });
+    }
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closePublicMenu();
+        closeSidebar();
+      }
+    });
+
+    // Instant tactile feedback on link click WITHOUT aborting navigation
+    if (publicMenuDropdown) {
+      publicMenuDropdown.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', function(e) {
+          const href = this.getAttribute('href');
+          if (href && href.startsWith('#')) {
+            closePublicMenu();
+          } else {
+            // Provide immediate tactile touch feedback
+            this.style.backgroundColor = 'rgba(37, 99, 235, 0.12)';
+            this.style.color = '#2563eb';
+            // Smoothly remove backdrop so UI doesn't freeze, but keep menu visible until new page loads
+            if (publicMenuBackdrop) publicMenuBackdrop.classList.remove('show');
+          }
+        });
+      });
+    }
+
+    // Auto-close drawer on link click in mobile view
+    if (sidebar) {
+      sidebar.querySelectorAll('a').forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth < 992) {
+            closeSidebar();
+          }
+        });
+      });
+    }
+
+    // Sidebar active indicator on scroll
+    const sections = document.querySelectorAll('section.doc-section');
+    const sidebarLinks = document.querySelectorAll('.sidebar .nav-link');
+
+    window.addEventListener('scroll', () => {
+      let currentId = '';
+      sections.forEach(sec => {
+        const top = sec.offsetTop - 120;
+        if (window.scrollY >= top) {
+          currentId = sec.getAttribute('id');
+        }
+      });
+
+      if (currentId) {
+        sidebarLinks.forEach(link => {
+          if (link.getAttribute('href') === `#${currentId}`) {
+            link.classList.add('active');
+          } else {
+            link.classList.remove('active');
+          }
+        });
+      }
+    }, { passive: true });
+
+    // Code Tab Switcher
+    function switchTab(btn, blockId) {
+      const container = btn.closest('.code-container');
+      container.querySelectorAll('.code-tabs .btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+
+      container.querySelectorAll('pre.code-block').forEach(p => p.classList.add('d-none'));
+      document.getElementById(blockId).classList.remove('d-none');
+    }
+
+    // Copy Snippet
+    function copySnippet(btn, elementId) {
+      const text = document.getElementById(elementId).innerText;
+      copyTextToClipboard(text, btn);
+    }
+
+    function copyActiveCode(btn, containerSelector) {
+      const activePre = document.querySelector(containerSelector + ' pre.code-block:not(.d-none)');
+      if (activePre) {
+        copyTextToClipboard(activePre.innerText, btn);
+      }
+    }
+
+    function copyTextToClipboard(text, btn) {
+      navigator.clipboard.writeText(text).then(() => {
+        showToast("Copied to clipboard!");
+        if (btn) {
+          const original = btn.innerHTML;
+          btn.innerHTML = '<i class="bi bi-check2"></i> Copied!';
+          btn.classList.add('copied');
+          setTimeout(() => {
+            btn.innerHTML = original;
+            btn.classList.remove('copied');
+          }, 2000);
+        }
+      });
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast-notification');
+      if (!toast) return;
+      const lang = getActiveLanguage();
+      if (!msg || msg === "Copied to clipboard!") {
+        msg = (lang === 'bn') ? "ক্লিপবোর্ডে কপি করা হয়েছে!" : "Copied to clipboard!";
+      }
+      const toastText = document.getElementById('toast-text');
+      if (toastText) toastText.innerText = msg;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 2500);
+    }
+
+    function resolveApiUrl(rawUrl) {
+      if (!rawUrl) return '';
+      if (rawUrl.startsWith('http://') || rawUrl.startsWith('https://')) {
+        return rawUrl;
+      }
+      if (typeof window !== 'undefined') {
+        const port = window.location.port;
+        if (port === '3100') {
+          return `${window.location.protocol}//${window.location.hostname}:8090${rawUrl}`;
+        }
+        return `${window.location.origin}${rawUrl}`;
+      }
+      return rawUrl;
+    }
+
+    // Preloaded Demo Final API Results
+    const demoResponses = {
+      order: {
+        method: 'POST /api/integrations/webhooks/{ENDPOINT_ID}/?sync=true',
+        status: 'HTTP 200 OK (Demo Result)',
+        statusClass: 'badge bg-success-subtle text-success border border-success-subtle',
+        data: {
+          "status": "success",
+          "event_id": 5,
+          "external_order_id": "WEB-ORD-9005",
+          "invoice_no": "INV-000006",
+          "sale_id": 216,
+          "total_amount": 1450.00,
+          "message": "Order successfully processed and sale created."
+        }
+      },
+      stock: {
+        method: 'GET /api/integrations/webhooks/{ENDPOINT_ID}/?sku=GDO-273540',
+        status: 'HTTP 200 OK (Demo Result)',
+        statusClass: 'badge bg-success-subtle text-success border border-success-subtle',
+        data: {
+          "id": 81,
+          "name": "Anker 20W Fast Charger",
+          "sku": "GDO-273540",
+          "barcode": "",
+          "selling_price": 1450.00,
+          "on_hand": 15.0,
+          "reserved": 3.0,
+          "available": 12.0,
+          "in_stock": true
+        }
+      }
+    };
+
+    function showDemoJson(type) {
+      const output = document.getElementById('sim-output');
+      const statusBadge = document.getElementById('sim-status');
+      const methodLabel = document.getElementById('sim-method');
+      const tabOrder = document.getElementById('tab-demo-order');
+      const tabStock = document.getElementById('tab-demo-stock');
+
+      if (type === 'order') {
+        if (tabOrder) tabOrder.classList.add('active');
+        if (tabStock) tabStock.classList.remove('active');
+        const d = demoResponses.order;
+        output.innerText = JSON.stringify(d.data, null, 2);
+        statusBadge.className = d.statusClass;
+        statusBadge.innerText = d.status;
+        if (methodLabel) methodLabel.innerText = d.method;
+      } else {
+        if (tabOrder) tabOrder.classList.remove('active');
+        if (tabStock) tabStock.classList.add('active');
+        const d = demoResponses.stock;
+        output.innerText = JSON.stringify(d.data, null, 2);
+        statusBadge.className = d.statusClass;
+        statusBadge.innerText = d.status;
+        if (methodLabel) methodLabel.innerText = d.method;
+      }
+    }
+
+    // Live Simulator Functions
+    async function runLiveStockTest() {
+      document.getElementById('tab-demo-stock')?.classList.add('active');
+      document.getElementById('tab-demo-order')?.classList.remove('active');
+      const urlInput = document.getElementById('sim-url').value.trim();
+      const secret = document.getElementById('sim-secret').value.trim();
+      const sku = document.getElementById('sim-sku').value.trim();
+      const output = document.getElementById('sim-output');
+      const statusBadge = document.getElementById('sim-status');
+      const methodLabel = document.getElementById('sim-method');
+
+      statusBadge.className = 'badge bg-primary';
+      statusBadge.innerText = 'Requesting...';
+      methodLabel.innerText = 'GET ' + urlInput + '?sku=' + sku;
+      output.innerText = '// Sending request to StockWhisk API...';
+
+      try {
+        const resolvedBase = resolveApiUrl(urlInput);
+        const fullUrl = `${resolvedBase}?sku=${encodeURIComponent(sku)}`;
+        const res = await fetch(fullUrl, {
+          method: 'GET',
+          headers: {
+            'X-Webhook-Secret': secret
+          }
+        });
+
+        const data = await res.json();
+        statusBadge.className = res.ok ? 'badge bg-success' : 'badge bg-danger';
+        statusBadge.innerText = `HTTP ${res.status}`;
+        output.innerText = JSON.stringify(data, null, 2);
+        showToast(res.ok ? "Live Stock Check Succeeded!" : "Stock Check Error");
+      } catch (err) {
+        statusBadge.className = 'badge bg-danger';
+        statusBadge.innerText = 'Network Error';
+        output.innerText = '// Error: ' + err.message;
+      }
+    }
+
+    async function runLiveOrderTest() {
+      document.getElementById('tab-demo-order')?.classList.add('active');
+      document.getElementById('tab-demo-stock')?.classList.remove('active');
+      const urlInput = document.getElementById('sim-url').value.trim();
+      const secret = document.getElementById('sim-secret').value.trim();
+      const sku = document.getElementById('sim-sku').value.trim();
+      const output = document.getElementById('sim-output');
+      const statusBadge = document.getElementById('sim-status');
+      const methodLabel = document.getElementById('sim-method');
+
+      statusBadge.className = 'badge bg-primary';
+      statusBadge.innerText = 'Posting Order...';
+      methodLabel.innerText = 'POST ' + urlInput + '?sync=true';
+      output.innerText = '// Transmitting order payload to StockWhisk...';
+
+      const randomId = 'WEB-TST-' + Math.floor(1000 + Math.random() * 9000);
+      const payload = {
+        event: "order.created",
+        id: randomId,
+        order_number: randomId.replace('WEB-TST-', 'T-'),
+        total: 1450.00,
+        customer: {
+          name: "Test Customer (Simulator)",
+          phone: "01700000000",
+          address: "Simulator Checkout, Dhaka"
+        },
+        items: [
+          {
+            sku: sku || "GDO-273540",
+            quantity: 1,
+            unit_price: 1450.00
+          }
+        ]
+      };
+
+      try {
+        const resolvedBase = resolveApiUrl(urlInput);
+        const fullUrl = resolvedBase.includes('?') ? `${resolvedBase}&sync=true` : `${resolvedBase}?sync=true`;
+        const res = await fetch(fullUrl, {
+          method: 'POST',
+          headers: {
+            'X-Webhook-Secret': secret,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        statusBadge.className = res.ok ? 'badge bg-success' : 'badge bg-danger';
+        statusBadge.innerText = `HTTP ${res.status}`;
+        output.innerText = JSON.stringify(data, null, 2);
+        if (res.ok) {
+          showToast(`Order Ingested! Invoice: ${data.invoice_no || 'Created'}`);
+        } else {
+          showToast("Order Ingestion Failed");
+        }
+      } catch (err) {
+        statusBadge.className = 'badge bg-danger';
+        statusBadge.innerText = 'Network Error';
+        output.innerText = '// Error: ' + err.message;
+      }
+    }
+  </script>
+</body>
+</html>

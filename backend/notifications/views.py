@@ -115,10 +115,27 @@ class StockAlertsWidgetView(_Scoped, APIView):
         })
 
 
+from urllib.parse import quote
+from django.utils import timezone
+from . import baileys
+from sales.models import Sale
+
+
 class WhatsAppConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShopWhatsAppConfig
-        fields = ["enabled", "use_platform_number", "phone_number_id"]
+        fields = [
+            "enabled",
+            "use_platform_number",
+            "phone_number_id",
+            "session_id",
+            "is_connected",
+            "connected_phone",
+            "connected_name",
+            "default_mode",
+            "auto_send_pos",
+            "last_connected_at",
+        ]
 
 
 class WhatsAppConfigView(_Scoped, APIView):
@@ -128,7 +145,19 @@ class WhatsAppConfigView(_Scoped, APIView):
 
     def get(self, request):
         cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=request.user.shop_id)
-        return Response(WhatsAppConfigSerializer(cfg).data)
+        gw_status = baileys.get_gateway_status(request.user.shop_id)
+        if gw_status.get("connected"):
+            cfg.is_connected = True
+            cfg.connected_phone = gw_status.get("phone") or cfg.connected_phone
+            cfg.connected_name = gw_status.get("name") or cfg.connected_name
+            cfg.save(update_fields=["is_connected", "connected_phone", "connected_name"])
+        elif gw_status.get("status") == "disconnected" and cfg.is_connected:
+            cfg.is_connected = False
+            cfg.save(update_fields=["is_connected"])
+
+        data = WhatsAppConfigSerializer(cfg).data
+        data["gateway_status"] = gw_status.get("status")
+        return Response(data)
 
     def patch(self, request):
         cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=request.user.shop_id)
@@ -139,6 +168,156 @@ class WhatsAppConfigView(_Scoped, APIView):
             cfg.access_token = request.data["access_token"]
             cfg.save(update_fields=["access_token"])
         return Response(WhatsAppConfigSerializer(cfg).data)
+
+
+class WhatsAppQRView(_Scoped, APIView):
+    """Generate or retrieve live WhatsApp connection QR code for the shop."""
+    permission_classes = [IsTenantMember]
+
+    def get(self, request):
+        shop_id = request.user.shop_id
+        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        qr_data = baileys.get_gateway_qr(shop_id)
+
+        if qr_data.get("connected"):
+            cfg.is_connected = True
+            cfg.connected_phone = qr_data.get("phone") or cfg.connected_phone
+            cfg.last_connected_at = timezone.now()
+            cfg.save(update_fields=["is_connected", "connected_phone", "last_connected_at"])
+
+        return Response({
+            "qr": qr_data.get("qr"),
+            "status": qr_data.get("status"),
+            "connected": qr_data.get("connected", False),
+            "phone": qr_data.get("phone") or cfg.connected_phone,
+        })
+
+
+class WhatsAppStatusView(_Scoped, APIView):
+    """Check WhatsApp connection status for this shop."""
+    permission_classes = [IsTenantMember]
+
+    def get(self, request):
+        shop_id = request.user.shop_id
+        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        gw_status = baileys.get_gateway_status(shop_id)
+
+        is_conn = bool(gw_status.get("connected"))
+        if is_conn != cfg.is_connected:
+            cfg.is_connected = is_conn
+            if is_conn:
+                cfg.connected_phone = gw_status.get("phone") or cfg.connected_phone
+                cfg.connected_name = gw_status.get("name") or cfg.connected_name
+                cfg.last_connected_at = timezone.now()
+            cfg.save(update_fields=["is_connected", "connected_phone", "connected_name", "last_connected_at"])
+
+        return Response({
+            "connected": is_conn,
+            "status": gw_status.get("status"),
+            "phone": gw_status.get("phone") or cfg.connected_phone,
+            "name": gw_status.get("name") or cfg.connected_name,
+            "default_mode": cfg.default_mode,
+            "auto_send_pos": cfg.auto_send_pos,
+        })
+
+
+class WhatsAppDisconnectView(_Scoped, APIView):
+    """Disconnect and purge WhatsApp session for this shop."""
+    permission_classes = [IsTenantMember]
+
+    def post(self, request):
+        shop_id = request.user.shop_id
+        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        baileys.disconnect_gateway(shop_id)
+        cfg.is_connected = False
+        cfg.connected_phone = ""
+        cfg.connected_name = ""
+        cfg.save(update_fields=["is_connected", "connected_phone", "connected_name"])
+        return Response({"success": True, "message": "WhatsApp session disconnected successfully"})
+
+
+class WhatsAppSendInvoiceView(_Scoped, APIView):
+    """
+    Dual-mode WhatsApp Invoice Dispatch:
+    - Mode 'direct': 1-tap automated delivery via connected shop WhatsApp session
+    - Mode 'browser': Traditional wa.me browser link with prefilled memo
+    """
+    permission_classes = [IsTenantMember]
+
+    def post(self, request):
+        shop_id = request.user.shop_id
+        shop = request.user.shop
+        sale_id = request.data.get("sale_id")
+        requested_mode = request.data.get("mode")  # "direct" or "browser" or None
+        custom_phone = request.data.get("phone")
+
+        if not sale_id:
+            return Response({"error": "sale_id is required"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            sale = Sale.objects.filter(shop_id=shop_id).get(id=sale_id)
+        except Sale.DoesNotExist:
+            return Response({"error": "Sale not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        target_mode = requested_mode or cfg.default_mode or "direct"
+
+        raw_phone = custom_phone or sale.bill_phone or ""
+        digits = "".join(c for c in raw_phone if c.isdigit())
+        if not digits:
+            return Response({"error": "Customer phone number is missing"}, status=status.HTTP_400_BAD_REQUEST)
+
+        if digits.startswith("0") and len(digits) == 11:
+            intl_phone = "88" + digits
+        elif digits.startswith("880") or (digits.startswith("88") and len(digits) >= 12):
+            intl_phone = digits
+        elif len(digits) == 10:
+            intl_phone = "880" + digits
+        else:
+            intl_phone = digits
+
+        msg_text = baileys.format_invoice_message(sale, shop, request=request)
+        wa_browser_url = f"https://wa.me/{intl_phone}?text={quote(msg_text)}"
+
+        if target_mode == "browser":
+            return Response({
+                "success": True,
+                "mode": "browser",
+                "wa_url": wa_browser_url,
+                "message": msg_text,
+                "phone": intl_phone,
+            })
+
+        # Direct Mode (1-Tap): Check if gateway session is connected
+        gw_status = baileys.get_gateway_status(shop_id)
+        if not gw_status.get("connected"):
+            return Response({
+                "success": False,
+                "fallback_mode": "browser",
+                "wa_url": wa_browser_url,
+                "message": msg_text,
+                "phone": intl_phone,
+                "error": "Shop WhatsApp is not connected. Opening WhatsApp Web link instead.",
+            })
+
+        # Send via Baileys gateway
+        dispatch_res = baileys.send_whatsapp_message(shop_id, intl_phone, msg_text)
+        if dispatch_res.get("success"):
+            return Response({
+                "success": True,
+                "mode": "direct",
+                "message_id": dispatch_res.get("message_id"),
+                "phone": intl_phone,
+                "invoice_no": sale.invoice_no,
+            })
+        else:
+            return Response({
+                "success": False,
+                "fallback_mode": "browser",
+                "wa_url": wa_browser_url,
+                "phone": intl_phone,
+                "error": dispatch_res.get("error", "Dispatch failed"),
+            })
 
 
 class WhatsAppWebhookView(APIView):

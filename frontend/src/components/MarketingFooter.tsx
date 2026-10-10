@@ -4,17 +4,21 @@ import Link from "next/link";
 import { Box, Container, Grid, Stack, Typography } from "@mui/material";
 import { M } from "@/lib/marketing";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useBranding } from "@/lib/branding";
 
 /** Shared footer for every public/marketing page. */
 export default function MarketingFooter() {
   const { lang, t } = useLanguage();
+  const branding = useBranding();
   const linkSx = { color: M.darkText, textDecoration: "none", fontSize: ".9rem" };
   return (
     <Box component="footer" sx={{ bgcolor: M.dark, color: M.darkText, py: 6, mt: "auto" }}>
       <Container maxWidth="xl">
         <Grid container spacing={4}>
           <Grid size={{ xs: 12, md: 5 }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#fff", mb: 1, fontFamily: "Outfit, sans-serif" }}>📦 StockWhisk</Typography>
+            <Box sx={{ display: "inline-flex", bgcolor: "#fff", borderRadius: "10px", p: 0.8, mb: 1.5, boxShadow: "0 2px 8px rgba(0,0,0,.25)" }}>
+              <Box component="img" src={branding?.logo || "/logo.png"} alt="StockWhisk" sx={{ height: 44, width: 44, objectFit: "contain", display: "block" }} />
+            </Box>
             <Typography variant="body2" sx={{ maxWidth: 340, lineHeight: 1.7 }}>
               {t("hero_subtitle")}
             </Typography>
@@ -23,6 +27,7 @@ export default function MarketingFooter() {
             <Typography sx={{ fontWeight: 700, color: "#fff", mb: 1.5, fontSize: ".9rem" }}>{lang === 'bn' ? "প্রোডাক্ট" : "Product"}</Typography>
             <Stack spacing={1}>
               <Link href="/pricing" style={linkSx}>{t("nav_pricing")}</Link>
+              <a href="/api-docs.html" style={linkSx}>{lang === 'bn' ? "ডেভেলপার API ডক" : "Developer API Docs"}</a>
               <Link href="/tutorials" style={linkSx}>{lang === 'bn' ? "ভিডিও টিউটোরিয়াল" : "Video Tutorials"}</Link>
               <Link href="/blog" style={linkSx}>{t("nav_blog")}</Link>
               <Link href="/contact" style={linkSx}>{t("nav_contact")}</Link>

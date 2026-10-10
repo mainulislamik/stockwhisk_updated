@@ -77,7 +77,12 @@ def get_shop_digest_data(shop, frequency="daily", target_date=None):
     # from catalog.models import Product
     from catalog.models import Product
 
-    loc_now = timezone.localtime(target_date) if target_date else timezone.localtime()
+    if target_date and isinstance(target_date, datetime):
+        loc_now = timezone.localtime(target_date)
+    elif target_date and hasattr(target_date, "year"):
+        loc_now = timezone.make_aware(datetime.combine(target_date, time.min))
+    else:
+        loc_now = timezone.localtime()
     today = loc_now.date()
 
     if frequency == "daily":

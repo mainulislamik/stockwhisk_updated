@@ -5,7 +5,7 @@ from celery import shared_task
 from django.db.models import Sum
 
 from analytics.services import low_stock_list, out_of_stock_list
-from notifications.models import Notification, NotificationType
+from notifications.models import NotificationType
 from notifications.services import get_alert_config, notify
 from tenants.models import Shop
 
@@ -47,6 +47,7 @@ def scan_low_stock():
 
         from django.utils import timezone
         from datetime import timedelta
+        from notifications.models import Notification
         cutoff = timezone.now() - timedelta(hours=24)
         title_check = f"{len(out)} out-of-stock, {len(low)} low-stock item(s)"
         already = Notification.all_objects.filter(

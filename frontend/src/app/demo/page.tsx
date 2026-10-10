@@ -73,6 +73,15 @@ const INDUSTRY_THEMES: Record<string, {
     glowColor: "rgba(5, 150, 105, 0.2)",
     iconBg: "rgba(5, 150, 105, 0.12)",
   },
+  electronics: {
+    accentGradient: "linear-gradient(135deg, #0284c7, #06b6d4)",
+    btnGradient: "linear-gradient(135deg, #0284c7, #0369a1)",
+    badgeBg: "rgba(2, 132, 199, 0.08)",
+    badgeColor: "#0284c7",
+    badgeBorder: "rgba(2, 132, 199, 0.25)",
+    glowColor: "rgba(2, 132, 199, 0.2)",
+    iconBg: "rgba(2, 132, 199, 0.12)",
+  },
 };
 
 const DEFAULT_THEME = {
@@ -190,6 +199,14 @@ const FEATURE_MAP: Record<string, { icon: string; color: string; bg: string; bor
     border: "rgba(185, 28, 28, 0.18)",
     bn: "অল্টারেশন ও এক্সচেঞ্জ ট্র্যাকিং",
     en: "Alteration & Exchange Tracking"
+  },
+  "EMI & Installment Sales": {
+    icon: "💳",
+    color: "#0284c7",
+    bg: "rgba(2, 132, 199, 0.06)",
+    border: "rgba(2, 132, 199, 0.18)",
+    bn: "কিস্তি ও ইএমআই হিসাব (EMI)",
+    en: "EMI & Installment Sales"
   }
 };
 

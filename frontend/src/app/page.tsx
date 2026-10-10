@@ -9,11 +9,10 @@ import MarketingNav from "@/components/MarketingNav";
 import MarketingFooter from "@/components/MarketingFooter";
 import PublicThemeProvider from "@/components/PublicThemeProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { Hanken_Grotesk, Manrope, JetBrains_Mono } from "next/font/google";
 
-const hanken = Hanken_Grotesk({ subsets: ["latin"], weight: ["400", "500", "700", "800"] });
-const manrope = Manrope({ subsets: ["latin"], weight: ["400", "500", "600", "700"] });
-const jetbrains = JetBrains_Mono({ subsets: ["latin"], weight: ["400", "500"] });
+const hanken = { className: "font-sans", variable: "--font-hanken", style: { fontFamily: "inherit" } };
+const manrope = { className: "font-sans", variable: "--font-manrope", style: { fontFamily: "inherit" } };
+const jetbrains = { className: "font-mono", variable: "--font-jetbrains", style: { fontFamily: "monospace" } };
 
 const C = {
   primary: "#004ac6",
@@ -145,7 +144,7 @@ export default function Home() {
       <Box sx={{ minHeight: "100vh", display: "flex", flexDirection: "column", bgcolor: C.background, color: C.onBackground, fontFamily: manrope.style.fontFamily, overflowX: "hidden" }}>
         <MarketingNav />
 
-        <Box component="main" sx={{ flexGrow: 1, pt: { xs: 8, md: 12 }, pb: { xs: 10, md: 16 } }}>
+        <Box component="main" sx={{ flexGrow: 1, pt: { xs: 8, md: 12 }, pb: 0 }}>
           
           {/* --- HERO SECTION --- */}
           <Box sx={{ position: "relative", overflow: "visible", pt: { xs: 4, md: 8 }, pb: { xs: 8, md: 12 } }}>
@@ -721,7 +720,7 @@ export default function Home() {
 
           {/* --- FINAL CTA --- */}
           <motion.div initial="hidden" whileInView="show" viewport={{ once: true, margin: "-100px" }} variants={fadeScale}>
-            <Box sx={{ py: { xs: 12, md: 16 }, position: "relative", overflow: "hidden", bgcolor: C.primary, color: C.onPrimary, mb: { md: 8 } }}>
+            <Box sx={{ py: { xs: 12, md: 16 }, position: "relative", overflow: "hidden", bgcolor: C.primary, color: C.onPrimary, mb: 0 }}>
               <Box sx={{ position: "absolute", inset: 0, background: `linear-gradient(to bottom right, ${C.primary}, #003ea8, #00174b)`, zIndex: 0 }} />
               
               {/* Decorative shapes */}
