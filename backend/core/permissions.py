@@ -3,13 +3,30 @@ from rest_framework.permissions import SAFE_METHODS, BasePermission
 
 
 class IsTenantMember(BasePermission):
-    """Authenticated user that belongs to a shop (i.e. a real tenant user)."""
+    """Authenticated user that belongs to an active shop (tenant)."""
 
-    message = "You must belong to a shop to access this resource."
+    message = "You must belong to an active shop to access this resource."
 
     def has_permission(self, request, view):
         user = request.user
-        return bool(user and user.is_authenticated and user.is_active and user.shop_id is not None)
+        if not (user and user.is_authenticated and user.is_active and user.shop_id is not None):
+            self.message = "You must belong to a shop to access this resource."
+            return False
+
+        # Allow billing views so tenant can view subscription status, details and submit renewal
+        view_module = getattr(view, "__module__", "")
+        if "billing.views" in view_module or getattr(view, "allow_suspended_tenant", False):
+            return True
+
+        shop = getattr(user, "shop", None)
+        if not shop:
+            return False
+
+        if not shop.is_active:
+            self.message = "আপনার দোকানের এক্সেস স্থগিত (Suspended) করা হয়েছে। সফটওয়্যার পুনরায় চালু করতে স্টকহুইস্ক সাপোর্ট টিমের সাথে যোগাযোগ করুন (হটলাইন: ০১৬১৩-৫১১৮৮৭)।"
+            return False
+
+        return True
 
 
 class IsPlatformStaff(BasePermission):

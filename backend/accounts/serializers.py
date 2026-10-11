@@ -63,6 +63,8 @@ class UserSerializer(serializers.ModelSerializer):
     shop_reports_enabled = serializers.BooleanField(source="shop.reports_enabled", read_only=True, default=True)
     shop_finance_enabled = serializers.BooleanField(source="shop.finance_enabled", read_only=True, default=True)
     shop_manufacturing_enabled = serializers.BooleanField(source="shop.manufacturing_enabled", read_only=True, default=False)
+    shop_is_active = serializers.BooleanField(source="shop.is_active", read_only=True, default=True)
+    shop_suspended_at = serializers.DateTimeField(source="shop.suspended_at", read_only=True, default=None)
     shop_mobile_repair_enabled = serializers.SerializerMethodField()
     shop_modules = serializers.SerializerMethodField()
 
@@ -145,7 +147,7 @@ class UserSerializer(serializers.ModelSerializer):
         fields = [
             "id", "email", "first_name", "last_name", "phone",
             "role", "shop", "shop_name", "shop_code", "shop_phone", "shop_logo",
-            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "shop_manufacturing_enabled", "shop_mobile_repair_enabled", "shop_modules", "branch", "is_staff",
+            "shop_emi_enabled", "shop_delivery_enabled", "shop_whatsapp_enabled", "shop_is_demo", "shop_business_type", "shop_barcode_prefix", "shop_offline_sale_mode", "shop_pos_print_mode", "shop_pos_receipt_enabled", "shop_service_enabled", "shop_reports_enabled", "shop_finance_enabled", "shop_manufacturing_enabled", "shop_is_active", "shop_suspended_at", "shop_mobile_repair_enabled", "shop_modules", "branch", "is_staff",
             "is_reseller", "permissions", "shop_invoice_settings", "shop_pos_ui_layout",
         ]
         read_only_fields = fields

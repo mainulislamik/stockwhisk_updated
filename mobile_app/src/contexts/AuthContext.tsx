@@ -13,6 +13,8 @@ type User = {
   role?: string;
   shop?: number;
   shop_code?: string;
+  shop_is_active?: boolean;
+  shop_suspended_at?: string | null;
   shop_service_enabled?: boolean;
   shop_reports_enabled?: boolean;
   shop_finance_enabled?: boolean;
@@ -27,6 +29,13 @@ export type BillingStatus = {
   trial_ends_at: string | null;
   days_left?: number;
   ends_at?: string | null;
+  billing_details?: {
+    bkash?: string;
+    nagad?: string;
+    bank?: string;
+    hotline?: string;
+    whatsapp?: string;
+  };
 };
 
 type AuthContextType = {

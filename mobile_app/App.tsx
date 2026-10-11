@@ -29,11 +29,9 @@ import AccountingScreen from './src/screens/AccountingScreen';
 import BarcodesScreen from './src/screens/BarcodesScreen';
 import ManufacturingScreen from './src/screens/ManufacturingScreen';
 import NewBatchScreen from './src/screens/NewBatchScreen';
-import PrintingJobsScreen from './src/screens/PrintingJobsScreen';
-import CouriersScreen from './src/screens/CouriersScreen';
-import WhatsAppScreen from './src/screens/WhatsAppScreen';
 import GlobalHeader from './src/components/GlobalHeader';
 import UpdatingOverlay from './src/components/UpdatingOverlay';
+import SubscriptionBlockedModal from './src/components/SubscriptionBlockedModal';
 import { useAutoUpdateChecker } from './src/hooks/useAutoUpdateChecker';
 
 import { View, Text, ScrollView, LogBox, Platform, ActivityIndicator } from 'react-native';
@@ -97,42 +95,47 @@ function RootNavigator() {
     );
   }
 
+  const isSuspendedOrExpired = Boolean(
+    user && (user.shop_is_active === false || billing?.state === 'expired' || billing?.status === 'expired')
+  );
+
   return (
     <View style={{ flex: 1 }}>
-      {user && <GlobalHeader />}
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {user ? (
-          <>
-            <Stack.Screen name="MainTabs" component={TabNavigator} />
-            <Stack.Screen name="Notifications" component={NotificationsScreen} />
-            <Stack.Screen name="SalesScreen" component={SalesScreen} />
-            <Stack.Screen name="ProductsScreen" component={ProductsScreen} />
-            <Stack.Screen name="LookupScreen" component={LookupScreen} />
-            <Stack.Screen name="CustomersScreen" component={CustomersScreen} />
-            <Stack.Screen name="DuesScreen" component={DuesScreen} />
-            <Stack.Screen name="SuppliersScreen" component={SuppliersScreen} />
-            <Stack.Screen name="PurchasesScreen" component={PurchasesScreen} />
-            <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
-            <Stack.Screen name="ServiceTickets" component={ServiceTicketsScreen} />
-            <Stack.Screen name="WarrantiesScreen" component={WarrantiesScreen} />
-            <Stack.Screen name="EMIScreen" component={EMIScreen} />
-            <Stack.Screen name="ReturnsScreen" component={ReturnsScreen} />
-            <Stack.Screen name="SettlementScreen" component={SettlementScreen} />
-            <Stack.Screen name="AccountingScreen" component={AccountingScreen} />
-            <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
-            <Stack.Screen name="UsersAndRoles" component={UsersAndRolesScreen} />
-            <Stack.Screen name="TutorialsScreen" component={TutorialsScreen} />
-            <Stack.Screen name="BarcodesScreen" component={BarcodesScreen} />
-            <Stack.Screen name="ManufacturingScreen" component={ManufacturingScreen} />
-            <Stack.Screen name="NewBatchScreen" component={NewBatchScreen} />
-            <Stack.Screen name="PrintingJobsScreen" component={PrintingJobsScreen} />
-            <Stack.Screen name="CouriersScreen" component={CouriersScreen} />
-            <Stack.Screen name="WhatsAppScreen" component={WhatsAppScreen} />
-          </>
-        ) : (
-          <Stack.Screen name="Login" component={LoginScreen} />
-        )}
-      </Stack.Navigator>
+      {user && !isSuspendedOrExpired && <GlobalHeader />}
+      {isSuspendedOrExpired ? (
+        <SubscriptionBlockedModal />
+      ) : (
+        <Stack.Navigator screenOptions={{ headerShown: false }}>
+          {user ? (
+            <>
+              <Stack.Screen name="MainTabs" component={TabNavigator} />
+              <Stack.Screen name="Notifications" component={NotificationsScreen} />
+              <Stack.Screen name="SalesScreen" component={SalesScreen} />
+              <Stack.Screen name="ProductsScreen" component={ProductsScreen} />
+              <Stack.Screen name="LookupScreen" component={LookupScreen} />
+              <Stack.Screen name="CustomersScreen" component={CustomersScreen} />
+              <Stack.Screen name="DuesScreen" component={DuesScreen} />
+              <Stack.Screen name="SuppliersScreen" component={SuppliersScreen} />
+              <Stack.Screen name="PurchasesScreen" component={PurchasesScreen} />
+              <Stack.Screen name="ExpensesScreen" component={ExpensesScreen} />
+              <Stack.Screen name="ServiceTickets" component={ServiceTicketsScreen} />
+              <Stack.Screen name="WarrantiesScreen" component={WarrantiesScreen} />
+              <Stack.Screen name="EMIScreen" component={EMIScreen} />
+              <Stack.Screen name="ReturnsScreen" component={ReturnsScreen} />
+              <Stack.Screen name="SettlementScreen" component={SettlementScreen} />
+              <Stack.Screen name="AccountingScreen" component={AccountingScreen} />
+              <Stack.Screen name="SettingsScreen" component={SettingsScreen} />
+              <Stack.Screen name="UsersAndRoles" component={UsersAndRolesScreen} />
+              <Stack.Screen name="TutorialsScreen" component={TutorialsScreen} />
+              <Stack.Screen name="BarcodesScreen" component={BarcodesScreen} />
+              <Stack.Screen name="ManufacturingScreen" component={ManufacturingScreen} />
+              <Stack.Screen name="NewBatchScreen" component={NewBatchScreen} />
+            </>
+          ) : (
+            <Stack.Screen name="Login" component={LoginScreen} />
+          )}
+        </Stack.Navigator>
+      )}
     </View>
   );
 }

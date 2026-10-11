@@ -22,7 +22,14 @@ GRACE_DAYS = 7
 
 def billing_details():
     """Platform's own receiving numbers/account shown to owners. Not a gateway."""
-    return getattr(settings, "PLATFORM_BILLING", {"bkash": "", "nagad": "", "bank": ""})
+    d = dict(getattr(settings, "PLATFORM_BILLING", {"bkash": "", "nagad": "", "bank": ""}))
+    if not d.get("bkash"):
+        d["bkash"] = "01613511887"
+    if not d.get("nagad"):
+        d["nagad"] = "01613511887"
+    d["hotline"] = "01613511887"
+    d["whatsapp"] = "01613511887"
+    return d
 
 
 def _period_days(cycle):

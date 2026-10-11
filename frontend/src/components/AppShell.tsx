@@ -567,7 +567,89 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
         </div>
 
         <main id="maincontent" className="p-3 p-md-4 flex-grow-1">
-          {children}
+          {(() => {
+            const isSuspendedOrExpired = Boolean(
+              user && ((user as any).shop_is_active === false || billing?.state === "expired" || billing?.status === "expired")
+            );
+
+            if (isSuspendedOrExpired) {
+              return (
+                <div className="container py-4">
+                  <div className="row justify-content-center">
+                    <div className="col-lg-8 col-xl-7">
+                      <div className="card border-danger shadow-lg rounded-4 p-4 p-md-5 bg-body text-center">
+                        <div
+                          className="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger bg-opacity-10 text-danger mb-3 mx-auto"
+                          style={{ width: 80, height: 80, fontSize: "2.5rem" }}
+                        >
+                          <i className="bi bi-shield-slash-fill"></i>
+                        </div>
+
+                        <div className="badge bg-danger text-white px-3 py-1.5 rounded-pill mx-auto mb-3 fw-bold">
+                          {lang === "bn" ? "অ্যাক্সেস স্থগিত · SUSPENDED" : "STORE ACCESS SUSPENDED"}
+                        </div>
+
+                        <h3 className="fw-bolder text-body mb-2">
+                          {lang === "bn" ? "দোকানের এক্সেস স্থগিত করা হয়েছে" : "Store Access Suspended"}
+                        </h3>
+
+                        <p className="text-secondary fs-6 mb-4">
+                          {lang === "bn"
+                            ? `শ্রদ্ধেয় গ্রাহক, আপনার প্রতিষ্ঠান "${user?.shop_name || 'দোকান'}"-এর সাবস্ক্রিপশন বা প্যাকেজের মেয়াদ উত্তীর্ণ হওয়ায় সফটওয়্যার এক্সেস সাময়িকভাবে বন্ধ রয়েছে। পুনরায় চালু করতে অনুগ্রহ করে সাপোর্ট টিমের সাথে যোগাযোগ করুন বা নবায়ন ফি পরিশোধ করুন।`
+                            : `Subscription for "${user?.shop_name || 'Your store'}" has expired and store access is currently locked. Contact support or renew subscription to restore access.`}
+                        </p>
+
+                        <div className="d-flex flex-wrap justify-content-center gap-3 mb-4">
+                          <a href="tel:01613511887" className="btn btn-primary px-4 py-2.5 rounded-3 fw-bold d-flex align-items-center gap-2">
+                            <i className="bi bi-telephone-fill"></i>
+                            <span>{lang === "bn" ? "সরাসরি কল করুন (০১৬১৩-৫১১৮৮৭)" : "Call Support (01613511887)"}</span>
+                          </a>
+                          <a
+                            href="https://wa.me/8801613511887?text=%E0%A6%86%E0%A6%B8%E0%A6%B8%E0%A6%BE%E0%A6%B2%E0%A6%BE%E0%A6%AE%E0%A7%81%20%E0%A6%86%E0%A6%B2%E0%A6%BE%E0%A6%87%E0%A6%95%E0%A7%81%E0%A6%AE%2C%20%E0%A6%B8%E0%A6%BE%E0%A6%AC%E0%A6%B8%E0%A7%8D%E0%A6%95%E0%A7%8D%E0%A6%B0%E0%A6%BF%E0%A6%AA%E0%A6%B6%E0%A6%A8%20%E0%A6%B0%E0%A6%BF%E0%A6%A8%E0%A6%BF%E0%A6%89%20%E0%A6%95%E0%A6%B0%E0%A6%A4%E0%A7%87%20%E0%A6%9A%E0%A6%BE%E0%A6%87"
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-success px-4 py-2.5 rounded-3 fw-bold d-flex align-items-center gap-2"
+                          >
+                            <i className="bi bi-whatsapp"></i>
+                            <span>{lang === "bn" ? "হোয়াটসঅ্যাপে মেসেজ পাঠান" : "WhatsApp Support"}</span>
+                          </a>
+                        </div>
+
+                        <div className="card bg-light border p-3 rounded-3 text-start small mb-3">
+                          <div className="fw-bold mb-1 text-dark">
+                            <i className="bi bi-credit-card me-1.5 text-primary"></i>
+                            {lang === "bn" ? "সাবস্ক্রিপশন নবায়ন পেমেন্ট গাইড:" : "Renewal & Payment Details:"}
+                          </div>
+                          <div className="text-secondary mb-2">
+                            {lang === "bn"
+                              ? "বিকাশ বা নগদ থেকে ফি পাঠিয়ে সাপোর্ট নম্বরে কল দিন বা হোয়াটসঅ্যাপে জানান। কয়েক মিনিটের মধ্যে আপনার দোকান পুনরায় চালু করে দেওয়া হবে।"
+                              : "Send fee via bKash/Nagad and notify our team. Your shop will be reactivated immediately."}
+                          </div>
+                          <div className="d-flex justify-content-between py-1 border-bottom">
+                            <span className="text-muted">bKash / Nagad:</span>
+                            <span className="fw-bold text-dark font-monospace">০১৬১৩-৫১১৮৮৭</span>
+                          </div>
+                          <div className="d-flex justify-content-between py-1">
+                            <span className="text-muted">Reference:</span>
+                            <span className="fw-bold text-primary font-monospace">{user?.shop_code || "Shop ID"}</span>
+                          </div>
+                        </div>
+
+                        <div className="d-flex justify-content-center">
+                          <button className="btn btn-outline-danger btn-sm px-3 rounded-pill" onClick={logout}>
+                            <i className="bi bi-box-arrow-right me-1"></i>
+                            {lang === "bn" ? "অন্য অ্যাকাউন্টে লগআউট করুন" : "Logout"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
+            return children;
+          })()}
         </main>
       </div>
     </div>
