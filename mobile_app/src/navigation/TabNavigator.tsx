@@ -37,7 +37,8 @@ function MoreMenuScreen() {
   if (isServiceEnabled) {
     accountsItems.push(
       { name: 'ServiceTickets', icon: 'tools', labelEn: 'Service & Repair', labelBn: 'সার্ভিস ও মেরামত' },
-      { name: 'WarrantiesScreen', icon: 'shield-check', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' }
+      { name: 'WarrantiesScreen', icon: 'shield-check', labelEn: 'Warranties', labelBn: 'ওয়ারেন্টি চেক' },
+      { name: 'PrintingJobsScreen', icon: 'printer-pos', labelEn: 'Printing & Cyber Seba', labelBn: 'প্রিন্টিং ও সাইবার সেবা' }
     );
   }
 
@@ -50,6 +51,7 @@ function MoreMenuScreen() {
         { name: 'DuesScreen', icon: 'cash-multiple', labelEn: 'Customer Dues', labelBn: 'বকেয়া খাতা' },
         { name: 'EMIScreen', icon: 'calendar-check', labelEn: 'EMI Installments', labelBn: 'ইএমআই ও কিস্তি' },
         { name: 'ReturnsScreen', icon: 'keyboard-return', labelEn: 'Returns & Replace', labelBn: 'পণ্য ফেরত ও বদল' },
+        { name: 'CouriersScreen', icon: 'truck-fast', labelEn: 'Couriers & Shipments', labelBn: 'কুরিয়ার ও পার্সেল' },
       ],
     },
     {
@@ -77,6 +79,7 @@ function MoreMenuScreen() {
         { name: 'UsersAndRoles', icon: 'shield-account', labelEn: 'Users & Roles', labelBn: 'ইউজার ও রোল' },
         { name: 'SettingsScreen', icon: 'cog-outline', labelEn: 'Shop Settings', labelBn: 'দোকানের সেটিংস' },
         { name: 'TutorialsScreen', icon: 'play-circle-outline', labelEn: 'Video Tutorials', labelBn: 'টিউটোরিয়াল' },
+        { name: 'WhatsAppScreen', icon: 'whatsapp', labelEn: 'WhatsApp Hub', labelBn: 'হোয়াটসঅ্যাপ সংযোগ ও অ্যালার্ট' },
       ],
     },
   ];

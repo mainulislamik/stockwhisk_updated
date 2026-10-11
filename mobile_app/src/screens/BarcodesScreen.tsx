@@ -170,7 +170,10 @@ export default function BarcodesScreen() {
     }
   };
 
-  const getHtmlTemplate = (labelsHtml: string, jsScript: string) => `
+  const getHtmlTemplate = (labelsHtml: string, jsScript: string) => {
+    const printWidth = labelSize === '38x25' ? '38mm' : '50mm';
+    const activeLabelClass = labelSize === '50x30' ? 'label-50x30' : labelSize === 'fashion_tag' ? 'label-fashion-tag' : 'label';
+    return `
     <!DOCTYPE html>
     <html>
     <head>
@@ -212,7 +215,8 @@ export default function BarcodesScreen() {
         .code-text { font-size: 7px; margin-top: 1px; letter-spacing: 1px; font-weight: bold; }
         .price-text { font-size: 8px; font-weight: bold; margin-top: 1px; }
         @media print {
-          body { width: 38mm; }
+          body { width: ${printWidth}; }
+          .${activeLabelClass} { margin: 0; border: none; page-break-after: always; }
           .label { margin: 0; border: none; page-break-after: always; }
         }
       </style>
@@ -229,6 +233,7 @@ export default function BarcodesScreen() {
     </body>
     </html>
   `;
+  };
 
   const handlePrintGeneratedLabels = async (singleCode?: string) => {
     const codesToPrint = singleCode ? [singleCode] : generatedCodes;
@@ -238,7 +243,7 @@ export default function BarcodesScreen() {
     const jsScript = await getJsBarcodeScript();
     
     const labelsHtml = codesToPrint.map(code => `
-      <div class="label">
+      <div class="${labelSize === '50x30' ? 'label-50x30' : labelSize === 'fashion_tag' ? 'label-fashion-tag' : 'label'}">
         <div class="shop-name">${shopName}</div>
         <div class="code-box"><svg class="barcode" jsbarcode-format="CODE128" jsbarcode-value="${code}" jsbarcode-textmargin="0" jsbarcode-fontoptions="bold"></svg></div>
         <div class="code-text">${code}</div>
@@ -268,11 +273,12 @@ export default function BarcodesScreen() {
     const labelsHtml = productsToPrint.filter(p => p.barcode || p.sku).map(p => {
       const code = p.barcode || p.sku;
       return `
-      <div class="label">
+      <div class="${labelSize === '50x30' ? 'label-50x30' : labelSize === 'fashion_tag' ? 'label-fashion-tag' : 'label'}">
         <div class="shop-name">${shopName}</div>
         <div class="product-name">${p.name}</div>
         <div class="code-box"><svg class="barcode" jsbarcode-format="CODE128" jsbarcode-value="${code}" jsbarcode-textmargin="0" jsbarcode-fontoptions="bold"></svg></div>
         <div class="price-text">Price: Tk ${Number(p.selling_price).toLocaleString()}</div>
+        ${labelSize === 'fashion_tag' && (p.fabric_material || p.fit_type) ? `<div style="font-size:6.5px;color:#444;margin-top:2px;">${[p.fabric_material, p.fit_type].filter(Boolean).join(' • ')}</div>` : ''}
       </div>
     `}).join('');
     
@@ -320,6 +326,23 @@ export default function BarcodesScreen() {
           style={{ marginBottom: activeTab === 'products' ? 12 : 0 }}
         />
         
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10, gap: 6 }}>
+          <Text style={{ fontSize: 12, fontWeight: '700', color: theme.colors.onSurfaceVariant }}>
+            {isBN ? 'সাইজ:' : 'Size:'}
+          </Text>
+          <SegmentedButtons
+            density="small"
+            value={labelSize}
+            onValueChange={(val: any) => setLabelSize(val)}
+            buttons={[
+              { value: '38x25', label: '38x25mm' },
+              { value: '50x30', label: '50x30mm' },
+              { value: 'fashion_tag', label: isBN ? 'হ্যাংট্যাগ' : 'Hangtag' },
+            ]}
+            style={{ flex: 1 }}
+          />
+        </View>
+
         {activeTab === 'products' && (
           <Searchbar
             placeholder={isBN ? 'পণ্য খুঁজুন...' : 'Search products...'}

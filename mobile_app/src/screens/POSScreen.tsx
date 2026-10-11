@@ -8,6 +8,11 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useFocusEffect, useRoute } from '@react-navigation/native';
 import * as SecureStore from '../utils/storage';
 import { api } from '../api';
+import { 
+  saveOfflineSale, 
+  getOfflineSalesQueue, 
+  syncOfflineSalesQueue 
+} from '../services/offlinePosService';
 import { usePreferences } from '../contexts/PreferencesContext';
 import { useAuth } from '../contexts/AuthContext';
 import CameraBarcodeScannerModal from '../components/CameraBarcodeScannerModal';
@@ -179,6 +184,41 @@ export default function POSScreen() {
   }, [isRepairShop]);
   const shopType = (user as any)?.shop_business_type || '';
   const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
+  const isPrintingShop = shopType === 'printing' || shopType === 'media' || shopType === 'cyber_cafe' || (user as any)?.shop?.business_type === 'printing';
+  const [pendingOfflineCount, setPendingOfflineCount] = useState<number>(0);
+  const [isSyncingOffline, setIsSyncingOffline] = useState<boolean>(false);
+
+  const refreshPendingOffline = async () => {
+    try {
+      const q = await getOfflineSalesQueue();
+      setPendingOfflineCount(q.length);
+    } catch {}
+  };
+
+  useEffect(() => {
+    refreshPendingOffline();
+  }, [view]);
+
+  const handleManualOfflineSync = async () => {
+    if (isSyncingOffline) return;
+    setIsSyncingOffline(true);
+    try {
+      const res = await syncOfflineSalesQueue();
+      await refreshPendingOffline();
+      const syncedCount = res.synced.length;
+      const failedCount = res.failed.length;
+      Alert.alert(
+        isBN ? 'সিঙ্ক সম্পন্ন' : 'Sync Complete',
+        isBN 
+          ? `${syncedCount}টি অফলাইন বিক্রয় সফলভাবে সিঙ্ক হয়েছে।${failedCount > 0 ? ` (${failedCount}টি ব্যর্থ)` : ''}`
+          : `${syncedCount} offline sales synced successfully.${failedCount > 0 ? ` (${failedCount} failed)` : ''}`
+      );
+    } catch (err: any) {
+      Alert.alert(isBN ? 'সিঙ্ক ব্যর্থ' : 'Sync Failed', err?.message || 'Server error');
+    } finally {
+      setIsSyncingOffline(false);
+    }
+  };
   const [deliveryCharge, setDeliveryCharge] = useState('');
   const [isEmi, setIsEmi] = useState(false);
   const [emiMonths, setEmiMonths] = useState(3);
@@ -785,6 +825,54 @@ export default function POSScreen() {
       setView('products');
     } catch (e: any) {
       const isNetwork = !e.response && (e.message?.includes('Network') || e.message?.includes('timeout') || e.code === 'ECONNABORTED');
+      if (isNetwork && !asQuotation) {
+        Alert.alert(
+          isBN ? 'ইন্টারনেট সংযোগ বিচ্ছিন্ন' : 'No Internet Connection',
+          isBN 
+            ? 'ইন্টারনেট সংযোগ পাওয়া যায়নি। আপনি কি এই বিক্রয়টি অফলাইন কিউতে সংরক্ষণ করতে চান? ইন্টারনেট ফিরে এলে স্বয়ংক্রিয়ভাবে সার্ভারে সিঙ্ক হবে।'
+            : 'No internet connection detected. Would you like to save this sale to the Offline Queue? It will automatically sync to the server once online.',
+          [
+            { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+            {
+              text: isBN ? 'অফলাইনে সংরক্ষণ করুন' : 'Save Offline',
+              onPress: async () => {
+                try {
+                  const offlineId = `OFFLINE-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+                  await saveOfflineSale({
+                    client_offline_id: offlineId,
+                    items: cart.map(l => ({
+                      product: l.product.id,
+                      quantity: l.qty,
+                      unit_price: l.price
+                    })),
+                    customer_name: customerMode === 'existing' ? selectedCustomer?.name : walkName,
+                    customer_phone: customerMode === 'existing' ? selectedCustomer?.phone : walkPhone,
+                    paid: paidAmount !== "" ? Number(paidAmount) : total,
+                    payment_method: paymentMethod,
+                    discount: discountNum,
+                    delivery_charge: deliveryNum,
+                    total: total,
+                    created_at: new Date().toISOString()
+                  });
+                  setCart([]);
+                  setSelectedCustomer(null);
+                  setView('products');
+                  await refreshPendingOffline();
+                  Alert.alert(
+                    isBN ? 'অফলাইনে সংরক্ষিত হয়েছে' : 'Saved Offline',
+                    isBN 
+                      ? `অফলাইন ইনভয়েস: ${offlineId}। ইন্টারনেট সক্রিয় হলে সিঙ্ক হবে।`
+                      : `Offline Invoice: ${offlineId}. Will sync when connected.`
+                  );
+                } catch (queueErr: any) {
+                  Alert.alert(isBN ? 'ত্রুটি' : 'Error', queueErr?.message || 'Failed to queue sale');
+                }
+              }
+            }
+          ]
+        );
+        return;
+      }
       const msg = isNetwork
         ? (isBN ? 'ইন্টারনেট সংযোগ বিচ্ছিন্ন। অনুগ্রহ করে নেটওয়ার্ক চেক করে আবার চেষ্টা করুন।' : 'No internet connection. Please check your network and retry.')
         : (e.response?.data?.detail || e.response?.data?.error || e.message || t('চেকআউট ব্যর্থ হয়েছে', 'Checkout failed'));
@@ -811,6 +899,68 @@ export default function POSScreen() {
           cart.length > 0 ? <Appbar.Action icon="trash-can-outline" onPress={() => setCart([])} /> : null
         )}
       </Appbar.Header>
+
+      {pendingOfflineCount > 0 && (
+        <TouchableOpacity
+          onPress={handleManualOfflineSync}
+          style={{
+            backgroundColor: '#fef3c7',
+            borderColor: '#f59e0b',
+            borderWidth: 1,
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            marginHorizontal: 12,
+            marginTop: 8,
+            borderRadius: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+            <MaterialCommunityIcons name="cloud-sync-outline" size={20} color="#b45309" />
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#b45309', flex: 1 }}>
+              {isBN 
+                ? `${pendingOfflineCount}টি অফলাইন বিক্রয় সিঙ্ক অপেক্ষমাণ। সিঙ্ক করতে ট্যাপ করুন।` 
+                : `${pendingOfflineCount} offline sales pending. Tap to sync.`}
+            </Text>
+          </View>
+          {isSyncingOffline ? (
+            <ActivityIndicator size="small" color="#b45309" />
+          ) : (
+            <Text style={{ fontSize: 12, fontWeight: 'bold', color: '#b45309' }}>
+              {isBN ? 'সিঙ্ক' : 'Sync'}
+            </Text>
+          )}
+        </TouchableOpacity>
+      )}
+
+      {isPrintingShop && view === 'products' && (
+        <TouchableOpacity
+          onPress={() => navigation.navigate('PrintingJobsScreen')}
+          style={{
+            backgroundColor: '#f0fdf4',
+            borderColor: '#16a34a',
+            borderWidth: 1,
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+            marginHorizontal: 12,
+            marginTop: 6,
+            borderRadius: 8,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}
+        >
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <MaterialCommunityIcons name="printer-pos" size={18} color="#16a34a" />
+            <Text style={{ fontSize: 12, fontWeight: '700', color: '#16a34a' }}>
+              {isBN ? 'প্রিন্ট ও সাইবার সেবা জব শিট' : 'Printing & Cyber Job Sheets'}
+            </Text>
+          </View>
+          <MaterialCommunityIcons name="chevron-right" size={18} color="#16a34a" />
+        </TouchableOpacity>
+      )}
 
       {view === 'products' && (
         <ScrollView style={{ flex: 1 }} contentContainerStyle={{ flexGrow: 1, paddingBottom: 350 }} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={true} alwaysBounceVertical={true} overScrollMode="always">

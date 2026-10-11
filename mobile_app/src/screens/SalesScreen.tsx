@@ -43,7 +43,7 @@ type Sale = {
 };
 
 export default function SalesScreen() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<any>();
   const theme = useTheme();
   const { language, isDarkMode } = usePreferences();
   const { user } = useAuth();
@@ -585,6 +585,25 @@ export default function SalesScreen() {
 
                 <Button mode="contained" icon="printer" buttonColor="#4f46e5" onPress={() => handlePrint(selectedSale)}>
                   {isBN ? 'ইনভয়েস প্রিন্ট / দেখুন' : 'Print / View Invoice'}
+                </Button>
+
+                <Button 
+                  mode="contained" 
+                  icon="truck-fast" 
+                  buttonColor="#0284c7" 
+                  textColor="#fff" 
+                  onPress={() => {
+                    const saleToBook = selectedSale;
+                    setSelectedSale(null);
+                    navigation.navigate('CouriersScreen' as any, {
+                      sale_id: saleToBook.id,
+                      customer_name: saleToBook.customer_name || '',
+                      customer_phone: saleToBook.customer_phone || '',
+                      cod_amount: String(saleToBook.total || 0),
+                    });
+                  }}
+                >
+                  {isBN ? '📦 কুরিয়ারে বুকিং করুন' : '📦 Book via Courier'}
                 </Button>
 
                 {selectedSale.customer_phone && selectedSale.customer_phone.replace(/\D/g, '').length >= 10 && (

@@ -29,6 +29,9 @@ import AccountingScreen from './src/screens/AccountingScreen';
 import BarcodesScreen from './src/screens/BarcodesScreen';
 import ManufacturingScreen from './src/screens/ManufacturingScreen';
 import NewBatchScreen from './src/screens/NewBatchScreen';
+import PrintingJobsScreen from './src/screens/PrintingJobsScreen';
+import CouriersScreen from './src/screens/CouriersScreen';
+import WhatsAppScreen from './src/screens/WhatsAppScreen';
 import GlobalHeader from './src/components/GlobalHeader';
 import UpdatingOverlay from './src/components/UpdatingOverlay';
 import { useAutoUpdateChecker } from './src/hooks/useAutoUpdateChecker';
@@ -122,6 +125,9 @@ function RootNavigator() {
             <Stack.Screen name="BarcodesScreen" component={BarcodesScreen} />
             <Stack.Screen name="ManufacturingScreen" component={ManufacturingScreen} />
             <Stack.Screen name="NewBatchScreen" component={NewBatchScreen} />
+            <Stack.Screen name="PrintingJobsScreen" component={PrintingJobsScreen} />
+            <Stack.Screen name="CouriersScreen" component={CouriersScreen} />
+            <Stack.Screen name="WhatsAppScreen" component={WhatsAppScreen} />
           </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />

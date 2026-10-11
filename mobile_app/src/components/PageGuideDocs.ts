@@ -530,5 +530,71 @@ export const PAGE_DOCS_REGISTRY: Record<string, PageDoc> = {
         "Click 'Generate Backup' to instantly download an encrypted backup archive."
       ]
     }
+  },
+
+  "/app/service/jobs": {
+    title: { bn: "প্রিন্টিং ও সাইবার সেবা", en: "Printing & Cyber Seba" },
+    icon: "🖨️",
+    badge: { bn: "ডিজিটাল জব শিট", en: "Service Jobs" },
+    summary: {
+      bn: "পাসপোর্ট আবেদন, এনআইডি সংশোধন, পুলিশ ক্লিয়ারেন্স ও পিভিসি ব্যানার প্রিন্টিংয়ের ডিজিটাল জব শিট ও ট্র্যাকিং।",
+      en: "Digital service job sheets for passport, NID, police clearance, and PVC banner printing."
+    },
+    steps: {
+      bn: [
+        "'নতুন জব শিট' বাটনে চাপ দিয়ে প্রয়োজনীয় সেবা বা ব্যানার সাইজ সিলেক্ট করুন।",
+        "গ্রাহকের নাম, মোবাইল ও অগ্রিম টাকার পরিমাণ দিয়ে জব শিট সংরক্ষণ করুন।",
+        "কাজের অগ্রগতি অনুযায়ী 'স্ট্যাটাস' পরিবর্তন করুন এবং পাবলিক ট্র্যাকিং লিংক শেয়ার করুন।"
+      ],
+      en: [
+        "Tap 'New Job' and pick a service preset or banner size.",
+        "Enter customer details, advance payment, and save.",
+        "Update progress status and share live public tracking link."
+      ]
+    }
+  },
+
+  "/app/integrations/couriers": {
+    title: { bn: "কুরিয়ার ও পার্সেল শিপমেন্ট", en: "Couriers & Shipments" },
+    icon: "🚚",
+    badge: { bn: "ডেলিভারি ট্র্যাকিং", en: "Parcel Delivery" },
+    summary: {
+      bn: "Steadfast, Pathao ও RedX কুরিয়ার অ্যাকাউন্ট সংযোগ এবং সরাসরি পার্সেল বুকিং ও ট্র্যাকিং।",
+      en: "Connect Steadfast, Pathao & RedX couriers and book & track parcels directly."
+    },
+    steps: {
+      bn: [
+        "আপনার কুরিয়ার অ্যাকাউন্ট এপিআই দিয়ে সক্রিয় করুন।",
+        "ইনভয়েস বা কাস্টমার পার্সেল ১-ক্লিকে কুরিয়ারে বুকিং দিন।",
+        "লাইভ পার্সেল ট্র্যাকিং স্ট্যাটাস ও সিঙ্ক তথ্য দেখুন।"
+      ],
+      en: [
+        "Connect your courier API credentials.",
+        "Book parcels from sales invoices with 1-click.",
+        "Monitor delivery status and tracking codes in real-time."
+      ]
+    }
+  },
+
+  "/app/settings/whatsapp": {
+    title: { bn: "হোয়াটসঅ্যাপ অটোমেশন", en: "WhatsApp Automation" },
+    icon: "💬",
+    badge: { bn: "অটোমেটেড অ্যালার্ট", en: "Automated Alerts" },
+    summary: {
+      bn: "দোকানের হোয়াটসঅ্যাপ গেটওয়ে পেয়ারিং এবং রাত ১০টার দৈনিক সেলস সামারি অটো-মেসেজ সেটিংস।",
+      en: "WhatsApp QR pairing, auto invoice messages, and 10 PM daily digest configuration."
+    },
+    steps: {
+      bn: [
+        "হোয়াটসঅ্যাপ কিউআর কোড বা ওটিপি কোড দিয়ে ডিভাইস পেয়ার করুন।",
+        "দৈনিক নাইট ডাইজেস্ট রিপোর্ট চালু বা বন্ধ করুন।",
+        "টেস্ট মেসেজ পাঠিয়ে সংযোগ পরীক্ষা করুন।"
+      ],
+      en: [
+        "Pair your WhatsApp account via QR or OTP pairing code.",
+        "Toggle automated 10 PM daily digest reports.",
+        "Send test alert to verify gateway connectivity."
+      ]
+    }
   }
 };
