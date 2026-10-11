@@ -21,6 +21,7 @@ export default function PlatformNav({ collapsed = false }: { collapsed?: boolean
     { href: "/platform/imports", icon: "bi-inbox-fill", label: "Data Import", bn: "ডাটা ইমপোর্ট" },
     { href: "/platform/api-keys", icon: "bi-plug", label: "API Keys", bn: "এপিআই কি" },
     { href: "/platform/messages", icon: "bi-envelope", label: "Messages", bn: "বার্তাসমূহ" },
+    { href: "/platform/whatsapp-templates", icon: "bi-whatsapp text-success", label: "WhatsApp Automation", bn: "হোয়াটসঅ্যাপ অটোমেশন" },
     { href: "/platform/blogs", icon: "bi-journal-text", label: "Blogs", bn: "ব্লগ ও পোস্ট" },
     { href: "/platform/software", icon: "bi-download", label: "Software", bn: "সফটওয়্যার" },
     { href: "/platform/shop-data", icon: "bi-trash3", label: "Shop Data Mgmt", bn: "শপ ডাটা রিসেট" },

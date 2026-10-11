@@ -37,6 +37,7 @@ export default function SettingsPage() {
     name: "", phone: "", address: "", currency: "BDT", 
     vat_enabled: false, vat_percent: 0, emi_enabled: false, 
     delivery_enabled: true, whatsapp_invoice_enabled: true, 
+    daily_report_enabled: true,
     barcode_prefix: "", offline_sale_mode: false, pos_print_mode: "ask", pos_receipt_enabled: true,
     pos_ui_layout: "standard",
     service_enabled: true, reports_enabled: true, finance_enabled: true,
@@ -69,6 +70,7 @@ export default function SettingsPage() {
           emi_enabled: data.emi_enabled || false,
           delivery_enabled: data.delivery_enabled !== false,
           whatsapp_invoice_enabled: data.whatsapp_invoice_enabled !== false,
+          daily_report_enabled: data.daily_report_enabled !== false,
           barcode_prefix: data.barcode_prefix || "",
           offline_sale_mode: data.offline_sale_mode || false,
           pos_print_mode: data.pos_print_mode || "ask",
@@ -84,6 +86,12 @@ export default function SettingsPage() {
           setCurrentLogo(data.logo);
         }
       }).catch(console.error);
+
+      api<any>("/notifications/alert-config/").then(cfg => {
+        if (cfg && cfg.daily_report_enabled !== undefined) {
+          setShopForm(prev => ({ ...prev, daily_report_enabled: cfg.daily_report_enabled !== false }));
+        }
+      }).catch(() => {});
 
       loadWhatsAppStatus();
     }
@@ -202,6 +210,10 @@ export default function SettingsPage() {
       }
 
       const res = await api<any>("/auth/shop-settings/", { method: "PATCH", body: formData });
+      api("/notifications/alert-config/", {
+        method: "PUT",
+        body: { daily_report_enabled: shopForm.daily_report_enabled },
+      }).catch(() => {});
       if (res.logo) {
         setCurrentLogo(res.logo);
       }
@@ -462,6 +474,12 @@ export default function SettingsPage() {
                   <div className="form-check form-switch mt-2">
                     <input className="form-check-input" type="checkbox" role="switch" id="whatsappSwitch" checked={shopForm.whatsapp_invoice_enabled} onChange={e => setShopForm({...shopForm, whatsapp_invoice_enabled: e.target.checked})} />
                     <label className="form-check-label small" htmlFor="whatsappSwitch">{t("settings_wa_en")}</label>
+                  </div>
+                  <div className="form-check form-switch mt-2">
+                    <input className="form-check-input" type="checkbox" role="switch" id="dailyReportSwitch" checked={shopForm.daily_report_enabled} onChange={e => setShopForm({...shopForm, daily_report_enabled: e.target.checked})} />
+                    <label className="form-check-label small fw-semibold text-dark" htmlFor="dailyReportSwitch">
+                      {lang === "bn" ? "🌙 প্রতিদিন রাত ১০টায় হোয়াটসঅ্যাপে দৈনিক বিক্রয়, লাভ ও বাকির রিপোর্ট পান" : "🌙 Receive Daily 10:00 PM WhatsApp Business Report & Due Digest"}
+                    </label>
                   </div>
                   <div className="form-check form-switch mt-3 pt-2 border-top">
                     <input

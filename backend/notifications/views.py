@@ -7,12 +7,20 @@ from django.http import HttpResponse
 from rest_framework.permissions import AllowAny
 
 from analytics.services import low_stock_list, out_of_stock_list
-from core.permissions import IsTenantMember
-from core.tenant_context import set_current_tenant
+from core.permissions import HasPermCode, IsTenantMember, IsTenantMemberOrPlatformStaff
+from core.tenant_context import set_current_tenant, bypass_tenant_scope
 
 from .models import Notification, ShopAlertConfig, ShopWhatsAppConfig
 from .services import get_alert_config
 from .whatsapp import verify_webhook
+
+
+def _get_shop_wa_config(shop_id: int):
+    with bypass_tenant_scope():
+        cfg = ShopWhatsAppConfig.all_objects.filter(shop_id=shop_id).first()
+        if not cfg:
+            cfg = ShopWhatsAppConfig.all_objects.create(shop_id=shop_id)
+        return cfg
 
 
 class _Scoped:
@@ -77,7 +85,11 @@ class NotificationViewSet(_Scoped, mixins.ListModelMixin, mixins.DestroyModelMix
 class AlertConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = ShopAlertConfig
-        fields = ["low_stock_enabled", "mode", "email_enabled", "sms_enabled", "whatsapp_enabled", "daily_report_enabled", "weekly_report_enabled", "monthly_report_enabled", "report_recipient_email"]
+        fields = [
+            "low_stock_enabled", "mode", "email_enabled", "sms_enabled", "whatsapp_enabled",
+            "daily_report_enabled", "weekly_report_enabled", "monthly_report_enabled", "report_recipient_email",
+            "whatsapp_daily_digest_enabled", "whatsapp_digest_phone"
+        ]
 
 
 class AlertConfigView(_Scoped, APIView):
@@ -171,13 +183,17 @@ class WhatsAppConfigView(_Scoped, APIView):
 
 
 class WhatsAppQRView(_Scoped, APIView):
-    """Generate or retrieve live WhatsApp connection QR code for the shop."""
-    permission_classes = [IsTenantMember]
+    """Generate or retrieve live WhatsApp connection QR code for the shop or platform admin."""
+    permission_classes = [IsTenantMemberOrPlatformStaff]
 
     def get(self, request):
-        shop_id = request.user.shop_id
-        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        shop_id = getattr(request.user, "shop_id", 1) or 1
+        cfg = _get_shop_wa_config(shop_id)
         qr_data = baileys.get_gateway_qr(shop_id)
+        if not qr_data.get("qr") and not qr_data.get("connected"):
+            import time
+            time.sleep(2.0)
+            qr_data = baileys.get_gateway_qr(shop_id)
 
         if qr_data.get("connected"):
             cfg.is_connected = True
@@ -194,12 +210,12 @@ class WhatsAppQRView(_Scoped, APIView):
 
 
 class WhatsAppStatusView(_Scoped, APIView):
-    """Check WhatsApp connection status for this shop."""
-    permission_classes = [IsTenantMember]
+    """Check WhatsApp connection status for this shop or platform admin."""
+    permission_classes = [IsTenantMemberOrPlatformStaff]
 
     def get(self, request):
-        shop_id = request.user.shop_id
-        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        shop_id = getattr(request.user, "shop_id", 1) or 1
+        cfg = _get_shop_wa_config(shop_id)
         gw_status = baileys.get_gateway_status(shop_id)
 
         is_conn = bool(gw_status.get("connected"))
@@ -222,18 +238,43 @@ class WhatsAppStatusView(_Scoped, APIView):
 
 
 class WhatsAppDisconnectView(_Scoped, APIView):
-    """Disconnect and purge WhatsApp session for this shop."""
-    permission_classes = [IsTenantMember]
+    """Disconnect and purge WhatsApp session for this shop or platform admin."""
+    permission_classes = [IsTenantMemberOrPlatformStaff]
 
     def post(self, request):
-        shop_id = request.user.shop_id
-        cfg, _ = ShopWhatsAppConfig.objects.get_or_create(shop_id=shop_id)
+        shop_id = getattr(request.user, "shop_id", 1) or 1
+        cfg = _get_shop_wa_config(shop_id)
         baileys.disconnect_gateway(shop_id)
         cfg.is_connected = False
         cfg.connected_phone = ""
         cfg.connected_name = ""
         cfg.save(update_fields=["is_connected", "connected_phone", "connected_name"])
         return Response({"success": True, "message": "WhatsApp session disconnected successfully"})
+
+
+class WhatsAppPairingCodeView(_Scoped, APIView):
+    """Generate an 8-character manual OTP / pairing code to link WhatsApp without QR scan."""
+    permission_classes = [IsTenantMemberOrPlatformStaff]
+
+    def post(self, request):
+        shop_id = getattr(request.user, "shop_id", 1) or 1
+        cfg = _get_shop_wa_config(shop_id)
+        phone = request.data.get("phone", "").strip()
+        if not phone:
+            return Response({"error": "WhatsApp phone number is required (e.g. 017XXXXXXXX)."}, status=status.HTTP_400_BAD_REQUEST)
+
+        result = baileys.request_gateway_pairing_code(phone, shop_id=shop_id)
+        if result.get("success") and result.get("pairingCode"):
+            return Response({
+                "success": True,
+                "pairing_code": result["pairingCode"],
+                "phone": phone,
+                "expires_in": 120,
+            })
+        return Response({
+            "success": False,
+            "error": result.get("error", "Failed to generate pairing code.")
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 
 class WhatsAppSendInvoiceView(_Scoped, APIView):
@@ -353,3 +394,44 @@ class SendTestReportView(_Scoped, APIView):
         from reports.scheduled_digest import send_shop_digest_email
         res = send_shop_digest_email(shop, frequency=frequency, target_email=email)
         return Response(res)
+
+
+class SendTestOwnerWhatsAppReportView(_Scoped, APIView):
+    """
+    On-demand endpoint allowing a shop owner or admin to trigger an instant test run
+    of the 10:00 PM WhatsApp executive briefing message to their phone.
+    """
+    permission_classes = [IsTenantMember]
+
+    def post(self, request):
+        shop = getattr(request.user, "shop", None)
+        if not shop:
+            return Response({"detail": "No shop found."}, status=status.HTTP_400_BAD_REQUEST)
+
+        dry_run = request.data.get("dry_run", False)
+        if dry_run:
+            from .owner_digest import send_throttled_owner_daily_reports
+            res = send_throttled_owner_daily_reports(dry_run=True, target_shop_id=shop.id)
+            return Response(res)
+
+        from .owner_digest import (
+            get_daily_business_metrics,
+            build_daily_report_whatsapp_message,
+            resolve_owner_phone,
+        )
+        from .baileys import send_platform_whatsapp_message
+
+        target_phone = request.data.get("phone") or resolve_owner_phone(shop)
+        if not target_phone:
+            return Response({"detail": "No recipient WhatsApp phone number provided or found on shop."}, status=status.HTTP_400_BAD_REQUEST)
+
+        metrics = get_daily_business_metrics(shop)
+        message_text = build_daily_report_whatsapp_message(shop, metrics)
+
+        res = send_platform_whatsapp_message(target_phone, message_text)
+        return Response({
+            "success": res.get("success", False),
+            "phone": target_phone,
+            "message_preview": message_text,
+            "gateway_result": res,
+        })

@@ -137,6 +137,12 @@ class PlatformConfig(TimeStampedModel):
     # Editable copy for the public pricing page (hero, CTA, badges, etc.).
     pricing_content = models.JSONField(default=dict, blank=True)
 
+    # WhatsApp automated messaging templates & follow-up campaign settings
+    whatsapp_templates = models.JSONField(default=dict, blank=True)
+    whatsapp_digest_time = models.CharField(max_length=10, default="22:00", help_text="Configurable daily WhatsApp dispatch time in HH:MM format (Asia/Dhaka).")
+    whatsapp_digest_min_gap = models.PositiveIntegerField(default=12, help_text="Minimum humanized delay gap between shop messages (seconds).")
+    whatsapp_digest_max_gap = models.PositiveIntegerField(default=18, help_text="Maximum humanized delay gap between shop messages (seconds).")
+
     # Subscription: default trial length (days) granted to every new signup.
     default_trial_days = models.PositiveIntegerField(default=45)
 

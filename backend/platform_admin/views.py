@@ -59,6 +59,8 @@ class ShopAdminSerializer(serializers.ModelSerializer):
     owner_full_name = serializers.SerializerMethodField()
     subscription_info = serializers.SerializerMethodField()
     modules = serializers.SerializerMethodField()
+    whatsapp_daily_digest_enabled = serializers.SerializerMethodField()
+    whatsapp_digest_phone = serializers.SerializerMethodField()
 
     shop_code = serializers.CharField(read_only=True, default=None)
 
@@ -68,9 +70,18 @@ class ShopAdminSerializer(serializers.ModelSerializer):
             "id", "shop_code", "name", "slug", "business_type", "phone", "email", "address",
             "plan", "plan_tier", "is_active", "is_test", "is_demo", "is_free", "trial_ends_at", "suspended_at",
             "user_count", "owner_email", "owner_full_name", "can_delete", "days_suspended",
-            "created_at", "owner_name", "owner_password", "subscription_info", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled", "modules"
+            "created_at", "owner_name", "owner_password", "subscription_info", "manufacturing_enabled", "mobile_repair_enabled", "mobile_repair_master_enabled", "modules",
+            "whatsapp_daily_digest_enabled", "whatsapp_digest_phone"
         ]
         read_only_fields = ["id", "slug", "created_at", "suspended_at", "is_free"]
+
+    def get_whatsapp_daily_digest_enabled(self, obj):
+        from notifications.services import get_alert_config
+        return getattr(get_alert_config(obj), "whatsapp_daily_digest_enabled", False)
+
+    def get_whatsapp_digest_phone(self, obj):
+        from notifications.services import get_alert_config
+        return getattr(get_alert_config(obj), "whatsapp_digest_phone", "") or ""
 
     def get_modules(self, obj):
         from tenants.modules import get_shop_modules
@@ -474,6 +485,26 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         data = self.get_serializer(shop).data
         data["subscription"] = shop_subscription_info(shop)
         return Response(data)
+
+    @action(detail=True, methods=["post"], url_path="toggle-whatsapp-digest")
+    def toggle_whatsapp_digest(self, request, pk=None):
+        """Toggle modular WhatsApp daily report briefing for this specific shop."""
+        shop = self.get_object()
+        from notifications.services import get_alert_config
+        cfg = get_alert_config(shop)
+        phone = request.data.get("phone")
+        if "enabled" in request.data:
+            cfg.whatsapp_daily_digest_enabled = bool(request.data["enabled"])
+        else:
+            cfg.whatsapp_daily_digest_enabled = not cfg.whatsapp_daily_digest_enabled
+        if phone is not None:
+            cfg.whatsapp_digest_phone = str(phone).strip()
+        cfg.save(update_fields=["whatsapp_daily_digest_enabled", "whatsapp_digest_phone"])
+        return Response({
+            "status": "ok",
+            "whatsapp_daily_digest_enabled": cfg.whatsapp_daily_digest_enabled,
+            "whatsapp_digest_phone": cfg.whatsapp_digest_phone,
+        })
 
     @action(detail=True, methods=["post"])
     def suspend(self, request, pk=None):
@@ -2133,6 +2164,110 @@ class PricingContentView(APIView):
         config.pricing_content = cleaned
         config.save(update_fields=["pricing_content"])
         return Response({"pricing_content": {**DEFAULT_PRICING_CONTENT, **cleaned}})
+
+
+DEFAULT_WHATSAPP_TEMPLATES = {
+    "daily_report_header": "🏪 *{shop_name}* — দৈনিক ব্যবসায়িক রিপোর্ট\n📅 তারিখ: {date} | রাত ১০:০০",
+    "daily_report_footer": "— *StockWhisk Business Intelligence*\n🌐 বিস্তারিত দেখতে: https://stockwhisk.com/app",
+    "onboarding_day1": (
+        "আসসালামু আলাইকুম {name} স্যার,\n"
+        "StockWhisk-এ আপনার অ্যাকাউন্ট খোলার জন্য আন্তরিক ধন্যবাদ! 💐\n\n"
+        "লক্ষ্য করলাম, আপনি অ্যাকাউন্ট তৈরি করেছেন। সফটওয়্যারটিতে লগইন করতে বা ড্যাশবোর্ড ব্যবহারে কোনো সমস্যা হচ্ছে কি না জানার জন্য চেক-ইন করলাম।\n\n"
+        "স্যার, মাত্র ৫ মিনিটের একটি ফোনে বা হোয়াটসঅ্যাপ কলে আমাদের একজন প্রতিনিধি সম্পূর্ণ সিস্টেমটি আপনাকে লাইভ বুঝিয়ে দিতে পারে।\n\n"
+        "আপনার সুবিধাজনক একটি সময় জানালে আমরা কল দেব স্যার। আপনার ব্যবসায়ের সার্বিক সাফল্য কামনা করি! 😊\n\n"
+        "— *কাস্টমার সাকসেস টিম, StockWhisk*\n"
+        "📞 হটলাইন: {hotline}"
+    ),
+    "onboarding_day3": (
+        "শুভ অপরাহ্ন {name} স্যার,\n"
+        "আশা করি আপনার দোকানের ব্যবসা ভালো চলছে। 🏪\n\n"
+        "আপনি জানেন কি, *StockWhisk* চালাতে দোকানে কোনো কম্পিউটার বা ল্যাপটপের প্রয়োজন নেই?\n\n"
+        "📱 আপনার পকেটে থাকা স্মার্টফোনটি দিয়েই আপনি:\n"
+        "• ফোনের ক্যামেরা দিয়ে পণ্যের বারকোড স্ক্যান করতে পারবেন।\n"
+        "• মাত্র ৩ সেকেন্ডে কাস্টমারকে ডিজিটাল মেমো/ইনভয়েস দিতে পারবেন।\n"
+        "• বাকির টাকা আদায়ের তারিখ দিয়ে স্বয়ংক্রিয় তাগাদা পাঠাতে পারবেন।\n\n"
+        "🎥 মাত্র ২ মিনিটের এই ভিডিওটি দেখে আজই প্রথম বিক্রিটি ট্রাই করে দেখুন:\n"
+        "🔗 https://stockwhisk.com/video\n\n"
+        "কোনো প্রশ্ন থাকলে সরাসরি এই হোয়াটসঅ্যাপে লিখে জানাতে পারেন স্যার! 👍\n\n"
+        "— *StockWhisk সাপোর্ট টিম*"
+    ),
+    "onboarding_day7_free_upload": (
+        "🎁 *সপ্তাহের বিশেষ অফার: আপনার দোকানের সকল পণ্য ফ্রিতে আপলোড করে দেব!*\n\n"
+        "শ্রদ্ধেয় {name} স্যার,\n"
+        "আমি StockWhisk প্ল্যাটফর্ম থেকে তৌহিদুল বলছি।\n\n"
+        "এক সপ্তাহ হয়ে গেল আপনি আমাদের প্ল্যাটফর্মে যুক্ত হয়েছিলেন, কিন্তু এখনও নিয়মিত হিসাব শুরু করতে পারেননি দেখে আন্তরিকভাবে মেসেজ দিলাম।\n\n"
+        "দোকানে একা হাতে শত শত পণ্যের নাম, দাম ও স্টক টাইপ করে তোলা সত্যিই অনেক সময়সাপেক্ষ ও ক্লান্তিকর কাজ। তাই এই সপ্তাহের শেষে আমাদের বিশেষ অফার:\n\n"
+        "📦 *আপনার পণ্যের তালিকা, ক্রয়ের মেমো, খাতার ছবি অথবা এক্সেল শিট সরাসরি আমাদের হোয়াটসঅ্যাপে পাঠান—আমাদের টিম সম্পূর্ণ ফ্রিতে আপনার দোকানের সকল প্রোডাক্ট সিস্টেমে আপলোড করে সাজিয়ে দেবে!*\n\n"
+        "এতে আপনার এক ঘণ্টাও সময় নষ্ট হবে না, আর আজ থেকেই আপনি ডিজিটাল হিসাব শুরু করতে পারবেন।\n\n"
+        "অফারটি গ্রহণ করতে চাইলে এই নম্বরে খাতার ছবি বা 'YES' লিখে রিপ্লাই দিন স্যার! ধন্যবাদ। 🤝\n\n"
+        "— *তৌহিদুল ইসলাম, StockWhisk*\n"
+        "📞 হটলাইন: {hotline}"
+    ),
+    "hotline": "০১৬১৩-৫১১৮৮৭",
+}
+
+
+class WhatsAppTemplatesView(APIView):
+    """Staff-editable templates for automated WhatsApp briefings & onboarding."""
+    permission_classes = [IsPlatformStaff]
+
+    def get(self, request):
+        config = PlatformConfig.get_solo()
+        merged = dict(DEFAULT_WHATSAPP_TEMPLATES)
+        if config.whatsapp_templates:
+            merged.update(config.whatsapp_templates)
+        return Response({
+            "templates": merged,
+            "defaults": DEFAULT_WHATSAPP_TEMPLATES,
+            "schedule": {
+                "dispatch_time": getattr(config, "whatsapp_digest_time", "22:00") or "22:00",
+                "min_gap": getattr(config, "whatsapp_digest_min_gap", 12) or 12,
+                "max_gap": getattr(config, "whatsapp_digest_max_gap", 18) or 18,
+            }
+        })
+
+    def put(self, request):
+        config = PlatformConfig.get_solo()
+        incoming = request.data.get("templates") or {}
+        schedule = request.data.get("schedule") or {}
+        cleaned = {k: str(v).strip() for k, v in incoming.items() if k in DEFAULT_WHATSAPP_TEMPLATES}
+        if cleaned:
+            config.whatsapp_templates = cleaned
+        if "dispatch_time" in schedule:
+            config.whatsapp_digest_time = str(schedule["dispatch_time"]).strip()
+        if "min_gap" in schedule:
+            try:
+                config.whatsapp_digest_min_gap = max(5, int(schedule["min_gap"]))
+            except (ValueError, TypeError):
+                pass
+        if "max_gap" in schedule:
+            try:
+                config.whatsapp_digest_max_gap = max(config.whatsapp_digest_min_gap, int(schedule["max_gap"]))
+            except (ValueError, TypeError):
+                pass
+        config.save()
+        merged = dict(DEFAULT_WHATSAPP_TEMPLATES)
+        merged.update(config.whatsapp_templates)
+        return Response({
+            "success": True,
+            "detail": "WhatsApp templates and schedule saved successfully.",
+            "templates": merged,
+            "schedule": {
+                "dispatch_time": config.whatsapp_digest_time or "22:00",
+                "min_gap": config.whatsapp_digest_min_gap or 12,
+                "max_gap": config.whatsapp_digest_max_gap or 18,
+            }
+        })
+
+    def delete(self, request):
+        config = PlatformConfig.get_solo()
+        config.whatsapp_templates = {}
+        config.save(update_fields=["whatsapp_templates"])
+        return Response({
+            "success": True,
+            "detail": "WhatsApp templates reset to system defaults.",
+            "templates": DEFAULT_WHATSAPP_TEMPLATES,
+        })
 
 from .mail_service import MailServerConfigService
 

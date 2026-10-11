@@ -321,6 +321,20 @@ export default function ShopDetailsPage() {
     }
   }, [shop, load]);
 
+  const toggleWhatsAppDigest = useCallback(async () => {
+    if (!shop) return;
+    setBusy(true);
+    try {
+      const r = await api<{ whatsapp_daily_digest_enabled: boolean }>(`/platform/shops/${shop.id}/toggle-whatsapp-digest/`, { method: "POST" });
+      await load();
+      toast.success(r.whatsapp_daily_digest_enabled ? "হোয়াটসঅ্যাপ দৈনিক রিপোর্ট চালু হয়েছে (ON)." : "হোয়াটসঅ্যাপ দৈনিক রিপোর্ট বন্ধ হয়েছে (OFF).");
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to toggle WhatsApp digest.");
+    } finally {
+      setBusy(false);
+    }
+  }, [shop, load]);
+
   const resetPassword = useCallback(async () => {
     if (!shop) return;
     const pw = prompt(`Enter new password for owner (${shop.owner_email || 'no email'}):`);
@@ -806,6 +820,19 @@ export default function ShopDetailsPage() {
                     {shop.is_test ? "Unmark Test Shop (count revenue)" : "Mark as Test Shop (exclude revenue)"}
                   </span>
                   {shop.is_test && <span className="badge bg-secondary">TEST</span>}
+                </button>
+
+                <button
+                  className={`btn text-start p-3 rounded-3 d-flex align-items-center justify-content-between ${(shop as any).whatsapp_daily_digest_enabled ? "btn-success" : "btn-outline-success"}`}
+                  onClick={toggleWhatsAppDigest}
+                  disabled={busy}
+                  title="Toggle 10 PM automated WhatsApp business digest for this shop"
+                >
+                  <span>
+                    <i className="bi bi-whatsapp me-2"></i>
+                    {(shop as any).whatsapp_daily_digest_enabled ? "হোয়াটসঅ্যাপ দৈনিক রিপোর্ট: চালু (ON)" : "হোয়াটসঅ্যাপ দৈনিক রিপোর্ট: বন্ধ (OFF)"}
+                  </span>
+                  {(shop as any).whatsapp_daily_digest_enabled && <span className="badge bg-white text-success fw-bold">ACTIVE</span>}
                 </button>
 
                 <button

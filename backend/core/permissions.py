@@ -20,6 +20,19 @@ class IsPlatformStaff(BasePermission):
         return bool(user and user.is_authenticated and user.is_staff)
 
 
+class IsTenantMemberOrPlatformStaff(BasePermission):
+    """Authenticated user that belongs to a shop OR is platform staff/superuser."""
+
+    message = "You must be a shop member or platform administrator to access this resource."
+
+    def has_permission(self, request, view):
+        user = request.user
+        return bool(
+            user and user.is_authenticated and user.is_active and
+            (user.shop_id is not None or user.is_staff or user.is_superuser)
+        )
+
+
 # Codes whose denial is always security-relevant and thus audited.
 SENSITIVE_PERMS = {"delete_sale", "view_profit", "manage_users", "manage_expenses"}
 

@@ -52,6 +52,16 @@ class ShopAlertConfig(TenantScopedModel):
     weekly_report_enabled = models.BooleanField(default=True)
     monthly_report_enabled = models.BooleanField(default=True)
     report_recipient_email = models.CharField(max_length=255, blank=True)
+    # Modular toggle for daily night WhatsApp report (per-shop)
+    whatsapp_daily_digest_enabled = models.BooleanField(
+        default=False,
+        help_text="Modular toggle: Superadmin enabled WhatsApp daily executive briefing."
+    )
+    whatsapp_digest_phone = models.CharField(
+        max_length=32,
+        blank=True,
+        help_text="Custom WhatsApp recipient phone for daily reports. If empty, falls back to shop owner phone."
+    )
 
     class Meta:
         constraints = [

@@ -139,3 +139,55 @@ def send_monthly_shop_reports():
         except Exception:
             logger.exception("Failed sending monthly digest for shop %s (%s)", shop.id, shop.name)
     return {"monthly_reports_sent": sent_count}
+
+
+@shared_task
+def send_daily_night_owner_whatsapp_digest():
+    """
+    Automated Daily Night WhatsApp Executive Report (runs daily at configured time, e.g. 22:00 BST).
+    Dispatches throttled, humanized daily business reports to enabled shop owners.
+    """
+    from .owner_digest import send_throttled_owner_daily_reports
+    return send_throttled_owner_daily_reports()
+
+
+@shared_task
+def send_inactive_onboarding_whatsapp_checkin():
+    """
+    Automated Inactive Client Onboarding Follow-up (runs daily at 11:30 AM Asia/Dhaka).
+    Identifies newly registered shops (Day 1, Day 3, Day 7) that haven't recorded sales yet,
+    and sends personalized, helpful support messages offering assistance & live onboarding.
+    """
+    from tenants.models import Shop
+    from sales.models import Sale
+    from .owner_digest import build_onboarding_followup_message, resolve_owner_phone
+    from .baileys import send_platform_whatsapp_message
+
+    today = timezone.localtime().date()
+    sent_count = 0
+
+    for shop in Shop.objects.filter(is_active=True):
+        try:
+            has_sales = Sale.all_objects.filter(shop=shop).exists()
+            if has_sales:
+                continue
+
+            days_since_created = (today - shop.created_at.date()).days
+            if days_since_created not in (1, 3, 7):
+                continue
+
+            owner_phone = resolve_owner_phone(shop)
+            if not owner_phone:
+                continue
+
+            owner = getattr(shop, "owner", None)
+            owner_name = owner.first_name if owner and owner.first_name else ""
+
+            msg_text = build_onboarding_followup_message(owner_name, days_since_created)
+            res = send_platform_whatsapp_message(owner_phone, msg_text)
+            if res.get("success"):
+                sent_count += 1
+        except Exception:
+            logger.exception("Failed sending onboarding followup for shop %s", shop.id)
+
+    return {"inactive_followups_sent": sent_count}

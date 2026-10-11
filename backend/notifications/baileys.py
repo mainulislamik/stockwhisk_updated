@@ -9,7 +9,7 @@ logger = logging.getLogger("notifications.whatsapp.baileys")
 WHATSAPP_GATEWAY_URL = getattr(
     settings,
     "WHATSAPP_GATEWAY_URL",
-    os.getenv("WHATSAPP_GATEWAY_URL", "http://whatsapp:5001"),
+    os.getenv("WHATSAPP_GATEWAY_URL", "http://wa-engine:5001"),
 )
 
 
@@ -17,61 +17,103 @@ def get_session_id(shop_id) -> str:
     return f"shop_{shop_id}"
 
 
-def get_gateway_status(shop_id: int) -> dict:
-    session_id = get_session_id(shop_id)
-    url = f"{WHATSAPP_GATEWAY_URL}/sessions/{session_id}/status"
+def get_gateway_status(shop_id: int = 1) -> dict:
+    url = f"{WHATSAPP_GATEWAY_URL}/status"
     try:
         resp = requests.get(url, timeout=5)
         if resp.status_code == 200:
-            return resp.json()
+            d = resp.json()
+            return {
+                "connected": d.get("status") == "CONNECTED",
+                "status": d.get("status", "offline"),
+                "phone": d.get("user", {}).get("id") if isinstance(d.get("user"), dict) else None,
+                "name": d.get("user", {}).get("name") if isinstance(d.get("user"), dict) else None,
+                "has_qr": bool(d.get("hasQr")),
+            }
     except Exception as exc:
-        logger.warning("Failed to query WhatsApp gateway status for shop %s: %s", shop_id, exc)
+        logger.warning("Failed to query WhatsApp gateway status: %s", exc)
     return {"connected": False, "status": "offline", "phone": None, "name": None}
 
 
-def get_gateway_qr(shop_id: int) -> dict:
-    session_id = get_session_id(shop_id)
-    url = f"{WHATSAPP_GATEWAY_URL}/sessions/{session_id}/qr"
+def get_gateway_qr(shop_id: int = 1) -> dict:
+    url = f"{WHATSAPP_GATEWAY_URL}/qr"
     try:
         resp = requests.get(url, timeout=10)
         if resp.status_code == 200:
-            return resp.json()
+            d = resp.json()
+            return {
+                "connected": d.get("status") == "CONNECTED",
+                "status": d.get("status"),
+                "qr": d.get("qrDataUrl"),
+                "raw_qr": d.get("rawQr"),
+            }
     except Exception as exc:
-        logger.error("Failed to query WhatsApp gateway QR for shop %s: %s", shop_id, exc)
+        logger.error("Failed to query WhatsApp gateway QR: %s", exc)
         return {"error": str(exc), "connected": False, "qr": None}
     return {"connected": False, "qr": None}
 
 
-def disconnect_gateway(shop_id: int) -> dict:
-    session_id = get_session_id(shop_id)
-    url = f"{WHATSAPP_GATEWAY_URL}/sessions/{session_id}/disconnect"
+def request_gateway_pairing_code(phone: str, shop_id: int = 1) -> dict:
+    url = f"{WHATSAPP_GATEWAY_URL}/pairing-code"
+    try:
+        clean_phone = "".join(filter(str.isdigit, str(phone)))
+        resp = requests.post(url, json={"phone": clean_phone}, timeout=15)
+        if resp.status_code == 200:
+            return resp.json()
+        return {"success": False, "error": resp.json().get("error", "Failed to generate pairing code")}
+    except Exception as exc:
+        logger.error("Failed to request WhatsApp gateway pairing code: %s", exc)
+        return {"success": False, "error": str(exc)}
+
+
+def disconnect_gateway(shop_id: int = 1) -> dict:
+    url = f"{WHATSAPP_GATEWAY_URL}/logout"
     try:
         resp = requests.post(url, timeout=5)
         return resp.json() if resp.status_code == 200 else {"success": False}
     except Exception as exc:
-        logger.error("Failed to disconnect WhatsApp gateway for shop %s: %s", shop_id, exc)
+        logger.error("Failed to disconnect WhatsApp gateway: %s", exc)
         return {"success": False, "error": str(exc)}
 
 
 def send_whatsapp_message(shop_id: int, to_phone: str, message: str) -> dict:
-    session_id = get_session_id(shop_id)
-    url = f"{WHATSAPP_GATEWAY_URL}/sessions/{session_id}/send-message"
+    return send_platform_whatsapp_message(to_phone, message)
+
+
+def send_platform_whatsapp_message(to_phone: str, message: str) -> dict:
+    """
+    Sends an automated notification message from StockWhisk's official platform WhatsApp number.
+    Uses official Baileys gateway service (port 5001).
+    """
+    url = f"{WHATSAPP_GATEWAY_URL}/send-message"
     try:
         resp = requests.post(
             url,
-            json={"to": to_phone, "message": message},
+            json={"phone": to_phone, "text": message},
             timeout=15,
         )
         data = resp.json() if resp.content else {}
         if resp.status_code == 200 and data.get("success"):
             return {"success": True, "message_id": data.get("messageId")}
+
+        # Fallback to /send route
+        fallback_url = f"{WHATSAPP_GATEWAY_URL}/send"
+        resp2 = requests.post(
+            fallback_url,
+            json={"phone": to_phone, "message": message},
+            timeout=15,
+        )
+        data2 = resp2.json() if resp2.content else {}
+        if resp2.status_code == 200 and data2.get("success"):
+            return {"success": True, "message_id": data2.get("messageId")}
+
         return {
             "success": False,
-            "error": data.get("error") or f"HTTP {resp.status_code}",
+            "error": data.get("error") or data2.get("error") or f"HTTP {resp.status_code}",
             "status_code": resp.status_code,
         }
     except Exception as exc:
-        logger.error("Failed to send WhatsApp message for shop %s: %s", shop_id, exc)
+        logger.error("Failed to send platform WhatsApp message to %s: %s", to_phone, exc)
         return {"success": False, "error": str(exc)}
 
 

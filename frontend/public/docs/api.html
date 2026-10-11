@@ -807,7 +807,14 @@
     <a href="#quickstart" class="nav-link"><i class="bi bi-rocket-takeoff"></i> 5-Minute Quickstart</a>
     <a href="#auth" class="nav-link"><i class="bi bi-shield-lock"></i> Authentication & Security</a>
 
-    <div class="nav-header">Core REST Endpoints</div>
+    <div class="nav-header">Public REST API (Enterprise v1)</div>
+    <a href="#public-api-v1" class="nav-link"><i class="bi bi-key-fill text-warning"></i> <span class="t-bn">এপিআই কি অথেনটিকেশন</span><span class="t-en">API v1 Key Auth</span></a>
+    <a href="#api-v1-products" class="nav-link"><span class="badge-method-get">GET</span> <span class="t-bn">প্রোডাক্ট ও সিরিয়াল বারকোড</span><span class="t-en">Products & Barcodes</span></a>
+    <a href="#api-v1-inventory" class="nav-link"><span class="badge-method-get">GET</span> <span class="t-bn">লাইভ ইনভেন্টরি স্টক</span><span class="t-en">Live Inventory Stock</span></a>
+    <a href="#api-v1-customers" class="nav-link"><span class="badge-method-get">GET</span> <span class="t-bn">কাস্টমার ডিরেক্টরি ও বাকি</span><span class="t-en">Customers & Dues</span></a>
+    <a href="#api-v1-sales" class="nav-link"><span class="badge-method-post">POST</span> <span class="t-bn">সেলস ও ইনভয়েস তৈরি</span><span class="t-en">Sales & Order Ingestion</span></a>
+
+    <div class="nav-header">Webhook & Sync Endpoints</div>
     <a href="#check-stock" class="nav-link">
       <span class="badge-method-get">GET</span> Real-Time Stock Check
     </a>
@@ -1033,7 +1040,359 @@ Authorization: Bearer whsec_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</pre>
       </div>
     </section>
 
-    <!-- SECTION: REAL-TIME STOCK CHECK -->
+    <!-- =========================================================================
+         ENTERPRISE REST API V1 SPECIFICATION & LIVE EXAMPLES
+         ========================================================================= -->
+    <section id="public-api-v1" class="doc-section">
+      <div class="mb-2">
+        <span class="badge bg-warning-subtle text-dark border border-warning-subtle px-2.5 py-1 fw-semibold">
+          <i class="bi bi-shield-check text-success me-1"></i> Public REST API v1 (Enterprise)
+        </span>
+      </div>
+      <h2 class="h3 fw-bold text-dark mb-2">
+        <span class="t-bn">পাবলিক REST API v1 ও এপিআই কি (API Key) অথেনটিকেশন</span>
+        <span class="t-en">Public REST API v1 & API Key Authentication</span>
+      </h2>
+      <p class="text-muted">
+        <span class="t-bn">আপনার কাস্টম ওয়েবসাইট, ইআরপি বা মোবাইল অ্যাপ্লিকেশনের সাথে StockWhisk-এর পূর্ণাঙ্গ দ্বি-মুখী যোগাযোগের জন্য এই REST API ব্যবহার করুন। প্রতিটি রিকোয়েস্টে আপনার শপের সিক্রেট এপিআই কি <code>X-Api-Key</code> হেডারে পাঠাতে হবে।</span>
+        <span class="t-en">Use the Enterprise Public REST API for deep two-way integration between your custom web apps, ERPs, or mobile apps and StockWhisk. Pass your shop's secret API key in the <code>X-Api-Key</code> request header.</span>
+      </p>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">
+            <span class="t-bn">REST API অথেনটিকেশন হেডার ও বেস URL</span>
+            <span class="t-en">REST API Authentication Header & Base URL</span>
+          </span>
+          <button class="copy-btn" onclick="copySnippet(this, 'api-v1-base-snippet')"><i class="bi bi-clipboard"></i> <span class="t-bn">কপি</span><span class="t-en">Copy</span></button>
+        </div>
+        <pre class="code-block" id="api-v1-base-snippet"># Base Endpoint URL
+https://stockwhisk.com/api/v1/
+
+# Required HTTP Header
+X-Api-Key: sk_live_YOUR_SHOP_SECRET_KEY
+Accept: application/json
+Content-Type: application/json</pre>
+      </div>
+
+      <div class="row g-3 mt-1">
+        <div class="col-md-6">
+          <div class="card h-100 border-0 shadow-xs p-3 rounded-3 bg-white">
+            <div class="fw-bold text-dark small mb-1"><i class="bi bi-lightning-charge-fill text-warning me-1"></i> <span class="t-bn">এন্টারপ্রাইজ রেট লিমিট</span><span class="t-en">Enterprise Rate Limits</span></div>
+            <div class="text-secondary small">
+              <span class="t-bn">প্রতি মিনিটে সর্বোচ্চ ১,০০০টি এবং দৈনিক ১,০০,০০০টি রিকোয়েস্ট অনুমোদিত। হাই-ফ্রিকোয়েন্সি ই-কমার্স ট্রাফিকের জন্য সম্পূর্ণ অপ্টিমাইজড।</span>
+              <span class="t-en">Supports up to 1,000 requests/minute and 100,000 requests/day, fully optimized for high-volume store traffic.</span>
+            </div>
+          </div>
+        </div>
+        <div class="col-md-6">
+          <div class="card h-100 border-0 shadow-xs p-3 rounded-3 bg-white">
+            <div class="fw-bold text-dark small mb-1"><i class="bi bi-diagram-3-fill text-primary me-1"></i> <span class="t-bn">অটোমেটিক শপ আইসোলেশন</span><span class="t-en">Strict Tenant Isolation</span></div>
+            <div class="text-secondary small">
+              <span class="t-bn">এপিআই কি থেকে স্বয়ংক্রিয়ভাবে শপ আইডি নির্ধারিত হয়। কোনো ইউজার বা থার্ড-পার্টি অন্য কোনো দোকানের ডেটা অ্যাক্সেস করতে পারবে না।</span>
+              <span class="t-en">Tenant context is securely resolved directly from the API key hash, guaranteeing zero cross-shop data leaks.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- API V1: PRODUCTS & BARCODES -->
+    <section id="api-v1-products" class="doc-section">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-method-get">GET</span>
+        <h2 class="h4 fw-bold text-dark mb-0">
+          <span class="t-bn">১. প্রোডাক্ট ক্যাটালগ ও ফিজিক্যাল সিরিয়াল বারকোড ফেচ</span>
+          <span class="t-en">1. Product Catalog & Serial Barcodes Fetch</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">আপনার শপের সকল প্রোডাক্ট, তাদের বর্তমান স্টক, ক্রয়/বিক্রয় মূল্য, ক্যাটাগরি, ব্র্যান্ড এবং স্টকে থাকা প্রতিটি ফিজিক্যাল বক্সের আলাদা বারকোড ও ওয়ারেন্টি পেতে এই এন্ডপয়েন্ট ব্যবহার করুন।</span>
+        <span class="t-en">Fetch all products in your shop along with current stock, pricing, categories, brands, and individual serialized unit barcodes with warranty status.</span>
+      </p>
+
+      <div class="endpoint-box">
+        <span class="method get">GET</span>https://stockwhisk.com/api/v1/products/
+        <span class="text-secondary ms-2 small">অথবা নির্দিষ্ট পণ্যের জন্য: <code>/api/v1/products/{id}/</code></span>
+      </div>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">cURL Example Request</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'curl-v1-products')"><i class="bi bi-clipboard"></i> Copy</button>
+        </div>
+        <pre class="code-block" id="curl-v1-products">curl -X GET "https://stockwhisk.com/api/v1/products/?page=1&page_size=20&search=mouse" \
+  -H "X-Api-Key: sk_live_YOUR_SHOP_SECRET_KEY" \
+  -H "Accept: application/json"</pre>
+      </div>
+
+      <div class="code-container mt-3">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">JSON Output Response (HTTP 200 OK)</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'json-v1-products')"><i class="bi bi-clipboard"></i> Copy JSON</button>
+        </div>
+        <pre class="code-block" id="json-v1-products">{
+  "count": 306,
+  "next": "https://stockwhisk.com/api/v1/products/?page=2",
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "name": "A4 Tech Mouse Double click",
+      "sku": "SKU-A4-001",
+      "barcode": "123456789",
+      "category": 1,
+      "category_name": "Mouse",
+      "brand": 1,
+      "brand_name": "A4 Tech",
+      "cost_price": "220.00",
+      "selling_price": "480.00",
+      "current_stock": "10.00",
+      "in_stock_units_count": 10,
+      "track_inventory": true,
+      "reorder_level": 1,
+      "is_low_stock": false,
+      "is_active": true,
+      "warranty_months": 6,
+      "replacement_guarantee_days": 0,
+      "units": [
+        {
+          "id": 1603,
+          "barcode": "SYNC-1-1786960186-008",
+          "status": "in_stock",
+          "effective_selling_price": "480.00",
+          "effective_warranty_months": 6,
+          "effective_replacement_guarantee_days": 0,
+          "warranty_status": null
+        },
+        {
+          "id": 25,
+          "barcode": "717171",
+          "status": "in_stock",
+          "effective_selling_price": "480.00",
+          "effective_warranty_months": 12,
+          "effective_replacement_guarantee_days": 0,
+          "warranty_status": "active"
+        }
+      ],
+      "display_name": "A4 Tech Mouse Double click"
+    }
+  ]
+}</pre>
+      </div>
+    </section>
+
+    <!-- API V1: LIVE INVENTORY -->
+    <section id="api-v1-inventory" class="doc-section">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-method-get">GET</span>
+        <h2 class="h4 fw-bold text-dark mb-0">
+          <span class="t-bn">২. লাইভ ইনভেন্টরি ও রিয়েলটাইম স্টক ব্যালেন্স</span>
+          <span class="t-en">2. Live Inventory & Real-Time Stock Balance</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">ওয়েবসাইটে দ্রুত স্টক স্ট্যাটাস প্রদর্শন এবং রিরিডার লেভেল মনিটর করার জন্য এই অপ্টিমাইজড এন্ডপয়েন্টটি ব্যবহার করুন।</span>
+        <span class="t-en">High-performance lightweight endpoint designed for rapid stock level checks and inventory alert automations.</span>
+      </p>
+
+      <div class="endpoint-box">
+        <span class="method get">GET</span>https://stockwhisk.com/api/v1/inventory/
+      </div>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">cURL Example Request</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'curl-v1-inventory')"><i class="bi bi-clipboard"></i> Copy</button>
+        </div>
+        <pre class="code-block" id="curl-v1-inventory">curl -X GET "https://stockwhisk.com/api/v1/inventory/" \
+  -H "X-Api-Key: sk_live_YOUR_SHOP_SECRET_KEY"</pre>
+      </div>
+
+      <div class="code-container mt-3">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">JSON Output Response (HTTP 200 OK)</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'json-v1-inventory')"><i class="bi bi-clipboard"></i> Copy JSON</button>
+        </div>
+        <pre class="code-block" id="json-v1-inventory">[
+  {
+    "id": 1,
+    "name": "A4 Tech Mouse Double click",
+    "sku": "SKU-A4-001",
+    "barcode": "123456789",
+    "current_stock": 10.0,
+    "reorder_level": 1
+  },
+  {
+    "id": 2,
+    "name": "A4 Tech Keyboard",
+    "sku": "SKU-A4-KB",
+    "barcode": "54545454",
+    "current_stock": 7.0,
+    "reorder_level": 1
+  }
+]</pre>
+      </div>
+    </section>
+
+    <!-- API V1: CUSTOMERS DIRECTORY -->
+    <section id="api-v1-customers" class="doc-section">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-method-get">GET</span>
+        <h2 class="h4 fw-bold text-dark mb-0">
+          <span class="t-bn">৩. কাস্টমার ডিরেক্টরি, লাইফটাইম সেলস ও বকেয়া হিসাব</span>
+          <span class="t-en">3. Customers Directory, Lifetime Purchases & Due Balances</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">দোকানের নিবন্ধিত গ্রাহকদের তালিকা, ফোন নম্বর, ঠিকানা, মোট ক্রয় পরিমাণ এবং বর্তমান বকেয়া (Due Balance) ফেচ করতে পারেন।</span>
+        <span class="t-en">Retrieve registered customers with their contact info, address, lifetime sales volume, and outstanding due balance.</span>
+      </p>
+
+      <div class="endpoint-box">
+        <span class="method get">GET</span>https://stockwhisk.com/api/v1/customers/?page=1&page_size=20
+      </div>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">cURL Example Request</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'curl-v1-customers')"><i class="bi bi-clipboard"></i> Copy</button>
+        </div>
+        <pre class="code-block" id="curl-v1-customers">curl -X GET "https://stockwhisk.com/api/v1/customers/?search=01613" \
+  -H "X-Api-Key: sk_live_YOUR_SHOP_SECRET_KEY"</pre>
+      </div>
+
+      <div class="code-container mt-3">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">JSON Output Response (HTTP 200 OK)</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'json-v1-customers')"><i class="bi bi-clipboard"></i> Copy JSON</button>
+        </div>
+        <pre class="code-block" id="json-v1-customers">{
+  "count": 12,
+  "next": null,
+  "previous": null,
+  "results": [
+    {
+      "id": 1,
+      "name": "Touhidul Islam",
+      "phone": "01613511887",
+      "email": "customer@example.com",
+      "address": "123 New Street, Dhaka",
+      "segment": "vip",
+      "due_balance": "50.00",
+      "advance_balance": "0.00",
+      "credit_limit": "5000.00",
+      "total_purchased": "10580.00",
+      "last_purchase_at": "2026-08-10T18:21:49.568628+06:00",
+      "days_since_last_purchase": 60,
+      "is_active": true
+    }
+  ]
+}</pre>
+      </div>
+    </section>
+
+    <!-- API V1: SALES & INVOICES -->
+    <section id="api-v1-sales" class="doc-section">
+      <div class="d-flex align-items-center gap-2 mb-2">
+        <span class="badge-method-post">POST</span>
+        <h2 class="h4 fw-bold text-dark mb-0">
+          <span class="t-bn">৪. নতুন বিক্রয় / ইনভয়েস তৈরি ও অর্ডার পুশ</span>
+          <span class="t-en">4. Create Sales Order & Push External Invoices</span>
+        </h2>
+      </div>
+      <p class="text-muted">
+        <span class="t-bn">আপনার অনলাইন স্টোর বা কাস্টম অ্যাপ্লিকেশন থেকে সরাসরি StockWhisk-এ নতুন সেলস অর্ডার তৈরি করতে এই এন্ডপয়েন্টটি ব্যবহার করুন। এটি স্টক কমিয়ে দেয় এবং একটি ডিজিটাল ক্লাউড ইনভয়েস লিংক ফেরত দেয়।</span>
+        <span class="t-en">Directly record sales transactions and ingest external ecommerce orders into StockWhisk with atomic stock decrement and public invoice generation.</span>
+      </p>
+
+      <div class="endpoint-box">
+        <span class="method post">POST</span>https://stockwhisk.com/api/v1/sales/
+        <span class="text-secondary ms-2 small">অথবা সেলস হিস্ট্রি ফেচ করতে: <code>GET /api/v1/sales/</code></span>
+      </div>
+
+      <div class="code-container">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">cURL POST Example Request</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'curl-v1-sales')"><i class="bi bi-clipboard"></i> Copy</button>
+        </div>
+        <pre class="code-block" id="curl-v1-sales">curl -X POST "https://stockwhisk.com/api/v1/sales/" \
+  -H "X-Api-Key: sk_live_YOUR_SHOP_SECRET_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "customer_name": "Walk-in Customer",
+    "customer_phone": "01700000000",
+    "paid": 480.00,
+    "discount": 0.00,
+    "tax": 36.00,
+    "payments": [
+      {
+        "amount": 480.00,
+        "method": "cash"
+      }
+    ],
+    "items": [
+      {
+        "product": 1,
+        "quantity": 1,
+        "unit_price": 480.00
+      }
+    ]
+  }'</pre>
+      </div>
+
+      <div class="code-container mt-3">
+        <div class="code-header">
+          <span class="text-white small fw-bold font-mono">JSON Output Response (HTTP 201 Created)</span>
+          <button class="copy-btn" onclick="copySnippet(this, 'json-v1-sales')"><i class="bi bi-clipboard"></i> Copy JSON</button>
+        </div>
+        <pre class="code-block" id="json-v1-sales">{
+  "id": 726,
+  "invoice_no": "INV-000049",
+  "customer": null,
+  "bill_name": "Walk-in customer",
+  "sale_date": "2026-10-09T23:33:18.574812+06:00",
+  "subtotal": "480.00",
+  "discount": "0.00",
+  "delivery_charge": "0.00",
+  "tax": "36.00",
+  "total": "516.00",
+  "paid": "480.00",
+  "due": "36.00",
+  "status": "partial",
+  "items": [
+    {
+      "id": 1380,
+      "product": 1,
+      "product_name": "A4 Tech Mouse Double click",
+      "product_barcode": "123456789",
+      "product_warranty_months": 6,
+      "unit_barcodes": [
+        "919191"
+      ],
+      "unit_warranties": [
+        12
+      ],
+      "quantity": "1.00",
+      "unit_price": "480.00",
+      "subtotal": "480.00"
+    }
+  ],
+  "payments": [
+    {
+      "amount": "480.00",
+      "method": "cash",
+      "paid_at": "2026-10-09T23:33:18.659135+06:00"
+    }
+  ],
+  "public_invoice_url": "https://stockwhisk.com/api/sales/public-invoice/NzI2:1xFTHF:vxFPWuXeReM0E5-FWyqvkL4oRyu_6TOJ1it0GfzhFOo/"
+}</pre>
+      </div>
+    </section>
+
+
+
+        <!-- SECTION: REAL-TIME STOCK CHECK -->
     <section id="check-stock" class="doc-section">
             <div class="d-flex align-items-center gap-2 mb-2">
         <span class="badge-method-get">GET</span>

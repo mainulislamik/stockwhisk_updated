@@ -55,6 +55,16 @@ app.conf.beat_schedule = {
         "task": "sales.tasks.send_due_date_reminders",
         "schedule": crontab(hour=9, minute=0),
     },
+    # Automated Daily 10:00 PM Owner WhatsApp Business Briefing
+    "daily-owner-whatsapp-report-10pm": {
+        "task": "notifications.tasks.send_daily_night_owner_whatsapp_digest",
+        "schedule": crontab(hour=22, minute=0),
+    },
+    # Automated Inactive Client Onboarding Follow-up (11:30 AM)
+    "inactive-client-onboarding-followup-daily": {
+        "task": "notifications.tasks.send_inactive_onboarding_whatsapp_checkin",
+        "schedule": crontab(hour=11, minute=30),
+    },
     # Periodic recovery poller for Integration Events (Phase 13 recovery engine)
     "retry-failed-integration-events-5m": {
         "task": "integrations.tasks.retry_failed_events_task",

@@ -58,6 +58,7 @@ class DemoReadOnlyMiddleware:
         "/api/public/",
         "/api/notifications/whatsapp/send-invoice",
         "/api/notifications/whatsapp/disconnect",
+        "/api/notifications/alert-config/",
         "/api/auth/shop-settings/",
         "/api/pos/checkout",
         "/api/pos/offline-sync",

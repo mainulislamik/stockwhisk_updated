@@ -43,7 +43,18 @@ class ProductV1ViewSet(_PublicBase, mixins.ListModelMixin, mixins.RetrieveModelM
     serializer_class = ProductSerializer
 
     def get_queryset(self):
-        return Product.objects.all().order_by("id")
+        from django.db.models import Q
+        qs = Product.objects.all()
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(barcode__icontains=search) | Q(sku__icontains=search))
+        category = self.request.query_params.get("category")
+        if category:
+            qs = qs.filter(category_id=category)
+        brand = self.request.query_params.get("brand")
+        if brand:
+            qs = qs.filter(brand_id=brand)
+        return qs.order_by("id")
 
     def perform_create(self, serializer):
         serializer.save(shop=self.shop)
@@ -78,7 +89,12 @@ class CustomerV1ViewSet(_PublicBase, mixins.ListModelMixin, mixins.RetrieveModel
     serializer_class = CustomerSerializer
 
     def get_queryset(self):
-        return Customer.objects.all().order_by("id")
+        from django.db.models import Q
+        qs = Customer.objects.all()
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(Q(name__icontains=search) | Q(phone__icontains=search) | Q(email__icontains=search))
+        return qs.order_by("id")
 
     def perform_create(self, serializer):
         serializer.save(shop=self.shop)
