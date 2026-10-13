@@ -287,7 +287,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
                 var.save(update_fields=["name", "sku", "barcode", "selling_price", "current_stock", "is_active"])
                 seen_var_ids.add(var.id)
             else:
-                var = ProductVariation.objects.create(
+                var = ProductVariation.all_objects.create(
                     product=product,
                     shop=shop,
                     name=name,

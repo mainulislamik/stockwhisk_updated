@@ -59,6 +59,7 @@ type PrintLabelItem = {
 export default function BarcodesGeneratorPage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel" || Boolean(user?.shop_modules?.apparel_catalog);
   const shopPrefix = (user?.shop_barcode_prefix || "").toUpperCase();
   const shopName = user?.shop_name || "StockWhisk";
 
@@ -115,7 +116,10 @@ export default function BarcodesGeneratorPage() {
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    if (user?.shop_business_type === "fashion" || user?.shop_business_type === "apparel" || user?.shop_business_type === "footwear" || Boolean(user?.shop_modules?.apparel_catalog)) {
+      setLabelSize("fashion_tag");
+    }
+  }, [user]);
 
   // Debounce search input
   useEffect(() => {
@@ -843,7 +847,7 @@ export default function BarcodesGeneratorPage() {
                 {[
                   { id: "38x25", label: "38mm × 25mm (Standard)" },
                   { id: "50x30", label: "50mm × 30mm (Medium)" },
-                  { id: "fashion_tag", label: "50mm × 75mm (Hang Tag)" },
+                  { id: "fashion_tag", label: lang === "bn" ? "👗 ৫০×৭৫মিমি (পোশাক হ্যাংট্যাগ)" : "👗 50mm × 75mm (Hang Tag)" },
                   { id: "a4", label: "A4 Sheet (Portrait)" },
                 ].map((sz) => (
                   <button

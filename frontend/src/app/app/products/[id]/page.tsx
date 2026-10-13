@@ -76,7 +76,7 @@ function repairBadge(status?: string | null) {
 export default function ProductProfilePage() {
   const { t, lang } = useLanguage();
   const { user } = useAuth();
-  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel" || Boolean(user?.shop_modules?.apparel_catalog);
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
   const [p, setP] = useState<Product | null>(null);

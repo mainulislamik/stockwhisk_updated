@@ -76,6 +76,15 @@ MODULE_CATALOG: List[Dict[str, Any]] = [
         "default_enabled": True,
     },
     {
+        "key": "apparel_catalog",
+        "name_en": "Apparel & Clothing Product Suite",
+        "name_bn": "পোশাক ও ক্লদিং প্রোডাক্ট স্যুট",
+        "category": "inventory",
+        "icon": "bi-tags",
+        "description": "2D Size × Color variant matrix, garment taxonomy (fabric, fit, season, gender), and clothing hang-tag barcode printing.",
+        "default_enabled": False,
+    },
+    {
         "key": "purchasing",
         "name_en": "Purchasing & Suppliers",
         "name_bn": "সাপ্লায়ার ও পারচেজ অর্ডার",
@@ -299,6 +308,15 @@ PRESET_PACKAGES: Dict[str, Dict[str, Any]] = {
             "mobile_repair_pos", "reports_export", "delivery_tracking"
         ],
     },
+    "apparel_fashion": {
+        "name": "Apparel & Fashion Boutique (পোশাক ও ফ্যাশন)",
+        "description": "Tailored for clothing stores, boutiques, footwear, and fashion accessories with size-color matrix and hang-tags.",
+        "modules": [
+            "core_pos", "scanner_bridge", "inventory_basic", "product_pictures",
+            "apparel_catalog", "purchasing", "sales_crm", "whatsapp_crm",
+            "discounts_loyalty", "reports_export", "delivery_tracking"
+        ],
+    },
     "enterprise": {
         "name": "Full Enterprise Suite (সম্পূর্ণ এন্টারপ্রাইজ)",
         "description": "Every single feature, including manufacturing, HR payroll, integrations, and cloud backup.",
@@ -370,6 +388,11 @@ def get_shop_modules(shop) -> Dict[str, bool]:
         resolved["delivery_tracking"] = bool(shop.delivery_enabled)
     if hasattr(shop, "whatsapp_invoice_enabled"):
         resolved["whatsapp_crm"] = bool(shop.whatsapp_invoice_enabled)
+
+    # Auto-enable apparel_catalog for fashion/clothing/apparel/footwear/handcrafts/jewelry categories
+    shop_type = getattr(shop, "business_type", "") or ""
+    if shop_type in ["fashion", "apparel", "footwear", "handcrafts", "jewelry"]:
+        resolved["apparel_catalog"] = True
 
     # Apply specific shop-level overrides stored in shop.modules JSON
     stored_overrides = getattr(shop, "modules", None)

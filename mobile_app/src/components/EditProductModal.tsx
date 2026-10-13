@@ -26,7 +26,7 @@ export default function EditProductModal({ visible, product, onClose, onSaved }:
   const isBN = language === 'BN';
 
   const shopType = (user as any)?.shop_business_type || '';
-  const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel';
+  const isFashionShop = shopType === 'fashion' || shopType === 'footwear' || shopType === 'handcrafts' || shopType === 'jewelry' || shopType === 'apparel' || Boolean((user as any)?.shop_modules?.apparel_catalog);
   const isSpecialShop = shopType === 'camical' || shopType === 'supershop' || shopType === 'cosmetics' || shopType === 'beauty';
   const isRepairShop = shopType === 'mobile_repair' || shopType === 'repair' || Boolean((user as any)?.shop_mobile_repair_enabled);
 

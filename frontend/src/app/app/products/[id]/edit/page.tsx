@@ -17,7 +17,7 @@ export default function ProductEditPage() {
   const { user } = useAuth();
   const isSpecialShop = user?.shop_business_type === "camical" || user?.shop_business_type === "supershop" || user?.shop_business_type === "cosmetics" || user?.shop_business_type === "beauty";
   const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
-  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel" || Boolean(user?.shop_modules?.apparel_catalog);
   const { id } = useParams<{ id: string }>();
 
   const router = useRouter();
