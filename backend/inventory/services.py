@@ -108,23 +108,26 @@ def _apply_stock_delta(product, variation, signed, movement_type=None):
         variation.current_stock = Decimal(variation.current_stock or 0) + signed
 
         # Keep parent size_variants JSON synchronized with authoritative variation stock
-        if product.size_variants and getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
+        if getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
             sz = str(variation.attributes.get("size", "")).strip().lower()
             col = str(variation.attributes.get("color", "")).strip().lower()
             if sz or col:
-                sv_list = list(product.size_variants)
-                updated_sv = False
-                for sv in sv_list:
-                    if isinstance(sv, dict):
-                        s_match = not sz or (str(sv.get("size", "")).strip().lower() == sz)
-                        c_match = not col or (str(sv.get("color", "")).strip().lower() == col)
-                        if s_match and c_match:
-                            sv["stock"] = max(0.0, float(variation.current_stock))
-                            updated_sv = True
-                            break
-                if updated_sv:
-                    Product.all_objects.filter(pk=product.pk).update(size_variants=sv_list)
-                    product.size_variants = sv_list
+                p_row = Product.all_objects.filter(pk=product.pk).values("size_variants").first()
+                p_sv = p_row.get("size_variants") if p_row else None
+                if p_sv and isinstance(p_sv, list):
+                    sv_list = list(p_sv)
+                    updated_sv = False
+                    for sv in sv_list:
+                        if isinstance(sv, dict):
+                            s_match = not sz or (str(sv.get("size", "")).strip().lower() == sz)
+                            c_match = not col or (str(sv.get("color", "")).strip().lower() == col)
+                            if s_match and c_match:
+                                sv["stock"] = max(0.0, float(variation.current_stock))
+                                updated_sv = True
+                                break
+                    if updated_sv:
+                        Product.all_objects.filter(pk=product.pk).update(size_variants=sv_list)
+                        product.size_variants = sv_list
 
     from analytics.services import invalidate_dashboard_cache
     invalidate_dashboard_cache(product.shop_id)
