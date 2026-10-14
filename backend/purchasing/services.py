@@ -164,9 +164,11 @@ def _materialize_units_with_warranty(po, item):
         return
     
     explicit_barcodes = item.barcodes or []
-    # If no explicit barcodes and no warranty, skip
-    if not explicit_barcodes and months <= 0:
-        return
+    # If no warranty and barcodes are non-unique (e.g. batch/hang-tag variant barcodes),
+    # skip materializing serialized ProductUnits to prevent duplicate barcode clashes.
+    if months <= 0:
+        if not explicit_barcodes or len(set(explicit_barcodes)) < len(explicit_barcodes):
+            return
 
     start = _tz.localdate()
     for n in range(1, qty + 1):
@@ -247,16 +249,28 @@ def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, cr
         bcs = [b for b in (it.barcodes or []) if b]
         if not bcs:
             continue
+        has_warranty = (getattr(it.product, "warranty_months", 0) or 0) > 0
         counts = {}
         for b in bcs:
             counts[b] = counts.get(b, 0) + 1
         dup_in_batch = {b for b, c in counts.items() if c > 1}
-        existing = set(
-            ProductUnit.all_objects.filter(
-                shop_id=po.shop_id, product_id=it.product_id, barcode__in=bcs
-            ).values_list("barcode", flat=True)
-        )
-        clashes |= existing | dup_in_batch
+        
+        if has_warranty:
+            existing = set(
+                ProductUnit.all_objects.filter(
+                    shop_id=po.shop_id, product_id=it.product_id, barcode__in=bcs
+                ).values_list("barcode", flat=True)
+            )
+            clashes |= existing | dup_in_batch
+        else:
+            # For non-warranty goods, only distinct serial numbers could conflict with existing ProductUnits
+            if not dup_in_batch:
+                existing = set(
+                    ProductUnit.all_objects.filter(
+                        shop_id=po.shop_id, product_id=it.product_id, barcode__in=bcs
+                    ).values_list("barcode", flat=True)
+                )
+                clashes |= existing
     if clashes:
         raise ValueError(
             "These barcode(s) already exist for the same product or are repeated "
