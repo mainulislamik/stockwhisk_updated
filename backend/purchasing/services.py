@@ -318,6 +318,10 @@ def receive_purchase_order(*, po, paid=ZERO, due_date=None, update_cost=True, cr
                     product.selling_price = product.selling_price / multiplier
                     update_fields.append("selling_price")
             product.save(update_fields=update_fields)
+
+            if item.variation:
+                item.variation.cost_price = effective_unit_cost
+                item.variation.save(update_fields=["cost_price"])
         # Bulk purchase → per-unit warranty tracking: one ProductUnit + Warranty
         # per received piece, so the batch is bought together but returned one
         # unit at a time.
@@ -374,7 +378,8 @@ def create_purchase_return(*, po, lines, reason="", refund_amount=None, created_
 
         if po_item.product.track_inventory:
             apply_movement(
-                shop=shop, product=po_item.product, movement_type=MovementType.ADJUST_OUT,
+                shop=shop, product=po_item.product, variation=po_item.variation,
+                movement_type=MovementType.ADJUST_OUT,
                 quantity=qty, unit_cost=unit_cost, reference_type="PurchaseReturn",
                 reference_id=str(po.id), note=f"Return to supplier: {reason or po.po_number}",
                 created_by=created_by,

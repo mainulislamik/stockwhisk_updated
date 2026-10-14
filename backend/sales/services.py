@@ -179,7 +179,7 @@ def create_sale(
             if not size_variant.get("sku") and variation.sku:
                 size_variant["sku"] = variation.sku
 
-        if size_variant and isinstance(size_variant, dict) and product.size_variants:
+        if size_variant and isinstance(size_variant, dict) and product.size_variants and (not product.track_inventory and not is_quotation):
             sz = str(size_variant.get("size", "")).strip().lower()
             col = str(size_variant.get("color", "")).strip().lower()
             sv_list = list(product.size_variants)

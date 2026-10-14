@@ -107,7 +107,7 @@ def _apply_stock_delta(product, variation, signed, movement_type=None):
         )
         variation.current_stock = Decimal(variation.current_stock or 0) + signed
 
-        # Keep parent size_variants JSON synchronized
+        # Keep parent size_variants JSON synchronized with authoritative variation stock
         if product.size_variants and getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
             sz = str(variation.attributes.get("size", "")).strip().lower()
             col = str(variation.attributes.get("color", "")).strip().lower()
@@ -119,8 +119,7 @@ def _apply_stock_delta(product, variation, signed, movement_type=None):
                         s_match = not sz or (str(sv.get("size", "")).strip().lower() == sz)
                         c_match = not col or (str(sv.get("color", "")).strip().lower() == col)
                         if s_match and c_match:
-                            cur = float(sv.get("stock") or 0)
-                            sv["stock"] = max(0.0, cur + float(signed))
+                            sv["stock"] = max(0.0, float(variation.current_stock))
                             updated_sv = True
                             break
                 if updated_sv:
@@ -153,6 +152,23 @@ def recalc_stock(product, variation=None):
         )
         ProductVariation.all_objects.filter(pk=var.pk).update(current_stock=vtotal)
         var.current_stock = vtotal
+
+    # Keep cached size_variants JSON in sync with reconciled variations
+    if product.size_variants:
+        sv_list = list(product.size_variants)
+        for var in ProductVariation.all_objects.filter(product=product, is_active=True):
+            if getattr(var, "attributes", None) and isinstance(var.attributes, dict):
+                sz = str(var.attributes.get("size", "")).strip().lower()
+                col = str(var.attributes.get("color", "")).strip().lower()
+                for sv in sv_list:
+                    if isinstance(sv, dict):
+                        s_match = not sz or (str(sv.get("size", "")).strip().lower() == sz)
+                        c_match = not col or (str(sv.get("color", "")).strip().lower() == col)
+                        if s_match and c_match:
+                            sv["stock"] = max(0.0, float(var.current_stock or 0))
+                            break
+        Product.all_objects.filter(pk=product.pk).update(size_variants=sv_list)
+        product.size_variants = sv_list
 
     # Keep cached dashboards fresh after any stock change.
     from analytics.services import invalidate_dashboard_cache

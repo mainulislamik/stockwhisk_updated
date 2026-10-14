@@ -250,8 +250,11 @@ class CatalogCacheView(_POSBase):
                     "sku": v.sku,
                     "barcode": v.barcode,
                     "selling_price": str(v.selling_price or p.selling_price or "0.00"),
+                    "cost_price": str(v.cost_price or p.cost_price or "0.00"),
                     "current_stock": str(v.current_stock or "0"),
                     "attributes": v.attributes or {},
+                    "size": (v.attributes or {}).get("size") or "",
+                    "color": (v.attributes or {}).get("color") or "",
                 }
                 for v in p.variations.all()
                 if getattr(v, "is_active", True)
@@ -266,6 +269,7 @@ class CatalogCacheView(_POSBase):
                 "cost_price": str(p.cost_price or "0.00"),
                 "current_stock": str(p.current_stock or "0"),
                 "track_inventory": bool(p.track_inventory),
+                "size_variants": p.size_variants or [],
                 "category_id": p.category_id,
                 "category_name": p.category.name if p.category else "",
                 "brand_id": p.brand_id,
