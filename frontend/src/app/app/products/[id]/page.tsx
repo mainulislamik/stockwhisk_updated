@@ -308,7 +308,7 @@ export default function ProductProfilePage() {
                             </span>
                           </td>
                           <td>
-                            {v.color ? (
+                            {v.color && v.color.toLowerCase() !== "default" && v.color.toLowerCase() !== "standard" ? (
                               <span className="small fw-semibold">{v.color}</span>
                             ) : "—"}
                           </td>

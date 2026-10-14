@@ -108,7 +108,7 @@ def _apply_stock_delta(product, variation, signed, movement_type=None):
         variation.current_stock = Decimal(variation.current_stock or 0) + signed
 
         # Keep parent size_variants JSON synchronized
-        if movement_type != "sale_out" and product.size_variants and getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
+        if product.size_variants and getattr(variation, "attributes", None) and isinstance(variation.attributes, dict):
             sz = str(variation.attributes.get("size", "")).strip().lower()
             col = str(variation.attributes.get("color", "")).strip().lower()
             if sz or col:

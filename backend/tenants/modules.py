@@ -208,6 +208,15 @@ MODULE_CATALOG: List[Dict[str, Any]] = [
         "default_enabled": False,
     },
     {
+        "key": "apparel_alterations",
+        "name_en": "Garment Alteration, Fitting & Laser",
+        "name_bn": "পোশাক অল্টারেশন, ফিটিং ও লেজার",
+        "category": "addons",
+        "icon": "bi-scissors",
+        "description": "Garment fitting tickets, tailor job assignments, alteration notes, and SMS/WhatsApp completion alerts.",
+        "default_enabled": False,
+    },
+    {
         "key": "manufacturing",
         "name_en": "Manufacturing & Production",
         "name_bn": "ম্যানুফ্যাকচারিং ও ব্যাচ প্রোডাকশন",
@@ -313,7 +322,7 @@ PRESET_PACKAGES: Dict[str, Dict[str, Any]] = {
         "description": "Tailored for clothing stores, boutiques, footwear, and fashion accessories with size-color matrix and hang-tags.",
         "modules": [
             "core_pos", "scanner_bridge", "inventory_basic", "product_pictures",
-            "apparel_catalog", "purchasing", "sales_crm", "whatsapp_crm",
+            "apparel_catalog", "apparel_alterations", "purchasing", "sales_crm", "whatsapp_crm",
             "discounts_loyalty", "reports_export", "delivery_tracking"
         ],
     },
@@ -389,10 +398,11 @@ def get_shop_modules(shop) -> Dict[str, bool]:
     if hasattr(shop, "whatsapp_invoice_enabled"):
         resolved["whatsapp_crm"] = bool(shop.whatsapp_invoice_enabled)
 
-    # Auto-enable apparel_catalog for fashion/clothing/apparel/footwear/handcrafts/jewelry categories
+    # Auto-enable apparel_catalog & apparel_alterations for fashion/clothing/apparel/footwear/handcrafts/jewelry categories
     shop_type = getattr(shop, "business_type", "") or ""
     if shop_type in ["fashion", "apparel", "footwear", "handcrafts", "jewelry"]:
         resolved["apparel_catalog"] = True
+        resolved["apparel_alterations"] = True
 
     # Apply specific shop-level overrides stored in shop.modules JSON
     stored_overrides = getattr(shop, "modules", None)

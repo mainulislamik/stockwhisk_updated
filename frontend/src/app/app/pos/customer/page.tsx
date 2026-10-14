@@ -70,7 +70,7 @@ export default function PosCustomerPage() {
   const [matchedId, setMatchedId] = useState<number | null>(null);
   const [existingEmail, setExistingEmail] = useState("");
   const [showPrintModal, setShowPrintModal] = useState(false);
-  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel";
+  const isFashionShop = user?.shop_business_type === "fashion" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts" || user?.shop_business_type === "jewelry" || user?.shop_business_type === "apparel" || Boolean(user?.shop_modules?.apparel_catalog);
   const isRepairShop = !!user?.shop_mobile_repair_enabled;
   const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const [alterationNotes, setAlterationNotes] = useState("");

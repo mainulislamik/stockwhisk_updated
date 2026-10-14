@@ -10,6 +10,20 @@ import { useAuth } from "@/components/AuthProvider";
 import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 import { useLanguage } from "@/contexts/LanguageContext";
 
+type ProductVariation = {
+  id: number;
+  product?: number;
+  name: string;
+  sku?: string;
+  barcode?: string;
+  cost_price?: string | number;
+  selling_price?: string | number;
+  current_stock?: string | number;
+  size?: string;
+  color?: string;
+  attributes?: Record<string, any>;
+};
+
 type Product = {
   id: number;
   name: string;
@@ -31,10 +45,19 @@ type Product = {
   unit_detail?: { id: number; name: string; short_code?: string; measure_type?: string; allow_decimal?: boolean } | null;
   purchase_unit_detail?: { id: number; name: string; short_code?: string; measure_type?: string } | null;
   track_inventory: boolean;
+  size_variants?: any[];
+  variations?: ProductVariation[];
 };
 type Supplier = { id: number; name: string };
 type Branch = { id: number; name: string };
-type ReceiveLine = { product: Product; quantity: number; unit_cost: number; barcodes: string[] };
+type ReceiveLine = {
+  key: string;
+  product: Product;
+  variation?: ProductVariation | null;
+  quantity: number;
+  unit_cost: number;
+  barcodes: string[];
+};
 type Named = { id: number; name: string; measure_type?: string; short_code?: string };
 
 const PAY_METHODS: Record<string, string> = {
@@ -80,6 +103,7 @@ export default function PurchaseProductPage() {
 
   // Lines in "To Receive" cart
   const [lines, setLines] = useState<ReceiveLine[]>([]);
+  const [variantQtys, setVariantQtys] = useState<Record<number, number>>({});
 
   // Bulk barcode scan
   const [barcodeText, setBarcodeText] = useState("");
@@ -246,7 +270,7 @@ export default function PurchaseProductPage() {
     return generated;
   }
 
-  function selectProduct(p: Product) {
+  async function selectProduct(p: Product) {
     setSelected(p);
     setFullPackCost("");
     setFullPackSell("");
@@ -256,12 +280,19 @@ export default function PurchaseProductPage() {
     setSearchBarcode("");
     setBulkQty("");
     setQtyTouched(false);
+    setVariantQtys({});
     if (autoGenerateBarcodes) {
       const generated = generateBarcodesHelper(p, 1);
       setBarcodeText(generated.join("\n") + "\n");
     } else {
       setBarcodeText("");
     }
+    try {
+      const full = await api<Product>(`/catalog/products/${p.id}/`);
+      if (full && (full.variations || full.size_variants)) {
+        setSelected(full);
+      }
+    } catch {}
   }
 
   // ─── New product creation modal submission ───────────────────────────────
@@ -417,13 +448,15 @@ export default function PurchaseProductPage() {
           const extra = generateBarcodesHelper(selected, needed);
           finalBarcodes = [...finalBarcodes, ...extra];
         }
-        const existing = newLines.find((l) => l.product.id === selected.id);
+        const key = `${selected.id}-base`;
+        const existing = newLines.find((l) => l.key === key);
 
         if (existing) {
           existing.quantity = qty;
           existing.barcodes = finalBarcodes;
         } else {
           newLines.push({
+            key,
             product: selected,
             quantity: qty,
             unit_cost: drumCostFor(selected),
@@ -436,31 +469,38 @@ export default function PurchaseProductPage() {
           uniqueBarcodes.map(async (bc) => {
             const res = await api<any>("/catalog/products/", { params: { search: bc } });
             const list: Product[] = Array.isArray(res) ? res : res?.results ?? [];
+            const prod =
+              list.find((p) => p.barcode === bc || p.sku === bc) ||
+              list.find((p) => p.variations?.some((v) => v.barcode === bc || v.sku === bc)) ||
+              list.find((p) => p.name?.toLowerCase().includes(bc.toLowerCase())) ||
+              list[0];
+            const matchedVar = prod?.variations?.find((v) => v.barcode === bc || v.sku === bc) || null;
             return {
               bc,
-              match:
-                list.find((p) => p.barcode === bc || p.sku === bc) ||
-                list.find((p) => p.name?.toLowerCase().includes(bc.toLowerCase())) ||
-                list[0],
+              match: prod,
+              matchedVar,
             };
           })
         );
 
-        for (const { bc, match } of results) {
+        for (const { bc, match, matchedVar } of results) {
           if (!match) {
             notFound.push(bc);
             continue;
           }
 
           const qty = counts[bc];
-          const existing = newLines.find((l) => l.product.id === match.id);
+          const key = `${match.id}-${matchedVar ? matchedVar.id : "base"}`;
+          const existing = newLines.find((l) => l.key === key);
 
           if (existing) {
             existing.quantity += qty;
             existing.barcodes = [...existing.barcodes, ...Array(qty).fill(bc)];
           } else {
             newLines.push({
+              key,
               product: match,
+              variation: matchedVar,
               quantity: qty,
               unit_cost: drumCostFor(match),
               barcodes: Array(qty).fill(bc),
@@ -496,11 +536,12 @@ export default function PurchaseProductPage() {
       const extra = generateBarcodesHelper(selected, needed);
       finalBarcodes = [...finalBarcodes, ...extra];
     }
+    const key = `${selected.id}-base`;
     setLines((prev) => {
-      const existing = prev.find((l) => l.product.id === selected.id);
+      const existing = prev.find((l) => l.key === key);
       if (existing) {
         return prev.map((l) =>
-          l.product.id === selected.id
+          l.key === key
             ? { ...l, quantity: qty, barcodes: finalBarcodes }
             : l
         );
@@ -508,6 +549,7 @@ export default function PurchaseProductPage() {
       return [
         ...prev,
         {
+          key,
           product: selected,
           quantity: qty,
           unit_cost: drumCostFor(selected),
@@ -521,11 +563,48 @@ export default function PurchaseProductPage() {
     toast.success(`"${selected.name}" (${qty} টি) রিসিভ তালিকায় যুক্ত হয়েছে`);
   }
 
-  function updateLine(id: number, field: "quantity" | "unit_cost", val: number) {
-    setLines((prev) => prev.map((l) => (l.product.id === id ? { ...l, [field]: val } : l)));
+  function addVariantLines() {
+    if (!selected || !selected.variations) return;
+    const itemsToAdd = selected.variations.filter((v) => (variantQtys[v.id] || 0) > 0);
+    if (itemsToAdd.length === 0) {
+      toast.error(lang === "bn" ? "কমপক্ষে একটি ভ্যারিয়েন্টের পরিমাণ লিখুন" : "Please enter quantity for at least one variant");
+      return;
+    }
+    setLines((prev) => {
+      let next = [...prev];
+      itemsToAdd.forEach((v) => {
+        const qty = variantQtys[v.id];
+        const key = `${selected.id}-${v.id}`;
+        const existingIdx = next.findIndex((l) => l.key === key);
+        const bcs = v.barcode ? Array(qty).fill(v.barcode) : generateBarcodesHelper(selected, qty);
+        if (existingIdx >= 0) {
+          next[existingIdx] = {
+            ...next[existingIdx],
+            quantity: next[existingIdx].quantity + qty,
+            barcodes: [...next[existingIdx].barcodes, ...bcs],
+          };
+        } else {
+          next.push({
+            key,
+            product: selected,
+            variation: v,
+            quantity: qty,
+            unit_cost: drumCostFor(selected),
+            barcodes: bcs,
+          });
+        }
+      });
+      return next;
+    });
+    setVariantQtys({});
+    toast.success(lang === "bn" ? "ভ্যারিয়েন্টগুলো রিসিভ তালিকায় যোগ হয়েছে" : "Variants added to receive list");
   }
-  function removeLine(id: number) {
-    setLines((prev) => prev.filter((l) => l.product.id !== id));
+
+  function updateLine(key: string, field: "quantity" | "unit_cost", val: number) {
+    setLines((prev) => prev.map((l) => (l.key === key ? { ...l, [field]: val } : l)));
+  }
+  function removeLine(key: string) {
+    setLines((prev) => prev.filter((l) => l.key !== key));
   }
 
   // ─── Totals ───────────────────────────────────────────────────────────────
@@ -584,6 +663,7 @@ export default function PurchaseProductPage() {
           }
           return {
             product: l.product.id,
+            variation: l.variation ? l.variation.id : null,
             quantity: l.quantity,
             unit_cost: l.unit_cost,
             barcodes: bcs,
@@ -631,6 +711,26 @@ export default function PurchaseProductPage() {
       });
 
       toast.success(t("pp_success_receive") || (lang === "bn" ? "পণ্য সফলভাবে স্টকে যুক্ত হয়েছে!" : "Products received successfully"));
+      const hasApparelItems = lines.some((l) => l.variation || (l.product.size_variants && l.product.size_variants.length > 0));
+      if (hasApparelItems) {
+        toast(
+          (tObj) => (
+            <span className="d-flex align-items-center gap-2">
+              <span>👗 {lang === "bn" ? "নতুন মালের হ্যাং-ট্যাগ বারকোড প্রিন্ট করবেন?" : "Print Hang-Tags for received apparel?"}</span>
+              <button
+                className="btn btn-sm btn-dark py-0 px-2"
+                onClick={() => {
+                  toast.dismiss(tObj.id);
+                  router.push("/app/barcodes");
+                }}
+              >
+                {lang === "bn" ? "বারকোড পেজ" : "Barcodes"}
+              </button>
+            </span>
+          ),
+          { duration: 8000 }
+        );
+      }
       router.push("/app/products");
     } catch (e: any) {
       setError(e?.data?.detail || e?.message || "Failed to push to stock.");
@@ -1152,6 +1252,83 @@ export default function PurchaseProductPage() {
           </div>
         </div>
 
+        {/* ── Fashion Variant Inwarding Section ── */}
+        {selected && selected.variations && selected.variations.length > 0 && (
+          <div className="card shadow-sm mb-3 border-purple" style={{ borderColor: "#c084fc", background: "#fdfcfe" }}>
+            <div className="card-header py-2.5 px-3 d-flex align-items-center justify-content-between" style={{ background: "linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)", color: "#fff" }}>
+              <div className="fw-bold small d-flex align-items-center gap-2">
+                <span style={{ fontSize: "1.1rem" }}>👗</span>
+                <span>{lang === "bn" ? "সাইজ ও কালার ভ্যারিয়েন্ট অনুযায়ী চালান রিসিভ (Variant Inwarding)" : "Inward by Size & Color Variants"}</span>
+              </div>
+              <span className="badge bg-white text-dark small fw-bold" style={{ fontSize: "0.75rem" }}>
+                {selected.variations.length} {lang === "bn" ? "টি ভ্যারিয়েন্ট" : "variants"}
+              </span>
+            </div>
+            <div className="card-body p-3">
+              <div className="table-responsive">
+                <table className="table table-sm table-bordered align-middle mb-2" style={{ fontSize: "0.82rem" }}>
+                  <thead className="table-light">
+                    <tr>
+                      <th>{lang === "bn" ? "সাইজ / কালার" : "Size / Color"}</th>
+                      <th>SKU / বারকোড</th>
+                      <th className="text-center">{lang === "bn" ? "বর্তমান স্টক" : "Current Stock"}</th>
+                      <th className="text-center" style={{ width: "130px" }}>{lang === "bn" ? "রিসিভ পরিমাণ" : "Receive Qty"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selected.variations.map((v) => {
+                      const qty = variantQtys[v.id] || 0;
+                      return (
+                        <tr key={v.id}>
+                          <td>
+                            <div className="fw-bold text-dark">
+                              {v.name || [v.size, v.color].filter(Boolean).join(" / ")}
+                            </div>
+                          </td>
+                          <td className="font-monospace text-muted small">
+                            {v.barcode || v.sku || "—"}
+                          </td>
+                          <td className="text-center fw-bold">
+                            {v.current_stock ?? 0}
+                          </td>
+                          <td className="p-1">
+                            <input
+                              type="number"
+                              min="0"
+                              className="form-control form-control-sm text-center fw-bold"
+                              style={{
+                                borderColor: qty > 0 ? "#7c3aed" : "#cbd5e1",
+                                background: qty > 0 ? "#faf5ff" : "#fff",
+                                color: qty > 0 ? "#581c87" : "#0f172a",
+                              }}
+                              value={qty || ""}
+                              placeholder="0"
+                              onChange={(e) => {
+                                const val = Math.max(0, parseInt(e.target.value) || 0);
+                                setVariantQtys((prev) => ({ ...prev, [v.id]: val }));
+                              }}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <div className="d-flex justify-content-end">
+                <button
+                  type="button"
+                  className="btn btn-sm text-white fw-bold shadow-sm px-3"
+                  style={{ background: "#7c3aed" }}
+                  onClick={addVariantLines}
+                >
+                  ➕ {lang === "bn" ? "নির্বাচিত ভ্যারিয়েন্টগুলো রিসিভ তালিকায় যোগ করুন" : "Add Selected Variants to Receive List"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ── Bulk Barcode Scan Card ───────────────────────────────────────── */}
         <div className="card shadow-sm mb-3">
           <div className="card-body p-3 p-sm-4">
@@ -1314,9 +1491,14 @@ export default function PurchaseProductPage() {
                       const baseUnit = l.product.unit_detail?.short_code || l.product.unit_detail?.name || "Unit";
                       const bulkUnit = l.product.purchase_unit_detail?.name || "Pack";
                       return (
-                        <tr key={l.product.id}>
+                        <tr key={l.key || `${l.product.id}-${l.variation?.id || 'base'}`}>
                           <td className="ps-3">
                             <div className="fw-semibold small text-dark">{l.product.name}</div>
+                            {l.variation && (
+                              <span className="badge border my-0.5" style={{ fontSize: "0.72rem", backgroundColor: "#f3e8ff", color: "#6b21a8", borderColor: "#d8b4fe" }}>
+                                👗 {l.variation.name || [l.variation.size, l.variation.color].filter(Boolean).join(" / ")}
+                              </span>
+                            )}
                             {isBulk && (
                               <div className="text-primary small" style={{ fontSize: "0.68rem" }}>
                                 📦 {l.quantity} {bulkUnit} = {l.quantity * mult} {baseUnit} (@ ৳{mult > 0 ? (l.unit_cost / mult).toFixed(2) : l.unit_cost}/{baseUnit})
@@ -1338,7 +1520,7 @@ export default function PurchaseProductPage() {
                               value={l.quantity}
                               onChange={(e) =>
                                 updateLine(
-                                  l.product.id,
+                                  l.key,
                                   "quantity",
                                   Math.max(1, Math.round(Number(e.target.value) || 1))
                                 )
@@ -1353,14 +1535,14 @@ export default function PurchaseProductPage() {
                               className="form-control form-control-sm text-end"
                               value={l.unit_cost}
                               onChange={(e) =>
-                                updateLine(l.product.id, "unit_cost", Number(e.target.value) || 0)
+                                updateLine(l.key, "unit_cost", Number(e.target.value) || 0)
                               }
                             />
                           </td>
                           <td className="text-end pe-2">
                             <button
                               className="btn btn-link btn-sm p-0 text-danger"
-                              onClick={() => removeLine(l.product.id)}
+                              onClick={() => removeLine(l.key)}
                             >
                               ✕
                             </button>

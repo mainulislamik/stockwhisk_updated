@@ -122,7 +122,7 @@ export default function FashionVariantMatrix({
         setSelectedSizes(existingSizes);
       }
       if (existingColors.length > 0 && selectedColors.length === 0) {
-        setSelectedColors(existingColors.length > 0 ? existingColors : ['Standard']);
+        setSelectedColors(existingColors.filter((c) => c && c.toLowerCase() !== 'default' && c.toLowerCase() !== 'standard'));
       }
     }
   }, [variants]);
@@ -185,14 +185,14 @@ export default function FashionVariantMatrix({
       return;
     }
 
-    const colorsToUse = selectedColors.length > 0 ? selectedColors : ['Default'];
+    const colorsToUse = selectedColors.length > 0 ? selectedColors : [''];
     const newVariants: FashionVariantItem[] = [];
     let idx = 1;
 
     colorsToUse.forEach((col) => {
       selectedSizes.forEach((sz) => {
         // Look up if this variant already exists to preserve stock / sku / barcode
-        const existing = variants.find((v) => v.size === sz && v.color === col);
+        const existing = variants.find((v) => v.size === sz && (v.color || '') === (col || ''));
         if (existing) {
           newVariants.push(existing);
         } else {
@@ -215,7 +215,7 @@ export default function FashionVariantMatrix({
   // Update a single variant cell in matrix
   function updateCellStock(size: string, color: string, stock: number) {
     const next = [...variants];
-    const idx = next.findIndex((v) => v.size === size && v.color === color);
+    const idx = next.findIndex((v) => v.size === size && (v.color || '') === (color || ''));
     if (idx >= 0) {
       next[idx] = { ...next[idx], stock: Math.max(0, stock) };
     } else {
@@ -522,32 +522,40 @@ export default function FashionVariantMatrix({
                 </tr>
               </thead>
               <tbody>
-                {Array.from(new Set(variants.map((v) => v.color))).map((col) => {
+                {Array.from(new Set(variants.map((v) => v.color || ''))).map((col) => {
                   const preset = PRESET_COLORS.find((c) => c.name === col);
-                  const rowVariants = variants.filter((v) => v.color === col);
+                  const rowVariants = variants.filter((v) => (v.color || '') === col);
                   const rowTotal = rowVariants.reduce((sum, v) => sum + (Number(v.stock) || 0), 0);
                   const allSizes = Array.from(new Set(variants.map((v) => v.size)));
 
                   return (
-                    <tr key={col}>
+                    <tr key={col || '__standard__'}>
                       <td className="text-start ps-3 fw-medium" style={{ background: '#fafaf9' }}>
                         <div className="d-flex align-items-center gap-2">
-                          <span
-                            style={{
-                              width: '14px',
-                              height: '14px',
-                              borderRadius: '50%',
-                              backgroundColor: preset?.hex || '#94a3b8',
-                              border: '1px solid #cbd5e1',
-                              display: 'inline-block',
-                            }}
-                          />
-                          <span style={{ fontSize: '0.85rem' }}>{preset && isBn ? preset.nameBn : col}</span>
+                          {col ? (
+                            <>
+                              <span
+                                style={{
+                                  width: '14px',
+                                  height: '14px',
+                                  borderRadius: '50%',
+                                  backgroundColor: preset?.hex || '#94a3b8',
+                                  border: '1px solid #cbd5e1',
+                                  display: 'inline-block',
+                                }}
+                              />
+                              <span style={{ fontSize: '0.85rem' }}>{preset && isBn ? preset.nameBn : col}</span>
+                            </>
+                          ) : (
+                            <span className="text-muted" style={{ fontSize: '0.85rem' }}>
+                              {isBn ? 'স্ট্যান্ডার্ড / সাইজ' : 'Standard / Sizing'}
+                            </span>
+                          )}
                         </div>
                       </td>
 
                       {allSizes.map((sz) => {
-                        const variant = variants.find((v) => v.size === sz && v.color === col);
+                        const variant = variants.find((v) => v.size === sz && (v.color || '') === col);
                         const stockVal = variant ? variant.stock : 0;
                         return (
                           <td key={sz} className="p-1">
@@ -620,19 +628,25 @@ export default function FashionVariantMatrix({
                           </span>
                         </td>
                         <td>
-                          <div className="d-flex align-items-center gap-1">
-                            <span
-                              style={{
-                                width: '10px',
-                                height: '10px',
-                                borderRadius: '50%',
-                                backgroundColor: preset?.hex || '#94a3b8',
-                                border: '1px solid #cbd5e1',
-                                display: 'inline-block',
-                              }}
-                            />
-                            <span>{preset && isBn ? preset.nameBn : v.color}</span>
-                          </div>
+                          {v.color ? (
+                            <div className="d-flex align-items-center gap-1">
+                              <span
+                                style={{
+                                  width: '10px',
+                                  height: '10px',
+                                  borderRadius: '50%',
+                                  backgroundColor: preset?.hex || '#94a3b8',
+                                  border: '1px solid #cbd5e1',
+                                  display: 'inline-block',
+                                }}
+                              />
+                              <span>{preset && isBn ? preset.nameBn : v.color}</span>
+                            </div>
+                          ) : (
+                            <span className="text-muted" style={{ fontSize: '0.75rem' }}>
+                              —
+                            </span>
+                          )}
                         </td>
                         <td>
                           <input

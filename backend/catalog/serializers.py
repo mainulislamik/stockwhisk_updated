@@ -118,13 +118,27 @@ class UnitSerializer(serializers.ModelSerializer):
 
 
 class ProductVariationSerializer(HideCostMixin, serializers.ModelSerializer):
+    size = serializers.SerializerMethodField()
+    color = serializers.SerializerMethodField()
+
     class Meta:
         model = ProductVariation
         fields = [
             "id", "product", "name", "attributes", "sku", "barcode",
             "cost_price", "selling_price", "current_stock", "is_active",
+            "size", "color",
         ]
         read_only_fields = ["current_stock"]
+
+    def get_size(self, obj):
+        if isinstance(obj.attributes, dict):
+            return obj.attributes.get("size", "")
+        return ""
+
+    def get_color(self, obj):
+        if isinstance(obj.attributes, dict):
+            return obj.attributes.get("color", "")
+        return ""
 
 
 class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
@@ -187,11 +201,16 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
     def get_display_name(self, obj):
         return obj.display_name
     def get_variations(self, obj):
-        tenant_id = getattr(obj, "shop_id", None)
-        if tenant_id:
-            qs = ProductVariation.all_objects.filter(product_id=obj.id, shop_id=tenant_id, is_active=True)
+        if hasattr(obj, "prefetched_active_variations"):
+            qs = obj.prefetched_active_variations
+        elif hasattr(obj, "_prefetched_objects_cache") and "variations" in obj._prefetched_objects_cache:
+            qs = [v for v in obj.variations.all() if getattr(v, "is_active", True)]
         else:
-            qs = obj.variations.filter(is_active=True)
+            tenant_id = getattr(obj, "shop_id", None)
+            if tenant_id:
+                qs = ProductVariation.all_objects.filter(product_id=obj.id, shop_id=tenant_id, is_active=True)
+            else:
+                qs = obj.variations.filter(is_active=True)
         return ProductVariationSerializer(qs, many=True, context=self.context).data
 
     def get_unit_detail(self, obj):
@@ -243,26 +262,48 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
         return ProductUnitSerializer(units, many=True, context=self.context).data
 
     def _sync_size_variations(self, product, size_variants):
-        if not size_variants or not isinstance(size_variants, list):
-            return
         shop = getattr(product, "shop", None)
         if not shop:
             return
+
+        if size_variants is not None and isinstance(size_variants, list):
+            if len(size_variants) == 0:
+                ProductVariation.all_objects.filter(
+                    product=product, shop=shop, is_active=True
+                ).update(is_active=False)
+                product.size_variants = []
+                Product.all_objects.filter(pk=product.pk).update(size_variants=[])
+                return
+
+        if not size_variants or not isinstance(size_variants, list):
+            return
+
+        from decimal import Decimal
+        from django.db.models import Sum
+        from inventory.services import apply_movement
+
         seen_var_ids = set()
+        clean_sv_list = []
+
         for sv in size_variants:
             if not isinstance(sv, dict):
                 continue
             size = str(sv.get("size", "")).strip()
             color = str(sv.get("color", "")).strip()
+            # If color is 'Default' or 'Standard', normalize to empty string
+            if color.lower() in {"default", "standard"}:
+                color = ""
+
             if not size and not color:
                 continue
+
             name = f"{size} / {color}" if (size and color) else (size or color)
             sku = str(sv.get("sku", "")).strip()
             barcode = str(sv.get("barcode", "")).strip()
-            stock = float(sv.get("stock") or 0)
+            target_stock = Decimal(str(sv.get("stock") or 0))
             price = sv.get("price")
             try:
-                price_val = float(price) if price else None
+                price_val = Decimal(str(price)) if price else None
             except (ValueError, TypeError):
                 price_val = None
 
@@ -276,16 +317,33 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
 
             if var:
                 var.name = name
+                var.attributes = {"size": size, "color": color}
                 if sku:
                     var.sku = sku
                 if barcode:
                     var.barcode = barcode
                 if price_val is not None:
                     var.selling_price = price_val
-                var.current_stock = stock
+                if product.cost_price:
+                    var.cost_price = product.cost_price
                 var.is_active = True
-                var.save(update_fields=["name", "sku", "barcode", "selling_price", "current_stock", "is_active"])
+                var.save(update_fields=["name", "attributes", "sku", "barcode", "selling_price", "cost_price", "is_active"])
                 seen_var_ids.add(var.id)
+
+                # Record stock ledger movement if stock quantity changed
+                cur_stock = Decimal(str(var.current_stock or 0))
+                delta = target_stock - cur_stock
+                if delta != Decimal("0"):
+                    mtype = "adjust_in" if delta > 0 else "adjust_out"
+                    apply_movement(
+                        product=product,
+                        movement_type=mtype,
+                        quantity=abs(delta),
+                        unit_cost=var.cost_price or product.cost_price or 0,
+                        variation=var,
+                        shop=shop,
+                        note="Size/Color variant stock adjustment",
+                    )
             else:
                 var = ProductVariation.all_objects.create(
                     product=product,
@@ -296,19 +354,43 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
                     barcode=barcode,
                     selling_price=price_val if price_val is not None else product.selling_price,
                     cost_price=product.cost_price,
-                    current_stock=stock,
+                    current_stock=Decimal("0"),
                     is_active=True,
                 )
                 seen_var_ids.add(var.id)
+                if target_stock > Decimal("0"):
+                    apply_movement(
+                        product=product,
+                        movement_type="opening",
+                        quantity=target_stock,
+                        unit_cost=product.cost_price or 0,
+                        variation=var,
+                        shop=shop,
+                        note="Initial variant opening stock",
+                    )
+
+            clean_sv = dict(sv)
+            clean_sv["size"] = size
+            clean_sv["color"] = color
+            clean_sv["stock"] = float(var.current_stock or target_stock)
+            clean_sv_list.append(clean_sv)
+
         if seen_var_ids:
             ProductVariation.all_objects.filter(
                 product=product, shop=shop, is_active=True
             ).exclude(id__in=seen_var_ids).update(is_active=False)
 
-        total_var_stock = sum(float(sv.get("stock") or 0) for sv in size_variants if isinstance(sv, dict))
-        if size_variants:
-            product.current_stock = total_var_stock
-            product.save(update_fields=["current_stock"])
+        # Refresh authoritative total stock from active variations
+        total_var_stock = ProductVariation.all_objects.filter(
+            product=product, shop=shop, is_active=True
+        ).aggregate(s=Sum("current_stock"))["s"] or Decimal("0")
+
+        Product.all_objects.filter(pk=product.pk).update(
+            current_stock=total_var_stock,
+            size_variants=clean_sv_list
+        )
+        product.current_stock = total_var_stock
+        product.size_variants = clean_sv_list
 
     def create(self, validated_data):
         instance = super().create(validated_data)

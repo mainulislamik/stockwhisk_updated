@@ -631,9 +631,12 @@ export default function BarcodesGeneratorPage() {
                 {item.productName}
               </div>
             )}
-            {(item.size || item.color) && (
+            {(item.size || (item.color && item.color.toLowerCase() !== "default" && item.color.toLowerCase() !== "standard")) && (
               <div style={{ fontSize: "10px", fontWeight: 900, textTransform: "uppercase", color: "#000000", backgroundColor: "#f1f5f9", padding: "2px 8px", borderRadius: "4px", marginTop: "4px", display: "inline-block", border: "1px solid #cbd5e1" }}>
-                {[item.size && ("SIZE: " + item.size), item.color && ("COLOR: " + item.color)].filter(Boolean).join(" | ")}
+                {[
+                  item.size && ("SIZE: " + item.size),
+                  item.color && item.color.toLowerCase() !== "default" && item.color.toLowerCase() !== "standard" && ("COLOR: " + item.color)
+                ].filter(Boolean).join(" | ")}
               </div>
             )}
             {(item.fabric || item.fit) && (
