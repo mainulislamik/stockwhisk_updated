@@ -403,6 +403,7 @@ def get_shop_modules(shop) -> Dict[str, bool]:
     if shop_type in ["fashion", "apparel", "footwear", "handcrafts", "jewelry"]:
         resolved["apparel_catalog"] = True
         resolved["apparel_alterations"] = True
+        resolved["alterations"] = True
 
     # Apply specific shop-level overrides stored in shop.modules JSON
     stored_overrides = getattr(shop, "modules", None)
