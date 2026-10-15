@@ -2434,16 +2434,27 @@ export default function PosPage() {
                     ⏸️ Hold (F8)
                   </button>
                 )}
-                {isFashionShop && cart.length > 0 && (
-                  <button
-                    type="button"
-                    className={`btn btn-xs py-0 px-2 fw-semibold rounded-pill ${alterationNotes.trim() ? "btn-info text-white shadow-xs" : "btn-outline-info"}`}
-                    style={{ fontSize: "0.75rem" }}
-                    onClick={() => setShowAlterationModal(true)}
-                    title="পোশাক অল্টারেশন / ফিটিং নোট"
-                  >
-                    ✂️ {alterationNotes.trim() ? (lang === "bn" ? "ফিটিং যুক্ত" : "Fitting Added") : (lang === "bn" ? "অল্টারেশন" : "Alteration")}
-                  </button>
+                {isFashionShop && (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-xs py-0 px-2 fw-semibold rounded-pill btn-outline-primary"
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setShowSizeGuideModal(true)}
+                      title="সাইজ মেজারমেন্ট গাইড"
+                    >
+                      📏 {lang === "bn" ? "সাইজ গাইড" : "Size Guide"}
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-xs py-0 px-2 fw-semibold rounded-pill ${alterationNotes.trim() ? "btn-info text-white shadow-xs" : "btn-outline-info"}`}
+                      style={{ fontSize: "0.75rem" }}
+                      onClick={() => setShowAlterationModal(true)}
+                      title="পোশাক অল্টারেশন / ফিটিং নোট"
+                    >
+                      ✂️ {alterationNotes.trim() ? (lang === "bn" ? "ফিটিং যুক্ত" : "Fitting Added") : (lang === "bn" ? "অল্টারেশন" : "Alteration")}
+                    </button>
+                  </>
                 )}
                 {cart.length > 0 && (
                   <button className="btn btn-link btn-sm text-danger p-0 ms-1" onClick={clearCart}>{t("pos_clear")}</button>

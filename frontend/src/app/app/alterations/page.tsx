@@ -162,7 +162,7 @@ export default function AlterationsPage() {
   }
 
   return (
-    <ModuleRouteGuard module="apparel_alterations,core_pos" name={lang === "bn" ? "পোশাক অল্টারেশন ও ফিটিং" : "Garment Alterations"}>
+    <ModuleRouteGuard module="apparel_alterations" name={lang === "bn" ? "পোশাক অল্টারেশন ও ফিটিং" : "Garment Alterations"}>
       <div className="container-fluid py-3 px-3">
         {/* Header */}
         <div className="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
