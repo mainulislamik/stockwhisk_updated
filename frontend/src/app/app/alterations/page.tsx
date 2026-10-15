@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
-import { useAuth } from "@/lib/auth";
-import { useLanguage } from "@/lib/language";
+import { useAuth } from "@/components/AuthProvider";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { api } from "@/lib/api";
 import { ModuleRouteGuard } from "@/components/ModuleRouteGuard";
 
