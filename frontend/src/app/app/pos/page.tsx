@@ -3420,7 +3420,7 @@ export default function PosPage() {
                     { size: "XXL / 46", chest: "46\"", length: "43\"", waist: "44\"", shoulder: "19.5\"" },
                   ];
 
-                  const rows = hasCustom ? chart.measurements : defaultChart;
+                  const rows = (hasCustom && chart?.measurements) ? chart.measurements : defaultChart;
 
                   return (
                     <div>
