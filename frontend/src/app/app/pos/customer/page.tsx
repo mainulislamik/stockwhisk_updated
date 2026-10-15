@@ -378,7 +378,7 @@ export default function PosCustomerPage() {
                     const isBulk = l.sellMode === "bulk" && mult > 1;
                     const unitLabel = isBulk ? ((l.product as any)?.purchase_unit_detail?.name || "Drum/Pack") : ((l.product as any)?.unit_detail?.short_code || "");
                     const vInfo = (l.product as any)._selectedVariant || (l as any).selectedVariation;
-                    const availStock = vInfo ? Number(vInfo.current_stock ?? l.product.current_stock ?? 0) : Number(l.product.current_stock ?? 0);
+                    const availStock = vInfo ? Number(vInfo.current_stock ?? (l.product as any)?.current_stock ?? 0) : Number((l.product as any)?.current_stock ?? 0);
                     return (
                       <tr key={(l as any).lineId || `${l.product.id}-${index}`}>
                         <td className="ps-3">
