@@ -32,7 +32,7 @@ import BarcodesScreen from './src/screens/BarcodesScreen';
 import ManufacturingScreen from './src/screens/ManufacturingScreen';
 import NewBatchScreen from './src/screens/NewBatchScreen';
 import GlobalHeader from './src/components/GlobalHeader';
-import UpdatingOverlay from './src/components/UpdatingOverlay';
+import ModernBootSplash from './src/components/ModernBootSplash';
 import SubscriptionBlockedModal from './src/components/SubscriptionBlockedModal';
 import { useAutoUpdateChecker } from './src/hooks/useAutoUpdateChecker';
 
@@ -81,20 +81,7 @@ function RootNavigator() {
   const { user, billing, loading } = useAuth();
 
   if (loading) {
-    return (
-      <View style={{ flex: 1, backgroundColor: "#0f172a", justifyContent: "center", alignItems: "center" }}>
-        <View style={{ width: 64, height: 64, borderRadius: 16, backgroundColor: "#4f46e5", justifyContent: "center", alignItems: "center", marginBottom: 18, shadowColor: "#4f46e5", shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 8 }}>
-          <Text style={{ fontSize: 32 }}>📦</Text>
-        </View>
-        <Text style={{ color: "#ffffff", fontSize: 20, fontWeight: "bold", letterSpacing: 0.5, marginBottom: 6 }}>
-          StockWhisk ERP
-        </Text>
-        <Text style={{ color: "#94a3b8", fontSize: 13, marginBottom: 20 }}>
-          লোড হচ্ছে, অপেক্ষা করুন...
-        </Text>
-        <ActivityIndicator size="small" color="#4f46e5" />
-      </View>
-    );
+    return <ModernBootSplash isUpdating={false} />;
   }
 
   const isSuspendedOrExpired = Boolean(
@@ -171,7 +158,7 @@ function ThemedApp() {
               elevation: Platform.OS === 'web' ? 12 : 0,
             }}
           >
-            {isUpdating && <UpdatingOverlay statusText={updateStatus} />}
+            {isUpdating && <ModernBootSplash isUpdating={true} statusText={updateStatus} />}
             <ErrorBoundary>
               <NavigationContainer>
                 <AuthProvider>

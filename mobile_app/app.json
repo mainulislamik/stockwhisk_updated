@@ -6,9 +6,19 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070a13"
+    },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mainulislamik.stockwhisk"
+      "bundleIdentifier": "com.mainulislamik.stockwhisk",
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#070a13"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -16,6 +26,11 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "splash": {
+        "image": "./assets/splash-icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#070a13"
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.mainulislamik.mobile_app",
@@ -28,7 +43,8 @@
       "softwareKeyboardLayoutMode": "resize"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "backgroundColor": "#070a13"
     },
     "extra": {
       "eas": {
@@ -66,7 +82,7 @@
     "updates": {
       "url": "https://u.expo.dev/bd94abb4-ce4f-4260-98f2-e9f32147fa83",
       "checkAutomatically": "ON_LOAD",
-      "fallbackToCacheTimeout": 5000
+      "fallbackToCacheTimeout": 0
     }
   }
 }

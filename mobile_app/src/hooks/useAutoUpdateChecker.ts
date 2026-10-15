@@ -25,24 +25,30 @@ export function useAutoUpdateChecker() {
         const check = await Updates.checkForUpdateAsync();
         if (check.isAvailable && isMounted) {
           setIsUpdating(true);
-          setUpdateStatus('নতুন আপডেট ডাউনলোড হচ্ছে...');
+          setUpdateStatus('নতুন সিস্টেম আপডেট পাওয়া গেছে, ডাউনলোড হচ্ছে...');
 
-          await Updates.fetchUpdateAsync();
+          // Bounded fetch with 15s timeout to prevent hanging on flaky connections
+          const fetchPromise = Updates.fetchUpdateAsync();
+          const timeoutPromise = new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Update fetch timed out')), 15000)
+          );
+
+          await Promise.race([fetchPromise, timeoutPromise]);
           
           if (isMounted) {
-            setUpdateStatus('ইনস্টলেশন সম্পূর্ণ! পুনরায় চালু হচ্ছে...');
-            // Wait 1.2s for user to see the success state
+            setUpdateStatus('ইনস্টলেশন সফল! অ্যাপ নতুন ভার্সনে রিস্টার্ট হচ্ছে...');
             setTimeout(async () => {
               try {
                 await Updates.reloadAsync();
               } catch (e) {
                 console.log('Failed to reload after update:', e);
+                if (isMounted) setIsUpdating(false);
               }
-            }, 1200);
+            }, 1000);
           }
         }
       } catch (error) {
-        // Silently continue to normal app if update check fails
+        // Silently continue to normal app if update check fails or times out
         console.log('Auto update check skipped/failed:', error);
         if (isMounted) {
           setIsUpdating(false);
