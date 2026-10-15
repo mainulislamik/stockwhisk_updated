@@ -2537,14 +2537,14 @@ export default function PosPage() {
             </div>
             <div className="card-body p-0">
               <div style={{ maxHeight: "52vh", overflowY: "auto" }}>
-                <table className="table table-sm align-middle mb-0">
+                <table className="table table-sm align-middle mb-0" style={{ tableLayout: "fixed", width: "100%" }}>
                   <thead className="table-light border-bottom sticky-top" style={{ zIndex: 2 }}>
                     <tr style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                      <th className="ps-3 py-2">{lang === "bn" ? "পণ্য ও স্টক" : "Product & Stock"}</th>
-                      <th className="text-center py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "মূল্য" : "Price"}</th>
-                      <th className="text-center py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "পরিমাণ" : "Qty"}</th>
-                      <th className="text-end py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "মোট" : "Total"}</th>
-                      <th style={{ width: "1.8rem" }}></th>
+                      <th className="ps-3 py-2" style={{ width: "44%" }}>{lang === "bn" ? "পণ্য ও স্টক" : "Product & Stock"}</th>
+                      <th className="text-center py-2" style={{ width: "18%" }}>{lang === "bn" ? "মূল্য" : "Price"}</th>
+                      <th className="text-center py-2" style={{ width: "18%" }}>{lang === "bn" ? "পরিমাণ" : "Qty"}</th>
+                      <th className="text-end py-2" style={{ width: "16%" }}>{lang === "bn" ? "মোট" : "Total"}</th>
+                      <th style={{ width: "4%" }}></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -2564,7 +2564,7 @@ export default function PosPage() {
                       
                       return (
                         <tr key={l.lineId || l.product.id}>
-                          <td className="ps-3">
+                          <td className="ps-3 py-2" style={{ width: "44%" }}>
                             {(() => {
                               const lineBrand = l.product.brand_name || brands.find((b) => b.id === l.product.brand)?.name || "";
                               return (
@@ -2643,23 +2643,7 @@ export default function PosPage() {
                                   </button>
                                 </div>
                               </div>
-                            ) : (
-                              !!l.product.unit_detail && (
-                                <div className="text-secondary small fw-normal">
-                                  Rate: ৳{l.price} / {l.product.unit_detail.short_code || l.product.unit_detail.name}
-                                </div>
-                              )
-                            )}
-
-                            {l.sellMode === "bulk" ? (
-                              <div className="text-primary fw-medium" style={{ fontSize: ".72rem" }}>
-                                ৳{money(l.price)} / {bulkUnit} ({mult} {baseUnit})
-                              </div>
-                            ) : (
-                              <div className="text-secondary" style={{ fontSize: ".72rem" }}>
-                                {money(l.price)} {t("pos_each")}
-                              </div>
-                            )}
+                            ) : null}
 
                             {!isFashionShop && !!l.product.warranty_months && l.selectedUnits.length === 0 && (
                               <span className="badge bg-warning-subtle text-warning-emphasis border border-warning-subtle rounded-pill ms-1 fw-normal" style={{ fontSize: '.6rem' }}>
@@ -2719,15 +2703,15 @@ export default function PosPage() {
                               </div>
                             )}
                           </td>
-                          <td className="text-center" style={{ width: "5.5rem" }}>
-                            <div className="fw-bolder text-dark" style={{ fontSize: "0.88rem", letterSpacing: "-0.2px" }}>
+                          <td className="text-center py-2" style={{ width: "18%" }}>
+                            <div className="fw-bolder text-dark" style={{ fontSize: "0.85rem", letterSpacing: "-0.2px" }}>
                               {money(l.price)}
                             </div>
                             <div className="text-secondary" style={{ fontSize: "0.65rem" }}>
                               {l.sellMode === "bulk" ? `/${bulkUnit}` : (baseUnit ? `/${baseUnit}` : (lang === "bn" ? "/টি" : "/pc"))}
                             </div>
                           </td>
-                          <td style={{ width: "5.5rem" }}>
+                          <td className="text-center py-2" style={{ width: "18%" }}>
                             {l.selectedUnits.length > 0 ? (
                               <div className="text-center fw-semibold small bg-body-secondary border rounded px-2 py-1">
                                 {l.qty}
@@ -2738,7 +2722,8 @@ export default function PosPage() {
                                   type="number"
                                   min={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
                                   step={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
-                                  className="form-control form-control-sm text-center"
+                                  className="form-control form-control-sm text-center mx-auto"
+                                  style={{ maxWidth: "60px", padding: "2px 4px", fontSize: "0.82rem" }}
                                   value={l.qty === 0 ? "" : l.qty}
                                   onChange={(e) => setQty(l.lineId || l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
                                   onWheel={(e) => e.currentTarget.blur()}
@@ -2750,9 +2735,11 @@ export default function PosPage() {
                               </div>
                             )}
                           </td>
-                          <td className="text-end small fw-bold">{money(l.qty * l.price - l.discount)}</td>
-                          <td className="text-end pe-2">
-                            <button className="btn btn-link btn-sm text-danger p-0" onClick={() => removeLine(l.lineId || l.product.id)}>✕</button>
+                          <td className="text-end py-2 pe-1 small fw-bold text-dark" style={{ width: "16%" }}>
+                            {money(l.qty * l.price - l.discount)}
+                          </td>
+                          <td className="text-center py-2 pe-1" style={{ width: "4%" }}>
+                            <button className="btn btn-link btn-sm text-danger p-0" title="মুছে ফেলুন" onClick={() => removeLine(l.lineId || l.product.id)}>✕</button>
                           </td>
                         </tr>
                       );
