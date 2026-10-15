@@ -116,19 +116,13 @@ export default function SubscriptionBlockedModal() {
           {/* Payment & Renewal Info Card */}
           <View style={[styles.infoCard, { backgroundColor: cardBg, borderColor: cardBorder }]}>
             <View style={styles.infoTitleRow}>
-              <MaterialCommunityIcons name="credit-card-outline" size={18} color={AppColors.primary} />
+              <MaterialCommunityIcons name="information-outline" size={18} color={AppColors.primary} />
               <Text style={[styles.infoTitle, { color: titleColor }]}>
-                {isBn ? 'সাবস্ক্রিপশন নবায়ন করার নিয়মাবলী:' : 'Renewal & Payment Guide:'}
+                {isBn ? 'সাবস্ক্রিপশন নবায়ন নির্দেশিকা:' : 'Renewal & Payment Guide:'}
               </Text>
             </View>
 
-            <View style={styles.paymentRow}>
-              <Text style={[styles.paymentLabel, { color: textMuted }]}>bKash / Nagad:</Text>
-              <TouchableOpacity onPress={handleCall} activeOpacity={0.7} style={styles.valPill}>
-                <Text style={[styles.paymentVal, { color: isDarkMode ? '#38bdf8' : '#0284c7' }]}>{bkash}</Text>
-                <MaterialCommunityIcons name="phone-outgoing" size={14} color={isDarkMode ? '#38bdf8' : '#0284c7'} style={{ marginLeft: 4 }} />
-              </TouchableOpacity>
-            </View>
+
 
             {shopCode ? (
               <View style={styles.paymentRow}>
@@ -141,7 +135,7 @@ export default function SubscriptionBlockedModal() {
 
             <Text style={[styles.infoHint, { color: textMuted }]}>
               {isBn
-                ? 'বিকাশ বা নগদ থেকে ফি পাঠিয়ে উপরের নম্বরে কল দিন বা হোয়াটসঅ্যাপে জানান। কয়েক মিনিটের মধ্যে আপনার দোকান পুনরায় চালু করে দেওয়া হবে।'
+                ? 'সরাসরি কল বা হোয়াটসঅ্যাপে যোগাযোগ করে আপনার রেফারেন্স আইডি প্রদান করুন। ভেরিফিকেশন সম্পন্ন হলে দ্রুত আপনার দোকান পুনরায় চালু করে দেওয়া হবে।'
                 : 'Send renewal fee via bKash/Nagad and notify our hotline. Your store will be reactivated immediately.'}
             </Text>
           </View>
