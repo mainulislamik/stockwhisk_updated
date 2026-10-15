@@ -91,11 +91,15 @@ export default function Nav({
   const showFinance = showExpenses || showAccounting;
   const showIntegrations = (isOwner || can("view_integrations") || can("manage_integrations")) && hasModule("integrations");
   const showBackups = (isOwner || can("manage_settings")) && hasModule("backup_drive");
+  const showAlterations = hasModule("apparel_alterations") || user?.shop_business_type === "fashion" || user?.shop_business_type === "apparel" || user?.shop_business_type === "footwear" || user?.shop_business_type === "handcrafts";
 
   return (
     <>
       {(isOwner || can("view_reports")) && <Item href="/app" icon="bi-speedometer2" label={t("nav_dashboard")} />}
       {showPOS && <Item href="/app/pos" icon="bi-cart3" label={t("nav_pos")} />}
+      {showAlterations && (
+        <Item href="/app/alterations" icon="bi-scissors" label={lang === "bn" ? "পোশাক অল্টারেশন" : "Garment Alterations"} />
+      )}
       {user?.shop_business_type === "printing" && (
         <Item href="/app/service/jobs" icon="bi-printer-fill" label="🖨️ সেবা ও জব টোকেন" />
       )}
@@ -122,6 +126,9 @@ export default function Nav({
       <NavGroup id="sales" icon="bi-receipt" label={t("nav_sales")} collapsed={collapsed} openGroup={openGroup} setGroup={setGroup}>
         {showSalesRead && <Item href="/app/sales" icon="bi-receipt-cutoff" label={t("nav_invoices")} />}
         {(isOwner || can("process_return")) && <Item href="/app/sales/returns" icon="bi-arrow-return-left" label={t("nav_returns")} />}
+        {showAlterations && (
+          <Item href="/app/alterations" icon="bi-scissors" label={lang === "bn" ? "পোশাক অল্টারেশন ও ফিটিং" : "Garment Alterations"} />
+        )}
         {showEMI && (
           <Item href="/app/emi" icon="bi-calendar-check" label={lang === "bn" ? "ইএমআই ও কিস্তি" : (t("nav_emi_mgmt") || "EMI & Installments")} />
         )}

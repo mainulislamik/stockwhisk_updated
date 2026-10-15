@@ -1,10 +1,11 @@
 from django.urls import path
 from rest_framework.routers import DefaultRouter
 
-from .views import EMIScheduleViewSet, SaleViewSet, PublicInvoicePDFView
+from .views import AlterationViewSet, EMIScheduleViewSet, SaleViewSet, PublicInvoicePDFView
 
 router = DefaultRouter()
 router.register("sales", SaleViewSet, basename="sale")
+router.register("alterations", AlterationViewSet, basename="alteration")
 router.register("emi", EMIScheduleViewSet, basename="emi")
 
 urlpatterns = [

@@ -212,6 +212,10 @@ class Product(TenantScopedModel):
     fit_type        = models.CharField(max_length=60, blank=True, default="")
     collection_name = models.CharField(max_length=100, blank=True, default="")
     care_instructions = models.CharField(max_length=200, blank=True, default="")
+    size_chart = models.JSONField(
+        default=dict, blank=True,
+        help_text='Garment measurements guide: {"unit":"inch","measurements":[{"size":"M","chest":40,"length":29}]}'
+    )
 
     description = models.TextField(blank=True)
     cost_price = models.DecimalField(

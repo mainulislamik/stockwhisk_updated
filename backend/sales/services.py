@@ -37,7 +37,9 @@ def create_sale(
     payments=None, sale_date=None, due_date=None, note="", created_by=None,
     customer_name="", customer_phone="", customer_address="",
     idempotency_key="", is_emi=False, emi_months=0, down_payment=ZERO, emi_interest_percent=ZERO,
-    is_quotation=False, alteration_notes="", alteration_status="", points_redeemed=0,
+    is_quotation=False, alteration_notes="", alteration_status="",
+    alteration_due_date=None, tailor_name="", alteration_charge=0,
+    points_redeemed=0,
     custom_fields=None,
 ):
     """
@@ -122,6 +124,7 @@ def create_sale(
         shop=shop, customer=customer, branch=branch, sale_date=sale_date, due_date=due_date,
         discount=discount, delivery_charge=delivery_charge, tax=tax, note=note, created_by=created_by,
         alteration_notes=alteration_notes, alteration_status=alteration_status,
+        alteration_due_date=alteration_due_date, tailor_name=tailor_name, alteration_charge=alteration_charge,
         status=Sale.Status.DUE, idempotency_key=idempotency_key,
         custom_fields=custom_fields or {},
         # Clip walk-in receipt fields to their CharField limits (Postgres/MySQL

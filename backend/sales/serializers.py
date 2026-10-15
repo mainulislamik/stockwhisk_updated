@@ -125,7 +125,7 @@ class SaleSerializer(serializers.ModelSerializer):
             "id", "invoice_no", "customer", "customer_name", "bill_name", "bill_phone", "bill_address",
             "branch", "sale_date", "due_date",
             "subtotal", "discount", "delivery_charge", "tax", "total", "paid", "due", "status",
-            "note", "alteration_notes", "alteration_status", "custom_fields", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
+            "note", "alteration_notes", "alteration_status", "alteration_due_date", "tailor_name", "alteration_charge", "custom_fields", "items", "payments", "emi_schedule", "created_at", "public_invoice_url",
         ]
         read_only_fields = fields
 
@@ -176,6 +176,13 @@ class SaleCreateSerializer(serializers.Serializer):
     down_payment = serializers.DecimalField(max_digits=14, decimal_places=2, required=False, default=0)
     emi_interest_percent = serializers.DecimalField(max_digits=5, decimal_places=2, required=False, default=0)
     
+    # Alteration Fields
+    alteration_notes = serializers.CharField(required=False, allow_blank=True, default="")
+    alteration_status = serializers.CharField(required=False, allow_blank=True, default="")
+    alteration_due_date = serializers.DateField(required=False, allow_null=True)
+    tailor_name = serializers.CharField(required=False, allow_blank=True, default="")
+    alteration_charge = serializers.DecimalField(max_digits=10, decimal_places=2, required=False, default=0)
+
     # Quotation / Estimation
     is_quotation = serializers.BooleanField(default=False)
     idempotency_key = serializers.CharField(max_length=64, required=False, allow_blank=True, default="")
@@ -240,3 +247,32 @@ class EMIScheduleSerializer(serializers.ModelSerializer):
             "total_emi_amount", "down_payment", "interest_percent", "months", "monthly_installment",
             "status", "total_paid", "total_due", "total_principal", "installments", "created_at"
         ]
+
+
+class AlterationSaleSerializer(serializers.ModelSerializer):
+    customer_phone = serializers.CharField(source="bill_phone", read_only=True)
+    customer_name = serializers.CharField(source="bill_name", read_only=True)
+    items = serializers.SerializerMethodField()
+
+    def get_items(self, obj):
+        return [
+            {
+                "id": it.id,
+                "product_id": it.product_id,
+                "product_name": it.product.name,
+                "variation_id": it.variation_id,
+                "variation_name": it.variation.name if it.variation else "",
+                "quantity": float(it.quantity),
+                "unit_price": float(it.unit_price),
+            }
+            for it in obj.items.select_related("product", "variation").all()
+        ]
+
+    class Meta:
+        model = Sale
+        fields = [
+            "id", "invoice_no", "sale_date", "customer_name", "customer_phone",
+            "total", "alteration_notes", "alteration_status", "alteration_due_date",
+            "tailor_name", "alteration_charge", "items", "created_at"
+        ]
+

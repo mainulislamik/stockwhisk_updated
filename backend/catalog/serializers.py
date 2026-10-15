@@ -166,7 +166,7 @@ class ProductSerializer(HideCostMixin, serializers.ModelSerializer):
             "image", "image_url", "images",
             "is_low_stock", "is_active", "variations", "warranty_months",
             "replacement_guarantee_days",
-            "expiry_date", "lot_number", "mfg_date", "size_variants", "fabric_material", "gender_target", "season", "style_type", "fit_type", "collection_name", "care_instructions",
+            "expiry_date", "lot_number", "mfg_date", "size_variants", "size_chart", "fabric_material", "gender_target", "season", "style_type", "fit_type", "collection_name", "care_instructions",
             "units", "in_stock_units_count", "unit_detail", "purchase_unit_detail", "display_name",
         ]
         read_only_fields = ["current_stock", "is_low_stock", "image_url", "images", "in_stock_units_count"]

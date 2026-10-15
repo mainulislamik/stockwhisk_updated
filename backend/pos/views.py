@@ -205,6 +205,9 @@ class CheckoutView(_POSBase):
                 idempotency_key=str(data.get("idempotency_key") or request.data.get("idempotency_key") or "").strip()[:64],
                 alteration_notes=str(request.data.get("alteration_notes", "")).strip()[:255],
                 alteration_status=str(request.data.get("alteration_status", "")).strip()[:30],
+                alteration_due_date=request.data.get("alteration_due_date") or None,
+                tailor_name=str(request.data.get("tailor_name", "")).strip()[:100],
+                alteration_charge=request.data.get("alteration_charge", 0),
             )
         except ValueError as exc:
             return Response({"detail": str(exc)}, status=status.HTTP_400_BAD_REQUEST)
@@ -270,6 +273,7 @@ class CatalogCacheView(_POSBase):
                 "current_stock": str(p.current_stock or "0"),
                 "track_inventory": bool(p.track_inventory),
                 "size_variants": p.size_variants or [],
+                "size_chart": p.size_chart or {},
                 "category_id": p.category_id,
                 "category_name": p.category.name if p.category else "",
                 "brand_id": p.brand_id,
@@ -384,6 +388,11 @@ class OfflineSyncView(_POSBase):
                         emi_interest_percent=v_data.get("emi_interest_percent", 0),
                         is_quotation=v_data.get("is_quotation", False),
                         idempotency_key=client_offline_id[:64],
+                        alteration_notes=str(v_data.get("alteration_notes", "")).strip()[:255],
+                        alteration_status=str(v_data.get("alteration_status", "")).strip()[:30],
+                        alteration_due_date=v_data.get("alteration_due_date") or None,
+                        tailor_name=str(v_data.get("tailor_name", "")).strip()[:100],
+                        alteration_charge=v_data.get("alteration_charge", 0),
                     )
 
                     synced.append({

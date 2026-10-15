@@ -19,6 +19,7 @@ def invoice_token(sale_id) -> str:
 from .models import Sale
 from .returns import create_return
 from .serializers import (
+    AlterationSaleSerializer,
     SaleCreateSerializer,
     SaleReturnInputSerializer,
     SaleReturnSerializer,
@@ -946,6 +947,67 @@ class EMIScheduleViewSet(viewsets.ReadOnlyModelViewSet):
         # Refresh schedule to return updated data
         schedule.refresh_from_db()
         return Response(self.get_serializer(schedule).data)
+
+
+class AlterationViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsTenantMember, HasPermCode]
+    required_perm = "view_sales"
+    required_write_perm = "create_sale"
+    serializer_class = AlterationSaleSerializer
+
+    def initial(self, request, *args, **kwargs):
+        set_current_tenant(getattr(request.user, "shop", None))
+        request.tenant = getattr(request.user, "shop", None)
+        super().initial(request, *args, **kwargs)
+
+    def get_queryset(self):
+        from django.db.models import Q
+        tenant = getattr(self.request.user, "shop", None)
+        if not tenant:
+            return Sale.objects.none()
+        qs = Sale.objects.filter(shop=tenant).exclude(alteration_status="").exclude(alteration_status="none").select_related("customer").prefetch_related("items__product", "items__variation").order_by("-id")
+        status_filter = self.request.query_params.get("status")
+        if status_filter and status_filter != "all":
+            qs = qs.filter(alteration_status=status_filter)
+        search = self.request.query_params.get("search")
+        if search:
+            qs = qs.filter(
+                Q(invoice_no__icontains=search) |
+                Q(customer_name__icontains=search) |
+                Q(customer_phone__icontains=search) |
+                Q(customer__name__icontains=search) |
+                Q(customer__phone__icontains=search) |
+                Q(tailor_name__icontains=search) |
+                Q(alteration_notes__icontains=search)
+            )
+        return qs
+
+    @action(detail=True, methods=["patch", "post"], url_path="update_status")
+    def update_status(self, request, pk=None):
+        sale = self.get_object()
+        new_status = request.data.get("status")
+        tailor_name = request.data.get("tailor_name")
+        due_date = request.data.get("due_date")
+        notes = request.data.get("notes")
+
+        update_fields = []
+        if new_status:
+            sale.alteration_status = new_status
+            update_fields.append("alteration_status")
+        if tailor_name is not None:
+            sale.tailor_name = tailor_name
+            update_fields.append("tailor_name")
+        if due_date is not None:
+            sale.alteration_due_date = due_date or None
+            update_fields.append("alteration_due_date")
+        if notes is not None:
+            sale.alteration_notes = notes
+            update_fields.append("alteration_notes")
+
+        if update_fields:
+            sale.save(update_fields=update_fields)
+
+        return Response(AlterationSaleSerializer(sale, context={"request": request}).data)
 
 
 class PublicInvoicePDFView(APIView):

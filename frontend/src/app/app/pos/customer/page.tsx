@@ -75,6 +75,10 @@ export default function PosCustomerPage() {
   const isSupershop = user?.shop_business_type === "supershop" || user?.shop_business_type === "food" || user?.shop_business_type === "grocery";
   const [alterationNotes, setAlterationNotes] = useState("");
   const [alterationStatus, setAlterationStatus] = useState("none");
+  const [alterationDueDate, setAlterationDueDate] = useState("");
+  const [tailorName, setTailorName] = useState("");
+  const [alterationCharge, setAlterationCharge] = useState<string>("");
+  const [enableAlterationInfo, setEnableAlterationInfo] = useState(false);
 
   // Repair Shop Specialized States
   const [serviceCharge, setServiceCharge] = useState<string>('');
@@ -156,12 +160,28 @@ export default function PosCustomerPage() {
     fetchAll<Customer>("/crm/customers/").then(setCustomers).catch(() => {});
     // Reload user so EMI/delivery/offline settings are always fresh
     reload().catch(() => {});
+
+    // Hydrate Fashion Alteration Info from POS
+    const storedNotes = sessionStorage.getItem("pos_alteration_notes");
+    if (storedNotes) {
+      setAlterationNotes(storedNotes);
+      setEnableAlterationInfo(true);
+    }
+    const storedStatus = sessionStorage.getItem("pos_alteration_status");
+    if (storedStatus) setAlterationStatus(storedStatus);
+    const storedDue = sessionStorage.getItem("pos_alteration_due_date");
+    if (storedDue) setAlterationDueDate(storedDue);
+    const storedTailor = sessionStorage.getItem("pos_tailor_name");
+    if (storedTailor) setTailorName(storedTailor);
+    const storedCharge = sessionStorage.getItem("pos_alteration_charge");
+    if (storedCharge && Number(storedCharge) > 0) setAlterationCharge(storedCharge);
   }, [router]);
 
   const discountNum = Number(discount) || 0;
   const serviceChargeNum = Number(serviceCharge) || 0;
+  const alterationChargeNum = (isFashionShop && enableAlterationInfo) ? (Number(alterationCharge) || 0) : 0;
   const subtotal = cart.reduce((s, l) => s + l.qty * l.price - l.discount, 0);
-  const total = Math.max(0, subtotal - discountNum + deliveryCharge + serviceChargeNum);
+  const total = Math.max(0, subtotal - discountNum + deliveryCharge + serviceChargeNum + alterationChargeNum);
   const paidNum = Number(paid) || 0;
   const change = paidNum > total ? paidNum - total : 0;
 
@@ -225,9 +245,15 @@ export default function PosCustomerPage() {
               if (problemDescription.trim()) p.push("Fault: " + problemDescription.trim());
               if (p.length > 0) return p.join(" | ");
             }
+            if (isFashionShop && enableAlterationInfo) {
+              return alterationNotes.trim();
+            }
             return alterationNotes.trim();
           })(),
-          alteration_status: (isRepairShop && enableRepairInfo && (deviceModel.trim() || problemDescription.trim() || serviceChargeNum > 0)) ? "in_repair" : (alterationNotes.trim() ? (alterationStatus === "none" ? "pending" : alterationStatus) : ""),
+          alteration_status: (isRepairShop && enableRepairInfo && (deviceModel.trim() || problemDescription.trim() || serviceChargeNum > 0)) ? "in_repair" : ((isFashionShop && enableAlterationInfo && alterationNotes.trim()) ? (alterationStatus === "none" ? "pending" : alterationStatus) : (alterationNotes.trim() ? alterationStatus : "")),
+          alteration_due_date: (isFashionShop && enableAlterationInfo && alterationDueDate) ? alterationDueDate : undefined,
+          tailor_name: (isFashionShop && enableAlterationInfo && tailorName.trim()) ? tailorName.trim() : undefined,
+          alteration_charge: (isFashionShop && enableAlterationInfo && Number(alterationCharge) > 0) ? Number(alterationCharge) : undefined,
           items: cart.map((l) => {
             const mult = Number((l.product as any)?.purchase_multiplier) || 1;
             const isBulk = l.sellMode === "bulk" && mult > 1;
@@ -666,6 +692,134 @@ export default function PosCustomerPage() {
               </div>
             )}
 
+            {isFashionShop && (
+              <div className="card shadow-sm border-0 rounded-4 p-3 bg-light border-start border-4 border-info mb-3">
+                <div className="d-flex align-items-center justify-content-between mb-2">
+                  <div className="form-check form-switch mb-0 d-flex align-items-center gap-2">
+                    <input
+                      className="form-check-input fs-5"
+                      type="checkbox"
+                      role="switch"
+                      id="posAlterationToggleSwitch"
+                      checked={enableAlterationInfo}
+                      onChange={(e) => {
+                        const checked = e.target.checked;
+                        setEnableAlterationInfo(checked);
+                        if (!checked) {
+                          setAlterationNotes("");
+                          setAlterationStatus("none");
+                          setTailorName("");
+                          setAlterationDueDate("");
+                          setAlterationCharge("");
+                        } else {
+                          setAlterationStatus("pending");
+                        }
+                      }}
+                      style={{ cursor: "pointer" }}
+                    />
+                    <label className="form-check-label fw-bold text-dark mb-0" htmlFor="posAlterationToggleSwitch" style={{ cursor: "pointer" }}>
+                      ✂️ {lang === "bn" ? "পোশাক অল্টারেশন ও ফিটিং নির্দেশনা" : "Garment Alteration & Fitting Info"}
+                    </label>
+                  </div>
+                  <span className={enableAlterationInfo ? "badge px-2 py-1 fw-semibold bg-info text-dark" : "badge px-2 py-1 fw-semibold bg-secondary text-white"}>
+                    {enableAlterationInfo ? (lang === "bn" ? "অন (চালু)" : "Enabled") : (lang === "bn" ? "অফ (বন্ধ)" : "Disabled")}
+                  </span>
+                </div>
+
+                {enableAlterationInfo && (
+                  <div className="row g-3 pt-2 border-top mt-2">
+                    <div className="col-12">
+                      <div className="d-flex flex-wrap gap-1 mb-2">
+                        {[
+                          "হাতা ১ ইঞ্চি কাটা",
+                          "হাতা ২ ইঞ্চি কাটা",
+                          "ঝুল ১.৫ ইঞ্চি কাটা",
+                          "কোমর ২ ইঞ্চি চাপা",
+                          "হাতার মোহরা লুজ করা",
+                          "বোতাম পরিবর্তন",
+                          "কলার স্টিচিং",
+                        ].map((preset) => (
+                          <button
+                            key={preset}
+                            type="button"
+                            className="btn btn-outline-secondary btn-xs py-0 px-2 rounded-pill"
+                            style={{ fontSize: "0.75rem" }}
+                            onClick={() => {
+                              setAlterationNotes((prev) => (prev ? `${prev}, ${preset}` : preset));
+                            }}
+                          >
+                            + {preset}
+                          </button>
+                        ))}
+                      </div>
+                      <div className="form-floating">
+                        <input
+                          id="alterationNotesInput"
+                          type="text"
+                          className="form-control shadow-sm"
+                          value={alterationNotes}
+                          onChange={(e) => setAlterationNotes(e.target.value)}
+                          placeholder="হাতা ১ ইঞ্চি কাটা, কোমর ফিটিং..."
+                        />
+                        <label htmlFor="alterationNotesInput">
+                          {lang === "bn" ? "📝 ফিটিং ও অল্টারেশন নোট (বিস্তারিত নির্দেশনা)" : "📝 Alteration Instructions"}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="col-md-4">
+                      <div className="form-floating">
+                        <input
+                          id="tailorNameInput"
+                          type="text"
+                          className="form-control shadow-sm"
+                          value={tailorName}
+                          onChange={(e) => setTailorName(e.target.value)}
+                          placeholder="রফিক মাস্টার"
+                        />
+                        <label htmlFor="tailorNameInput">
+                          {lang === "bn" ? "👤 দর্জি / মাস্টারের নাম" : "👤 Tailor / Master"}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="col-md-4">
+                      <div className="form-floating">
+                        <input
+                          id="alterationDueDateInput"
+                          type="date"
+                          className="form-control shadow-sm"
+                          value={alterationDueDate}
+                          onChange={(e) => setAlterationDueDate(e.target.value)}
+                        />
+                        <label htmlFor="alterationDueDateInput">
+                          {lang === "bn" ? "📅 ডেলিভারির তারিখ (Ready By)" : "📅 Due Date"}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="col-md-4">
+                      <div className="form-floating">
+                        <input
+                          id="alterationChargeInput"
+                          type="number"
+                          min="0"
+                          step="1"
+                          className="form-control shadow-sm"
+                          value={alterationCharge}
+                          onChange={(e) => setAlterationCharge(e.target.value)}
+                          placeholder="0"
+                        />
+                        <label htmlFor="alterationChargeInput">
+                          {lang === "bn" ? "✂️ ফিটিং চার্জ (৳)" : "✂️ Fitting Fee (৳)"}
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {user?.shop_offline_sale_mode && (
               <div className="p-3 bg-warning bg-opacity-10 border border-warning rounded-3 vstack gap-2 mb-3 shadow-sm">
                 <div className="fw-bold text-warning-emphasis small">
@@ -935,6 +1089,12 @@ export default function PosCustomerPage() {
                 <div className="d-flex justify-content-between text-warning fw-bold mb-2">
                   <span>🛠️ {lang === "bn" ? "সার্ভিস / লেবার চার্জ" : "Service / Labor Fee"}</span>
                   <span>+ {money(serviceChargeNum)}</span>
+                </div>
+              )}
+              {isFashionShop && alterationChargeNum > 0 && (
+                <div className="d-flex justify-content-between text-info-emphasis fw-bold mb-2">
+                  <span>✂️ {lang === "bn" ? "পোশাক অল্টারেশন ফি" : "Alteration Fee"}</span>
+                  <span>+ {money(alterationChargeNum)}</span>
                 </div>
               )}
               {discountNum > 0 && <div className="d-flex justify-content-between text-success mb-2"><span>{t("pos_checkout_discount").replace(" (৳) *", "")}</span><span>- {money(discountNum)}</span></div>}

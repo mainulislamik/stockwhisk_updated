@@ -722,6 +722,10 @@ export default function ProductEditPage() {
                     parentName={form.name}
                     basePrice={form.selling_price}
                     lang={lang as any}
+                    sizeChart={form.size_chart}
+                    onSizeChartChange={(newChart) => {
+                      setForm((f: any) => ({ ...f, size_chart: newChart }));
+                    }}
                   />
                 </div>
               </div>

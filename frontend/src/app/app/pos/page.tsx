@@ -65,6 +65,17 @@ type Product = {
   gender_target?: string;
   season?: string;
   style_type?: string;
+  size_chart?: {
+    unit?: string;
+    measurements?: Array<{
+      size: string;
+      chest?: number | string;
+      length?: number | string;
+      waist?: number | string;
+      shoulder?: number | string;
+      inseam?: number | string;
+    }>;
+  };
   _selectedVariant?: {size: string; color: string} | null;
   purchase_multiplier?: string | number;
   full_pack_cost?: string | number;
@@ -135,6 +146,15 @@ export default function PosPage() {
   const [variantModalProduct, setVariantModalProduct] = useState<Product | null>(null);
   const [selectedFashionProduct, setSelectedFashionProduct] = useState<Product | null>(null);
   const [selectedFashionSize, setSelectedFashionSize] = useState<string | null>(null);
+  const [showSizeGuideModal, setShowSizeGuideModal] = useState(false);
+
+  // ── Alteration / Fitting State ──
+  const [showAlterationModal, setShowAlterationModal] = useState(false);
+  const [alterationNotes, setAlterationNotes] = useState("");
+  const [alterationStatus, setAlterationStatus] = useState("pending");
+  const [alterationDueDate, setAlterationDueDate] = useState("");
+  const [tailorName, setTailorName] = useState("");
+  const [alterationCharge, setAlterationCharge] = useState<number>(0);
 
   // ── Offline & Power Outage / Network State ──
   const [isOnline, setIsOnline] = useState<boolean>(true);
@@ -600,7 +620,17 @@ export default function PosPage() {
   }
   function clearCart() { 
     setCart([]); 
+    setAlterationNotes("");
+    setAlterationStatus("pending");
+    setAlterationDueDate("");
+    setTailorName("");
+    setAlterationCharge(0);
     sessionStorage.removeItem("pos_cart"); 
+    sessionStorage.removeItem("pos_alteration_notes");
+    sessionStorage.removeItem("pos_alteration_status");
+    sessionStorage.removeItem("pos_alteration_due_date");
+    sessionStorage.removeItem("pos_tailor_name");
+    sessionStorage.removeItem("pos_alteration_charge");
     clearCartCrashBackup(); 
   }
 
@@ -991,11 +1021,21 @@ export default function PosPage() {
           discount: 0,
           paid: totalAmt,
           payments: [{ method: "cash", amount: totalAmt }],
+          alteration_notes: alterationNotes.trim(),
+          alteration_status: alterationNotes.trim() ? alterationStatus : "",
+          alteration_due_date: alterationDueDate || null,
+          tailor_name: tailorName.trim(),
+          alteration_charge: alterationCharge,
         },
       });
 
       setCart([]);
       setQuery("");
+      setAlterationNotes("");
+      setAlterationStatus("pending");
+      setAlterationDueDate("");
+      setTailorName("");
+      setAlterationCharge(0);
       fetchGrid(1, true);
       await clearCartCrashBackup();
 
@@ -1031,6 +1071,19 @@ export default function PosPage() {
     }
     if (walkinName) sessionStorage.setItem("pos_walkin_name", walkinName);
     if (walkinPhone) sessionStorage.setItem("pos_walkin_phone", walkinPhone);
+    if (alterationNotes.trim()) {
+      sessionStorage.setItem("pos_alteration_notes", alterationNotes.trim());
+      sessionStorage.setItem("pos_alteration_status", alterationStatus);
+      sessionStorage.setItem("pos_alteration_due_date", alterationDueDate);
+      sessionStorage.setItem("pos_tailor_name", tailorName.trim());
+      sessionStorage.setItem("pos_alteration_charge", String(alterationCharge));
+    } else {
+      sessionStorage.removeItem("pos_alteration_notes");
+      sessionStorage.removeItem("pos_alteration_status");
+      sessionStorage.removeItem("pos_alteration_due_date");
+      sessionStorage.removeItem("pos_tailor_name");
+      sessionStorage.removeItem("pos_alteration_charge");
+    }
     router.push("/app/pos/customer");
   }
 
@@ -1530,16 +1583,30 @@ export default function PosPage() {
                     )}
                   </div>
 
-                  {selectedCategory && (
-                    <button
-                      type="button"
-                      className="btn btn-outline-danger btn-sm py-1 px-3 fw-bold rounded-pill"
-                      style={{ fontSize: "11px" }}
-                      onClick={() => { setSelectedCategory(null); setSelectedFashionProduct(null); setSelectedFashionSize(null); setQuery(""); }}
-                    >
-                      <i className="bi bi-arrow-counterclockwise me-1"></i>রিসেট
-                    </button>
-                  )}
+                  <div className="d-flex align-items-center gap-1.5">
+                    {selectedFashionProduct && (
+                      <button
+                        type="button"
+                        className="btn btn-info text-white btn-sm py-1 px-2.5 fw-bold rounded-pill shadow-xs"
+                        style={{ fontSize: "11px" }}
+                        onClick={() => setShowSizeGuideModal(true)}
+                        title="পোশাকের সাইজ চার্ট ও মেজারমেন্ট গাইড দেখুন"
+                      >
+                        📏 {lang === "bn" ? "সাইজ গাইড" : "Size Guide"}
+                      </button>
+                    )}
+
+                    {selectedCategory && (
+                      <button
+                        type="button"
+                        className="btn btn-outline-danger btn-sm py-1 px-3 fw-bold rounded-pill"
+                        style={{ fontSize: "11px" }}
+                        onClick={() => { setSelectedCategory(null); setSelectedFashionProduct(null); setSelectedFashionSize(null); setQuery(""); }}
+                      >
+                        <i className="bi bi-arrow-counterclockwise me-1"></i>রিসেট
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
 
@@ -2367,6 +2434,17 @@ export default function PosPage() {
                     ⏸️ Hold (F8)
                   </button>
                 )}
+                {isFashionShop && cart.length > 0 && (
+                  <button
+                    type="button"
+                    className={`btn btn-xs py-0 px-2 fw-semibold rounded-pill ${alterationNotes.trim() ? "btn-info text-white shadow-xs" : "btn-outline-info"}`}
+                    style={{ fontSize: "0.75rem" }}
+                    onClick={() => setShowAlterationModal(true)}
+                    title="পোশাক অল্টারেশন / ফিটিং নোট"
+                  >
+                    ✂️ {alterationNotes.trim() ? (lang === "bn" ? "ফিটিং যুক্ত" : "Fitting Added") : (lang === "bn" ? "অল্টারেশন" : "Alteration")}
+                  </button>
+                )}
                 {cart.length > 0 && (
                   <button className="btn btn-link btn-sm text-danger p-0 ms-1" onClick={clearCart}>{t("pos_clear")}</button>
                 )}
@@ -2624,13 +2702,53 @@ export default function PosPage() {
                   )}
                 </div>
 
+                {alterationNotes.trim() && (
+                  <div className="alert alert-info py-2 px-3 mb-2 rounded border-info d-flex align-items-center justify-content-between" style={{ fontSize: "0.8rem" }}>
+                    <div>
+                      <div className="fw-bold text-info-emphasis d-flex align-items-center gap-1">
+                        <span>✂️ {lang === "bn" ? "অল্টারেশন / ফিটিং নোট:" : "Alteration Note:"}</span>
+                        <span className="badge bg-info text-dark ms-1">{alterationStatus}</span>
+                      </div>
+                      <div className="text-dark small mt-0.5">{alterationNotes}</div>
+                      {(tailorName || alterationDueDate) && (
+                        <div className="text-secondary small mt-0.5" style={{ fontSize: "0.72rem" }}>
+                          {tailorName && <span>দর্জি: {tailorName} </span>}
+                          {alterationDueDate && <span>| ডেলিভারি: {alterationDueDate}</span>}
+                        </div>
+                      )}
+                    </div>
+                    <div className="d-flex align-items-center gap-2">
+                      {alterationCharge > 0 && <span className="fw-bold text-success">+৳{alterationCharge}</span>}
+                      <button
+                        type="button"
+                        className="btn btn-link btn-xs text-danger p-0"
+                        title="রিমুভ করুন"
+                        onClick={() => {
+                          setAlterationNotes("");
+                          setTailorName("");
+                          setAlterationDueDate("");
+                          setAlterationCharge(0);
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
+
                 <div className="d-flex justify-content-between small mb-1">
                   <span className="text-secondary">{t("pos_subtotal")}</span>
                   <span>{money(subtotal)}</span>
                 </div>
+                {alterationCharge > 0 && (
+                  <div className="d-flex justify-content-between small mb-1 text-info-emphasis">
+                    <span>✂️ {lang === "bn" ? "অল্টারেশন চার্জ" : "Alteration Fee"}</span>
+                    <span>+{money(alterationCharge)}</span>
+                  </div>
+                )}
                 <div className="d-flex justify-content-between fw-bold mb-3">
                   <span>{t("pos_total")}</span>
-                  <span className="text-primary fs-6">{money(subtotal)}</span>
+                  <span className="text-primary fs-6">{money(subtotal + (alterationCharge || 0))}</span>
                 </div>
 
                 <div className="d-flex gap-2">
@@ -3131,6 +3249,247 @@ export default function PosPage() {
           </div>
         </div>
       )}
+      {/* ── Fashion Alteration Modal ── */}
+      {showAlterationModal && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1055 }}>
+          <div className="modal-dialog modal-dialog-centered">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header bg-info-subtle border-0 py-2.5">
+                <h5 className="modal-title fs-6 fw-bold text-info-emphasis d-flex align-items-center gap-2">
+                  <span>✂️</span>
+                  <span>{lang === "bn" ? "পোশাক অল্টারেশন ও ফিটিং নির্দেশনা" : "Garment Alteration & Fitting Instructions"}</span>
+                </h5>
+                <button type="button" className="btn-close" onClick={() => setShowAlterationModal(false)} />
+              </div>
+              <div className="modal-body p-3">
+                <div className="mb-2">
+                  <label className="form-label small fw-semibold text-secondary mb-1">
+                    {lang === "bn" ? "দ্রুত ফিটিং নির্দেশনাবলী (ট্যাপ করে যুক্ত করুন):" : "Quick Fitting Presets (tap to add):"}
+                  </label>
+                  <div className="d-flex flex-wrap gap-1">
+                    {[
+                      "হাতা ১ ইঞ্চি কাটা",
+                      "হাতা ২ ইঞ্চি কাটা",
+                      "ঝুল ১.৫ ইঞ্চি কাটা",
+                      "কোমর ২ ইঞ্চি চাপা",
+                      "হাতার মোহরা লুজ করা",
+                      "বোতাম পরিবর্তন",
+                      "কলার স্টিচিং",
+                      "প্যান্টের বটম ন্যারো করা",
+                    ].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        className="btn btn-outline-secondary btn-xs py-1 px-2 rounded-pill"
+                        style={{ fontSize: "0.75rem" }}
+                        onClick={() => {
+                          setAlterationNotes((prev) => (prev ? `${prev}, ${preset}` : preset));
+                        }}
+                      >
+                        + {preset}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="mb-3">
+                  <label className="form-label small fw-semibold text-secondary mb-1">
+                    {lang === "bn" ? "ফিটিং / অল্টারেশন নোট (বিস্তারিত):" : "Alteration Instructions (detailed):"}
+                  </label>
+                  <textarea
+                    rows={3}
+                    className="form-control form-control-sm"
+                    placeholder={lang === "bn" ? "যেমন: হাতা ১ ইঞ্চি ছোট করতে হবে, কোমর ফিটিং..." : "e.g. shorten sleeves by 1 inch, waist fitting..."}
+                    value={alterationNotes}
+                    onChange={(e) => setAlterationNotes(e.target.value)}
+                  />
+                </div>
+
+                <div className="row g-2 mb-3">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">
+                      {lang === "bn" ? "দর্জি / মাস্টারের নাম:" : "Tailor / Master Name:"}
+                    </label>
+                    <input
+                      type="text"
+                      className="form-control form-control-sm"
+                      placeholder={lang === "bn" ? "যেমন: রফিক টেইলার" : "e.g. Master Rafiq"}
+                      value={tailorName}
+                      onChange={(e) => setTailorName(e.target.value)}
+                    />
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">
+                      {lang === "bn" ? "ডেলিভারির তারিখ:" : "Due Date / Ready By:"}
+                    </label>
+                    <input
+                      type="date"
+                      className="form-control form-control-sm"
+                      value={alterationDueDate}
+                      onChange={(e) => setAlterationDueDate(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="row g-2">
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">
+                      {lang === "bn" ? "কাজের বর্তমান স্ট্যাটাস:" : "Alteration Status:"}
+                    </label>
+                    <select
+                      className="form-select form-select-sm"
+                      value={alterationStatus}
+                      onChange={(e) => setAlterationStatus(e.target.value)}
+                    >
+                      <option value="pending">{lang === "bn" ? "অপেক্ষমান (Pending)" : "Pending"}</option>
+                      <option value="in_progress">{lang === "bn" ? "চলমান (In Progress)" : "In Progress"}</option>
+                      <option value="ready">{lang === "bn" ? "রেডি (Ready for Pickup)" : "Ready for Pickup"}</option>
+                      <option value="delivered">{lang === "bn" ? "ডেলিভার্ড (Delivered)" : "Delivered"}</option>
+                    </select>
+                  </div>
+                  <div className="col-6">
+                    <label className="form-label small fw-semibold text-secondary mb-1">
+                      {lang === "bn" ? "অল্টারেশন ফি / চার্জ (৳):" : "Fitting Fee (৳):"}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className="form-control form-control-sm"
+                      placeholder="0.00"
+                      value={alterationCharge || ""}
+                      onChange={(e) => setAlterationCharge(Number(e.target.value) || 0)}
+                    />
+                  </div>
+                </div>
+              </div>
+              <div className="modal-footer border-0 py-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-danger me-auto"
+                  onClick={() => {
+                    setAlterationNotes("");
+                    setTailorName("");
+                    setAlterationDueDate("");
+                    setAlterationCharge(0);
+                    setShowAlterationModal(false);
+                  }}
+                >
+                  {lang === "bn" ? "বাদ দিন (Remove)" : "Remove"}
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-sm btn-info text-white px-3"
+                  onClick={() => setShowAlterationModal(false)}
+                >
+                  {lang === "bn" ? "সংরক্ষণ করুন (Save)" : "Save"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Garment Size Chart / Measurement Guide Modal ── */}
+      {showSizeGuideModal && selectedFashionProduct && (
+        <div className="modal show d-block" tabIndex={-1} style={{ backgroundColor: "rgba(0,0,0,0.5)", zIndex: 1056 }}>
+          <div className="modal-dialog modal-dialog-centered modal-lg">
+            <div className="modal-content border-0 shadow-lg">
+              <div className="modal-header bg-light border-0 py-2.5">
+                <div>
+                  <h5 className="modal-title fs-6 fw-bold text-dark d-flex align-items-center gap-2">
+                    <span>📏</span>
+                    <span>{lang === "bn" ? `সাইজ মেজারমেন্ট গাইড: ${selectedFashionProduct.name}` : `Size Guide: ${selectedFashionProduct.name}`}</span>
+                  </h5>
+                  <div className="text-secondary small">
+                    {lang === "bn" ? "ইউনিট: ইঞ্চি (Inches) • পরিমাপ চার্ট ও গ্রাহকের ফিটিং সহায়িকা" : "Unit: Inches • Garment fitting measurement reference"}
+                  </div>
+                </div>
+                <button type="button" className="btn-close" onClick={() => setShowSizeGuideModal(false)} />
+              </div>
+              <div className="modal-body p-3">
+                {(() => {
+                  const chart = selectedFashionProduct.size_chart;
+                  const hasCustom = chart && chart.measurements && Array.isArray(chart.measurements) && chart.measurements.length > 0;
+                  
+                  const defaultChart = [
+                    { size: "S / 38", chest: "38\"", length: "39\"", waist: "36\"", shoulder: "17.5\"" },
+                    { size: "M / 40", chest: "40\"", length: "40\"", waist: "38\"", shoulder: "18\"" },
+                    { size: "L / 42", chest: "42\"", length: "41\"", waist: "40\"", shoulder: "18.5\"" },
+                    { size: "XL / 44", chest: "44\"", length: "42\"", waist: "42\"", shoulder: "19\"" },
+                    { size: "XXL / 46", chest: "46\"", length: "43\"", waist: "44\"", shoulder: "19.5\"" },
+                  ];
+
+                  const rows = hasCustom ? chart.measurements : defaultChart;
+
+                  return (
+                    <div>
+                      {!hasCustom && (
+                        <div className="alert alert-secondary py-1.5 px-3 small mb-2 d-flex align-items-center gap-1.5" style={{ fontSize: "0.78rem" }}>
+                          <span>ℹ️</span>
+                          <span>{lang === "bn" ? "এই পণ্যের নির্দিষ্ট সাইজ চার্ট সংযুক্ত নেই। নিচে স্ট্যান্ডার্ড ফ্যাশন সাইজ গাইড প্রদর্শন করা হচ্ছে:" : "Displaying standard apparel reference guide:"}</span>
+                        </div>
+                      )}
+
+                      <div className="table-responsive rounded border">
+                        <table className="table table-sm table-bordered text-center align-middle mb-0">
+                          <thead className="table-dark small">
+                            <tr>
+                              <th>সাইজ (Size)</th>
+                              <th>বুক / চেস্ট (Chest)</th>
+                              <th>ঝুল / দৈর্ঘ্য (Length)</th>
+                              <th>কোমর (Waist)</th>
+                              <th>কাঁধ (Shoulder)</th>
+                              <th>উপযুক্ত শারীরিক পরিমাপ</th>
+                            </tr>
+                          </thead>
+                          <tbody className="small">
+                            {rows.map((r: any, idx: number) => {
+                              const isCur = selectedFashionSize && (r.size.toLowerCase().includes(selectedFashionSize.toLowerCase()) || selectedFashionSize.toLowerCase().includes(r.size.toLowerCase()));
+                              return (
+                                <tr key={idx} className={isCur ? "table-warning fw-bold" : ""}>
+                                  <td className="fw-bold font-monospace text-primary">
+                                    {r.size} {isCur && <span className="badge bg-warning text-dark ms-1">নির্বাচিত</span>}
+                                  </td>
+                                  <td>{r.chest || "—"}</td>
+                                  <td>{r.length || "—"}</td>
+                                  <td>{r.waist || "—"}</td>
+                                  <td>{r.shoulder || "—"}</td>
+                                  <td className="text-secondary small">
+                                    {isCur ? "★ গ্রাহকের জন্য পারফেক্ট সাইজ" : "রেগুলার ফিট"}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      <div className="mt-3 p-2 bg-light rounded text-secondary small d-flex align-items-start gap-2" style={{ fontSize: "0.75rem" }}>
+                        <span className="fs-6">💡</span>
+                        <div>
+                          <strong>{lang === "bn" ? "ক্যাশিয়ার ফিটিং টিপস:" : "Cashier Fitting Tips:"}</strong>
+                          <div className="mt-0.5">
+                            {lang === "bn"
+                              ? "পাঞ্জাবি ও শার্টের ক্ষেত্রে সঠিক ফিটিং নিশ্চিত করতে গ্রাহকের চেস্টের প্রকৃত মাপের সাথে অতিরিক্ত ২-৩ ইঞ্চি লুজ এলাউন্স (Ease Allowance) যোগ করতে হয়।"
+                              : "Always allow 2-3 inches ease over exact body chest circumference for comfortable regular fit."}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
+              </div>
+              <div className="modal-footer py-2 border-0">
+                <button type="button" className="btn btn-sm btn-secondary px-3" onClick={() => setShowSizeGuideModal(false)}>
+                  {lang === "bn" ? "বন্ধ করুন" : "Close"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ── Camera Scanner Modal ── */}
       {showScanner && (
         <ScannerModal

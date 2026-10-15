@@ -11,6 +11,20 @@ export type FashionVariantItem = {
   price?: number | string;
 };
 
+export type SizeChartMeasurement = {
+  size: string;
+  chest?: number | string;
+  length?: number | string;
+  waist?: number | string;
+  shoulder?: number | string;
+  inseam?: number | string;
+};
+
+export type SizeChartData = {
+  unit: 'inch' | 'cm';
+  measurements: SizeChartMeasurement[];
+};
+
 interface FashionVariantMatrixProps {
   variants: FashionVariantItem[];
   onChange: (variants: FashionVariantItem[]) => void;
@@ -18,6 +32,8 @@ interface FashionVariantMatrixProps {
   parentName?: string;
   basePrice?: number | string;
   lang?: 'bn' | 'en';
+  sizeChart?: SizeChartData;
+  onSizeChartChange?: (chart: SizeChartData) => void;
 }
 
 const PRESET_SIZE_GROUPS = [
@@ -52,6 +68,54 @@ const PRESET_SIZE_GROUPS = [
     sizes: ['Free Size'],
   },
 ];
+
+const PRESET_CHARTS: Record<string, { label: string; unit: 'inch' | 'cm'; data: SizeChartMeasurement[] }> = {
+  panjabi: {
+    label: '🕌 পাঞ্জাবি (Panjabi)',
+    unit: 'inch',
+    data: [
+      { size: '38', chest: 40, length: 40, waist: 38, shoulder: 17.5 },
+      { size: '40', chest: 42, length: 41, waist: 40, shoulder: 18 },
+      { size: '42', chest: 44, length: 42, waist: 42, shoulder: 18.5 },
+      { size: '44', chest: 46, length: 43, waist: 44, shoulder: 19 },
+      { size: '46', chest: 48, length: 44, waist: 46, shoulder: 19.5 },
+    ],
+  },
+  tshirt: {
+    label: '👕 টি-শার্ট / পোলো (T-Shirt/Polo)',
+    unit: 'inch',
+    data: [
+      { size: 'S', chest: 38, length: 27, waist: 36, shoulder: 16.5 },
+      { size: 'M', chest: 40, length: 28, waist: 38, shoulder: 17.5 },
+      { size: 'L', chest: 42, length: 29, waist: 40, shoulder: 18.5 },
+      { size: 'XL', chest: 44, length: 30, waist: 42, shoulder: 19.5 },
+      { size: 'XXL', chest: 46, length: 31, waist: 44, shoulder: 20.5 },
+    ],
+  },
+  shirt: {
+    label: '👔 ফরমাল শার্ট (Shirt)',
+    unit: 'inch',
+    data: [
+      { size: '15 (S)', chest: 39, length: 29, waist: 37, shoulder: 17.5 },
+      { size: '15.5 (M)', chest: 41, length: 30, waist: 39, shoulder: 18 },
+      { size: '16 (L)', chest: 43, length: 31, waist: 41, shoulder: 18.5 },
+      { size: '16.5 (XL)', chest: 45, length: 31.5, waist: 43, shoulder: 19 },
+      { size: '17 (XXL)', chest: 47, length: 32, waist: 45, shoulder: 19.5 },
+    ],
+  },
+  pants: {
+    label: '👖 প্যান্ট / জিন্স (Pants/Jeans)',
+    unit: 'inch',
+    data: [
+      { size: '28', waist: 28, length: 39, inseam: 29, chest: '—' },
+      { size: '30', waist: 30, length: 40, inseam: 30, chest: '—' },
+      { size: '32', waist: 32, length: 40, inseam: 30, chest: '—' },
+      { size: '34', waist: 34, length: 41, inseam: 31, chest: '—' },
+      { size: '36', waist: 36, length: 41, inseam: 31, chest: '—' },
+      { size: '38', waist: 38, length: 42, inseam: 32, chest: '—' },
+    ],
+  },
+};
 
 const PRESET_COLORS = [
   { name: 'Black', nameBn: 'কালো', hex: '#18181b', code: 'BLK' },
@@ -102,6 +166,8 @@ export default function FashionVariantMatrix({
   parentName = '',
   basePrice = '',
   lang = 'bn',
+  sizeChart,
+  onSizeChartChange,
 }: FashionVariantMatrixProps) {
   const isBn = lang === 'bn';
 
@@ -112,6 +178,46 @@ export default function FashionVariantMatrix({
   const [customColorInput, setCustomColorInput] = useState('');
   const [bulkStockVal, setBulkStockVal] = useState<string>('10');
   const [activeView, setActiveView] = useState<'matrix' | 'table'>('matrix');
+
+  // ── Size Chart & Measurement Guide State ──
+  const [chartUnit, setChartUnit] = useState<'inch' | 'cm'>((sizeChart?.unit as 'inch' | 'cm') || 'inch');
+  const [measurements, setMeasurements] = useState<SizeChartMeasurement[]>(sizeChart?.measurements || []);
+  const [showChartSection, setShowChartSection] = useState(Boolean(sizeChart?.measurements && sizeChart.measurements.length > 0));
+
+  useEffect(() => {
+    if (sizeChart?.measurements && sizeChart.measurements.length > 0) {
+      setMeasurements(sizeChart.measurements);
+      if (sizeChart.unit) setChartUnit(sizeChart.unit as 'inch' | 'cm');
+    }
+  }, [sizeChart]);
+
+  function updateChart(unit: 'inch' | 'cm', mList: SizeChartMeasurement[]) {
+    setChartUnit(unit);
+    setMeasurements(mList);
+    onSizeChartChange?.({ unit, measurements: mList });
+  }
+
+  function applyPresetChart(presetKey: string) {
+    const p = PRESET_CHARTS[presetKey];
+    if (!p) return;
+    updateChart(p.unit, p.data);
+  }
+
+  function handleMeasurementChange(idx: number, field: keyof SizeChartMeasurement, val: string) {
+    const updated = [...measurements];
+    updated[idx] = { ...updated[idx], [field]: val };
+    updateChart(chartUnit, updated);
+  }
+
+  function addChartRow() {
+    const newRow: SizeChartMeasurement = { size: 'Custom', chest: '', length: '', waist: '', shoulder: '' };
+    updateChart(chartUnit, [...measurements, newRow]);
+  }
+
+  function removeChartRow(idx: number) {
+    const updated = measurements.filter((_, i) => i !== idx);
+    updateChart(chartUnit, updated);
+  }
 
   // Initialize selected sizes & colors from existing variants if any
   useEffect(() => {
@@ -759,6 +865,195 @@ export default function FashionVariantMatrix({
             >
               {isBn ? 'সব ভেরিয়েন্ট মুছুন' : 'Clear All'}
             </button>
+          )}
+        </div>
+
+        {/* ── 4. GARMENT SIZE CHART & MEASUREMENT GUIDE BUILDER ── */}
+        <div className="card border-0 shadow-xs rounded-3 mt-3 overflow-hidden" style={{ border: '1px solid #e2e8f0' }}>
+          <div
+            className="p-3 d-flex align-items-center justify-content-between"
+            style={{ backgroundColor: '#f8fafc', cursor: 'pointer' }}
+            onClick={() => setShowChartSection(!showChartSection)}
+          >
+            <div className="d-flex align-items-center gap-2">
+              <span className="fs-5">📏</span>
+              <div>
+                <strong className="text-slate-800" style={{ fontSize: '0.9rem' }}>
+                  {isBn ? 'পোশাকের সাইজ চার্ট ও মেজারমেন্ট গাইড' : 'Garment Size Chart & Measurements'}
+                </strong>
+                <div className="text-secondary small">
+                  {isBn
+                    ? 'চেস্ট, ঝুল, কোমর ও কাঁধের মাপ নির্ধারণ করুন (POS এবং ক্যাটালগে প্রদর্শিত হবে)'
+                    : 'Specify chest, length, waist & shoulder measurements for POS & customer guide'}
+                </div>
+              </div>
+            </div>
+            <div className="d-flex align-items-center gap-2">
+              <span className="badge bg-secondary-subtle text-secondary border px-2 py-1">
+                {measurements.length} {isBn ? 'সাইজ যুক্ত' : 'sizes configured'}
+              </span>
+              <button
+                type="button"
+                className="btn btn-sm btn-link text-decoration-none text-secondary p-0 fs-5"
+              >
+                {showChartSection ? '▲' : '▼'}
+              </button>
+            </div>
+          </div>
+
+          {showChartSection && (
+            <div className="p-3 border-top bg-white">
+              <div className="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+                <div className="d-flex align-items-center gap-2">
+                  <span className="small fw-semibold text-secondary">
+                    {isBn ? 'পরিমাপ ইউনিট:' : 'Unit:'}
+                  </span>
+                  <div className="btn-group btn-group-sm" role="group">
+                    <button
+                      type="button"
+                      className={`btn btn-xs px-2.5 ${chartUnit === 'inch' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => updateChart('inch', measurements)}
+                    >
+                      {isBn ? 'ইঞ্চি (Inches)' : 'Inches'}
+                    </button>
+                    <button
+                      type="button"
+                      className={`btn btn-xs px-2.5 ${chartUnit === 'cm' ? 'btn-primary' : 'btn-outline-secondary'}`}
+                      onClick={() => updateChart('cm', measurements)}
+                    >
+                      {isBn ? 'সেন্টিমিটার (CM)' : 'CM'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="d-flex flex-wrap align-items-center gap-1.5">
+                  <span className="small fw-semibold text-secondary me-1">
+                    {isBn ? 'রেডিমেড টেমপ্লেট:' : 'Presets:'}
+                  </span>
+                  {Object.entries(PRESET_CHARTS).map(([key, item]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      className="btn btn-outline-secondary btn-xs py-1 px-2 rounded-pill"
+                      style={{ fontSize: '0.75rem' }}
+                      onClick={() => applyPresetChart(key)}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {measurements.length === 0 ? (
+                <div className="text-center py-4 text-secondary small bg-light rounded-3">
+                  <p className="mb-2">
+                    {isBn
+                      ? 'এখনও কোনো সাইজ মেজারমেন্ট যুক্ত করা হয়নি।'
+                      : 'No size measurements defined yet.'}
+                  </p>
+                  <p className="mb-0 text-muted" style={{ fontSize: '0.78rem' }}>
+                    {isBn
+                      ? 'উপরের রেডিমেড টেমপ্লেট থেকে সিলেক্ট করুন অথবা নিচে কাস্টম রো যোগ করুন।'
+                      : 'Choose a preset above or add custom size rows below.'}
+                  </p>
+                </div>
+              ) : (
+                <div className="table-responsive rounded border mb-3">
+                  <table className="table table-sm table-bordered text-center align-middle mb-0">
+                    <thead className="table-light small">
+                      <tr>
+                        <th style={{ width: '20%' }}>{isBn ? 'সাইজ লেবেল' : 'Size'}</th>
+                        <th style={{ width: '20%' }}>{isBn ? `চেস্ট / বুক (${chartUnit})` : `Chest (${chartUnit})`}</th>
+                        <th style={{ width: '20%' }}>{isBn ? `ঝুল / দৈর্ঘ্য (${chartUnit})` : `Length (${chartUnit})`}</th>
+                        <th style={{ width: '18%' }}>{isBn ? `কোমর (${chartUnit})` : `Waist (${chartUnit})`}</th>
+                        <th style={{ width: '15%' }}>{isBn ? `কাঁধ (${chartUnit})` : `Shoulder (${chartUnit})`}</th>
+                        <th style={{ width: '7%' }}></th>
+                      </tr>
+                    </thead>
+                    <tbody className="small">
+                      {measurements.map((row, idx) => (
+                        <tr key={idx}>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm text-center fw-bold"
+                              value={row.size}
+                              onChange={(e) => handleMeasurementChange(idx, 'size', e.target.value)}
+                              placeholder="e.g. M, 42"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm text-center"
+                              value={row.chest || ''}
+                              onChange={(e) => handleMeasurementChange(idx, 'chest', e.target.value)}
+                              placeholder="40"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm text-center"
+                              value={row.length || ''}
+                              onChange={(e) => handleMeasurementChange(idx, 'length', e.target.value)}
+                              placeholder="29"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm text-center"
+                              value={row.waist || ''}
+                              onChange={(e) => handleMeasurementChange(idx, 'waist', e.target.value)}
+                              placeholder="32"
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm text-center"
+                              value={row.shoulder || ''}
+                              onChange={(e) => handleMeasurementChange(idx, 'shoulder', e.target.value)}
+                              placeholder="18"
+                            />
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              className="btn btn-link btn-xs text-danger p-0"
+                              onClick={() => removeChartRow(idx)}
+                              title={isBn ? 'মুছে ফেলুন' : 'Remove'}
+                            >
+                              ✕
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <div className="d-flex align-items-center justify-content-between pt-1">
+                <button
+                  type="button"
+                  className="btn btn-outline-primary btn-xs py-1 px-2.5 rounded-pill"
+                  onClick={addChartRow}
+                >
+                  + {isBn ? 'কাস্টম সাইজ রো যোগ করুন' : 'Add Size Row'}
+                </button>
+                {measurements.length > 0 && (
+                  <button
+                    type="button"
+                    className="btn btn-link btn-xs text-danger p-0 text-decoration-none"
+                    onClick={() => updateChart(chartUnit, [])}
+                  >
+                    {isBn ? 'চার্ট ক্লিয়ার করুন' : 'Clear Chart'}
+                  </button>
+                )}
+              </div>
+            </div>
           )}
         </div>
       </div>
