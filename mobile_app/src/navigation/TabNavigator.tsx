@@ -48,6 +48,7 @@ function MoreMenuScreen() {
       titleBn: 'বিক্রয় ও কাস্টমার লেনদেন',
       items: [
         { name: 'SalesScreen', icon: 'receipt', labelEn: 'Sales History', labelBn: 'বিক্রয় ইতিহাস' },
+        { name: 'AlterationsScreen', icon: 'content-cut', labelEn: 'Alterations and Fitting', labelBn: 'পোশাক অল্টারেশন ও ফিটিং' },
         { name: 'DuesScreen', icon: 'cash-multiple', labelEn: 'Customer Dues', labelBn: 'বকেয়া খাতা' },
         { name: 'EMIScreen', icon: 'calendar-check', labelEn: 'EMI Installments', labelBn: 'ইএমআই ও কিস্তি' },
         { name: 'ReturnsScreen', icon: 'keyboard-return', labelEn: 'Returns & Replace', labelBn: 'পণ্য ফেরত ও বদল' },

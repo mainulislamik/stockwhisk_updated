@@ -60,6 +60,21 @@ type Product = {
   category?: any;
 };
 type CartLine = { product: Product; qty: number; price: number; discount: number; selectedUnits: ProductUnit[]; selectedVariation?: ProductVariation | null };
+
+type HeldCart = {
+  id: string;
+  time: string;
+  items: CartLine[];
+  customerMode: 'walkin' | 'existing';
+  selectedCustomer: Customer | null;
+  walkName: string;
+  walkPhone: string;
+  discountInput: string;
+  deliveryCharge: string;
+  serviceCharge: string;
+  alterationNotes: string;
+  totalAmount: number;
+};
 type Customer = { id: number; name: string; phone?: string; };
 
 export default function POSScreen() {
@@ -85,6 +100,134 @@ export default function POSScreen() {
 
   const [view, setView] = useState<'products' | 'cart'>('products');
   const [cart, setCart] = useState<CartLine[]>([]);
+  const [heldCarts, setHeldCarts] = useState<HeldCart[]>([]);
+  const [heldModalVisible, setHeldModalVisible] = useState(false);
+
+  // Load held carts from storage on mount
+  useEffect(() => {
+    SecureStore.getItemAsync('pos_held_carts').then(val => {
+      if (val) {
+        try {
+          const parsed = JSON.parse(val);
+          if (Array.isArray(parsed)) setHeldCarts(parsed);
+        } catch (e) {}
+      }
+    });
+  }, []);
+
+  const saveHeldCarts = (newList: HeldCart[]) => {
+    setHeldCarts(newList);
+    SecureStore.setItemAsync('pos_held_carts', JSON.stringify(newList)).catch(() => {});
+  };
+
+  const handleHoldCart = () => {
+    if (cart.length === 0) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Alert', isBN ? 'কার্ট খালি, হোল্ড করার কোনো পণ্য নেই।' : 'Cart is empty.');
+      return;
+    }
+    const holdId = 'HOLD-' + Math.floor(1000 + Math.random() * 9000);
+    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const subtotal = cart.reduce((s, l) => s + l.qty * l.price - (l.discount || 0), 0);
+    const rawDiscount = Number(discountInput) || 0;
+    const deliveryNum = Number(deliveryCharge) || 0;
+    const servNum = parseFloat(serviceCharge) || 0;
+    const totalAmount = Math.max(0, subtotal - rawDiscount + deliveryNum + servNum);
+
+    const newHeld: HeldCart = {
+      id: holdId,
+      time: timeStr,
+      items: [...cart],
+      customerMode,
+      selectedCustomer,
+      walkName,
+      walkPhone,
+      discountInput,
+      deliveryCharge,
+      serviceCharge,
+      alterationNotes,
+      totalAmount
+    };
+
+    const updated = [newHeld, ...heldCarts];
+    saveHeldCarts(updated);
+
+    // Reset current active cart
+    setCart([]);
+    setSelectedCustomer(null);
+    setWalkName('');
+    setWalkPhone('');
+    setDiscountInput('');
+    setDeliveryCharge('');
+    setServiceCharge('0');
+    setAlterationNotes('');
+    setView('products');
+
+    Alert.alert(
+      isBN ? 'কার্ট হোল্ড করা হয়েছে' : 'Cart Held',
+      isBN ? `কার্ট #${holdId} সাময়িকভাবে স্থগিত করা হয়েছে। নতুন বিল সম্পন্ন করতে পারেন।` : `Cart #${holdId} held successfully.`
+    );
+  };
+
+  const handleRecallCart = (entry: HeldCart) => {
+    const doRestore = () => {
+      setCart(entry.items);
+      setCustomerMode(entry.customerMode);
+      setSelectedCustomer(entry.selectedCustomer);
+      setWalkName(entry.walkName);
+      setWalkPhone(entry.walkPhone);
+      setDiscountInput(entry.discountInput || '');
+      setDeliveryCharge(entry.deliveryCharge || '');
+      setServiceCharge(entry.serviceCharge || '0');
+      setAlterationNotes(entry.alterationNotes || '');
+
+      const remaining = heldCarts.filter(h => h.id !== entry.id);
+      saveHeldCarts(remaining);
+      setHeldModalVisible(false);
+      setView('cart');
+    };
+
+    if (cart.length > 0) {
+      Alert.alert(
+        isBN ? 'বর্তমান কার্টে পণ্য রয়েছে' : 'Active Cart Not Empty',
+        isBN ? 'বর্তমান সক্রিয় কার্টটি কি হোল্ড করবেন নাকি বাদ দিয়ে এই স্থগিত কার্টটি রিকল করবেন?' : 'Do you want to hold current cart or overwrite?',
+        [
+          { text: isBN ? 'বাতিল' : 'Cancel', style: 'cancel' },
+          {
+            text: isBN ? 'বর্তমানটি হোল্ড করে এটি রিকল করুন' : 'Hold Current & Recall',
+            onPress: () => {
+              handleHoldCart();
+              setTimeout(doRestore, 300);
+            }
+          },
+          {
+            text: isBN ? 'প্রতিস্থাপন করুন' : 'Overwrite',
+            style: 'destructive',
+            onPress: doRestore
+          }
+        ]
+      );
+    } else {
+      doRestore();
+    }
+  };
+
+  const handleDiscardHeldCart = (id: string) => {
+    Alert.alert(
+      isBN ? 'স্থগিত কার্ট মুছে ফেলা' : 'Discard Held Cart',
+      isBN ? 'আপনি কি নিশ্চিতভাবে এই স্থগিত কার্টটি মুছে ফেলতে চান?' : 'Are you sure you want to discard this held cart?',
+      [
+        { text: isBN ? 'না' : 'No', style: 'cancel' },
+        {
+          text: isBN ? 'হ্যাঁ, মুছুন' : 'Yes, Discard',
+          style: 'destructive',
+          onPress: () => {
+            const remaining = heldCarts.filter(h => h.id !== id);
+            saveHeldCarts(remaining);
+          }
+        }
+      ]
+    );
+  };
 
   // Product Browser State
   const [query, setQuery] = useState('');
@@ -888,6 +1031,24 @@ export default function POSScreen() {
         {view === 'cart' && <Appbar.BackAction onPress={() => setView('products')} />}
         <Appbar.Content title={view === 'products' ? t('বিক্রয় / POS', 'POS / Sale') : t('কার্ট (' + totalItemsCount + ' items)', 'Cart (' + totalItemsCount + ' items)')} titleStyle={{ fontWeight: 'bold' }} />
         <PageGuideButton pageKey="/app/pos" />
+        {heldCarts.length > 0 && (
+          <TouchableOpacity
+            onPress={() => setHeldModalVisible(true)}
+            style={{ marginRight: 10, justifyContent: 'center' }}
+          >
+            <MaterialCommunityIcons name="clipboard-text-clock-outline" size={26} color="#d97706" />
+            <Badge style={{ position: 'absolute', top: -4, right: -6, backgroundColor: '#d97706', fontSize: 10 }}>
+              {heldCarts.length}
+            </Badge>
+          </TouchableOpacity>
+        )}
+        {view === 'cart' && cart.length > 0 && (
+          <Appbar.Action
+            icon="pause-circle-outline"
+            color="#d97706"
+            onPress={handleHoldCart}
+          />
+        )}
         {view === 'products' ? (
           <TouchableOpacity onPress={() => setView('cart')} style={{ marginRight: 16 }}>
             <MaterialCommunityIcons name="cart-outline" size={28} color={theme.colors.onSurface} />
@@ -2083,6 +2244,20 @@ export default function POSScreen() {
               </Surface>
             )}
 
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+              <Button
+                mode="outlined"
+                icon="pause-circle-outline"
+                onPress={handleHoldCart}
+                disabled={cart.length === 0}
+                style={{ flex: 1, borderRadius: 8, borderColor: '#d97706' }}
+                textColor="#d97706"
+                labelStyle={{ fontSize: 13, fontWeight: 'bold' }}
+              >
+                {t('কার্ট সাময়িক স্থগিত (Hold Cart)', 'Hold Cart')}
+              </Button>
+            </View>
+
             <View style={{ flexDirection: 'row', gap: 10, marginBottom: 40 }}>
               <Button
                 mode="outlined"
@@ -2113,6 +2288,88 @@ export default function POSScreen() {
         </ScrollView>
         </KeyboardAvoidingView>
       )}
+
+      {/* Held Carts Modal */}
+      <Modal visible={heldModalVisible} transparent animationType="slide" onRequestClose={() => setHeldModalVisible(false)}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 16 }}>
+          <Surface style={{ borderRadius: 16, maxHeight: '80%', padding: 16, backgroundColor: theme.colors.surface }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialCommunityIcons name="clipboard-text-clock-outline" size={24} color="#d97706" />
+                <Text style={{ fontSize: 18, fontWeight: 'bold' }}>
+                  {t(`স্থগিত কার্ট (${heldCarts.length})`, `Held Carts (${heldCarts.length})`)}
+                </Text>
+              </View>
+              <IconButton icon="close" size={20} onPress={() => setHeldModalVisible(false)} />
+            </View>
+
+            {heldCarts.length === 0 ? (
+              <View style={{ padding: 24, alignItems: 'center' }}>
+                <Text style={{ color: '#64748b' }}>{t('কোনো কার্ট স্থগিত নেই।', 'No held carts.')}</Text>
+              </View>
+            ) : (
+              <FlatList
+                data={heldCarts}
+                keyExtractor={item => item.id}
+                ItemSeparatorComponent={() => <Divider style={{ marginVertical: 8 }} />}
+                renderItem={({ item }) => {
+                  const custLabel = item.customerMode === 'existing' && item.selectedCustomer
+                    ? item.selectedCustomer.name
+                    : (item.walkName ? `${item.walkName} (${item.walkPhone || 'ওয়াক-ইন'})` : 'ওয়াক-ইন কাস্টমার');
+
+                  return (
+                    <View style={{ paddingVertical: 4 }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Chip textStyle={{ fontSize: 11, fontWeight: 'bold' }} style={{ backgroundColor: '#fef3c7', height: 26 }}>
+                            {item.id}
+                          </Chip>
+                          <Text style={{ fontSize: 12, color: '#64748b' }}>🕒 {item.time}</Text>
+                        </View>
+                        <Text style={{ fontSize: 16, fontWeight: 'bold', color: '#16a34a' }}>
+                          ৳ {item.totalAmount.toLocaleString()}
+                        </Text>
+                      </View>
+
+                      <Text style={{ fontSize: 13, fontWeight: '600', color: theme.colors.onSurface, marginBottom: 4 }}>
+                        👤 {custLabel}
+                      </Text>
+
+                      <Text style={{ fontSize: 12, color: '#64748b', marginBottom: 10 }}>
+                        📦 {item.items.length} {t('ধরনের পণ্য', 'items')} • {item.items.reduce((sum, i) => sum + i.qty, 0)} {t('ইউনিট', 'units')}
+                      </Text>
+
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <Button
+                          mode="contained"
+                          icon="restore"
+                          compact
+                          onPress={() => handleRecallCart(item)}
+                          style={{ flex: 1, backgroundColor: '#0284c7' }}
+                          labelStyle={{ fontSize: 12, fontWeight: 'bold' }}
+                        >
+                          {t('রিকল করুন', 'Recall')}
+                        </Button>
+                        <Button
+                          mode="outlined"
+                          icon="delete-outline"
+                          compact
+                          textColor="#dc2626"
+                          style={{ borderColor: '#dc2626' }}
+                          onPress={() => handleDiscardHeldCart(item.id)}
+                          labelStyle={{ fontSize: 12 }}
+                        >
+                          {t('মুছুন', 'Discard')}
+                        </Button>
+                      </View>
+                    </View>
+                  );
+                }}
+              />
+            )}
+          </Surface>
+        </View>
+      </Modal>
 
       {/* Barcode Scanner Modal */}
       <CameraBarcodeScannerModal

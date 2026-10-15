@@ -70,6 +70,67 @@ export default function InventoryScreen() {
 
   const [productToDelete, setProductToDelete] = useState<FullProduct | null>(null);
 
+  // Wastage / Damage Modal State
+  const [wasteModalVisible, setWasteModalVisible] = useState(false);
+  const [wasteSelectedProd, setWasteSelectedProd] = useState<FullProduct | null>(null);
+  const [wasteSearch, setWasteSearch] = useState('');
+  const [wasteQty, setWasteQty] = useState('');
+  const [wasteReason, setWasteReason] = useState('broken');
+  const [wasteNote, setWasteNote] = useState('');
+  const [wasteSaving, setWasteSaving] = useState(false);
+
+  const handleWastageSubmit = async () => {
+    if (!wasteSelectedProd) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Alert', isBN ? 'অনুগ্রহ করে নষ্ট হওয়া পণ্য নির্বাচন করুন।' : 'Please select a product.');
+      return;
+    }
+    const q = Number(wasteQty);
+    if (!q || q <= 0) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Alert', isBN ? 'সঠিক পরিমাণ (Quantity) দিন।' : 'Please enter a valid quantity.');
+      return;
+    }
+    const currentStock = Number(wasteSelectedProd.current_stock || 0);
+    if (q > currentStock) {
+      Alert.alert(isBN ? 'সতর্কতা' : 'Alert', isBN ? `বর্তমান স্টকে মাত্র ${currentStock} ইউনিট আছে।` : `Current stock only has ${currentStock} units.`);
+      return;
+    }
+
+    const reasonLabels: Record<string, string> = {
+      broken: isBN ? 'ভেঙে যাওয়া / ক্ষতিগ্রস্ত' : 'Damaged / Broken',
+      rotten: isBN ? 'পচে যাওয়া / পচনশীল নষ্ট' : 'Rotten / Perished',
+      expired: isBN ? 'মেয়াদোত্তীর্ণ (Expired)' : 'Expired',
+      pest: isBN ? 'পোকা বা ইঁদুরে নষ্ট' : 'Pest / Rodent',
+      other: isBN ? 'অন্যান্য ক্ষতি' : 'Other loss'
+    };
+
+    setWasteSaving(true);
+    try {
+      await api.post('/inventory/movements/adjust/', {
+        product: wasteSelectedProd.id,
+        movement_type: 'damage_out',
+        quantity: q,
+        unit_cost: Number(wasteSelectedProd.cost_price || 0),
+        note: `[ডেইলি ওয়েস্টেজ: ${reasonLabels[wasteReason] || wasteReason}] ${wasteNote}`.trim()
+      });
+
+      Alert.alert(
+        isBN ? 'সফল হয়েছে!' : 'Success!',
+        isBN ? 'ওয়েস্টেজ / নষ্ট পণ্যের ক্ষতি সফলভাবে রেকর্ড করা হয়েছে।' : 'Stock wastage / damage recorded successfully.'
+      );
+      setWasteModalVisible(false);
+      setWasteSelectedProd(null);
+      setWasteQty('');
+      setWasteNote('');
+      loadSummary();
+      loadProducts(1, productSearch);
+    } catch (err: any) {
+      const msg = err.response?.data?.detail || err.response?.data?.error || err.message || (isBN ? 'ওয়েস্টেজ এন্ট্রি ব্যর্থ হয়েছে।' : 'Failed to record wastage');
+      Alert.alert(isBN ? 'ত্রুটি' : 'Error', msg);
+    } finally {
+      setWasteSaving(false);
+    }
+  };
+
   const confirmDelete = (p: FullProduct) => {
     setProductToDelete(p);
   };
@@ -229,6 +290,7 @@ export default function InventoryScreen() {
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }} elevated>
         <Appbar.Content title={isBN ? 'ইনভেন্টরি' : 'Inventory'} titleStyle={{ fontWeight: 'bold' }} />
         <PageGuideButton pageKey="/app/inventory" />
+        <Appbar.Action icon="delete-sweep" color="#dc2626" onPress={() => setWasteModalVisible(true)} />
         <Appbar.Action icon="refresh" onPress={() => { loadSummary(); loadProducts(1, productSearch); }} />
         
       </Appbar.Header>
@@ -789,6 +851,162 @@ export default function InventoryScreen() {
             </View>
           </Surface>
         </View>
+      </Modal>
+
+      {/* Wastage & Damage Modal */}
+      <Modal visible={wasteModalVisible} transparent animationType="slide" onRequestClose={() => setWasteModalVisible(false)}>
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}>
+          <Surface style={{ width: '100%', maxWidth: 440, borderRadius: 16, padding: 20, maxHeight: '90%', backgroundColor: isDarkMode ? '#1e293b' : '#fff' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <MaterialCommunityIcons name="delete-empty" size={24} color="#dc2626" />
+                <Text style={{ fontSize: 18, fontWeight: 'bold', color: isDarkMode ? '#f87171' : '#dc2626' }}>
+                  {isBN ? 'নষ্ট / অপচয় পণ্যের হিসাব' : 'Stock Wastage / Loss'}
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setWasteModalVisible(false)}>
+                <MaterialCommunityIcons name="close" size={22} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Product selector */}
+              <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                {isBN ? 'ক্ষতিগ্রস্ত পণ্য নির্বাচন করুন *' : 'Select Damaged Product *'}
+              </Text>
+
+              {wasteSelectedProd ? (
+                <Surface style={{ padding: 12, borderRadius: 10, backgroundColor: isDarkMode ? '#0f172a' : '#f8fafc', borderColor: '#e2e8f0', borderWidth: 1, marginBottom: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 14 }}>{wasteSelectedProd.name}</Text>
+                    <Text style={{ fontSize: 12, color: '#64748b', marginTop: 2 }}>
+                      SKU: {wasteSelectedProd.sku || 'N/A'} • {isBN ? 'বর্তমান স্টক:' : 'Stock:'} {wasteSelectedProd.current_stock}
+                    </Text>
+                  </View>
+                  <Button compact mode="text" textColor="#dc2626" onPress={() => setWasteSelectedProd(null)}>
+                    {isBN ? 'বদলান' : 'Change'}
+                  </Button>
+                </Surface>
+              ) : (
+                <View style={{ marginBottom: 12 }}>
+                  <TextInput
+                    mode="outlined"
+                    placeholder={isBN ? 'পণ্য সার্চ করুন...' : 'Search product to select...'}
+                    value={wasteSearch}
+                    onChangeText={setWasteSearch}
+                    left={<TextInput.Icon icon="magnify" />}
+                    style={{ backgroundColor: isDarkMode ? '#0f172a' : '#fff' }}
+                  />
+                  <View style={{ maxHeight: 150, borderWidth: 1, borderColor: '#e2e8f0', borderRadius: 8, marginTop: 4 }}>
+                    <ScrollView nestedScrollEnabled>
+                      {products
+                        .filter(p => p.name.toLowerCase().includes(wasteSearch.toLowerCase()) || (p.sku && p.sku.toLowerCase().includes(wasteSearch.toLowerCase())))
+                        .slice(0, 10)
+                        .map(p => (
+                          <TouchableOpacity
+                            key={p.id}
+                            onPress={() => {
+                              setWasteSelectedProd(p);
+                              setWasteSearch('');
+                            }}
+                            style={{ padding: 10, borderBottomWidth: 1, borderBottomColor: '#f1f5f9' }}
+                          >
+                            <Text style={{ fontWeight: '600', fontSize: 13 }}>{p.name}</Text>
+                            <Text style={{ fontSize: 11, color: '#64748b' }}>
+                              {isBN ? 'স্টক:' : 'Stock:'} {p.current_stock} • {isBN ? 'ক্রয়মূল্য:' : 'Cost:'} ৳{p.cost_price || 0}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                    </ScrollView>
+                  </View>
+                </View>
+              )}
+
+              {/* Quantity */}
+              <View style={{ marginBottom: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 4, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                  {isBN ? 'নষ্ট হওয়া পরিমাণ (Quantity) *' : 'Wasted / Damaged Quantity *'}
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  keyboardType="numeric"
+                  placeholder="1"
+                  value={wasteQty}
+                  onChangeText={setWasteQty}
+                  style={{ backgroundColor: isDarkMode ? '#0f172a' : '#fff' }}
+                />
+              </View>
+
+              {/* Reason selector */}
+              <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 6, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                {isBN ? 'নষ্টের কারণ (Reason) *' : 'Damage Reason *'}
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                {[
+                  { key: 'broken', label: isBN ? '💥 ভাঙা / ত্রুটি' : 'Damaged' },
+                  { key: 'expired', label: isBN ? '⏳ মেয়াদোত্তীর্ণ' : 'Expired' },
+                  { key: 'rotten', label: isBN ? '🍇 পচনশীল' : 'Rotten' },
+                  { key: 'pest', label: isBN ? '🐀 ইঁদুর / পোকা' : 'Pest' },
+                  { key: 'other', label: isBN ? '📦 অন্যান্য' : 'Other' },
+                ].map(r => (
+                  <TouchableOpacity
+                    key={r.key}
+                    onPress={() => setWasteReason(r.key)}
+                    style={{
+                      paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+                      borderWidth: 1, borderColor: wasteReason === r.key ? '#dc2626' : '#cbd5e1',
+                      backgroundColor: wasteReason === r.key ? '#fee2e2' : 'transparent'
+                    }}
+                  >
+                    <Text style={{ fontSize: 12, fontWeight: wasteReason === r.key ? 'bold' : 'normal', color: wasteReason === r.key ? '#dc2626' : (isDarkMode ? '#cbd5e1' : '#334155') }}>
+                      {r.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* Note */}
+              <View style={{ marginBottom: 16 }}>
+                <Text style={{ fontSize: 13, fontWeight: 'bold', marginBottom: 4, color: isDarkMode ? '#e2e8f0' : '#1e293b' }}>
+                  {isBN ? 'বিস্তারিত বিবরণ / নোট' : 'Details / Note'}
+                </Text>
+                <TextInput
+                  mode="outlined"
+                  placeholder={isBN ? 'যেমন: পরিবহনে ভাঙা বা ডিসপ্লে ডেমেজ...' : 'e.g. Broken in transport...'}
+                  value={wasteNote}
+                  onChangeText={setWasteNote}
+                  style={{ backgroundColor: isDarkMode ? '#0f172a' : '#fff' }}
+                />
+              </View>
+
+              {/* Estimated financial loss */}
+              {wasteSelectedProd && Number(wasteQty) > 0 && (
+                <Surface style={{ padding: 10, borderRadius: 8, backgroundColor: '#fef2f2', marginBottom: 16, borderColor: '#fecaca', borderWidth: 1 }}>
+                  <Text style={{ fontSize: 12, color: '#dc2626', fontWeight: 'bold', textAlign: 'center' }}>
+                    {isBN ? 'আনুমানিক আর্থিক ক্ষতি:' : 'Estimated Financial Loss:'} ৳{(Number(wasteQty) * Number(wasteSelectedProd.cost_price || 0)).toFixed(2)}
+                  </Text>
+                </Surface>
+              )}
+
+              {/* Action buttons */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                <Button mode="outlined" onPress={() => setWasteModalVisible(false)} style={{ flex: 1, borderRadius: 8 }}>
+                  {isBN ? 'বাতিল' : 'Cancel'}
+                </Button>
+                <Button
+                  mode="contained"
+                  buttonColor="#dc2626"
+                  loading={wasteSaving}
+                  disabled={wasteSaving}
+                  onPress={handleWastageSubmit}
+                  style={{ flex: 1, borderRadius: 8 }}
+                >
+                  {isBN ? 'ক্ষতি রেকর্ড করুন' : 'Confirm Wastage'}
+                </Button>
+              </View>
+            </ScrollView>
+          </Surface>
+        </KeyboardAvoidingView>
       </Modal>
 
     </View>

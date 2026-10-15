@@ -351,6 +351,7 @@ export default function SalesScreen() {
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBN ? 'বিক্রয় ইতিহাস' : 'Sales History'} titleStyle={{ fontWeight: 'bold' }} />
+        <Appbar.Action icon="content-cut" onPress={() => (navigation as any).navigate("AlterationsScreen")} />
         <PageGuideButton pageKey="/app/sales" />
       </Appbar.Header>
       

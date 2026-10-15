@@ -95,10 +95,19 @@ export default function PurchasesScreen() {
       <Appbar.Header statusBarHeight={0} style={{ backgroundColor: theme.colors.surface }}>
         <Appbar.BackAction onPress={() => navigation.goBack()} />
         <Appbar.Content title={isBn ? "ক্রয় ইতিহাস" : "Purchases"} titleStyle={{ fontWeight: 'bold' }} />
+        <Appbar.Action icon="plus" onPress={() => navigation.navigate('NewPurchaseScreen' as never)} />
         <PageGuideButton pageKey="/app/products/purchase" />
       </Appbar.Header>
       
       <View style={{ padding: 16, paddingBottom: 0 }}>
+        <Button 
+          mode="contained" 
+          icon="plus" 
+          onPress={() => navigation.navigate('NewPurchaseScreen' as never)}
+          style={{ marginBottom: 10 }}
+        >
+          {isBn ? '+ নতুন পণ্য ক্রয় ও স্টক রিসিভ' : '+ New Purchase & Stock In'}
+        </Button>
         <TextInput 
           mode="outlined" 
           placeholder={isBn ? "পিও নম্বর বা সরবরাহকারী খুঁজুন..." : "Search PO or Supplier..."} 

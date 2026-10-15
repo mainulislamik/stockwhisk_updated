@@ -321,7 +321,8 @@ export default function DashboardScreen() {
           {[
             { icon: 'cash-register',         titleBn: 'নতুন বিক্রয় (POS)',    titleEn: 'New Sale (POS)',     subBn: 'কার্টে পণ্য যোগ',        subEn: 'Add to cart',          go: () => navigation.navigate('MainTabs', { screen: 'POS' }) },
             { icon: 'barcode-scan',          titleBn: 'বারকোড স্ক্যান',      titleEn: 'Barcode Scanner',    subBn: 'ক্যামেরা স্ক্যানার',     subEn: 'Camera scanner',       go: () => setShowScanner(true) },
-            { icon: 'arrow-down-bold-box',   titleBn: 'স্টক',              titleEn: 'Stock',       subBn: 'নতুন ক্রয় এন্ট্রি',       subEn: 'New purchase',         go: () => navigation.navigate('ProductsScreen', { initialTab: 'purchase' }) },
+            { icon: 'cart-plus',          titleBn: 'নতুন ক্রয় এন্ট্রি',      titleEn: 'New Purchase',    subBn: 'মাল রিসিভ ও দেনা',      subEn: 'Receive stock & PO',   go: () => navigation.navigate('NewPurchaseScreen' as never) },
+            { icon: 'scissors-cutting',    titleBn: 'অল্টারেশন হাব',        titleEn: 'Alterations',     subBn: 'টেইলারিং ও মাপ',        subEn: 'Tailoring & fits',     go: () => navigation.navigate('AlterationsScreen' as never) },
             { icon: 'cash-check',            titleBn: 'দৈনিক ক্যাশ ক্লোজিং', titleEn: 'Daily Settlement',   subBn: 'দিনের হিসাব বন্ধ',        subEn: 'Day settlement',       go: () => navigation.navigate('SettlementScreen') },
             { icon: 'cash-minus',            titleBn: 'খরচ এন্ট্রি',        titleEn: 'Add Expense',        subBn: 'দৈনিক খরচ লিখুন',         subEn: 'Record expenses',      go: () => navigation.navigate('ExpensesScreen') },
             { icon: 'account-clock',         titleBn: 'বকেয়া আদায়',        titleEn: 'Customer Dues',      subBn: 'বাকির টাকা সংগ্রহ',       subEn: 'Collect dues',         go: () => navigation.navigate('DuesScreen') },

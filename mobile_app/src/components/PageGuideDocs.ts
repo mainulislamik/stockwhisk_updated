@@ -596,5 +596,27 @@ export const PAGE_DOCS_REGISTRY: Record<string, PageDoc> = {
         "Send test alert to verify gateway connectivity."
       ]
     }
+  },
+
+  "/app/alterations": {
+    title: { bn: "পোশাক অল্টারেশন ও টেইলারিং", en: "Garment Alterations & Fitting" },
+    icon: "✂️",
+    badge: { bn: "টেইলারিং বোর্ড", en: "Tailoring Board" },
+    summary: {
+      bn: "গ্রাহকের পোশাকের অল্টারেশন ফিটিং ট্র্যাকিং, টেইলার অ্যাসাইনমেন্ট, স্লিপ প্রিন্ট এবং হোয়াটসঅ্যাপ অ্যালার্ট।",
+      en: "Track tailoring requests, tailor assignments, tailor slip printing, and customer ready notifications."
+    },
+    steps: {
+      bn: [
+        "POS স্ক্রিনে কাপড় বিক্রির সময় অল্টারেশন নোট দিলে এখানে স্বয়ংক্রিয়ভাবে জব তৈরি হবে।",
+        "দর্জি বা মাস্টার নির্বাচন করুন এবং কাজের স্ট্যাটাস (Pending, In Progress, Ready, Delivered) আপডেট করুন।",
+        "টোকেন স্লিপ প্রিন্ট করে পোশাকে পিন করুন এবং কাজ সম্পন্ন হলে সরাসরি হোয়াটসঅ্যাপে মেসেজ দিন।"
+      ],
+      en: [
+        "Jobs auto-create when alteration notes are added during POS sales.",
+        "Assign master tailors and progress status to Ready or Delivered.",
+        "Print tailor slips to pin on garments and send WhatsApp ready alerts."
+      ]
+    }
   }
 };

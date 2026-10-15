@@ -10,6 +10,8 @@ import LoginScreen from './src/screens/LoginScreen';
 import NotificationsScreen from './src/screens/NotificationsScreen';
 import TabNavigator from './src/navigation/TabNavigator';
 import SalesScreen from './src/screens/SalesScreen';
+import AlterationsScreen from './src/screens/AlterationsScreen';
+import NewPurchaseScreen from './src/screens/NewPurchaseScreen';
 import ProductsScreen from './src/screens/ProductsScreen';
 import LookupScreen from './src/screens/LookupScreen';
 import CustomersScreen from './src/screens/CustomersScreen';
@@ -76,7 +78,7 @@ const customDarkTheme = {
 };
 
 function RootNavigator() {
-  const { user, loading } = useAuth();
+  const { user, billing, loading } = useAuth();
 
   if (loading) {
     return (
@@ -96,7 +98,7 @@ function RootNavigator() {
   }
 
   const isSuspendedOrExpired = Boolean(
-    user && (user.shop_is_active === false || billing?.state === 'expired' || billing?.status === 'expired')
+    user && (user.shop_is_active === false || billing?.state === 'expired' )
   );
 
   return (
@@ -111,6 +113,8 @@ function RootNavigator() {
               <Stack.Screen name="MainTabs" component={TabNavigator} />
               <Stack.Screen name="Notifications" component={NotificationsScreen} />
               <Stack.Screen name="SalesScreen" component={SalesScreen} />
+              <Stack.Screen name="AlterationsScreen" component={AlterationsScreen} />
+            <Stack.Screen name="NewPurchaseScreen" component={NewPurchaseScreen} />
               <Stack.Screen name="ProductsScreen" component={ProductsScreen} />
               <Stack.Screen name="LookupScreen" component={LookupScreen} />
               <Stack.Screen name="CustomersScreen" component={CustomersScreen} />
