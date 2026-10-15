@@ -1268,6 +1268,74 @@ export default function PosPage() {
                   : t("pos_ready")
                 }
               </div>
+
+              {/* Instant Search Suggestions with Price & Available Stock */}
+              {query.trim().length > 0 && shown.length > 0 && (
+                <div className="mt-2.5 border rounded-3 p-2 bg-white shadow-sm" style={{ maxHeight: "290px", overflowY: "auto" }}>
+                  <div className="d-flex justify-content-between align-items-center px-2 py-1 mb-1 border-bottom">
+                    <span className="small fw-bold text-dark">
+                      🔍 {lang === "bn" ? "অনুসন্ধান ফলাফল" : "Search Results"} ({shown.length})
+                    </span>
+                    <span className="small text-muted" style={{ fontSize: "0.72rem" }}>
+                      {lang === "bn" ? "ক্লিক করে কার্টে যোগ করুন" : "Click item to add to cart"}
+                    </span>
+                  </div>
+                  <div className="d-flex flex-column gap-1">
+                    {shown.slice(0, 10).map((p) => {
+                      const availStock = Number(p.current_stock || 0);
+                      const baseUnit = p.unit_detail?.short_code || p.unit_detail?.name || (lang === "bn" ? "টি" : "pcs");
+                      return (
+                        <div
+                          key={p.id}
+                          className="d-flex align-items-center justify-content-between p-2 rounded-2 border"
+                          style={{ cursor: "pointer", transition: "all 0.15s ease", backgroundColor: "#f8fafc" }}
+                          onClick={() => pickFromGrid(p)}
+                        >
+                          <div className="d-flex align-items-center gap-2 overflow-hidden me-2">
+                            {p.image_url || p.image ? (
+                              <img src={p.image_url || p.image || ""} alt="" className="rounded border flex-shrink-0" style={{ width: 38, height: 38, objectFit: "cover" }} />
+                            ) : (
+                              <div className="rounded border bg-light text-secondary d-flex align-items-center justify-content-center flex-shrink-0" style={{ width: 38, height: 38, fontSize: "1.1rem" }}>
+                                📦
+                              </div>
+                            )}
+                            <div className="overflow-hidden">
+                              <div className="fw-bold text-dark small text-truncate">{p.name}</div>
+                              <div className="text-secondary small font-monospace" style={{ fontSize: "0.68rem" }}>
+                                {p.barcode ? `🏷️ ${p.barcode}` : (p.sku ? `SKU: ${p.sku}` : "—")}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="d-flex align-items-center gap-2 flex-shrink-0 text-end">
+                            {/* Stock Quantity */}
+                            <span
+                              className={`badge rounded-pill fw-bold border px-2 py-1 ${availStock > 0 ? "bg-success-subtle text-success border-success-subtle" : "bg-danger-subtle text-danger border-danger-subtle"}`}
+                              style={{ fontSize: "0.75rem" }}
+                            >
+                              {availStock > 0 ? `🟢 স্টক: ${availStock} ${baseUnit}` : "🔴 স্টক শেষ"}
+                            </span>
+
+                            {/* Product Selling Price */}
+                            <span className="fw-bolder fs-6 text-primary px-1">
+                              {money(p.selling_price)}
+                            </span>
+
+                            <button
+                              type="button"
+                              className="btn btn-primary btn-sm py-0.5 px-2.5 rounded-pill fw-semibold"
+                              style={{ fontSize: "0.75rem" }}
+                              onClick={(e) => { e.stopPropagation(); pickFromGrid(p); }}
+                            >
+                              + যোগ
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 
@@ -1611,7 +1679,7 @@ export default function PosPage() {
               </div>
 
               {/* ── STEP 1: CATEGORY CARDS ── */}
-              {!selectedCategory && (
+              {!selectedCategory && !query.trim() && (
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <h6 className="fw-bold text-dark mb-0 d-flex align-items-center gap-2">
@@ -1648,15 +1716,21 @@ export default function PosPage() {
               )}
 
               {/* ── STEP 2: PRODUCTS IN CATEGORY & SIZE PILLS ── */}
-              {selectedCategory && !selectedFashionProduct && (
+              {((selectedCategory && !selectedFashionProduct) || (!selectedCategory && query.trim().length > 0)) && (
                 <div>
                   <div className="d-flex align-items-center justify-content-between mb-3">
                     <h6 className="fw-bold text-dark mb-0">
-                      <span>{categories.find(c => c.id === selectedCategory)?.name} — ডিজাইন ও সাইজ তালিকা:</span>
+                      <span>{selectedCategory ? `${categories.find(c => c.id === selectedCategory)?.name} — ডিজাইন ও সাইজ তালিকা:` : `"${query.trim()}" এর ফলাফল — ডিজাইন ও সাইজ তালিকা:`}</span>
                     </h6>
-                    <button type="button" className="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill" onClick={() => setSelectedCategory(null)}>
-                      ← ক্যাটাগরি পরিবর্তন
-                    </button>
+                    {selectedCategory ? (
+                      <button type="button" className="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill" onClick={() => setSelectedCategory(null)}>
+                        ← ক্যাটাগরি পরিবর্তন
+                      </button>
+                    ) : (
+                      <button type="button" className="btn btn-outline-secondary btn-sm py-1 px-3 rounded-pill" onClick={() => setQuery("")}>
+                        ✕ ক্লিয়ার ফিল্টার
+                      </button>
+                    )}
                   </div>
 
                   <div className="row g-3">
@@ -2464,10 +2538,19 @@ export default function PosPage() {
             <div className="card-body p-0">
               <div style={{ maxHeight: "52vh", overflowY: "auto" }}>
                 <table className="table table-sm align-middle mb-0">
+                  <thead className="table-light border-bottom sticky-top" style={{ zIndex: 2 }}>
+                    <tr style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase" }}>
+                      <th className="ps-3 py-2">{t("pos_cart_product") || "পণ্য ও স্টক"}</th>
+                      <th className="text-center py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "মূল্য" : "Price"}</th>
+                      <th className="text-center py-2" style={{ width: "5.5rem" }}>{t("pos_cart_qty") || "পরিমাণ"}</th>
+                      <th className="text-end py-2" style={{ width: "5.5rem" }}>{t("pos_cart_total") || "মোট"}</th>
+                      <th style={{ width: "1.8rem" }}></th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {cart.length === 0 ? (
                       <tr>
-                        <td className="text-secondary text-center py-5 px-3">
+                        <td colSpan={5} className="text-secondary text-center py-5 px-3">
                           <div style={{ fontSize: "2rem" }}>▦</div>
                           <div className="small mt-1">{t("pos_scan_to_add")}</div>
                         </td>
@@ -2512,6 +2595,31 @@ export default function PosPage() {
                                 </span>
                               </div>
                             )}
+
+                            {/* Available Stock Indicator */}
+                            {(() => {
+                              const vInfo = (l.product as any)._selectedVariant || l.selectedVariation;
+                              const availStock = vInfo ? Number(vInfo.current_stock ?? l.product.current_stock ?? 0) : Number(l.product.current_stock ?? 0);
+                              const isOut = availStock <= 0;
+                              const isOver = l.qty > availStock && availStock > 0;
+                              return (
+                                <div className="d-flex align-items-center gap-1.5 my-1 flex-wrap">
+                                  <span
+                                    className={`badge border px-2 py-0.5 fw-bold rounded-pill ${
+                                      isOut
+                                        ? "bg-danger-subtle text-danger border-danger-subtle"
+                                        : isOver
+                                        ? "bg-warning-subtle text-warning-emphasis border-warning-subtle"
+                                        : "bg-success-subtle text-success border-success-subtle"
+                                    }`}
+                                    style={{ fontSize: "0.68rem" }}
+                                    title={`বর্তমান স্টকে উপলব্ধ: ${availStock} ${baseUnit || "টি"}`}
+                                  >
+                                    {isOut ? "🔴 স্টক শেষ (০ টি)" : isOver ? `⚠️ স্টকে আছে ${availStock} ${baseUnit || "টি"} (কার্টে বেশি)` : `🟢 স্টকে আছে: ${availStock} ${baseUnit || "টি"}`}
+                                  </span>
+                                </div>
+                              );
+                            })()}
 
                             {/* Dual unit switcher pill buttons if product has purchase_multiplier > 1 */}
                             {isBulk ? (
@@ -2610,6 +2718,14 @@ export default function PosPage() {
                                 </button>
                               </div>
                             )}
+                          </td>
+                          <td className="text-center" style={{ width: "5.5rem" }}>
+                            <div className="fw-bolder text-dark" style={{ fontSize: "0.88rem", letterSpacing: "-0.2px" }}>
+                              {money(l.price)}
+                            </div>
+                            <div className="text-secondary" style={{ fontSize: "0.65rem" }}>
+                              {l.sellMode === "bulk" ? `/${bulkUnit}` : (baseUnit ? `/${baseUnit}` : (lang === "bn" ? "/টি" : "/pc"))}
+                            </div>
                           </td>
                           <td style={{ width: "5.5rem" }}>
                             {l.selectedUnits.length > 0 ? (

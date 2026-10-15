@@ -364,7 +364,13 @@ export default function PosCustomerPage() {
             <div className="table-responsive">
               <table className="table table-sm align-middle mb-0">
                 <thead className="thead-4">
-                  <tr><th className="ps-3">{t("pos_checkout_product")}</th><th className="text-center">{t("pos_checkout_qty")}</th><th className="text-end">{t("pos_checkout_price")}</th><th className="text-end pe-3">{t("pos_checkout_total")}</th></tr>
+                  <tr>
+                    <th className="ps-3">{t("pos_checkout_product")}</th>
+                    <th className="text-center">{lang === "bn" ? "উপলব্ধ স্টক" : "Available Stock"}</th>
+                    <th className="text-center">{t("pos_checkout_qty")}</th>
+                    <th className="text-end">{t("pos_checkout_price")}</th>
+                    <th className="text-end pe-3">{t("pos_checkout_total")}</th>
+                  </tr>
                 </thead>
                 <tbody>
                   {cart.map((l, index) => {
@@ -372,6 +378,7 @@ export default function PosCustomerPage() {
                     const isBulk = l.sellMode === "bulk" && mult > 1;
                     const unitLabel = isBulk ? ((l.product as any)?.purchase_unit_detail?.name || "Drum/Pack") : ((l.product as any)?.unit_detail?.short_code || "");
                     const vInfo = (l.product as any)._selectedVariant || (l as any).selectedVariation;
+                    const availStock = vInfo ? Number(vInfo.current_stock ?? l.product.current_stock ?? 0) : Number(l.product.current_stock ?? 0);
                     return (
                       <tr key={(l as any).lineId || `${l.product.id}-${index}`}>
                         <td className="ps-3">
@@ -387,14 +394,19 @@ export default function PosCustomerPage() {
                             </span>
                           )}
                         </td>
+                        <td className="text-center">
+                          <span className={`badge border px-2 py-0.5 rounded-pill ${availStock > 0 ? "bg-success-subtle text-success border-success-subtle" : "bg-danger-subtle text-danger border-danger-subtle"}`} style={{ fontSize: "0.7rem" }}>
+                            {availStock > 0 ? `🟢 ${availStock} ${unitLabel || (lang === "bn" ? "টি" : "pcs")}` : "🔴 স্টক শেষ"}
+                          </span>
+                        </td>
                         <td className="text-center">{l.qty} {unitLabel}</td>
-                        <td className="text-end">{money(l.price)}</td>
-                        <td className="text-end pe-3 fw-semibold">{money(l.qty * l.price - l.discount)}</td>
+                        <td className="text-end fw-semibold">{money(l.price)}</td>
+                        <td className="text-end pe-3 fw-bold">{money(l.qty * l.price - l.discount)}</td>
                       </tr>
                     );
                   })}
                   <tr className="table-light">
-                    <td colSpan={3} className="ps-3 fw-bold">{t("pos_checkout_total")}</td>
+                    <td colSpan={4} className="ps-3 fw-bold">{t("pos_checkout_total")}</td>
                     <td className="text-end pe-3 fw-bold">{money(subtotal)}</td>
                   </tr>
                 </tbody>
