@@ -2540,10 +2540,10 @@ export default function PosPage() {
                 <table className="table table-sm align-middle mb-0" style={{ tableLayout: "fixed", width: "100%" }}>
                   <thead className="table-light border-bottom sticky-top" style={{ zIndex: 2 }}>
                     <tr style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
-                      <th className="ps-3 py-2" style={{ width: "44%" }}>{lang === "bn" ? "পণ্য ও স্টক" : "Product & Stock"}</th>
-                      <th className="text-center py-2" style={{ width: "18%" }}>{lang === "bn" ? "মূল্য" : "Price"}</th>
-                      <th className="text-center py-2" style={{ width: "18%" }}>{lang === "bn" ? "পরিমাণ" : "Qty"}</th>
-                      <th className="text-end py-2" style={{ width: "16%" }}>{lang === "bn" ? "মোট" : "Total"}</th>
+                      <th className="ps-2 py-2" style={{ width: "38%" }}>{lang === "bn" ? "পণ্য ও স্টক" : "Product & Stock"}</th>
+                      <th className="text-center py-2" style={{ width: "22%" }}>{lang === "bn" ? "মূল্য" : "Price"}</th>
+                      <th className="text-center py-2" style={{ width: "16%" }}>{lang === "bn" ? "পরিমাণ" : "Qty"}</th>
+                      <th className="text-end py-2 pe-1" style={{ width: "20%" }}>{lang === "bn" ? "মোট" : "Total"}</th>
                       <th style={{ width: "4%" }}></th>
                     </tr>
                   </thead>
@@ -2564,7 +2564,7 @@ export default function PosPage() {
                       
                       return (
                         <tr key={l.lineId || l.product.id}>
-                          <td className="ps-3 py-2" style={{ width: "44%" }}>
+                          <td className="ps-2 py-2" style={{ width: "38%" }}>
                             {(() => {
                               const lineBrand = l.product.brand_name || brands.find((b) => b.id === l.product.brand)?.name || "";
                               return (
@@ -2703,7 +2703,7 @@ export default function PosPage() {
                               </div>
                             )}
                           </td>
-                          <td className="text-center py-2" style={{ width: "18%" }}>
+                          <td className="text-center py-2" style={{ width: "22%", whiteSpace: "nowrap" }}>
                             <div className="fw-bolder text-dark" style={{ fontSize: "0.85rem", letterSpacing: "-0.2px" }}>
                               {money(l.price)}
                             </div>
@@ -2711,9 +2711,9 @@ export default function PosPage() {
                               {l.sellMode === "bulk" ? `/${bulkUnit}` : (baseUnit ? `/${baseUnit}` : (lang === "bn" ? "/টি" : "/pc"))}
                             </div>
                           </td>
-                          <td className="text-center py-2" style={{ width: "18%" }}>
+                          <td className="text-center py-2" style={{ width: "16%" }}>
                             {l.selectedUnits.length > 0 ? (
-                              <div className="text-center fw-semibold small bg-body-secondary border rounded px-2 py-1">
+                              <div className="text-center fw-semibold small bg-body-secondary border rounded px-1 py-1">
                                 {l.qty}
                               </div>
                             ) : (
@@ -2723,7 +2723,7 @@ export default function PosPage() {
                                   min={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
                                   step={l.sellMode === "bulk" ? 1 : (l.product.unit_detail?.allow_decimal ? 0.01 : 1)}
                                   className="form-control form-control-sm text-center mx-auto"
-                                  style={{ maxWidth: "60px", padding: "2px 4px", fontSize: "0.82rem" }}
+                                  style={{ maxWidth: "48px", padding: "2px 2px", fontSize: "0.8rem" }}
                                   value={l.qty === 0 ? "" : l.qty}
                                   onChange={(e) => setQty(l.lineId || l.product.id, e.target.value === "" ? 0 : Number(e.target.value))}
                                   onWheel={(e) => e.currentTarget.blur()}
@@ -2735,7 +2735,7 @@ export default function PosPage() {
                               </div>
                             )}
                           </td>
-                          <td className="text-end py-2 pe-1 small fw-bold text-dark" style={{ width: "16%" }}>
+                          <td className="text-end py-2 pe-1 small fw-bold text-dark" style={{ width: "20%", whiteSpace: "nowrap" }}>
                             {money(l.qty * l.price - l.discount)}
                           </td>
                           <td className="text-center py-2 pe-1" style={{ width: "4%" }}>
