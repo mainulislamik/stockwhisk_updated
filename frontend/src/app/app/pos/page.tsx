@@ -2539,11 +2539,11 @@ export default function PosPage() {
               <div style={{ maxHeight: "52vh", overflowY: "auto" }}>
                 <table className="table table-sm align-middle mb-0">
                   <thead className="table-light border-bottom sticky-top" style={{ zIndex: 2 }}>
-                    <tr style={{ fontSize: "0.72rem", color: "#64748b", textTransform: "uppercase" }}>
-                      <th className="ps-3 py-2">{t("pos_cart_product") || "পণ্য ও স্টক"}</th>
+                    <tr style={{ fontSize: "0.75rem", color: "#475569", fontWeight: 600 }}>
+                      <th className="ps-3 py-2">{lang === "bn" ? "পণ্য ও স্টক" : "Product & Stock"}</th>
                       <th className="text-center py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "মূল্য" : "Price"}</th>
-                      <th className="text-center py-2" style={{ width: "5.5rem" }}>{t("pos_cart_qty") || "পরিমাণ"}</th>
-                      <th className="text-end py-2" style={{ width: "5.5rem" }}>{t("pos_cart_total") || "মোট"}</th>
+                      <th className="text-center py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "পরিমাণ" : "Qty"}</th>
+                      <th className="text-end py-2" style={{ width: "5.5rem" }}>{lang === "bn" ? "মোট" : "Total"}</th>
                       <th style={{ width: "1.8rem" }}></th>
                     </tr>
                   </thead>
