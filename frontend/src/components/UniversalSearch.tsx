@@ -8,7 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import { useScannerWebSocket } from "@/hooks/useScannerWebSocket";
 import toast from "react-hot-toast";
 
-type Row = { url: string; label: string; sub: string };
+type Row = { url: string; label: string; sub: string; price?: string; stock?: number };
 type Results = { sales: Row[]; products: Row[]; customers: Row[]; suppliers: Row[] };
 
 export default function UniversalSearch({ mobile = false }: { mobile?: boolean }) {
@@ -71,10 +71,12 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
             label: `Invoice #${s.invoice_no || s.id}`,
             sub: `${s.bill_name || "Walk-in"} · ${s.bill_phone || ""} · ৳${s.total}`,
           })),
-          products: unwrap<any>(prod).slice(0, 4).map((p: any) => ({
+          products: unwrap<any>(prod).slice(0, 5).map((p: any) => ({
             url: `/app/products/${p.id}`,
             label: p.name,
-            sub: `SKU ${p.sku || "—"} · Barcode ${p.barcode || "—"} · Stock ${Math.max(0, Number(p.current_stock || 0))}`,
+            price: p.selling_price ? `৳${Number(p.selling_price).toLocaleString("en-IN", { minimumFractionDigits: 2 })}` : "",
+            stock: Math.max(0, Number(p.current_stock || 0)),
+            sub: `SKU: ${p.sku || "—"} · Barcode: ${p.barcode || "—"}`,
           })),
           customers: unwrap<any>(cust).slice(0, 4).map((c: any) => ({
             url: `/app/customers`,
@@ -244,12 +246,33 @@ export default function UniversalSearch({ mobile = false }: { mobile?: boolean }
                           e.currentTarget.style.paddingLeft = "1.5rem"; // 1.5rem is px-4 padding
                         }}
                       >
-                        <span className="fw-semibold text-body" style={{ fontSize: "0.95rem" }}>
-                          {r.label}
-                        </span>
-                        <span className="text-secondary mt-1" style={{ fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                          {r.sub}
-                        </span>
+                        <div className="d-flex align-items-center justify-content-between">
+                          <span className="fw-semibold text-body" style={{ fontSize: "0.95rem" }}>
+                            {r.label}
+                          </span>
+                          {r.price && (
+                            <span className="fw-bolder text-primary fs-6 ms-2 flex-shrink-0">
+                              {r.price}
+                            </span>
+                          )}
+                        </div>
+                        <div className="d-flex align-items-center justify-content-between mt-1">
+                          <span className="text-secondary" style={{ fontSize: "0.8rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                            {r.sub}
+                          </span>
+                          {r.stock !== undefined && (
+                            <span
+                              className={`badge rounded-pill ms-2 px-2 py-0.5 border fw-bold flex-shrink-0 ${
+                                r.stock > 0
+                                  ? "bg-success-subtle text-success border-success-subtle"
+                                  : "bg-danger-subtle text-danger border-danger-subtle"
+                              }`}
+                              style={{ fontSize: "0.72rem" }}
+                            >
+                              {r.stock > 0 ? `🟢 স্টক: ${r.stock}` : "🔴 স্টক শেষ"}
+                            </span>
+                          )}
+                        </div>
                       </a>
                     ))}
                   </div>
