@@ -205,6 +205,58 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     recommended_for_bn: "ফ্যাশন বুটিক, জুতার দোকান, ক্যাফে-বেকারি ও টাচস্ক্রিন কম্পিউটারে ব্যবহারের জন্য।"
   },
 
+  apparel_catalog: {
+    key: "apparel_catalog",
+    name_en: "Fashion & Apparel Matrix",
+    name_bn: "পোশাক ক্যাটালগ ও ভ্যারিয়েন্ট ম্যাট্রিক্স",
+    category: "Fashion & Apparel",
+    icon: "bi-tag",
+    summary_en: "Size x Color matrix, apparel taxonomy, garment hang-tags, and measurement size charts.",
+    summary_bn: "সাইজ ও কালার ভ্যারিয়েন্ট ম্যাট্রিক্স, গার্মেন্টস ট্যাক্সোনমি, পোশাকের হ্যাং-ট্যাগ বারকোড ও সাইজ গাইড।",
+    how_it_works_en: "Allows clothing shops to generate 2D Size × Color matrix variants in one click, set individual prices/barcodes, print thermal hang-tag labels, and define custom garment measurement guides (Panjabi, Shirt, Pants, Kurti).",
+    how_it_works_bn: "এক ক্লিকে সাইজ (S, M, L, XL, XXL) ও কালারের সমন্বয়ে ভ্যারিয়েন্ট ম্যাট্রিক্স তৈরি করা যায়। পোশাকের জন্য হ্যাং-ট্যাগ বারকোড স্টিকার প্রিন্ট এবং পাঞ্জাবি, শার্ট, প্যান্টের বডি মেজারমেন্ট সাইজ গাইড যুক্ত করা যায়।",
+    shop_changes_en: [
+      "Adds 2D Fashion Variant Matrix generator in Products",
+      "Enables Garment Measurement Guide builder (Chest, Length, Shoulder)",
+      "Unlocks thermal apparel hang-tag label sheets",
+      "Adds Size Guide modal directly inside POS cashier register"
+    ],
+    shop_changes_bn: [
+      "প্রোডাক্ট এন্ট্রিতে সাইজ-কালার ম্যাট্রিক্স জেনারেটর সক্রিয় হবে",
+      "পোশাকের মেজারমেন্ট সাইজ গাইড (বুক, ঝুল, শোল্ডার) তৈরি করার সুবিধা আসবে",
+      "গার্মেন্টস হ্যাং-ট্যাগ বারকোড প্রিন্টিং সুবিধা আনলক হবে",
+      "পিওএস রেজিস্ট্রারে ক্যাশিয়ারদের জন্য 'Size Guide' বোতাম প্রদর্শিত হবে"
+    ],
+    recommended_for_en: "Clothing stores, fashion boutiques, shoe stores, fabrics, and tailoring shops.",
+    recommended_for_bn: "পোশাকের দোকান, ফ্যাশন বুটিক, জুতার শোরুম এবং দর্জি দোকানের জন্য।"
+  },
+
+  apparel_alterations: {
+    key: "apparel_alterations",
+    name_en: "Garment Alterations & Fitting",
+    name_bn: "পোশাক অলটারেশন ও ফিটিং টিকেট",
+    category: "Fashion & Apparel",
+    icon: "bi-scissors",
+    summary_en: "Customer tailoring Kanban workflow, fitting docket slips, measurement notes, and tailor assignment.",
+    summary_bn: "পোশাকের মাপ পরিবর্তন, টেইলারিং কানবান বোর্ড, মেজারমেন্ট স্লিপ ও ফিটিং চার্জ লেজার।",
+    how_it_works_en: "Empowers fashion boutiques to take alteration requests directly at POS checkout or in a dedicated alterations workspace. Tracks tailoring status (Pending, In Alteration, Ready for Fitting, Delivered), prints thermal docket slips for tailors, and manages alteration charges.",
+    how_it_works_bn: "বিলিং করার সময় বা আলাদাভাবে কাস্টমারের পোশাকের ফিটিং/অলটারেশন স্লিপ তৈরি করা যায়। দর্জির জন্য থার্মাল স্লিপ প্রিন্ট, অলটারেশন স্ট্যাটাস ট্র্যাকিং এবং ফিটিং চার্জ আদায়ের পূর্ণাঙ্গ কানবান বোর্ড পাওয়া যায়।",
+    shop_changes_en: [
+      "Adds Alterations Management workspace (/app/alterations) in navigation",
+      "Integrates Alteration & Fitting modal directly on POS checkout screen",
+      "Prints 80mm/58mm thermal tailor docket slips with customer measurements",
+      "Tracks tailor assignments, delivery due dates, and fitting charges"
+    ],
+    shop_changes_bn: [
+      "সাইডবারে অলটারেশন ড্যাশবোর্ড (/app/alterations) যুক্ত হবে",
+      "পিওএস স্ক্রিনে কাস্টমারের পোশাক ফিটিং/অলটারেশন যুক্ত করার বোতাম সক্রিয় হবে",
+      "দর্জির জন্য মাপ সহ থার্মাল ডকেট স্লিপ প্রিন্ট করার সুবিধা আসবে",
+      "দর্জির নাম, ডেলিভারি তারিখ এবং অলটারেশন চার্জের হিসাব রাখা যাবে"
+    ],
+    recommended_for_en: "Fashion boutiques, Panjabi & suit tailors, pant hem/fitting specialists.",
+    recommended_for_bn: "ফ্যাশন বুটিক, পাঞ্জাবি ও স্যুট টেইলারিং এবং প্যান্ট-শার্ট ফিটিং প্রদানকারী দোকানের জন্য।"
+  },
+
   purchasing: {
     key: "purchasing",
     name_en: "Purchasing & Suppliers",

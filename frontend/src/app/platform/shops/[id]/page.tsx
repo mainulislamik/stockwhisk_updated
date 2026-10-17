@@ -77,6 +77,10 @@ const DURATIONS = [
 ];
 
 const TYPE_LABELS: Record<string, string> = {
+  fashion: "Fashion & Apparel",
+  apparel: "Fashion & Apparel",
+  online_shop: "Online Shop & E-Commerce",
+  ecommerce: "Online Shop & E-Commerce",
   electronics: "Electronics",
   computer: "Computer",
   mobile: "Mobile & Accessories",
@@ -169,6 +173,37 @@ export default function ShopDetailsPage() {
       setSavingModule(null);
     }
   }, [shop, lang, loadModules]);
+
+  const toggleCategoryModules = useCallback(async (catId: string, enable: boolean) => {
+    if (!shop || !moduleData?.catalog) return;
+    const catModules = moduleData.catalog.filter((m) => m.category === catId);
+    if (!catModules.length) return;
+    const patchPayload: Record<string, boolean> = {};
+    catModules.forEach((m) => {
+      patchPayload[m.key] = enable;
+    });
+    setBusy(true);
+    setModuleData((prev) =>
+      prev ? { ...prev, modules: { ...prev.modules, ...patchPayload } } : null
+    );
+    try {
+      await api(`/platform/shops/${shop.id}/modules/`, {
+        method: "PATCH",
+        body: { modules: patchPayload },
+      });
+      toast.success(
+        lang === "bn"
+          ? `ক্যাটাগরির ${catModules.length}টি মডিউল ${enable ? "সক্রিয়" : "নিষ্ক্রিয়"} করা হয়েছে`
+          : `${catModules.length} modules in category ${enable ? "enabled" : "disabled"}`
+      );
+      await loadModules();
+    } catch (e: any) {
+      toast.error(e?.message || "Failed to update category modules.");
+      await loadModules();
+    } finally {
+      setBusy(false);
+    }
+  }, [shop, moduleData, lang, loadModules]);
 
   const applyPreset = useCallback(async (presetKey: string) => {
     if (!shop) return;
@@ -455,18 +490,18 @@ export default function ShopDetailsPage() {
                   <div>
                     <h5 className="fw-bold text-body mb-1">
                       <i className="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>
-                      {lang === "bn" ? "২৪-মডিউল এন্টারপ্রাইজ ফিচার ম্যাট্রিক্স" : "24-Module Modular Feature Matrix"}
+                      {lang === "bn" ? "ক্যাটাগরি-ভিত্তিক মডিউলার ফিচার আর্কিটেকচার (২৮টি মডিউল)" : "Category-Based Modular Feature Architecture (28 Modules)"}
                     </h5>
                     <p className="text-secondary small mb-0">
                       {lang === "bn"
-                        ? "এই শপের জন্য নির্দিষ্ট মডিউলগুলো কাস্টমাইজ করুন অথবা ১-ক্লিকে প্যাকেজ প্রিসেট অ্যাসাইন করুন।"
-                        : "Enable or disable standalone modules per shop, or assign pre-packaged presets with 1-click."}
+                        ? "ব্যবসার ধরন অনুযায়ী ক্যাটাগরিভিত্তিক (ফ্যাশন, অনলাইন শপ, ইলেকট্রনিক্স শপ, সার্বজনীন রিটেইল ও ম্যানুফ্যাকচারিং) মডিউল কনফিগার করুন।"
+                        : "Configure standalone modules organized by business vertical: Fashion & Apparel, Online Shop, Electronics Shop, Universal Retail, and Manufacturing."}
                     </p>
                   </div>
                   {moduleData && (
                     <div className="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2 rounded-pill fs-7">
                       <i className="bi bi-check2-circle me-1"></i>
-                      {Object.values(moduleData.modules || {}).filter(Boolean).length} / {moduleData.catalog?.length || 24} Active
+                      {Object.values(moduleData.modules || {}).filter(Boolean).length} / {moduleData.catalog?.length || 28} Active
                     </div>
                   )}
                 </div>
@@ -483,13 +518,13 @@ export default function ShopDetailsPage() {
                       </div>
                       <div className="text-secondary" style={{ fontSize: "0.78rem" }}>
                         {lang === "bn"
-                          ? "ড্রপডাউন থেকে প্যাকেজ সিলেক্ট করে দ্রুত প্রয়োজনীয় মডিউলগুলো অ্যাসাইন করুন"
-                          : "Select a package preset to instantly configure active modules"}
+                          ? "নির্দিষ্ট ব্যবসার উপযোগী মডিউল প্যাকেজ ১-ক্লিকে অ্যাসাইন করুন"
+                          : "Select a vertical package preset to instantly configure active modules"}
                       </div>
                     </div>
                   </div>
 
-                  <div className="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0" style={{ minWidth: "270px" }}>
+                  <div className="d-flex align-items-center gap-2 flex-grow-1 flex-sm-grow-0" style={{ minWidth: "300px" }}>
                     <select
                       className="form-select form-select-sm fw-semibold shadow-xs"
                       disabled={busy}
@@ -507,12 +542,15 @@ export default function ShopDetailsPage() {
                           ? (lang === "bn" ? "অপেক্ষা করুন..." : "Applying Preset...")
                           : (lang === "bn" ? "▼ প্যাকেজ প্রিসেট নির্বাচন করুন" : "▼ Choose Package Preset")}
                       </option>
-                      <option value="starter">🚀 Starter (9 Modules)</option>
-                      <option value="retailer">🏬 Retailer (13 Modules)</option>
-                      <option value="supershop">🛒 SuperShop (17 Modules)</option>
-                      <option value="repair_specialty">🔧 Repair Lab (11 Modules)</option>
-                      <option value="enterprise">⭐ Enterprise Suite (All 26 Modules)</option>
-                      <option value="all">⚡ Unlock All 26 Modules</option>
+                      <option value="apparel_fashion">👗 Fashion & Apparel Boutique (12 Modules)</option>
+                      <option value="online_store">🌐 Online Shop & Courier (12 Modules)</option>
+                      <option value="repair_specialty">🔌 Electronics & Repair Lab (11 Modules)</option>
+                      <option value="retailer">🏬 Universal Retailer (13 Modules)</option>
+                      <option value="supershop">🛒 SuperShop & Grocery (17 Modules)</option>
+                      <option value="manufacturing_preset">⚙️ Manufacturing & Production (9 Modules)</option>
+                      <option value="starter">🚀 Starter Retailer (7 Modules)</option>
+                      <option value="enterprise">⭐ Full Enterprise Suite (All 28 Modules)</option>
+                      <option value="all">⚡ Unlock All 28 Modules</option>
                       <option value="minimal">🔒 Minimal Core POS Only</option>
                     </select>
                     <div className="d-flex gap-1">
@@ -521,10 +559,10 @@ export default function ShopDetailsPage() {
                         className="btn btn-sm btn-success fw-bold px-2 py-1 shadow-xs text-nowrap"
                         disabled={busy}
                         onClick={() => applyPreset("all")}
-                        title="Enable All 26 Modules for this shop"
+                        title="Enable All 28 Modules for this shop"
                       >
                         <i className="bi-check-all me-1" />
-                        {lang === "bn" ? "সব অন করুন" : "Enable All"}
+                        {lang === "bn" ? "সব অন" : "All On"}
                       </button>
                       <button
                         type="button"
@@ -541,113 +579,320 @@ export default function ShopDetailsPage() {
                 </div>
 
                 {/* Category Filters */}
-                <div className="d-flex flex-wrap gap-1 mb-3">
-                  {[
-                    { id: "all", label: lang === "bn" ? `সকল মডিউল (${moduleData?.catalog?.length || 26})` : `All Modules (${moduleData?.catalog?.length || 26})` },
-                    { id: "pos", label: "Point of Sale" },
-                    { id: "inventory", label: "Inventory & Purchasing" },
-                    { id: "crm", label: "Sales & CRM" },
-                    { id: "finance", label: "Finance & Accounts" },
-                    { id: "addons", label: "Services & Manufacturing" },
-                    { id: "enterprise", label: "Enterprise & Integrations" },
-                  ].map((cat) => (
-                    <button
-                      key={cat.id}
-                      type="button"
-                      className={`btn btn-sm rounded-pill px-3 ${
-                        moduleCategory === cat.id ? "btn-primary shadow-sm" : "btn-outline-secondary"
-                      }`}
-                      onClick={() => setModuleCategory(cat.id)}
-                    >
-                      {cat.label}
-                    </button>
-                  ))}
-                </div>
+                {(() => {
+                  const categoriesDef = [
+                    {
+                      id: "all",
+                      label: lang === "bn" ? `সকল মডিউল (${moduleData?.catalog?.length || 28})` : `All Modules (${moduleData?.catalog?.length || 28})`,
+                      icon: "bi-grid-fill",
+                      color: "primary",
+                      name_en: "All Modules",
+                      name_bn: "সকল মডিউল",
+                      desc: lang === "bn" ? "সকল ২৮টি ব্যবসায়িক মডিউলের সম্পূর্ণ ক্যাটালগ" : "Complete catalog of all 28 business modules across all verticals",
+                    },
+                    {
+                      id: "fashion",
+                      label: lang === "bn" ? "👗 ফ্যাশন ও পোশাক" : "👗 Fashion & Apparel",
+                      icon: "bi-bag-check-fill",
+                      color: "danger",
+                      name_en: "Fashion & Apparel",
+                      name_bn: "ফ্যাশন ও পোশাক শপ",
+                      desc: lang === "bn" ? "সাইজ-কালার ম্যাট্রিক্স, টেইলারিং অলটারেশন, ফিটিং টিকেট ও সাইজ মেজারমেন্ট গাইড" : "2D Size × Color matrix, tailor alterations & fitting tickets, measurement guides, and apparel tags.",
+                    },
+                    {
+                      id: "online_shop",
+                      label: lang === "bn" ? "🌐 অনলাইন শপ" : "🌐 Online Shop",
+                      icon: "bi-globe2",
+                      color: "info",
+                      name_en: "Online Shop & E-Commerce",
+                      name_bn: "অনলাইন শপ ও ই-কমার্স",
+                      desc: lang === "bn" ? "কুরিয়ার ডেলিভারি ট্র্যাকিং (Steadfast, Pathao, RedX), ওয়েবসাইট ইন্টিগ্রেশন ও পাবলিক এপিআই" : "Courier delivery tracking, WooCommerce/Shopify sync, and public developer APIs.",
+                    },
+                    {
+                      id: "electronics",
+                      label: lang === "bn" ? "🔌 ইলেকট্রনিক্স শপ" : "🔌 Electronics Shop",
+                      icon: "bi-cpu-fill",
+                      color: "warning",
+                      name_en: "Electronics & Gadget Shop",
+                      name_bn: "ইলেকট্রনিক্স ও গ্যাজেট শপ",
+                      desc: lang === "bn" ? "সার্ভিস ওয়ারেন্টি ও মেরামত টিকেট, মোবাইল ল্যাব, IMEI ট্র্যাকিং এবং কিস্তি/ইএমআই" : "Device repair tickets, warranty claims, IMEI diagnostics, pattern lock, and EMI installments.",
+                    },
+                    {
+                      id: "universal",
+                      label: lang === "bn" ? "🏬 সার্বজনীন রিটেইল" : "🏬 Universal / Core",
+                      icon: "bi-shop",
+                      color: "primary",
+                      name_en: "Universal / Core Retail",
+                      name_bn: "সার্বজনীন / কোর রিটেইল",
+                      desc: lang === "bn" ? "যেকোনো সাধারণ দোকানের জন্য অপরিহার্য পিওএস, ইনভেন্টরি, হিসাববিজ্ঞান ও সিআরএম" : "Foundational POS, inventory, purchasing, accounting, CRM, and day-to-day retail operations.",
+                    },
+                    {
+                      id: "manufacturing",
+                      label: lang === "bn" ? "⚙️ ম্যানুফ্যাকচারিং" : "⚙️ Manufacturing",
+                      icon: "bi-gear-wide-connected",
+                      color: "secondary",
+                      name_en: "Manufacturing & Production",
+                      name_bn: "উৎপাদন ও প্রক্রিয়াজাতকরণ",
+                      desc: lang === "bn" ? "বিল অফ ম্যাটেরিয়ালস (BOM), কাঁচামাল ব্যবহার ও ফিনিশড গুডস অ্যাসেম্বলি" : "Bill of materials (BOM), raw material consumption, and assembly production.",
+                    },
+                  ];
 
-                {/* 24-Module Responsive Grid */}
-                <div className="row g-3">
-                  {(moduleData?.catalog || []).filter((m) => moduleCategory === "all" || m.category === moduleCategory).map((m) => {
-                    const isEnabled = !!moduleData?.modules?.[m.key];
-                    const isSaving = savingModule === m.key;
-                    return (
-                      <div key={m.key} className="col-md-6">
-                        <div
-                          className={`p-3 rounded-3 border h-100 transition-all ${
-                            isEnabled
-                              ? "bg-body border-primary shadow-sm"
-                              : "bg-body-tertiary border-secondary-subtle opacity-75"
-                          }`}
-                          style={{ transition: "all 0.2s ease" }}
-                        >
-                          <div className="d-flex align-items-start justify-content-between gap-2">
-                            <div className="d-flex align-items-start gap-3">
-                              <div
-                                className={`p-2 rounded-circle fs-5 d-flex align-items-center justify-content-center ${
-                                  isEnabled ? "bg-primary text-white" : "bg-secondary bg-opacity-25 text-secondary"
+                  const getCatMeta = (catId: string) => {
+                    switch (catId) {
+                      case "fashion":
+                        return {
+                          icon: "bi-bag-check-fill",
+                          color: "danger",
+                          badgeBg: "bg-danger-subtle text-danger border-danger-subtle",
+                          label: "👗 Fashion",
+                          title_en: "Fashion & Apparel",
+                          title_bn: "ফ্যাশন ও পোশাক শপ",
+                          desc: lang === "bn" ? "সাইজ-কালার ম্যাট্রিক্স, টেইলারিং অলটারেশন, ফিটিং টিকেট ও সাইজ মেজারমেন্ট গাইড" : "2D Size × Color matrix, tailor alterations, fitting tickets, and size measurement guides.",
+                        };
+                      case "online_shop":
+                        return {
+                          icon: "bi-globe2",
+                          color: "info",
+                          badgeBg: "bg-info-subtle text-info border-info-subtle",
+                          label: "🌐 Online Shop",
+                          title_en: "Online Shop & E-Commerce",
+                          title_bn: "অনলাইন শপ ও ই-কমার্স",
+                          desc: lang === "bn" ? "কুরিয়ার পার্সেল ট্র্যাকিং (Steadfast, Pathao, RedX), ওয়েবসাইট ইন্টিগ্রেশন ও এপিআই" : "Courier delivery tracking, WooCommerce/Shopify sync, and public developer APIs.",
+                        };
+                      case "electronics":
+                        return {
+                          icon: "bi-cpu-fill",
+                          color: "warning",
+                          badgeBg: "bg-warning-subtle text-warning border-warning-subtle",
+                          label: "🔌 Electronics",
+                          title_en: "Electronics & Gadget Shop",
+                          title_bn: "ইলেকট্রনিক্স ও গ্যাজেট শপ",
+                          desc: lang === "bn" ? "সার্ভিস ওয়ারেন্টি ও মেরামত টিকেট, মোবাইল ল্যাব, IMEI ট্র্যাকিং এবং কিস্তি/ইএমআই" : "Device repair tickets, warranty claims, IMEI diagnostics, pattern lock, and EMI installments.",
+                        };
+                      case "manufacturing":
+                        return {
+                          icon: "bi-gear-wide-connected",
+                          color: "secondary",
+                          badgeBg: "bg-secondary-subtle text-secondary border-secondary-subtle",
+                          label: "⚙️ Manufacturing",
+                          title_en: "Manufacturing & Production",
+                          title_bn: "উৎপাদন ও প্রক্রিয়াজাতকরণ",
+                          desc: lang === "bn" ? "বিল অফ ম্যাটেরিয়ালস (BOM), কাঁচামাল ব্যবহার ও ফিনিশড গুডস অ্যাসেম্বলি" : "Bill of materials (BOM), raw material consumption, and assembly production.",
+                        };
+                      case "universal":
+                      default:
+                        return {
+                          icon: "bi-shop",
+                          color: "primary",
+                          badgeBg: "bg-primary-subtle text-primary border-primary-subtle",
+                          label: "🏬 Universal",
+                          title_en: "Universal / Core Retail",
+                          title_bn: "সার্বজনীন / কোর রিটেইল",
+                          desc: lang === "bn" ? "যেকোনো সাধারণ দোকানের জন্য অপরিহার্য পিওএস, ইনভেন্টরি, হিসাববিজ্ঞান ও সিআরএম" : "Foundational POS, inventory, purchasing, accounting, CRM, and day-to-day operations.",
+                        };
+                    }
+                  };
+
+                  const visibleCategories = moduleCategory === "all"
+                    ? ["fashion", "online_shop", "electronics", "universal", "manufacturing"]
+                    : [moduleCategory];
+
+                  return (
+                    <>
+                      {/* Filter Pills with Counts */}
+                      <div className="d-flex flex-wrap gap-1 mb-4">
+                        {categoriesDef.map((cat) => {
+                          const count = cat.id === "all"
+                            ? (moduleData?.catalog?.length || 28)
+                            : (moduleData?.catalog || []).filter((m) => m.category === cat.id).length;
+                          const activeCount = cat.id === "all"
+                            ? Object.values(moduleData?.modules || {}).filter(Boolean).length
+                            : (moduleData?.catalog || []).filter((m) => m.category === cat.id && !!moduleData?.modules?.[m.key]).length;
+
+                          return (
+                            <button
+                              key={cat.id}
+                              type="button"
+                              className={`btn btn-sm rounded-pill px-3 py-1 d-flex align-items-center gap-1 ${
+                                moduleCategory === cat.id
+                                  ? "btn-primary shadow-sm"
+                                  : "btn-outline-secondary"
+                              }`}
+                              onClick={() => setModuleCategory(cat.id)}
+                            >
+                              <span>{cat.label}</span>
+                              <span
+                                className={`badge rounded-pill ${
+                                  moduleCategory === cat.id ? "bg-white text-primary" : "bg-secondary bg-opacity-25 text-body"
                                 }`}
-                                style={{ width: 42, height: 42, flexShrink: 0 }}
+                                style={{ fontSize: "0.72rem" }}
                               >
-                                <i className={`bi ${m.icon || "bi-puzzle"}`}></i>
-                              </div>
-                              <div>
-                                <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
-                                  <h6 className="fw-bold text-body mb-0">{m.name_en}</h6>
-                                  {isEnabled && (
-                                    <span className="badge bg-success-subtle text-success border border-success-subtle py-0 px-2 fs-8 rounded-pill">
-                                      Active
-                                    </span>
-                                  )}
+                                {activeCount}/{count}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Category Sections */}
+                      <div className="d-flex flex-column gap-4">
+                        {visibleCategories.map((catId) => {
+                          const catMeta = getCatMeta(catId);
+                          const catModules = (moduleData?.catalog || []).filter((m) => m.category === catId);
+                          if (!catModules.length) return null;
+                          const catActiveCount = catModules.filter((m) => !!moduleData?.modules?.[m.key]).length;
+
+                          return (
+                            <div key={catId} className="border rounded-4 p-3 bg-body shadow-xs">
+                              {/* Category Header Banner */}
+                              <div className="d-flex align-items-center justify-content-between flex-wrap gap-2 pb-3 mb-3 border-bottom">
+                                <div className="d-flex align-items-center gap-2">
+                                  <div className={`p-2 rounded-3 bg-${catMeta.color}-subtle text-${catMeta.color} fs-5`}>
+                                    <i className={`bi ${catMeta.icon}`}></i>
+                                  </div>
+                                  <div>
+                                    <div className="d-flex align-items-center gap-2">
+                                      <h6 className="fw-bold mb-0 text-dark">
+                                        {lang === "bn" ? catMeta.title_bn : catMeta.title_en}
+                                      </h6>
+                                      <span className="text-secondary small">({lang === "bn" ? catMeta.title_en : catMeta.title_bn})</span>
+                                      <span className={`badge rounded-pill ${catMeta.badgeBg} border px-2 py-0 fs-8`}>
+                                        {catActiveCount} / {catModules.length} {lang === "bn" ? "সক্রিয়" : "Active"}
+                                      </span>
+                                    </div>
+                                    <div className="text-secondary small" style={{ fontSize: "0.8rem" }}>
+                                      {catMeta.desc}
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="d-flex align-items-center gap-2">
                                   <button
                                     type="button"
-                                    className="btn btn-sm btn-outline-info rounded-circle d-inline-flex align-items-center justify-content-center p-0"
-                                    style={{ width: 22, height: 22, flexShrink: 0 }}
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setInfoModalLang(lang === "en" ? "en" : "bn");
-                                      setInfoModalModule(MODULE_DETAILS[m.key] || {
-                                        key: m.key,
-                                        name_en: m.name_en || m.key,
-                                        name_bn: m.name_bn || m.key,
-                                        category: m.category || "General",
-                                        icon: m.icon || "bi-puzzle",
-                                        summary_en: m.description || "",
-                                        summary_bn: m.description || "",
-                                        how_it_works_en: m.description || "",
-                                        how_it_works_bn: m.description || "",
-                                        shop_changes_en: ["Enables " + (m.name_en || m.key) + " features across the tenant shop."],
-                                        shop_changes_bn: [(m.name_bn || m.key) + " এর সুবিধাসমূহ দোকানে সক্রিয় হবে।"],
-                                        recommended_for_en: "General retail shops.",
-                                        recommended_for_bn: "সাধারণ খুচরা দোকান।"
-                                      });
-                                    }}
-                                    title={lang === "bn" ? "মডিউলটির বিস্তারিত ও দোকানে কী কী পরিবর্তন হবে দেখুন" : "View how this module works & what changes in shop"}
+                                    className={`btn btn-sm btn-outline-${catMeta.color} px-2 py-1 rounded-pill fw-semibold`}
+                                    style={{ fontSize: "0.76rem" }}
+                                    disabled={busy || catActiveCount === catModules.length}
+                                    onClick={() => toggleCategoryModules(catId, true)}
+                                    title="Enable all modules in this category"
                                   >
-                                    <i className="bi bi-info fw-bold" style={{ fontSize: "0.85rem" }}></i>
+                                    <i className="bi bi-check-all me-1"></i>
+                                    {lang === "bn" ? "ক্যাটাগরি অন" : "Enable Category"}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    className="btn btn-sm btn-outline-secondary px-2 py-1 rounded-pill fw-semibold"
+                                    style={{ fontSize: "0.76rem" }}
+                                    disabled={busy || catActiveCount === 0}
+                                    onClick={() => toggleCategoryModules(catId, false)}
+                                    title="Disable all modules in this category"
+                                  >
+                                    <i className="bi bi-x-circle me-1"></i>
+                                    {lang === "bn" ? "ক্যাটাগরি অফ" : "Disable Category"}
                                   </button>
                                 </div>
-                                <div className="text-secondary small fw-medium mb-1">{m.name_bn}</div>
-                                <p className="text-secondary small mb-0 lh-sm" style={{ fontSize: "0.82rem" }}>
-                                  {m.description}
-                                </p>
+                              </div>
+
+                              {/* Modules Grid */}
+                              <div className="row g-3">
+                                {catModules.map((m) => {
+                                  const isEnabled = !!moduleData?.modules?.[m.key];
+                                  const isSaving = savingModule === m.key;
+
+                                  return (
+                                    <div key={m.key} className="col-md-6">
+                                      <div
+                                        className={`p-3 rounded-3 border h-100 transition-all ${
+                                          isEnabled
+                                            ? "bg-body border-primary shadow-sm"
+                                            : "bg-body-tertiary border-secondary-subtle opacity-75"
+                                        }`}
+                                        style={{ transition: "all 0.2s ease" }}
+                                      >
+                                        <div className="d-flex align-items-start justify-content-between gap-2">
+                                          <div className="d-flex align-items-start gap-3">
+                                            <div
+                                              className={`p-2 rounded-3 fs-5 d-flex align-items-center justify-content-center ${
+                                                isEnabled ? `bg-${catMeta.color} text-white shadow-xs` : "bg-secondary bg-opacity-25 text-secondary"
+                                              }`}
+                                              style={{ width: 42, height: 42, flexShrink: 0 }}
+                                            >
+                                              <i className={`bi ${m.icon || "bi-puzzle"}`}></i>
+                                            </div>
+                                            <div>
+                                              <div className="d-flex align-items-center gap-2 mb-1 flex-wrap">
+                                                <h6 className="fw-bold text-body mb-0" style={{ fontSize: "0.95rem" }}>
+                                                  {m.name_en}
+                                                </h6>
+                                                <span className={`badge rounded-pill ${catMeta.badgeBg} border px-2 py-0 fs-8`}>
+                                                  {catMeta.label}
+                                                </span>
+                                                {isEnabled ? (
+                                                  <span className="badge bg-success-subtle text-success border border-success-subtle py-0 px-2 fs-8 rounded-pill">
+                                                    Active
+                                                  </span>
+                                                ) : (
+                                                  <span className="badge bg-light text-secondary border py-0 px-2 fs-8 rounded-pill">
+                                                    Off
+                                                  </span>
+                                                )}
+                                                <button
+                                                  type="button"
+                                                  className="btn btn-sm btn-outline-info rounded-circle d-inline-flex align-items-center justify-content-center p-0"
+                                                  style={{ width: 22, height: 22, flexShrink: 0 }}
+                                                  onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    setInfoModalLang(lang === "en" ? "en" : "bn");
+                                                    setInfoModalModule(MODULE_DETAILS[m.key] || {
+                                                      key: m.key,
+                                                      name_en: m.name_en || m.key,
+                                                      name_bn: m.name_bn || m.key,
+                                                      category: catMeta.title_en,
+                                                      icon: m.icon || "bi-puzzle",
+                                                      summary_en: m.description || "",
+                                                      summary_bn: m.description || "",
+                                                      how_it_works_en: m.description || "",
+                                                      how_it_works_bn: m.description || "",
+                                                      shop_changes_en: ["Enables " + (m.name_en || m.key) + " features across the tenant shop."],
+                                                      shop_changes_bn: [(m.name_bn || m.key) + " এর সুবিধাসমূহ দোকানে সক্রিয় হবে।"],
+                                                      recommended_for_en: "General retail shops.",
+                                                      recommended_for_bn: "সাধারণ খুচরা দোকান。"
+                                                    });
+                                                  }}
+                                                  title={lang === "bn" ? "মডিউলটির বিস্তারিত ও দোকানে কী কী পরিবর্তন হবে দেখুন" : "View how this module works & what changes in shop"}
+                                                >
+                                                  <i className="bi bi-info fw-bold" style={{ fontSize: "0.85rem" }}></i>
+                                                </button>
+                                              </div>
+                                              <div className="text-secondary small fw-medium mb-1">{m.name_bn}</div>
+                                              <p className="text-secondary small mb-0 lh-sm" style={{ fontSize: "0.82rem" }}>
+                                                {m.description}
+                                              </p>
+                                            </div>
+                                          </div>
+                                          <div className="form-check form-switch fs-4 mb-0 ms-2">
+                                            <input
+                                              className="form-check-input"
+                                              type="checkbox"
+                                              role="switch"
+                                              checked={isEnabled}
+                                              disabled={busy || isSaving}
+                                              onChange={() => toggleModule(m.key, isEnabled)}
+                                              style={{ cursor: "pointer" }}
+                                            />
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
-                            <div className="form-check form-switch fs-4 mb-0 ms-2">
-                              <input
-                                className="form-check-input"
-                                type="checkbox"
-                                role="switch"
-                                checked={isEnabled}
-                                disabled={busy || isSaving}
-                                onChange={() => toggleModule(m.key, isEnabled)}
-                                style={{ cursor: "pointer" }}
-                              />
-                            </div>
-                          </div>
-                        </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
-                </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <h5 className="fw-bold text-body mb-4"><i className="bi bi-person-badge me-2 text-info"></i>Owner Details</h5>

@@ -7,14 +7,66 @@ Each module can be independently enabled or disabled per shop or via subscriptio
 
 from typing import Any, Dict, List
 
-# Catalog of all 24 system modules
+# Business vertical categories
+MODULE_CATEGORIES: List[Dict[str, Any]] = [
+    {
+        "id": "all",
+        "name_en": "All Modules",
+        "name_bn": "সকল মডিউল",
+        "icon": "bi-grid-fill",
+        "badge_color": "secondary",
+        "description": "View all 28 modules across all business verticals.",
+    },
+    {
+        "id": "fashion",
+        "name_en": "Fashion & Apparel",
+        "name_bn": "ফ্যাশন ও পোশাক শপ",
+        "icon": "bi-bag-check-fill",
+        "badge_color": "danger",
+        "description": "Garment size-color variant matrix, tailor alterations & fitting tickets, measurement size guides, and apparel tags.",
+    },
+    {
+        "id": "online_shop",
+        "name_en": "Online Shop & E-Commerce",
+        "name_bn": "অনলাইন শপ ও ই-কমার্স",
+        "icon": "bi-globe2",
+        "badge_color": "info",
+        "description": "Courier delivery tracking (Steadfast, Pathao, RedX), website integrations (WooCommerce, Shopify), and public APIs.",
+    },
+    {
+        "id": "electronics",
+        "name_en": "Electronics & Gadget Shop",
+        "name_bn": "ইলেকট্রনিক্স ও গ্যাজেট শপ",
+        "icon": "bi-cpu-fill",
+        "badge_color": "warning",
+        "description": "Service & repair tickets, warranty claims, mobile device intake with IMEI & pattern locks, and installment EMI sales.",
+    },
+    {
+        "id": "universal",
+        "name_en": "Universal / Core Retail",
+        "name_bn": "সার্বজনীন / কোর রিটেইল",
+        "icon": "bi-shop",
+        "badge_color": "primary",
+        "description": "Foundational POS, inventory, purchasing, accounting, CRM, and day-to-day operations suitable for any retail business.",
+    },
+    {
+        "id": "manufacturing",
+        "name_en": "Manufacturing & Production",
+        "name_bn": "উৎপাদন ও প্রক্রিয়াজাতকরণ",
+        "icon": "bi-gear-wide-connected",
+        "badge_color": "secondary",
+        "description": "Bill of materials (BOM), raw material consumption tracking, and finished goods assembly production.",
+    },
+]
+
+# Catalog of all 28 system modules
 MODULE_CATALOG: List[Dict[str, Any]] = [
-    # --- POS & Retail Operations ---
+    # --- Universal / Core Retail Operations ---
     {
         "key": "core_pos",
         "name_en": "Core POS & Billing",
         "name_bn": "মূল পিওএস ও কুইক বিলিং",
-        "category": "pos",
+        "category": "universal",
         "icon": "bi-receipt-cutoff",
         "description": "Fast cashier checkout, receipt generation, and cash drawer management.",
         "default_enabled": True,
@@ -23,253 +75,253 @@ MODULE_CATALOG: List[Dict[str, Any]] = [
         "key": "pos_hardware",
         "name_en": "Scale & Hardware Integration",
         "name_bn": "ডিজিটাল ওয়েট স্কেল ও হার্ডওয়্যার",
-        "category": "pos",
-        "icon": "bi-cpu",
-        "description": "Digital barcode weighing scale (PLU decoding), pole display, and thermal printers.",
+        "category": "universal",
+        "icon": "bi-hdd-network",
+        "description": "Electronic scale barcode decoding (EAN-13 weights) and thermal printer integration.",
         "default_enabled": False,
     },
     {
         "key": "scanner_bridge",
-        "name_en": "Wireless Phone Scanner",
+        "name_en": "Wireless Scanner Bridge",
         "name_bn": "ওয়্যারলেস ফোন স্ক্যানার",
-        "category": "pos",
-        "icon": "bi-upc-scan",
-        "description": "Use smartphone camera as a real-time barcode reader for POS terminals.",
+        "category": "universal",
+        "icon": "bi-qr-code-scan",
+        "description": "Use any smartphone camera as a wireless continuous barcode scanner for POS.",
         "default_enabled": True,
     },
+    # --- Electronics & Gadget Shop ---
     {
         "key": "emi_installments",
-        "name_en": "EMI & Installment Sales",
-        "name_bn": "কিস্তি ও ইএমআই কালেকশন",
-        "category": "pos",
-        "icon": "bi-calendar-check",
-        "description": "Sell products on monthly installments, calculate down payments, and track dues.",
+        "name_en": "Installment & EMI Sales",
+        "name_bn": "কিস্তি ও ইএমআই বিক্রয়",
+        "category": "electronics",
+        "icon": "bi-calendar2-week",
+        "description": "Flexible monthly installments, down-payment ledger, guarantor records, and overdue alerts for gadgets and electronics.",
         "default_enabled": False,
     },
-
-    # --- Inventory & Supply Chain ---
+    # --- Universal / Core Inventory & Purchasing ---
     {
         "key": "inventory_basic",
-        "name_en": "Basic Inventory & Catalog",
-        "name_bn": "বেসিক ইনভেন্টরি ও প্রোডাক্ট ক্যাটালগ",
-        "category": "inventory",
-        "icon": "bi-boxes",
-        "description": "Products, categories, brands, units, stock alerts, and barcode label printing.",
+        "name_en": "Basic Inventory Management",
+        "name_bn": "মৌলিক ইনভেন্টরি ট্র্যাকিং",
+        "category": "universal",
+        "icon": "bi-box-seam",
+        "description": "Stock levels, low-stock warnings, SKUs, and single-location product catalog.",
         "default_enabled": True,
     },
     {
         "key": "inventory_advanced",
         "name_en": "Advanced Batches & Expiry",
-        "name_bn": "লট নম্বর, এক্সপায়ারি ও ব্যাচ ট্র্যাকিং",
-        "category": "inventory",
-        "icon": "bi-calendar-x",
-        "description": "Lot numbers, expiry date warnings, product variants (color/size), and multi-UOM.",
+        "name_bn": "অ্যাডভান্সড ইনভেন্টরি ও ব্যাচ-মেয়াদ",
+        "category": "universal",
+        "icon": "bi-boxes",
+        "description": "Lot numbers, expiry date alerts, and multiple unit of measure conversions.",
         "default_enabled": False,
     },
     {
         "key": "product_pictures",
         "name_en": "Product Pictures & Visual POS",
-        "name_bn": "প্রোডাক্ট ছবি ও ভিজ্যুয়াল পিওএস",
-        "category": "inventory",
+        "name_bn": "পণ্য ছবি ও ভিজ্যুয়াল ক্যাটালগ",
+        "category": "universal",
         "icon": "bi-image",
-        "description": "Upload high-res product photos with auto WebP compression (<80KB) and visual POS card grid.",
+        "description": "Multi-image product gallery with zoom and photo grid on POS register.",
         "default_enabled": True,
     },
+    # --- Fashion & Apparel Shop ---
     {
         "key": "apparel_catalog",
-        "name_en": "Apparel & Clothing Product Suite",
-        "name_bn": "পোশাক ও ক্লদিং প্রোডাক্ট স্যুট",
-        "category": "inventory",
-        "icon": "bi-tags",
-        "description": "2D Size × Color variant matrix, garment taxonomy (fabric, fit, season, gender), and clothing hang-tag barcode printing.",
+        "name_en": "Fashion & Apparel Matrix",
+        "name_bn": "পোশাক ক্যাটালগ ও ভ্যারিয়েন্ট ম্যাট্রিক্স",
+        "category": "fashion",
+        "icon": "bi-tag",
+        "description": "Size x Color variant matrix, garment hang-tags, barcode label sheets, and measurement size charts.",
         "default_enabled": False,
     },
     {
+        "key": "apparel_alterations",
+        "name_en": "Garment Alterations & Fitting",
+        "name_bn": "পোশাক অলটারেশন ও ফিটিং টিকেট",
+        "category": "fashion",
+        "icon": "bi-scissors",
+        "description": "Customer tailoring Kanban workflow, fitting docket slips, measurement notes, and tailor assignment.",
+        "default_enabled": False,
+    },
+    # --- Universal / Core Operations ---
+    {
         "key": "purchasing",
-        "name_en": "Purchasing & Suppliers",
-        "name_bn": "সাপ্লায়ার ও পারচেজ অর্ডার",
-        "category": "inventory",
-        "icon": "bi-truck",
-        "description": "Supplier directory, purchase orders, goods receiving, and supplier payment ledger.",
+        "name_en": "Purchasing & Supplier Orders",
+        "name_bn": "ক্রয় ও সরবরাহকারী অর্ডার",
+        "category": "universal",
+        "icon": "bi-cart-check",
+        "description": "Purchase orders, goods received notes (GRN), and supplier debt ledgers.",
         "default_enabled": True,
     },
     {
         "key": "multi_branch",
-        "name_en": "Multi-Branch Management",
-        "name_bn": "একাধিক শাখা ও স্টক ট্রান্সফার",
-        "category": "inventory",
-        "icon": "bi-diagram-3",
-        "description": "Manage multiple retail outlets, central warehouse, and inter-branch transfers.",
+        "name_en": "Multi-Branch & Warehouses",
+        "name_bn": "একাধিক ব্রাঞ্চ ও সেন্ট্রাল ওয়্যারহাউজ",
+        "category": "universal",
+        "icon": "bi-buildings",
+        "description": "Inter-branch stock transfers, separate warehouse registers, and centralized reports.",
         "default_enabled": False,
     },
-
-    # --- Sales & Customer Relationship ---
+    # --- Universal / CRM & Customer Retention ---
     {
         "key": "sales_crm",
-        "name_en": "Sales & Customer CRM",
-        "name_bn": "সেলস ও কাস্টমার সিআরএম",
-        "category": "crm",
+        "name_en": "Customer CRM & Due Ledger",
+        "name_bn": "গ্রাহক সম্পর্ক ও বাকি খতিয়ান",
+        "category": "universal",
         "icon": "bi-people",
-        "description": "Customer profiles, credit ledger, customer dues tracking, and quotations.",
+        "description": "Customer purchase profiles, credit/due limits, and payment receipt history.",
         "default_enabled": True,
     },
     {
         "key": "whatsapp_crm",
-        "name_en": "WhatsApp CRM & 1-Tap Invoices",
-        "name_bn": "হোয়াটসঅ্যাপ সিআরএম ও ইনভয়েস",
-        "category": "crm",
+        "name_en": "WhatsApp Automated Invoicing",
+        "name_bn": "হোয়াটসঅ্যাপ অটোমেটেড ইনভয়েস",
+        "category": "universal",
         "icon": "bi-whatsapp",
-        "description": "Multi-tenant Baileys QR code pairing and 1-tap direct WhatsApp invoice sending.",
+        "description": "Send PDF receipts, payment reminders, and order confirmations via WhatsApp.",
         "default_enabled": True,
     },
     {
         "key": "sms_email_alerts",
         "name_en": "SMS & Email Notifications",
         "name_bn": "এসএমএস ও ইমেইল অ্যালার্ট",
-        "category": "crm",
-        "icon": "bi-chat-left-dots",
-        "description": "Automated purchase SMS to customers and system email dispatch.",
+        "category": "universal",
+        "icon": "bi-chat-dots",
+        "description": "Branded SMS gateway integration for OTPs, due collection reminders, and marketing.",
         "default_enabled": False,
     },
     {
         "key": "discounts_loyalty",
-        "name_en": "Discounts & Loyalty Points",
-        "name_bn": "ডিসকাউন্ট ও লয়ালটি পয়েন্ট",
-        "category": "crm",
-        "icon": "bi-gift",
-        "description": "Promotional coupon codes, loyalty points accumulation, and VIP tier benefits.",
+        "name_en": "Loyalty Points & Coupons",
+        "name_bn": "লয়ালটি পয়েন্ট ও প্রোমো কোড",
+        "category": "universal",
+        "icon": "bi-award",
+        "description": "Customer reward points cashback, tiered VIP customer groups, and coupon discounts.",
+        "default_enabled": False,
+    },
+    # --- Online Shop & E-Commerce ---
+    {
+        "key": "delivery_tracking",
+        "name_en": "Courier Delivery & Tracking",
+        "name_bn": "কুরিয়ার ডেলিভারি ও পার্সেল ট্র্যাকিং",
+        "category": "online_shop",
+        "icon": "bi-truck",
+        "description": "Parcel dispatch, courier API integration (Steadfast, Pathao, RedX), and cash-on-delivery reconciliation.",
+        "default_enabled": True,
+    },
+    {
+        "key": "integrations",
+        "name_en": "E-Commerce & Website Integrations",
+        "name_bn": "ই-কমার্স ও ওয়েবসাইট ইন্টিগ্রেশন",
+        "category": "online_shop",
+        "icon": "bi-diagram-3",
+        "description": "WooCommerce, Shopify, Steadfast, RedX, Pathao syncing, webhooks, and automated order routing.",
         "default_enabled": False,
     },
     {
-        "key": "delivery_tracking",
-        "name_en": "Courier & Delivery Tracking",
-        "name_bn": "কুরিয়ার ও হোম ডেলিভারি",
-        "category": "crm",
-        "icon": "bi-geo-alt",
-        "description": "Home delivery orders, delivery rider assignment, and courier status tracking.",
-        "default_enabled": True,
+        "key": "public_api",
+        "name_en": "Developer API Access",
+        "name_bn": "ডেভেলপার এপিআই ও হেডলেস শপ",
+        "category": "online_shop",
+        "icon": "bi-code-slash",
+        "description": "Secure REST API bearer keys for custom websites, headless storefronts, and mobile apps.",
+        "default_enabled": False,
     },
-
-    # --- Accounting & Finance ---
+    # --- Universal / Finance, Expenses & Accounting ---
     {
         "key": "finance_accounting",
-        "name_en": "Double-Entry Accounting",
+        "name_en": "Double-Entry Accounting & Ledger",
         "name_bn": "ডাবল-এন্ট্রি একাউন্টিং ও লেজার",
-        "category": "finance",
+        "category": "universal",
         "icon": "bi-journal-bookmark",
-        "description": "General ledger, chart of accounts, journal vouchers, and automated trial balance.",
+        "description": "General ledger, chart of accounts, balance sheets, and profit & loss statements.",
         "default_enabled": False,
     },
     {
         "key": "expense_management",
-        "name_en": "Expense & Cash Register",
+        "name_en": "Expense & Petty Cash",
         "name_bn": "দৈনিক খরচ ও ক্যাশ রেজিস্টার",
-        "category": "finance",
+        "category": "universal",
         "icon": "bi-wallet2",
-        "description": "Shop operating expenses, overhead costs, and daily cash-in-hand monitoring.",
+        "description": "Track rent, electricity, tea, staff snacks, and calculate net daily profit.",
         "default_enabled": True,
     },
     {
         "key": "advanced_analytics",
-        "name_en": "Executive Analytics & AI",
-        "name_bn": "এক্সিকিউটিভ অ্যানালিটিক্স",
-        "category": "finance",
+        "name_en": "Executive BI & Analytics",
+        "name_bn": "এক্সিকিউটিভ বিআই ও অ্যানালিটিক্স",
+        "category": "universal",
         "icon": "bi-graph-up-arrow",
-        "description": "Profit & loss charts, sales forecasts, top selling items, and dead stock analysis.",
+        "description": "Sales heatmaps, top-moving items, profit margin trends, and AI forecasting.",
         "default_enabled": False,
     },
     {
         "key": "reports_export",
-        "name_en": "Reports & Data Export",
+        "name_en": "Excel & PDF Financial Reports",
         "name_bn": "রিপোর্ট ও ডাটা এক্সপোর্ট",
-        "category": "finance",
+        "category": "universal",
         "icon": "bi-file-earmark-spreadsheet",
-        "description": "Export reports in PDF and Excel formats with financial audits.",
+        "description": "One-click export of sales, tax (VAT), inventory valuation, and customer ledgers.",
         "default_enabled": True,
     },
-
-    # --- Specialized Industry Addons ---
+    # --- Electronics & Gadget Shop Repairs ---
     {
         "key": "service_repair",
-        "name_en": "Service & Warranty Tickets",
+        "name_en": "Device Repair & Warranty",
         "name_bn": "সার্ভিসিং ও ওয়ারেন্টি টিকিট",
-        "category": "addons",
+        "category": "electronics",
         "icon": "bi-tools",
-        "description": "Customer product intake, service job sheets, warranty status, and repairs.",
+        "description": "Customer device intake, repair status job sheets, technician assignment, and warranty tracking.",
         "default_enabled": False,
     },
     {
         "key": "mobile_repair_pos",
-        "name_en": "Mobile Repair Specialty Suite",
-        "name_bn": "মোবাইল রিপেয়ার স্পেশাল স্যুট",
-        "category": "addons",
+        "name_en": "Mobile & Gadget Repair Lab",
+        "name_bn": "মোবাইল ও গ্যাজেট ল্যাব (IMEI)",
+        "category": "electronics",
         "icon": "bi-phone",
-        "description": "IMEI lookup, device security lock pattern diagram, and brand/model catalogs.",
+        "description": "IMEI lookup, pattern lock screen diagrams, fault diagnostic intake, and device scratches condition.",
         "default_enabled": False,
     },
-    {
-        "key": "apparel_alterations",
-        "name_en": "Garment Alteration, Fitting & Laser",
-        "name_bn": "পোশাক অল্টারেশন, ফিটিং ও লেজার",
-        "category": "addons",
-        "icon": "bi-scissors",
-        "description": "Garment fitting tickets, tailor job assignments, alteration notes, and SMS/WhatsApp completion alerts.",
-        "default_enabled": False,
-    },
+    # --- Manufacturing & Production ---
     {
         "key": "manufacturing",
         "name_en": "Manufacturing & Production",
         "name_bn": "ম্যানুফ্যাকচারিং ও ব্যাচ প্রোডাকশন",
-        "category": "addons",
+        "category": "manufacturing",
         "icon": "bi-gear-wide-connected",
         "description": "Bill of Materials (BOM), raw material tracking, and production work orders.",
         "default_enabled": False,
     },
+    # --- Universal / Enterprise & Administration ---
     {
         "key": "human_resources",
         "name_en": "HR, Staff & Payroll",
         "name_bn": "এইচআর, স্টাফ ও পে-রোল",
-        "category": "addons",
+        "category": "universal",
         "icon": "bi-person-badge",
-        "description": "Employee profiles, attendance tracking, shift scheduling, and salary calculation.",
-        "default_enabled": False,
-    },
-
-    # --- Enterprise, Integration & Platform ---
-    {
-        "key": "public_api",
-        "name_en": "Developer API Access",
-        "name_bn": "ডেভেলপার এপিআই ও ইন্টিগ্রেশন",
-        "category": "enterprise",
-        "icon": "bi-code-slash",
-        "description": "REST API keys for third-party e-commerce, Shopify, and custom integrations.",
+        "description": "Employee directory, daily attendance, advance salary tracking, and payroll pay-slips.",
         "default_enabled": False,
     },
     {
         "key": "reseller_hub",
         "name_en": "Reseller & Referral Hub",
         "name_bn": "রিসেলার ও রেফারেল হাব",
-        "category": "enterprise",
+        "category": "universal",
         "icon": "bi-diagram-2",
-        "description": "Manage affiliate resellers, commissions, and revenue share tracking.",
+        "description": "Manage affiliate resellers, sales referral codes, and revenue commission splits.",
         "default_enabled": False,
     },
     {
         "key": "backup_drive",
         "name_en": "Automated Cloud Backups",
         "name_bn": "স্বয়ংক্রিয় ক্লাউড ব্যাকআপ",
-        "category": "enterprise",
+        "category": "universal",
         "icon": "bi-cloud-arrow-up",
-        "description": "Nightly PostgreSQL and media snapshots to Google Drive or custom S3.",
-        "default_enabled": False,
-    },
-    {
-        "key": "integrations",
-        "name_en": "E-Commerce & Courier Integrations",
-        "name_bn": "ই-কমার্স ও কুরিয়ার ইন্টিগ্রেশন",
-        "category": "enterprise",
-        "icon": "bi-diagram-3",
-        "description": "WooCommerce, Shopify, Steadfast, RedX, Pathao syncing, webhooks, and automated order routing.",
+        "description": "Nightly encrypted database and media snapshots backed up to Google Drive or AWS S3.",
         "default_enabled": False,
     },
 ]
@@ -309,30 +361,47 @@ PRESET_PACKAGES: Dict[str, Dict[str, Any]] = {
         ],
     },
     "repair_specialty": {
-        "name": "Electronics & Repair (সার্ভিস ও রিপেয়ার)",
-        "description": "Retail billing with device service tickets and mobile repair diagnostics.",
+        "name": "Electronics & Repair Lab (ইলেকট্রনিক্স ও গ্যাজেট শপ)",
+        "description": "Retail billing with device service tickets, mobile repair diagnostics, IMEI tracking, and EMI installments.",
         "modules": [
             "core_pos", "scanner_bridge", "inventory_basic", "purchasing",
-            "sales_crm", "whatsapp_crm", "expense_management", "service_repair",
-            "mobile_repair_pos", "reports_export", "delivery_tracking"
+            "sales_crm", "emi_installments", "service_repair", "mobile_repair_pos",
+            "whatsapp_crm", "expense_management", "reports_export"
         ],
     },
     "apparel_fashion": {
-        "name": "Apparel & Fashion Boutique (পোশাক ও ফ্যাশন)",
-        "description": "Tailored for clothing stores, boutiques, footwear, and fashion accessories with size-color matrix and hang-tags.",
+        "name": "Fashion & Apparel Boutique (পোশাক ও ফ্যাশন)",
+        "description": "Tailored for clothing stores, boutiques, footwear, and fashion accessories with size-color matrix, tailoring alterations, and hang-tags.",
         "modules": [
             "core_pos", "scanner_bridge", "inventory_basic", "product_pictures",
             "apparel_catalog", "apparel_alterations", "purchasing", "sales_crm", "whatsapp_crm",
             "discounts_loyalty", "reports_export", "delivery_tracking"
         ],
     },
+    "online_store": {
+        "name": "Online Shop & Courier (অনলাইন শপ ও কুরিয়ার)",
+        "description": "Courier parcel delivery tracking, WooCommerce/Shopify sync, product catalog, and WhatsApp receipts.",
+        "modules": [
+            "core_pos", "scanner_bridge", "inventory_basic", "product_pictures",
+            "purchasing", "sales_crm", "delivery_tracking", "integrations",
+            "public_api", "whatsapp_crm", "sms_email_alerts", "reports_export"
+        ],
+    },
+    "manufacturing_preset": {
+        "name": "Manufacturing & Production (উৎপাদন ও প্রক্রিয়া)",
+        "description": "Bill of Materials (BOM), raw material tracking, production batches, and finished goods assembly.",
+        "modules": [
+            "core_pos", "inventory_basic", "inventory_advanced", "purchasing",
+            "sales_crm", "manufacturing", "expense_management", "finance_accounting", "reports_export"
+        ],
+    },
     "enterprise": {
-        "name": "Full Enterprise Suite (সম্পূর্ণ এন্টারপ্রাইজ)",
+        "name": "Full Enterprise Suite (সকল ২৮টি মডিউল)",
         "description": "Every single feature, including manufacturing, HR payroll, integrations, and cloud backup.",
         "modules": ALL_MODULE_KEYS,
     },
     "all": {
-        "name": "All 26 Modules (সকল ২৬টি মডিউল)",
+        "name": "All 28 Modules (সকল ২৮টি মডিউল সক্রিয়)",
         "description": "Unlock every single capability across retail, manufacturing, repair, accounts, and integrations.",
         "modules": ALL_MODULE_KEYS,
     },
@@ -398,12 +467,20 @@ def get_shop_modules(shop) -> Dict[str, bool]:
     if hasattr(shop, "whatsapp_invoice_enabled"):
         resolved["whatsapp_crm"] = bool(shop.whatsapp_invoice_enabled)
 
-    # Auto-enable apparel_catalog & apparel_alterations for fashion/clothing/apparel/footwear/handcrafts/jewelry categories
-    shop_type = getattr(shop, "business_type", "") or ""
-    if shop_type in ["fashion", "apparel", "footwear", "handcrafts", "jewelry"]:
+    # Auto-enable category-specific modules by business_type
+    shop_type = (getattr(shop, "business_type", "") or "").lower()
+    if shop_type in ["fashion", "apparel", "footwear", "clothing", "handcrafts", "jewelry"]:
         resolved["apparel_catalog"] = True
         resolved["apparel_alterations"] = True
         resolved["alterations"] = True
+    elif shop_type in ["electronics", "computer", "mobile", "gadget"]:
+        resolved["service_repair"] = True
+        resolved["mobile_repair_pos"] = True
+        resolved["emi_installments"] = True
+    elif shop_type in ["online", "ecommerce", "storefront", "online_shop"]:
+        resolved["delivery_tracking"] = True
+        resolved["integrations"] = True
+        resolved["public_api"] = True
 
     # Apply specific shop-level overrides stored in shop.modules JSON
     stored_overrides = getattr(shop, "modules", None)

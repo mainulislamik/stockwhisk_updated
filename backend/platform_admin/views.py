@@ -580,6 +580,7 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
         shop = self.get_object()
         from tenants.modules import (
             MODULE_CATALOG,
+            MODULE_CATEGORIES,
             MODULE_DICT,
             PRESET_PACKAGES,
             get_shop_modules,
@@ -589,6 +590,7 @@ class ShopAdminViewSet(viewsets.ModelViewSet):
                 "shop_id": shop.id,
                 "shop_name": shop.name,
                 "catalog": MODULE_CATALOG,
+                "categories": MODULE_CATEGORIES,
                 "presets": PRESET_PACKAGES,
                 "modules": get_shop_modules(shop),
                 "custom_overrides": shop.modules or {},

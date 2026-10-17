@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
 from .modules import (
     MODULE_CATALOG,
+    MODULE_CATEGORIES,
     PRESET_PACKAGES,
     get_shop_modules,
     is_module_enabled,
@@ -29,6 +30,7 @@ class ShopModulesView(APIView):
         shop_modules = get_shop_modules(shop) if shop else get_default_modules()
         return Response({
             "catalog": MODULE_CATALOG,
+            "categories": MODULE_CATEGORIES,
             "presets": PRESET_PACKAGES,
             "shop_modules": shop_modules,
             "shop_id": shop.id if shop else None,

@@ -8,14 +8,16 @@ import { api } from "@/lib/api";
 import { ErrorState, PageHeader } from "@/components/ui";
 
 const BUSINESS_TYPES = [
-  { value: "general", label: "General Retail" },
+  { value: "general", label: "General Retail (সাধারণ খুচরা)" },
+  { value: "fashion", label: "Fashion & Apparel (পোশাক ও ফ্যাশন)" },
+  { value: "online_shop", label: "Online Shop & E-Commerce (অনলাইন শপ)" },
+  { value: "electronics", label: "Electronics (ইলেকট্রনিক্স ও গ্যাজেট)" },
+  { value: "mobile", label: "Mobile & Accessories (মোবাইল শপ)" },
+  { value: "computer", label: "Computer & Hardware (কম্পিউটার শপ)" },
+  { value: "supershop", label: "Super Shop & Grocery (সুপার শপ)" },
+  { value: "cosmetics", label: "Cosmetics & Beauty (কসমেটিক্স)" },
   { value: "camical", label: "Chemical & Lab Supplies" },
-  { value: "supershop", label: "Super Shop & Grocery" },
   { value: "printing", label: "Printing, Media & Online Services" },
-  { value: "cosmetics", label: "Cosmetics & Beauty" },
-  { value: "electronics", label: "Electronics" },
-  { value: "computer", label: "Computer" },
-  { value: "mobile", label: "Mobile & Accessories" },
 ];
 
 export default function CreateShopPage() {
